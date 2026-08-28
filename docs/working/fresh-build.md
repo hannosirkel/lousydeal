@@ -10,7 +10,7 @@ The previous experience with a small webshop built through one broad umbrella ta
 
 ---
 
-# 1. Operating model
+## 1. Operating model
 
 Act primarily as an **initiative coordinator**.
 
@@ -33,7 +33,7 @@ Do not create one giant implementation prompt or PR.
 
 ---
 
-# 2. Governance first
+## 2. Governance first
 
 Governance is not something to go looking for. It is
 [`hannosirkel/architecture`](https://github.com/hannosirkel/architecture), and
@@ -103,7 +103,7 @@ Do not couple Lousy Deal availability or product behavior to Plepic Games.
 
 ---
 
-# 2a. Visibility, secrets, and what may be published
+## 2a. Visibility, secrets, and what may be published
 
 **This repository is public**, and `public_safe_required: true`. It must be safe
 to publish on every commit, not cleaned up before a launch.
@@ -143,7 +143,7 @@ all; if it does not, this exception is unused and no secret is needed.
 
 ---
 
-# 3. Product premise
+## 3. Product premise
 
 The fundamental brand/product rule is:
 
@@ -170,13 +170,13 @@ The company itself should generally behave as if all of this is perfectly reason
 
 ---
 
-# 4. V1 product scope
+## 4. V1 product scope
 
-## 4.1 Core deals
+### 4.1 Core deals
 
 Provide these products:
 
-### Lousy Deal — $5
+#### Lousy Deal — $5
 
 Customer receives:
 
@@ -184,7 +184,7 @@ Customer receives:
 * a polished digital certificate;
 * a permanent public certificate page unless otherwise specified.
 
-### Lousy Deal Plus — $10
+#### Lousy Deal Plus — $10
 
 Essentially the same economic value as the $5 product.
 
@@ -194,7 +194,7 @@ Differences should be mostly:
 * more prestigious certificate treatment;
 * stronger implication that paying more was a worse decision.
 
-### Lousy Deal Pro — $25
+#### Lousy Deal Pro — $25
 
 Again essentially the same underlying economic value.
 
@@ -208,11 +208,11 @@ The humor depends on higher tiers providing little or no meaningful additional v
 
 ---
 
-# 5. Certificates
+## 5. Certificates
 
 Certificates are the primary real digital product and should look **surprisingly good**.
 
-## What is public, and what is not
+### What is public, and what is not
 
 **The name on the order is never public.** Billing identity is order data, not
 certificate content, and it appears nowhere on the public page, the share card,
@@ -287,7 +287,7 @@ Certificates should be:
 * **downloadable as a PDF**;
 * deterministic and regenerable from stored deal data.
 
-## The PDF, its renderer, and its URLs
+### The PDF, its renderer, and its URLs
 
 The certificate page carries share links and a **Download PDF** action.
 
@@ -307,7 +307,7 @@ application. There is no bucket, no external storage credential, and no storage
 outage that can take a certificate offline. Cache it if it earns the cache, but
 treat the cache as disposable and the deal record as the source of truth.
 
-## URLs
+### URLs
 
 ```text
 lousydeal.com/done-deals/{slug}
@@ -328,7 +328,7 @@ lousydeal.com/done-deals/{slug}/certificate.pdf
 
 ---
 
-# 6. Gift purchases
+## 6. Gift purchases
 
 A customer must be able to purchase a Lousy Deal as a gift.
 
@@ -354,7 +354,7 @@ Gift purchases should require no account registration.
 
 ---
 
-# 7. Merch
+## 7. Merch
 
 Integrate **Printful from V1**.
 
@@ -393,7 +393,7 @@ Handle:
 
 ---
 
-# 8. Baldrick
+## 8. Baldrick
 
 Create **Baldrick**, the site's deterministic sales/support chatbot.
 
@@ -433,7 +433,7 @@ Do not build sophisticated NLP unless actual usage demonstrates a need.
 
 ---
 
-# 9. Baldrick discount mechanics
+## 9. Baldrick discount mechanics
 
 Baldrick can issue apparent “discount” codes that make the customer's deal worse.
 
@@ -460,7 +460,7 @@ Track code usage so later analytics can answer questions such as:
 * how many accepted a worse price;
 * which codes convert.
 
-## How a surcharge is actually built
+### How a surcharge is actually built
 
 The customer-facing interaction is a genuine "enter a discount code, watch a
 surcharge appear" moment. What the customer sees:
@@ -515,7 +515,7 @@ cannot raise one.
 
 ---
 
-# 10. Enterprise — deferred, not in V1
+## 10. Enterprise — deferred, not in V1
 
 **Enterprise is out of scope for the first version.** No subscription, no
 recurring billing, no entitlement, no expiry. It is the hardest phase — real
@@ -533,7 +533,7 @@ The customer should discover/unlock it through Baldrick.
 
 Concept:
 
-### Lousy Deal Enterprise
+#### Lousy Deal Enterprise
 
 * annual subscription/license;
 * one-year certificate entitlement;
@@ -560,7 +560,7 @@ Use Stripe/Medusa recurring-payment capabilities appropriate to the current stac
 
 ---
 
-# 11. Public counters and shareability
+## 11. Public counters and shareability
 
 Add lightweight viral/shareable mechanics where they remain simple.
 
@@ -583,7 +583,7 @@ Marketing jokes must not masquerade as actual customer reviews.
 
 ---
 
-# 12. Accounts
+## 12. Accounts
 
 Do **not** require normal customers to create accounts.
 
@@ -610,7 +610,7 @@ YAGNI.
 
 ---
 
-# 13. Brand and copy phase
+## 13. Brand and copy phase
 
 Do not let implementation agents invent the brand as they code.
 
@@ -654,7 +654,7 @@ Do not bury copy review inside a frontend PR.
 
 ---
 
-# 14. Visual design phase
+## 14. Visual design phase
 
 Before implementing the main storefront, create actual visual direction.
 
@@ -680,7 +680,7 @@ A passing unit-test suite does not constitute visual acceptance.
 
 ---
 
-# 15. Technical direction
+## 15. Technical direction
 
 Preferred baseline:
 
@@ -696,7 +696,7 @@ Preferred baseline:
 
 Reuse Plepic conventions where they are generic and proven.
 
-## Deployment
+### Deployment
 
 Decided: **the Orange cluster, the same shape as `plepic` and `servitium`, with
 a test and a live environment.** `standards/gitops-and-deployment.md` governs
@@ -736,7 +736,7 @@ Rules that bite:
   as a bypass actor on its ruleset. Adding `required_status_checks` without that
   silently stopped every promotion for two hours and ten builds once already.
 
-## Environments and domains
+### Environments and domains
 
 The domain exists. Two environments, the `plepic`/`servitium` shape:
 
@@ -768,7 +768,7 @@ point of no return name live hosts and identities, so under
 `standards/work-routing.md` that plan goes to the private `orange-inventory` at
 `docs/working/`.
 
-## Redis
+### Redis
 
 Decided: **Redis is in.** Medusa 2.x wants it for the event bus and the workflow
 engine outside development, and `plepic` already runs it that way — a backend
@@ -798,7 +798,7 @@ Keep the system boring.
 
 ---
 
-# 16. Domain model
+## 16. Domain model
 
 Use Medusa as the source of truth for normal commerce concepts:
 
@@ -846,13 +846,13 @@ Stripe/webhook retries must not generate duplicate certificates, Printful orders
 
 ---
 
-# 17. Implementation decomposition
+## 17. Implementation decomposition
 
 Do not implement V1 as a single plan.
 
 Use independently testable slices approximately like:
 
-## LD-00 — Governance foundation
+### LD-00 — Governance foundation
 
 Everything here lands **before the first line of product code**. On the previous
 build this work was retrofitted two days after cutover, and until then `shell`
@@ -913,7 +913,7 @@ The domain already exists. Record which of these the operator holds before the
 first slice starts; an account nobody holds turns every row that depends on it
 from joint work into a blocked row.
 
-## LD-01 — Foundation
+### LD-01 — Foundation
 
 Deliver:
 
@@ -927,7 +927,7 @@ Deliver:
 
 No certificates, Printful, or Baldrick yet unless absolutely required by the foundation.
 
-## LD-02 — Certificates
+### LD-02 — Certificates
 
 Deliver:
 
@@ -944,11 +944,11 @@ Deliver:
 * idempotency under webhook retry: a retried webhook never mints a second
   serial, slug or deal.
 
-## LD-03 — Gifting
+### LD-03 — Gifting
 
 Deliver complete gift purchase flow.
 
-## LD-04 — Printful + initial merch
+### LD-04 — Printful + initial merch
 
 Deliver exactly:
 
@@ -957,20 +957,20 @@ Deliver exactly:
 * sticker;
 * Printful fulfillment.
 
-## LD-05 — Baldrick
+### LD-05 — Baldrick
 
 Deliver deterministic conversational UI and core intents.
 
-## LD-06 — Worse discounts
+### LD-06 — Worse discounts
 
 Deliver Baldrick-issued price-increasing codes and tracking.
 
-## LD-07 — Enterprise (deferred)
+### LD-07 — Enterprise (deferred)
 
 **Not in V1.** Removed from scope by operator decision. Kept as a numbered slot
 so later references stay stable and the decision stays visible. See §10 and §26.
 
-## LD-08 — Launch polish
+### LD-08 — Launch polish
 
 Deliver:
 
@@ -991,7 +991,7 @@ Adjust boundaries if the actual existing architecture suggests a clearly better 
 
 ---
 
-# 18. Task and PR sizing
+## 18. Task and PR sizing
 
 Within each LD slice, decompose further where useful.
 
@@ -1030,7 +1030,7 @@ Commit frequently at coherent points.
 
 ---
 
-# 19. Comments and documentation
+## 19. Comments and documentation
 
 Avoid the previous failure mode of enormous comment-to-code ratio.
 
@@ -1078,7 +1078,7 @@ Code should mostly explain itself.
 
 ---
 
-# 20. Agent execution model
+## 20. Agent execution model
 
 Where the development harness supports subagents:
 
@@ -1132,21 +1132,21 @@ Optimization target is:
 
 ---
 
-# 21. Required review gates
+## 21. Required review gates
 
-## Gate A — product scope
+### Gate A — product scope
 
 Before implementation, ensure the V1 scope is internally coherent.
 
-## Gate B — brand/copy
+### Gate B — brand/copy
 
 Review actual customer-facing copy separately.
 
-## Gate C — visual design
+### Gate C — visual design
 
 Approve visual direction before implementation of major user-facing surfaces.
 
-## Gate D — per-task code review
+### Gate D — per-task code review
 
 The reviewer is a **separate invocation with fresh context, never the agent that
 wrote the code, and always at the top tier** regardless of how small the diff
@@ -1173,7 +1173,7 @@ Check:
 * unnecessary abstractions;
 * unnecessary comments.
 
-## Gate E — rendered UI review
+### Gate E — rendered UI review
 
 For every important customer-facing slice:
 
@@ -1194,7 +1194,7 @@ Pay particular attention to:
 * merch upsell;
 * emails.
 
-## Gate F — integration review
+### Gate F — integration review
 
 Before production:
 
@@ -1209,7 +1209,7 @@ Before production:
 
 ---
 
-# 22. Testing
+## 22. Testing
 
 `standards/code-quality.md` governs: use the minimum testing that demonstrates
 the behaviour and protects against a likely regression. Test durable behaviour,
@@ -1246,7 +1246,7 @@ Important end-to-end flows should be browser-tested.
 
 ---
 
-# 23. Legal/payment UX guardrails
+## 23. Legal/payment UX guardrails
 
 The joke must never depend on misleading customers.
 
@@ -1265,7 +1265,7 @@ The product can be a lousy deal.
 
 The checkout must not be dishonest.
 
-## Legal and tax are out of build scope, and gate publication
+### Legal and tax are out of build scope, and gate publication
 
 **Operator decision: legal, tax and consumer-compliance work is not part of this
 build.** It is done after the site is functionally ready and before anything is
@@ -1310,7 +1310,7 @@ cheap while building and expensive to retrofit, and it stays in LD-08.
 
 ---
 
-# 24. Analytics
+## 24. Analytics
 
 Keep analytics useful and minimal.
 
@@ -1338,7 +1338,7 @@ Do not build a custom analytics platform.
 
 ---
 
-# 25. Explicit non-goals for V1
+## 25. Explicit non-goals for V1
 
 Do not add unless required by an approved change:
 
@@ -1367,7 +1367,7 @@ Maintain a backlog for good ideas instead of silently expanding V1.
 
 ---
 
-# 26. Future compatibility
+## 26. Future compatibility
 
 V1 architecture should not block reasonable future ideas such as:
 
@@ -1390,7 +1390,7 @@ Design only enough clean boundaries that adding them later does not require rewr
 
 ---
 
-# 27. Where this work lives, and its durable state
+## 27. Where this work lives, and its durable state
 
 **This is not an `architecture` initiative.** Initiatives are for work spanning
 several peer repositories with no clear owner. `lousydeal` owns this outcome, so
@@ -1433,7 +1433,7 @@ A fresh agent should be able to resume the initiative from repository state with
 
 ---
 
-# 28. First action
+## 28. First action
 
 Do **not** begin coding immediately.
 
@@ -1462,7 +1462,7 @@ After LD-01 is implemented, tested, reviewed, and accepted, proceed to the next 
 
 ---
 
-# Success condition
+## Success condition
 
 The initiative is successful when LousyDeal.com is:
 
@@ -1485,4 +1485,3 @@ The initiative is successful when LousyDeal.com is:
 Above all:
 
 **Do not optimize for producing lots of code quickly. Optimize for producing small amounts of good code that implement an already-approved product.**
-
