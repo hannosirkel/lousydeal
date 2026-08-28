@@ -1,0 +1,14 @@
+.env
+.env.*
+node_modules/
+dist/
+build/
+.next/
+.medusa/
+coverage/
+npm-debug.log
+.worktrees/
+
+# Habit Hooks writes its snooze baseline here; that file is committed. Nothing
+# else in the directory is.
+.habit-hooks/cache/

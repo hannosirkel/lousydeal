@@ -1,0 +1,25 @@
+{
+  // Layout checking for this repository's Markdown.
+  // Wording is a review concern; see the documentation standard.
+  "config": {
+    "default": true,
+
+    // Prose wraps at 80 columns by convention, but a table row or a pinned
+    // action SHA cannot. A hard limit would force a broken table or a
+    // truncated SHA.
+    "MD013": false,
+
+    // Decision records deliberately repeat "## Decision" and "## Rationale".
+    // Duplicates within one document still fail.
+    "MD024": { "siblings_only": true },
+
+    // The generated baseline is HTML comment markers plus a table. Inline HTML
+    // is how a marker-delimited region is expressed at all.
+    "MD033": false,
+
+    // A README may open with a heading that matches its directory name.
+    "MD041": false
+  },
+  "globs": ["**/*.md"],
+  "ignores": ["node_modules"]
+}

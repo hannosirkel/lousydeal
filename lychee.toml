@@ -1,0 +1,31 @@
+# Link checking for this repository's Markdown.
+#
+# Internal links are checked strictly. External links are checked except where
+# the answer would be meaningless, and each exclusion below says why.
+
+exclude_path = [
+  "node_modules",
+  ".next",
+  ".medusa",
+]
+
+exclude = [
+  # The private repositories in this universe. An anonymous checker gets 404
+  # for a private repository that exists, which is a false failure rather than
+  # a finding. `architecture` is public and deliberately absent from this list,
+  # so every standards link the generated baseline carries is checked for real.
+  "^https://github\\.com/hannosirkel/(orange|orange-inventory|myskills|entpass|portfolio-bot)(/|$)",
+
+  # Local development addresses. A checker running in CI has nothing listening.
+  "^https?://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/|$)",
+
+  # The site does not exist yet. Every link to it is a forward reference until
+  # the first deployment publishes one; see docs/working/fresh-build.md.
+  "^https?://([a-z-]+\\.)?lousydeal\\.com(/|$)",
+]
+
+max_concurrency = 4
+max_retries = 2
+timeout = 20
+
+accept = ["200", "204", "206", "429"]

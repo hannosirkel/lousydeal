@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Everything CI checks that can run without a network service, in one command.
+# Run it before handoff.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+missing=()
+for tool in shellcheck markdownlint-cli2 lychee gitleaks; do
+  command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
+done
+
+# A check that silently did not run reports as a pass, which is worse than a
+# failure. See the code-quality standard.
+if [ ${#missing[@]} -ne 0 ]; then
+  echo "validate: missing required tools: ${missing[*]}" >&2
+  echo "  npm install --global markdownlint-cli2" >&2
+  echo "  brew install shellcheck lychee gitleaks" >&2
+  exit 2
+fi
+
+# Shell hides: *.sh, anything with a bash shebang, anything a workflow runs as
+# `bash <file>`. The standard names all three.
+echo "==> shellcheck"
+shellcheck scripts/validate .githooks/pre-commit
+
+echo "==> markdownlint"
+markdownlint-cli2
+
+echo "==> links"
+lychee --no-progress --config lychee.toml .
+
+echo "==> secrets"
+gitleaks git --redact --no-banner
+
+echo "validate: clean"
