@@ -156,14 +156,33 @@ Each of these is checkable in the repository today, not recalled.
 | The worker declares no probe | `grep -c Probe deploys/plepic/base/worker.yaml` → `0` | the worker gets a probe in its first manifest |
 | Restores have never been performed | retired plan `STATUS.md`, row `T9.78d1dac1` | a restore is exercised before the live gate, not after |
 | A rollback from the previous digest was never deliberately exercised | retired plan `STATUS.md`, row `T6.f27e7ec7` | one controlled rollback before publication |
-| Live and test images are built from different revisions | `release.yml` header comment | decide deliberately in LD-01, and record it |
+## Why live is rebuilt, which is not a failure
 
-The last one deserves its own sentence. Plepic rebuilds live from merged `main`
-rather than re-promoting the digest that test approved, so the two digests
-differ. That is defensible there only because no per-environment value is baked
-into an image. It is still not "promote by digest" as the standard describes it,
-and Lousy Deal should either adopt the same reasoning explicitly or promote the
-approved digest.
+Plepic rebuilds the live image from merged `main` rather than re-promoting the
+digest the test environment was approved on, so the two digests differ. That
+looked like a deviation. It is not, and the reason is worth recording because it
+is the kind of thing a later reader re-opens.
+
+`standards/gitops-and-deployment.md` says *"promote by digest, never by tag"* and
+*"a live promotion is merge-promoted."* Plepic does exactly both: the merge
+triggers the promotion, and what is written into the overlay is an immutable
+digest. Nothing is promoted by tag anywhere.
+
+The model came from Servitium — the plan says *"exactly as Servitium's does"* —
+and `orange` ADR `019` accepted it on stated conditions: the image contains no
+environment value, dependencies and base images are pinned, and the promotion
+commit records the source revision beside the digest. `Release` also re-runs the
+full validation before it builds.
+
+The one property it does not give is that the binary serving live is the binary
+that was tested. That is real, and the conditions above are what stand in for
+it. Lousy Deal can satisfy the same conditions, and the `no-next-public-env`
+guard test is what keeps the first one true rather than assumed.
+
+The alternative — re-promoting the tested digest — costs more than a workflow
+change. It requires every live release to have had a test promotion of that
+exact revision first, and the `deploy-test` label is per-pull-request and
+optional. Adopting it means making a test deployment mandatory before any merge.
 
 ## What could be shared, and why it is not yet
 
@@ -184,8 +203,9 @@ Open questions for Gate A. None is answered here.
 1. **Repository layout.** One repository with `backend` and `storefront`
    workspaces, matching Plepic. Recommended, and it is what the rest of this
    document assumes.
-2. **Digest promotion.** Re-promote the approved test digest to live, or rebuild
-   live from `main` as Plepic does. This changes `release.yml` materially.
+2. **Digest promotion.** Follow the Servitium and Plepic model, or make a test
+   promotion mandatory and re-promote the tested digest. See *Why live is
+   rebuilt*; the governed default is to follow.
 3. **Certificate PDF renderer.** The contract requires vector rendering with no
    headless browser. Plepic offers no precedent; this is new, and it is the one
    substantial dependency choice in LD-02.
@@ -194,9 +214,15 @@ Open questions for Gate A. None is answered here.
 5. **Where the trader identity is rendered.** Runtime configuration with
    placeholder resolution, as Plepic does, versus committed content. The
    recommendation is Plepic's mechanism, because §23 requires it.
-6. **Database.** Plepic runs PostgreSQL in-cluster from its own base manifest.
-   Lousy Deal needs its own instance either way; whether it is a second
-   in-cluster StatefulSet or something shared is an Orange question.
+6. **Database.** There is **no shared PostgreSQL service** on the cluster to
+   join. `authentik-postgresql` serves one platform component, and
+   `plepic-postgresql` and `plepic-postgresql-test` are per-environment and
+   per-application. The shared service that does exist is MySQL, and `orange`
+   ADR `019` records why it was not extended for Medusa: *"Medusa requires
+   PostgreSQL and Redis; the existing shared MySQL service is neither compatible
+   nor an acceptable place to merge those environments."* So sharing means
+   either standing up a new shared PostgreSQL, or putting Lousy Deal into
+   Plepic's instance.
 
 ## What this does not cover
 
