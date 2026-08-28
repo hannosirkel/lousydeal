@@ -8,34 +8,37 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-08-28 |
-| Current slice | none. LD-00 closed; LD-01 not planned. |
-| Next action | Take Gate A on the six open decisions in the reuse assessment, then write the LD-01 plan. See below. |
+| Current slice | none. LD-00 closed, Gate A passed, LD-01 not yet planned. |
+| Next action | Write `docs/working/ld-01-foundation.md`, then its `big-build` binding. See below. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
 
 ## Next action, in full
 
-The reuse assessment is written:
-[`docs/current/plepic-reuse.md`](../current/plepic-reuse.md). It closes the §2
-question and leaves **six open decisions** that Gate A must settle — repository
-layout, digest promotion, the certificate PDF renderer, secret source naming,
-where the trader identity is rendered, and the database.
+Gate A is passed. Five of the six decisions are recorded in `docs/decisions/`;
+the sixth, the certificate PDF renderer, is deferred to LD-02 planning because
+nothing in LD-01 depends on it.
 
-Take Gate A on those six. Then, and only then, write the LD-01 plan.
+| Decision | Outcome |
+| --- | --- |
+| [`001`](../decisions/001-one-repository-two-images.md) | one repository, `backend` and `storefront` workspaces |
+| [`002`](../decisions/002-rebuild-live-from-merged-main.md) | rebuild live from merged `main`, as Servitium and Plepic do |
+| [`003`](../decisions/003-own-postgresql-per-environment.md) | an own PostgreSQL StatefulSet per environment |
+| [`004`](../decisions/004-trader-identity-is-runtime-configuration.md) | trader identity from runtime configuration, resolved into placeholders |
+| [`005`](../decisions/005-secret-source-naming.md) | sources named `lousydeal-…` and `lousydeal-test-…` |
 
 The route to executable work, in order:
 
-1. **Gate A** — settle the six decisions, and record each in `docs/decisions/`.
-2. **`docs/working/ld-01-foundation.md`** — the plan, sized to
+1. **`docs/working/ld-01-foundation.md`** — the plan, sized to
    `standards/planning.md`: one pull request closes one `- [ ]` row, each row
    names its files, each row states how it is verified, and every file list
    stays inside one repository.
-3. **The `big-build` binding** at `myskills/skills/big-build/plans/`. Eleven
+2. **The `big-build` binding** at `myskills/skills/big-build/plans/`. Eleven
    required items, including the effect-gate inventory, the conflict map, the
    context-packet anchors, the pull-request split, and the declared absences —
    a greenfield plan has many, and an undeclared absence fails preflight.
-4. **Execute** with `start implementing <plan> using big-build`.
+3. **Execute** with `start implementing <plan> using big-build`.
 
 Write the plan to big-build's §4.8 conformance shape from the start. Repairing
 checkbox text afterwards re-keys the ledger and needs an explicit operator
@@ -69,19 +72,20 @@ Nothing. The last pull request is merged and `main` is green.
 
 | Item | State | Needed by |
 | --- | --- | --- |
-| Gate A on the six decisions in the reuse assessment | open — this is the next action | before the LD-01 plan |
+| `docs/working/ld-01-foundation.md` | not written — this is the next action | before the binding |
 | `big-build` binding for the LD-01 plan | not written — big-build refuses a plan with no binding | before execution |
+| Rename `.keys/stripe-lousydeal-sandbox` to `lousydeal-test-stripe` | operator action, decided in [`005`](../decisions/005-secret-source-naming.md) | before the first OpenBao seed |
+| Certificate PDF renderer | deferred by Gate A — no LD-01 row depends on it | LD-02 planning |
 | Release-failure notifier | open, not yet applicable — there is no build to fail | before the first LD-01 deployment |
-| `docs/decisions/`, `docs/issues/` | correctly absent — an empty directory fails conformance | the first decision, the first known issue |
-| Source naming for Lousy Deal secrets (§2b) | undecided — the operator's file is `stripe-lousydeal-sandbox`, Plepic uses `plepic-…` | the first OpenBao seed |
+| `docs/issues/` | correctly absent — an empty directory fails conformance | the first known issue |
 
 ## Gates
 
-Contract §21. None are passed.
+Contract §21.
 
 | Gate | What it approves | State |
 | --- | --- | --- |
-| A | product scope is internally coherent | ready — six decisions waiting, see *Next action* |
+| A | product scope is internally coherent | **passed 2026-08-28**, operator, decisions `001`–`005` |
 | B | brand and copy, reviewed as copy | not started |
 | C | visual direction, before any major surface is built | not started |
 | D | per-task code review, top tier, fresh context | not started |
