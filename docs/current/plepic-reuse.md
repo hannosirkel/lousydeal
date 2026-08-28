@@ -156,6 +156,7 @@ Each of these is checkable in the repository today, not recalled.
 | The worker declares no probe | `grep -c Probe deploys/plepic/base/worker.yaml` → `0` | the worker gets a probe in its first manifest |
 | Restores have never been performed | retired plan `STATUS.md`, row `T9.78d1dac1` | a restore is exercised before the live gate, not after |
 | A rollback from the previous digest was never deliberately exercised | retired plan `STATUS.md`, row `T6.f27e7ec7` | one controlled rollback before publication |
+
 ## Why live is rebuilt, which is not a failure
 
 Plepic rebuilds the live image from merged `main` rather than re-promoting the
