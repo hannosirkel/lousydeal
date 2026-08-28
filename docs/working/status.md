@@ -8,23 +8,26 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-08-28 |
-| Current slice | LD-00, governance foundation — nearly closed |
-| Next action | Add `required_status_checks` to the `main` ruleset. See *Blocked and open* below. |
+| Current slice | LD-00 closed. Nothing is open. |
+| Next action | Produce the reuse assessment against `plepic`, then take Gate A. See below. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
 
 ## Next action, in full
 
-Add `required_status_checks` to the `main` branch ruleset, requiring the four
-`Validate` jobs — `Documentation`, `Shell`, `Workflow lint`, `Secret scan`. The
-ruleset today carries `deletion`, `non_fast_forward` and `pull_request` but
-**not** `required_status_checks`, which LD-00 requires from the first commit. Its
-absence is what let three pull requests merge red in one afternoon on the
-previous build.
+Contract §2 and §28. Inspect the current Plepic Games storefront and backend,
+and produce a **reuse assessment** naming what to reuse, what to extract, what
+to copy and adapt instead, and what Plepic-specific behaviour must not leak into
+Lousy Deal. Cover Medusa, the Next.js storefront, Stripe, PostgreSQL, Redis,
+email, deployment, environments, secrets, analytics, legal pages, taxation,
+CI/CD, and observability.
 
-This is a repository-settings change, not a commit. It is an effect gate: state
-the rollback before you make it.
+It lands in `docs/current/` as durable behaviour, not here. Then Gate A, and
+only after Gate A does an LD-01 plan get written.
+
+Do not start product code first. LD-01 has a hard prerequisite the assessment
+answers: which parts of the Plepic stack Lousy Deal copies, and which it shares.
 
 ## In flight
 
@@ -43,17 +46,17 @@ Nothing. The last pull request is merged and `main` is green.
 | Markdown and link gates | `.markdownlint-cli2.jsonc`, `lychee.toml` |
 | Dependency automation | `renovate.json` extending the `architecture` default template |
 | Plan registered centrally | `architecture` `notable_local_work`, by link |
-| Branch ruleset, partial | `deletion`, `non_fast_forward`, `pull_request` active since 2026-08-27 |
+| Branch ruleset, complete | `deletion`, `non_fast_forward`, `pull_request`, and `required_status_checks` on the four `Validate` contexts, restricted to the GitHub Actions app, ruleset 21687602, 2026-08-28 |
 | This resume point, and contract §2b | pull request #3, merged 2026-08-28, four checks green |
 
 ## Blocked and open
 
 | Item | State | Needed by |
 | --- | --- | --- |
-| `required_status_checks` on the `main` ruleset | open — this is the next action | now |
+| Reuse assessment against `plepic` (§2) | not started — this is the next action | before Gate A |
 | Release-failure notifier | open, not yet applicable — there is no build to fail | before the first LD-01 deployment |
 | `docs/decisions/`, `docs/issues/` | correctly absent — an empty directory fails conformance | the first decision, the first known issue |
-| Reuse assessment against `plepic` (§2) | not started | before Gate A |
+| Source naming for Lousy Deal secrets (§2b) | undecided — the operator's file is `stripe-lousydeal-sandbox`, Plepic uses `plepic-…` | the first OpenBao seed |
 
 ## Gates
 
@@ -75,7 +78,7 @@ Contract §17. None are started.
 
 | Slice | What it delivers | State |
 | --- | --- | --- |
-| LD-00 | governance foundation | nearly closed — see *Blocked and open* |
+| LD-00 | governance foundation | closed, except the release-failure notifier, which has no build to watch yet |
 | LD-01 | foundation: store, Stripe, three products, checkout, test deploy | not started |
 | LD-02 | certificates, public page, vector PDF, email, idempotency | not started |
 | LD-03 | gifting | not started |
