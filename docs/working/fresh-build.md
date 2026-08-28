@@ -531,9 +531,7 @@ Enterprise must not simply appear alongside normal pricing.
 
 The customer should discover/unlock it through Baldrick.
 
-Concept:
-
-#### Lousy Deal Enterprise
+### Lousy Deal Enterprise, as it was conceived
 
 * annual subscription/license;
 * one-year certificate entitlement;
