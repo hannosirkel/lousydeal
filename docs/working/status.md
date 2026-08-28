@@ -8,17 +8,44 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-08-28 |
-| Current slice | none. LD-00 closed, Gate A passed, LD-01 not yet planned. |
-| Next action | Write `docs/working/ld-01-foundation.md`, then its `big-build` binding. See below. |
+| Current slice | LD-01, planned and not started. |
+| Next action | Rename the Stripe key file, then `start implementing lousydeal/docs/working/ld-01-foundation.md using big-build`. See below. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
 
 ## Next action, in full
 
-Gate A is passed. Five of the six decisions are recorded in `docs/decisions/`;
-the sixth, the certificate PDF renderer, is deferred to LD-02 planning because
-nothing in LD-01 depends on it.
+LD-01 is planned. [`ld-01-foundation.md`](./ld-01-foundation.md) holds 17 tasks
+and 26 rows, and its `big-build` binding is at
+`myskills/skills/big-build/plans/ld-01-foundation.md`.
+
+**One operator action first.** Rename `.keys/stripe-lousydeal-sandbox` to
+`lousydeal-test-stripe` in the Orange checkout, as decision `005` requires. It
+is a rename before the first seed, so nothing needs migrating — but preflight
+blocks T14 until it is done.
+
+Then execute:
+
+```text
+start implementing lousydeal/docs/working/ld-01-foundation.md using big-build
+```
+
+Preflight runs first and stops for confirmation. Expect it to ask which external
+accounts are held, and to report twelve declared absences — the workspace,
+images, overlays, OpenBao mounts and namespaces this plan creates. Those are
+passes, not failures.
+
+### The gates this slice will ask for
+
+| Gate | When |
+| --- | --- |
+| Merging T12 | it *is* a live deployment, and `Release` fires on the merge that introduces it |
+| Seeding OpenBao, T14 | one credential at a time, test only |
+| Creating namespaces, T15 | the row that starts workloads |
+| Access policy, then DNS, T16 | in that order — the reverse leaves a public ungated hostname |
+
+### The Gate A decisions this plan executes
 
 | Decision | Outcome |
 | --- | --- |
@@ -28,21 +55,8 @@ nothing in LD-01 depends on it.
 | [`004`](../decisions/004-trader-identity-is-runtime-configuration.md) | trader identity from runtime configuration, resolved into placeholders |
 | [`005`](../decisions/005-secret-source-naming.md) | sources named `lousydeal-…` and `lousydeal-test-…` |
 
-The route to executable work, in order:
-
-1. **`docs/working/ld-01-foundation.md`** — the plan, sized to
-   `standards/planning.md`: one pull request closes one `- [ ]` row, each row
-   names its files, each row states how it is verified, and every file list
-   stays inside one repository.
-2. **The `big-build` binding** at `myskills/skills/big-build/plans/`. Eleven
-   required items, including the effect-gate inventory, the conflict map, the
-   context-packet anchors, the pull-request split, and the declared absences —
-   a greenfield plan has many, and an undeclared absence fails preflight.
-3. **Execute** with `start implementing <plan> using big-build`.
-
-Write the plan to big-build's §4.8 conformance shape from the start. Repairing
-checkbox text afterwards re-keys the ledger and needs an explicit operator
-instruction, so it is much cheaper to get right first.
+The certificate PDF renderer is the one Gate A question deferred, to LD-02
+planning. No LD-01 row depends on it.
 
 Gates B and C — brand and copy, then visual direction — gate the storefront
 surfaces, not the LD-01 foundation. They can run in parallel with LD-01.
@@ -67,14 +81,14 @@ Nothing. The last pull request is merged and `main` is green.
 | Branch ruleset, complete | `deletion`, `non_fast_forward`, `pull_request`, and `required_status_checks` on the four `Validate` contexts, restricted to the GitHub Actions app, ruleset 21687602, 2026-08-28 |
 | This resume point, and contract §2b | pull request #3, merged 2026-08-28, four checks green |
 | Reuse assessment against `plepic` (§2) | [`docs/current/plepic-reuse.md`](../current/plepic-reuse.md), 2026-08-28, against `plepic` at `8f367cb` |
+| Gate A, and decisions `001`–`005` | pull request #8, merged 2026-08-28 |
+| LD-01 plan and its `big-build` binding | [`ld-01-foundation.md`](./ld-01-foundation.md), conformance-checked; binding in `myskills` |
 
 ## Blocked and open
 
 | Item | State | Needed by |
 | --- | --- | --- |
-| `docs/working/ld-01-foundation.md` | not written — this is the next action | before the binding |
-| `big-build` binding for the LD-01 plan | not written — big-build refuses a plan with no binding | before execution |
-| Rename `.keys/stripe-lousydeal-sandbox` to `lousydeal-test-stripe` | operator action, decided in [`005`](../decisions/005-secret-source-naming.md) | before the first OpenBao seed |
+| Rename `.keys/stripe-lousydeal-sandbox` to `lousydeal-test-stripe` | operator action, decided in [`005`](../decisions/005-secret-source-naming.md); preflight blocks T14 until it is done | before execution |
 | Certificate PDF renderer | deferred by Gate A — no LD-01 row depends on it | LD-02 planning |
 | Release-failure notifier | open, not yet applicable — there is no build to fail | before the first LD-01 deployment |
 | `docs/issues/` | correctly absent — an empty directory fails conformance | the first known issue |
@@ -100,7 +114,7 @@ Contract §17. None are started.
 | Slice | What it delivers | State |
 | --- | --- | --- |
 | LD-00 | governance foundation | closed, except the release-failure notifier, which has no build to watch yet |
-| LD-01 | foundation: store, Stripe, three products, checkout, test deploy | not started |
+| LD-01 | foundation: store, Stripe, three products, checkout, test deploy | **planned**, 17 tasks and 26 rows; not started |
 | LD-02 | certificates, public page, vector PDF, email, idempotency | not started |
 | LD-03 | gifting | not started |
 | LD-04 | Printful, three merch items | not started |
@@ -109,8 +123,8 @@ Contract §17. None are started.
 | LD-07 | Enterprise | deferred by operator decision, not in V1 |
 | LD-08 | launch polish, accessibility, analytics, final reviews | not started |
 
-Each slice gets its own plan at `docs/working/ld-0N-<slice>.md` when it starts.
-None exist yet.
+Each slice gets its own plan at `docs/working/ld-0N-<slice>.md` when it starts,
+and its own `big-build` binding. LD-01's is written; no other exists.
 
 ## Operator items
 
@@ -120,7 +134,7 @@ What is actually held, as against what the contract expects in §2b.
 | --- | --- | --- |
 | Domain `lousydeal.com` | yes | DNS not yet published |
 | Company identity, Aislopica OÜ | yes | §2b |
-| Stripe sandbox keys | yes | `.keys/stripe-lousydeal-sandbox` in the Orange checkout, not yet seeded into OpenBao |
+| Stripe sandbox keys | yes | in the Orange checkout, awaiting the `005` rename to `lousydeal-test-stripe`, not yet seeded into OpenBao |
 | Stripe live keys | no | not before the publication gate, by design |
 | Printful account and sandbox | no | request before LD-04 |
 | SMTP transactional credentials | no | request before LD-02 |
