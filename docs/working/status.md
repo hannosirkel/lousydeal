@@ -8,26 +8,41 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-08-28 |
-| Current slice | LD-00 closed. Nothing is open. |
-| Next action | Produce the reuse assessment against `plepic`, then take Gate A. See below. |
+| Current slice | none. LD-00 closed; LD-01 not planned. |
+| Next action | Take Gate A on the six open decisions in the reuse assessment, then write the LD-01 plan. See below. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
 
 ## Next action, in full
 
-Contract §2 and §28. Inspect the current Plepic Games storefront and backend,
-and produce a **reuse assessment** naming what to reuse, what to extract, what
-to copy and adapt instead, and what Plepic-specific behaviour must not leak into
-Lousy Deal. Cover Medusa, the Next.js storefront, Stripe, PostgreSQL, Redis,
-email, deployment, environments, secrets, analytics, legal pages, taxation,
-CI/CD, and observability.
+The reuse assessment is written:
+[`docs/current/plepic-reuse.md`](../current/plepic-reuse.md). It closes the §2
+question and leaves **six open decisions** that Gate A must settle — repository
+layout, digest promotion, the certificate PDF renderer, secret source naming,
+where the trader identity is rendered, and the database.
 
-It lands in `docs/current/` as durable behaviour, not here. Then Gate A, and
-only after Gate A does an LD-01 plan get written.
+Take Gate A on those six. Then, and only then, write the LD-01 plan.
 
-Do not start product code first. LD-01 has a hard prerequisite the assessment
-answers: which parts of the Plepic stack Lousy Deal copies, and which it shares.
+The route to executable work, in order:
+
+1. **Gate A** — settle the six decisions, and record each in `docs/decisions/`.
+2. **`docs/working/ld-01-foundation.md`** — the plan, sized to
+   `standards/planning.md`: one pull request closes one `- [ ]` row, each row
+   names its files, each row states how it is verified, and every file list
+   stays inside one repository.
+3. **The `big-build` binding** at `myskills/skills/big-build/plans/`. Eleven
+   required items, including the effect-gate inventory, the conflict map, the
+   context-packet anchors, the pull-request split, and the declared absences —
+   a greenfield plan has many, and an undeclared absence fails preflight.
+4. **Execute** with `start implementing <plan> using big-build`.
+
+Write the plan to big-build's §4.8 conformance shape from the start. Repairing
+checkbox text afterwards re-keys the ledger and needs an explicit operator
+instruction, so it is much cheaper to get right first.
+
+Gates B and C — brand and copy, then visual direction — gate the storefront
+surfaces, not the LD-01 foundation. They can run in parallel with LD-01.
 
 ## In flight
 
@@ -48,12 +63,14 @@ Nothing. The last pull request is merged and `main` is green.
 | Plan registered centrally | `architecture` `notable_local_work`, by link |
 | Branch ruleset, complete | `deletion`, `non_fast_forward`, `pull_request`, and `required_status_checks` on the four `Validate` contexts, restricted to the GitHub Actions app, ruleset 21687602, 2026-08-28 |
 | This resume point, and contract §2b | pull request #3, merged 2026-08-28, four checks green |
+| Reuse assessment against `plepic` (§2) | [`docs/current/plepic-reuse.md`](../current/plepic-reuse.md), 2026-08-28, against `plepic` at `8f367cb` |
 
 ## Blocked and open
 
 | Item | State | Needed by |
 | --- | --- | --- |
-| Reuse assessment against `plepic` (§2) | not started — this is the next action | before Gate A |
+| Gate A on the six decisions in the reuse assessment | open — this is the next action | before the LD-01 plan |
+| `big-build` binding for the LD-01 plan | not written — big-build refuses a plan with no binding | before execution |
 | Release-failure notifier | open, not yet applicable — there is no build to fail | before the first LD-01 deployment |
 | `docs/decisions/`, `docs/issues/` | correctly absent — an empty directory fails conformance | the first decision, the first known issue |
 | Source naming for Lousy Deal secrets (§2b) | undecided — the operator's file is `stripe-lousydeal-sandbox`, Plepic uses `plepic-…` | the first OpenBao seed |
@@ -64,7 +81,7 @@ Contract §21. None are passed.
 
 | Gate | What it approves | State |
 | --- | --- | --- |
-| A | product scope is internally coherent | not started |
+| A | product scope is internally coherent | ready — six decisions waiting, see *Next action* |
 | B | brand and copy, reviewed as copy | not started |
 | C | visual direction, before any major surface is built | not started |
 | D | per-task code review, top tier, fresh context | not started |
