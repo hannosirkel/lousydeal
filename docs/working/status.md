@@ -28,9 +28,7 @@ the rollback before you make it.
 
 ## In flight
 
-| Branch | Worktree | Pull request | Closes |
-| --- | --- | --- | --- |
-| `docs/status-and-credentials` | none, edited in `~/app/lousydeal` | not opened | this file, plus §2b, §17, §27, §28 of the contract |
+Nothing. The last pull request is merged and `main` is green.
 
 ## Done
 
@@ -46,6 +44,7 @@ the rollback before you make it.
 | Dependency automation | `renovate.json` extending the `architecture` default template |
 | Plan registered centrally | `architecture` `notable_local_work`, by link |
 | Branch ruleset, partial | `deletion`, `non_fast_forward`, `pull_request` active since 2026-08-27 |
+| This resume point, and contract §2b | pull request #3, merged 2026-08-28, four checks green |
 
 ## Blocked and open
 
