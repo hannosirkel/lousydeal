@@ -96,6 +96,10 @@ Never bypass it.
 
 | Question | Answer |
 | --- | --- |
+| Where did the last agent stop? | [`docs/working/status.md`](./docs/working/status.md) |
 | What is the product? | [`docs/current/concept.md`](./docs/current/concept.md) |
 | What is being built now? | [`docs/working/fresh-build.md`](./docs/working/fresh-build.md) |
 | Why is it like this? | `docs/decisions/` |
+
+Read `docs/working/status.md` before you start, and update it before you stop.
+It is the only place that records where the work actually is.

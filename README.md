@@ -61,6 +61,7 @@ behind Cloudflare Access. Promotion is by digest, never by tag. See
 | --- | --- |
 | What is the product? | [`docs/current/concept.md`](./docs/current/concept.md) |
 | What is being built now? | [`docs/working/fresh-build.md`](./docs/working/fresh-build.md) |
+| How far along is it? | [`docs/working/status.md`](./docs/working/status.md) |
 | How do I work here? | [`AGENTS.md`](./AGENTS.md) |
 | Why is it like this? | `docs/decisions/` |
 | What rules apply everywhere? | [`architecture/standards/`](https://github.com/hannosirkel/architecture/tree/main/standards) |

@@ -143,6 +143,90 @@ all; if it does not, this exception is unused and no secret is needed.
 
 ---
 
+## 2b. The company, and the credentials it already holds
+
+### The legal entity
+
+The store is operated by:
+
+| Field | Value |
+| --- | --- |
+| Company | Aislopica OÜ |
+| Address | Pihlaka tn 2, Jüri alevik, Rae vald, Harju maakond, 75301, Estonia |
+| Contact | `baldrick@lousydeal.com` |
+
+These are the trader details a customer must be able to find, so they reach the
+imprint, the order confirmation, the invoice, the Stripe account, and the
+sender identity on transactional email. They are public business-register facts
+and a role address, not a person's contact details, so committing them is a
+deliberate §2a decision rather than an oversight.
+
+Do **not** extend that decision. A director's name, a registry code, a VAT
+number, and a bank account are each their own decision, and the VAT
+registration is a legal-gate question (§23).
+
+The §23 exclusion still holds either way: putting the entity into a template is
+build work; writing the terms it appears above is not.
+
+### Credentials the operator has provided
+
+| Credential | Where it is | Status |
+| --- | --- | --- |
+| Stripe sandbox, `publishableKey` and `secretKey` | `.keys/stripe-lousydeal-sandbox` in the Orange checkout | held |
+| Stripe live keys | — | not before the publication gate (§23) |
+| Printful account and sandbox token | — | on operator request, before LD-04 |
+| SMTP transactional credentials | — | on operator request, before LD-02 |
+| Cloudflare Access policy, DNS | — | operator action, not a file |
+
+Ask for a credential when the slice that needs it starts, and not before. A
+live-shaped credential sitting unused in a checkout is exposure with no
+compensating benefit. `docs/working/status.md` (§27) records what is actually
+held, and this table records only what the plan expects.
+
+### Seeding is build work, not operator work
+
+The operator puts a file in `.keys/` and says so. **Everything after that is
+the implementation process's job**, through `orange`, on the sanctioned path.
+Nobody types a secret into a cluster by hand, and no secret value is written
+into `lousydeal` or `deploys` in any form.
+
+The path, which `plepic` already walks end to end:
+
+| Step | Where | What happens |
+| --- | --- | --- |
+| 1 | `orange/.keys/<source>` | the operator's file: ignored, never committed |
+| 2 | `orange` `roles/openbao/defaults/main.yml` | `<source>` is registered in `openbao_seed_allowed_sources` |
+| 3 | `orange` `scripts/openbao-admin` | the import entry: mount, path, source, parser |
+| 4 | `orange` `playbooks/openbao-seed.yml` | writes the named sources into OpenBao |
+| 5 | External Secrets | renders the OpenBao value into the namespace |
+| 6 | `deploys/lousydeal/` | references the `ExternalSecret`, and holds no value |
+
+Copy the Plepic shape rather than inventing one. `orange`
+`docs/current/provisioning.md` § *Plepic credential lifecycle* and
+`docs/current/cluster.md` § *Plepic reconciliation* are the worked examples,
+including the separate `-test` mount that keeps test and live credentials
+apart.
+
+Three consequences that bite:
+
+* **An `orange` change is its own pull request in `orange`**, ordered before the
+  `lousydeal` row that needs the secret. A plan row's file list stays inside one
+  repository, so this is always two rows with a stated order, never one row
+  spanning both.
+* **Each credential write is an effect gate** (§15). Approve one at a time,
+  immediately before execution, each with its stated rollback. Seeding test and
+  live in one step is exactly the failure §15 names.
+* **A wrong value is a rotation, not a re-run.** A credential that has been
+  written once has been logged somewhere; replacing the file does not un-write
+  it. §15 already says this about Redis, and it is general.
+
+The operator's file is named `stripe-lousydeal-sandbox`. Plepic's sources are
+named `plepic-…` and `plepic-test-…`. Choose the convention when registering the
+source at step 2, apply it to every later Lousy Deal source, and record it in
+`docs/decisions/`. A naming scheme decided twice is decided wrong.
+
+---
+
 ## 3. Product premise
 
 The fundamental brand/product rule is:
@@ -896,20 +980,28 @@ Deliver:
 This slice is ordinary work, not an orchestrated build. Adding a repository is
 three commands and took under ten minutes for `portfolio-bot`, README included.
 
+Deliver also **`docs/working/status.md`**, in the first pull request that lands
+in this repository, and maintain it from then on. §27 states what it holds and
+who updates it. LD-00 is not done while the next agent still has to reconstruct
+where the last one stopped.
+
 **Operator work running in parallel**, none of it agent-executable, and each a
 blocker for the slice that first needs it:
 
-| Item | Needed by |
-| --- | --- |
-| Stripe account, test keys | LD-01 |
-| Stripe live keys | the publication gate, not before |
-| Printful account and sandbox | LD-04 |
-| Cloudflare Access policy for `test.lousydeal.com` | LD-01 deploy |
-| DNS for `lousydeal.com` and the `www` redirect | LD-01 deploy (test), publication (live) |
+| Item | Needed by | Held |
+| --- | --- | --- |
+| Stripe account, test keys | LD-01 | yes — §2b |
+| Stripe live keys | the publication gate, not before | no, and not yet wanted |
+| Printful account and sandbox | LD-04 | no |
+| SMTP transactional credentials | LD-02 | no |
+| Cloudflare Access policy for `test.lousydeal.com` | LD-01 deploy | no |
+| DNS for `lousydeal.com` and the `www` redirect | LD-01 deploy (test), publication (live) | domain exists |
 
-The domain already exists. Record which of these the operator holds before the
-first slice starts; an account nobody holds turns every row that depends on it
-from joint work into a blocked row.
+The `Held` column above is the plan's expectation at the time of writing.
+`docs/working/status.md` carries the live answer, and it wins. An account
+nobody holds turns every row that depends on it from joint work into a blocked
+row, so a slice checks the status file before it starts rather than discovering
+this halfway through.
 
 ### LD-01 — Foundation
 
@@ -1406,34 +1498,84 @@ to `standards/planning.md` — every row sized so one pull request closes it,
 naming the files it changes and how it is verified, with its file list inside
 one repository.
 
+### The resume point
+
+**[`docs/working/status.md`](./status.md) is the one file a stopping agent
+updates and a starting agent reads first.** Any agent stops eventually —
+exhausted context, a failed gate, an operator interrupt, a crash, a session that
+simply ends — and the next one starts from this document, `status.md`, and the
+repository. Nothing else. Conversation history does not survive, so it is not
+state.
+
+`status.md` holds only the moving parts:
+
+| Section | What it answers |
+| --- | --- |
+| Updated | the date of the last edit; anything older than the work is stale, not current |
+| Current slice | which LD slice is open, and the path to its plan |
+| In flight | branch, worktree, and pull request, and which plan row each closes |
+| Done | which slices and rows are closed, and by which merged pull request |
+| Blocked | what is waiting, on whom, and since when |
+| Next action | the single thing the next agent does first |
+| Gates | which of Gates A–F are passed, on what date, and by whom |
+| Operator items | which credentials, DNS, and access are actually held (§2b) |
+
+It is a state file, not a journal. Overwrite a line when it changes; do not
+append history beneath it. Git holds the history, and a status file that only
+grows is one nobody reads to the end.
+
+**Update it in the same commit as the change it describes, and again before
+stopping for any reason.** A status file written only at the end of a clean
+session records exactly the sessions that ended cleanly, which are not the ones
+a resume path exists for.
+
+Keep it short enough to stay true. If a section wants a paragraph, the content
+belongs in one of the homes below and `status.md` gets the link.
+
+### Everything else, and where it goes instead
+
+`status.md` points; it does not hold. Durable content lands in its own home as
+soon as it is approved, and `status.md` records only that it did:
+
+| Content | Home |
+| --- | --- |
+| One slice's plan, with sized `- [ ]` rows | `docs/working/ld-0N-<slice>.md` |
+| Approved product scope, brand, copy, visual direction | `docs/current/` |
+| Architecture decisions, and the legal-gate acceptance | `docs/decisions/` |
+| Known problems with no active plan | `docs/issues/` |
+| Deferred ideas, so V1 does not silently grow (§25) | `docs/working/backlog.md` |
+| Cutover state naming live hosts or identities | `orange-inventory/docs/working/` |
+
+Create each only when it has content; an empty directory fails conformance.
+
+Never write a credential, a live private hostname, or a rendered Secret into any
+of them. §2a governs, and `status.md` is the file most likely to be written in a
+hurry at the end of a session.
+
+### Retiring
+
 Retiring a plan updates `notable_local_work` in the same change, relocates
 durable facts to `docs/current/`, decisions to `docs/decisions/` and unresolved
 residuals to `docs/issues/` before the state is deleted, and does not happen
 while a row is still open. The retiring commit says what happened.
 
-At minimum record:
+`status.md` outlives the individual slice plans. It is retired last, when the
+initiative is, and its final edit says where the initiative ended up.
 
-* approved product decisions;
-* approved brand direction;
-* approved copy;
-* approved visual direction;
-* architecture decisions;
-* implementation slices;
-* current slice;
-* completed tasks;
-* deferred ideas;
-* unresolved risks;
-* deployment state.
-
-Do not rely solely on conversation context.
-
-A fresh agent should be able to resume the initiative from repository state without reconstructing history.
+A fresh agent must be able to resume this initiative from repository state alone,
+without reconstructing history. That is the test. If reading `status.md` and the
+current slice plan does not tell an agent what to do next, the last agent did
+not finish stopping.
 
 ---
 
 ## 28. First action
 
 Do **not** begin coding immediately.
+
+**If [`docs/working/status.md`](./status.md) says work is already under way, you
+are not the first agent.** Read it, do its `Next action`, and ignore the rest of
+this section. The steps below run once, at the beginning.
 
 Start by:
 
