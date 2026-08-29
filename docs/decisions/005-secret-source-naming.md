@@ -1,7 +1,7 @@
 # 005. Name secret sources `lousydeal-…` and `lousydeal-test-…`
 
 - **Date:** 2026-08-28
-- **Status:** accepted
+- **Status:** superseded by [`006`](./006-two-naming-categories-in-keys.md)
 
 ## Context and problem statement
 

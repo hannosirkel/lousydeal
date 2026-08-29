@@ -55,7 +55,7 @@ Verified 2026-08-28. An absence below is declared in the binding.
 | OpenBao mounts `lousydeal`, `lousydeal-test` | **absent**; created by T14 |
 | Namespaces | **absent**; created by T15 |
 | Images in GHCR | **absent**; first published by T12 |
-| Stripe | sandbox only, held at `.keys/lousydeal-test-stripe` after the rename in `005` |
+| Stripe | sandbox only, held at `.keys/stripe-lousydeal-sandbox` per decision `006` |
 | Reference implementation | `plepic` at `8f367cb`, Medusa 2.18.0, Node `>=24.18.0` |
 
 ## Target exposure
@@ -326,8 +326,9 @@ Plepic's worker declares none, so "healthy" there means "running". Decision
       with the expected keys and no value appearing in any log or tracked file.
 
 **Effect gate, one credential at a time.** Test and live are never written in
-one step. A wrong value is a rotation, not a re-run. Decision `005` fixes the
-names, and the operator renames the supplied file before this row starts.
+one step. A wrong value is a rotation, not a re-run. Decision `006` fixes the
+names: the registered source is `lousydeal-test-runtime-credentials`, and the
+Stripe values reach it as keys rather than as a source of their own.
 
 ## T15 — Argo CD
 

@@ -20,10 +20,12 @@ LD-01 is planned. [`ld-01-foundation.md`](./ld-01-foundation.md) holds 17 tasks
 and 26 rows, and its `big-build` binding is at
 `myskills/skills/big-build/plans/ld-01-foundation.md`.
 
-**One operator action first.** Rename `.keys/stripe-lousydeal-sandbox` to
-`lousydeal-test-stripe` in the Orange checkout, as decision `005` requires. It
-is a rename before the first seed, so nothing needs migrating — but preflight
-blocks T14 until it is done.
+**One operator action first, and it is an undo.** Decision `005` asked for a
+rename that was wrong; [`006`](../decisions/006-two-naming-categories-in-keys.md)
+supersedes it. Rename `.keys/lousydeal-stripe-test` back to
+`stripe-lousydeal-sandbox`, which is what it was supplied as and what
+`stripe-plepic-sandbox` beside it already matches. Nothing reads the file by
+name, so this costs only the rename.
 
 Then execute:
 
@@ -53,7 +55,8 @@ passes, not failures.
 | [`002`](../decisions/002-rebuild-live-from-merged-main.md) | rebuild live from merged `main`, as Servitium and Plepic do |
 | [`003`](../decisions/003-own-postgresql-per-environment.md) | an own PostgreSQL StatefulSet per environment |
 | [`004`](../decisions/004-trader-identity-is-runtime-configuration.md) | trader identity from runtime configuration, resolved into placeholders |
-| [`005`](../decisions/005-secret-source-naming.md) | sources named `lousydeal-…` and `lousydeal-test-…` |
+| [`005`](../decisions/005-secret-source-naming.md) | superseded by `006` |
+| [`006`](../decisions/006-two-naming-categories-in-keys.md) | registered sources application-first; provider staging files provider-first |
 
 The certificate PDF renderer is the one Gate A question deferred, to LD-02
 planning. No LD-01 row depends on it.
@@ -81,14 +84,14 @@ Nothing. The last pull request is merged and `main` is green.
 | Branch ruleset, complete | `deletion`, `non_fast_forward`, `pull_request`, and `required_status_checks` on the four `Validate` contexts, restricted to the GitHub Actions app, ruleset 21687602, 2026-08-28 |
 | This resume point, and contract §2b | pull request #3, merged 2026-08-28, four checks green |
 | Reuse assessment against `plepic` (§2) | [`docs/current/plepic-reuse.md`](../current/plepic-reuse.md), 2026-08-28, against `plepic` at `8f367cb` |
-| Gate A, and decisions `001`–`005` | pull request #8, merged 2026-08-28 |
+| Gate A, and decisions `001`–`005` | pull request #8, merged 2026-08-28; `005` later superseded by `006` |
 | LD-01 plan and its `big-build` binding | [`ld-01-foundation.md`](./ld-01-foundation.md), conformance-checked; binding in `myskills` |
 
 ## Blocked and open
 
 | Item | State | Needed by |
 | --- | --- | --- |
-| Rename `.keys/stripe-lousydeal-sandbox` to `lousydeal-test-stripe` | operator action, decided in [`005`](../decisions/005-secret-source-naming.md); preflight blocks T14 until it is done | before execution |
+| Rename `.keys/lousydeal-stripe-test` back to `stripe-lousydeal-sandbox` | operator action, undoing the bad `005` rename; see [`006`](../decisions/006-two-naming-categories-in-keys.md) | before execution |
 | Certificate PDF renderer | deferred by Gate A — no LD-01 row depends on it | LD-02 planning |
 | Release-failure notifier | open, not yet applicable — there is no build to fail | before the first LD-01 deployment |
 | `docs/issues/` | correctly absent — an empty directory fails conformance | the first known issue |
@@ -134,7 +137,7 @@ What is actually held, as against what the contract expects in §2b.
 | --- | --- | --- |
 | Domain `lousydeal.com` | yes | DNS not yet published |
 | Company identity, Aislopica OÜ | yes | §2b |
-| Stripe sandbox keys | yes | in the Orange checkout, awaiting the `005` rename to `lousydeal-test-stripe`, not yet seeded into OpenBao |
+| Stripe sandbox keys | yes | in the Orange checkout as `lousydeal-stripe-test`, to be renamed back to `stripe-lousydeal-sandbox` per `006`; not yet seeded into OpenBao |
 | Stripe live keys | no | not before the publication gate, by design |
 | Printful account and sandbox | no | request before LD-04 |
 | SMTP transactional credentials | no | request before LD-02 |

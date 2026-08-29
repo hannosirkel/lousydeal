@@ -975,7 +975,8 @@ Deliver:
   this;
 * a release-failure notifier. `plepic` has none, so when its promotion broke it
   failed four times in silence;
-* registration of this plan in `architecture`'s `notable_local_work`, by link.
+* registration of **this document** in `architecture`'s `notable_local_work`,
+  by link — one entry for the whole initiative, and no other (§27).
 
 This slice is ordinary work, not an orchestrated build. Adding a repository is
 three commands and took under ten minutes for `portfolio-bot`, README included.
@@ -1488,6 +1489,12 @@ under `standards/work-routing.md` the plan lives here, in
 `lousydeal/docs/working/`, and `architecture` records it only by link in
 `notable_local_work`. Do not mirror a journal, ledger or decision log centrally;
 this repository keeps the canonical state.
+
+**That is one entry, for this document, and it already exists.** A slice plan,
+`status.md`, a decision record and an execution ledger are this repository's own
+business and are never registered centrally. `architecture` does not track what
+happens inside a governed repository, and an entry that would change because
+work progressed here is a mirror by another name.
 
 The one exception is the cutover, which goes to `orange-inventory/docs/working/`
 because it names live hosts and identities.
