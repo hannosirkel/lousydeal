@@ -172,7 +172,7 @@ build work; writing the terms it appears above is not.
 
 | Credential | Where it is | Status |
 | --- | --- | --- |
-| Stripe sandbox, `publishableKey` and `secretKey` | `.keys/stripe-lousydeal-sandbox` in the Orange checkout | held |
+| Stripe test mode, `publishableKey` and `secretKey` | `.keys/stripe-lousydeal-test` in the Orange checkout | held |
 | Stripe live keys | — | not before the publication gate (§23) |
 | Printful account and sandbox token | — | on operator request, before LD-04 |
 | SMTP transactional credentials | — | on operator request, before LD-02 |
@@ -220,10 +220,17 @@ Three consequences that bite:
   written once has been logged somewhere; replacing the file does not un-write
   it. §15 already says this about Redis, and it is general.
 
-The operator's file is named `stripe-lousydeal-sandbox`. Plepic's sources are
-named `plepic-…` and `plepic-test-…`. Choose the convention when registering the
-source at step 2, apply it to every later Lousy Deal source, and record it in
-`docs/decisions/`. A naming scheme decided twice is decided wrong.
+**The naming is settled — see decision `006`.** `.keys/` holds two categories
+and they do not share a convention. A *registered source* is application-first
+and appears in `openbao_seed_allowed_sources`:
+`lousydeal-test-runtime-credentials`. A *provider staging file* is
+provider-first and appears in no seed list: `stripe-lousydeal-test`, as
+`stripe-plepic-sandbox` beside it is. The Stripe values reach the runtime as
+keys inside the registered source, not as a source of their own.
+
+Decision `005` got this wrong by comparing across the two categories, and cost
+two needless renames of a file nothing reads by name. Read `006` before touching
+a name here.
 
 ---
 

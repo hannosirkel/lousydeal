@@ -63,9 +63,12 @@ falsified it — `stripe-plepic-sandbox` sitting beside `plepic-runtime-credenti
 
 ## Consequences
 
-- The operator renames the file back to `stripe-lousydeal-sandbox`. It is a
-  staging file that nothing reads by name, so this costs nothing beyond the
-  rename itself.
+- The operator renames the file back to a provider-first name. **It landed as
+  `stripe-lousydeal-test`, not `stripe-lousydeal-sandbox`**, and that is the
+  name in use. The decision above is about the category convention, which
+  `stripe-lousydeal-test` satisfies; `test` over `sandbox` is Stripe's own word
+  for the mode and is not worth a third rename of a file nothing reads by name.
+  The live counterpart will be `stripe-lousydeal-live`.
 - Lousy Deal's registered sources are still `lousydeal-…` and `lousydeal-test-…`.
   That half of `005` survives and is restated above.
 - The Stripe values reach the runtime inside `lousydeal-runtime-credentials` and
