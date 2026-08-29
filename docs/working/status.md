@@ -8,8 +8,8 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-08-29 |
-| Current slice | LD-01, in execution. Milestone M1 complete: 4 of 28 rows done. |
-| Next action | `resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build`, once T2c's pull request merges. Next row is T2b, then M2 begins at T3. |
+| Current slice | LD-01, in execution. M1 complete; T2b in review. 4 of 28 rows done. |
+| Next action | `resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build`, once T2b's pull request merges. M2 then begins at T3. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -27,17 +27,18 @@ Preflight ran clean on 2026-08-29 and was confirmed. All five external accounts
 are held, all twelve declared absences verified absent, and two missing tools
 resolved: Ansible from `orange`'s virtualenv, `kubeconform` installed.
 
-**T1a, T1b and T2a are merged. T2c — resyncing the generated artifacts — is done
-and open as a pull request.** It completes milestone M1. When it merges:
+**T1a, T1b, T2a and T2c are merged; milestone M1 is complete. T2b — making the
+dependency refusal actually refuse — is done and open as a pull request.** When
+it merges:
 
 ```text
 resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build
 ```
 
 Resume re-runs the whole preflight, recomputes every checkbox hash against the
-ledger, and re-verifies external state before continuing. Next row is **T2b**,
-here: make `scripts/validate` refuse when `node_modules` is absent. Then M2
-begins at T3, the backend runtime configuration.
+ledger, and re-verifies external state before continuing. **M2 begins at T3**,
+the backend runtime configuration — the first row of application code in this
+build.
 
 **Effect gate E0 is executed, not outstanding.** The branch ruleset now requires
 five contexts — `Documentation`, `Shell`, `Workflow lint`, `Secret scan` and
@@ -54,6 +55,9 @@ working rather than failing.
 | --- | --- |
 | T2b | `scripts/validate`'s `npm ci` refusal never fires when the same tools exist globally |
 | T2c | T2's verification was unreachable from inside T2 — `sync-baseline` writes here, not in `architecture` |
+
+T2b also carried the plan's ninth global constraint, added because the same
+class of failure had by then occurred three times.
 
 No checkbox text was ever edited, so no ledger row has been re-keyed. Every
 amendment recomputed all hashes and reported no drift.
@@ -89,11 +93,13 @@ reason before anyone noticed.
 
 Carried forward:
 
-- **`README.md` still says the catalogue records `languages: [shell]`.** False
-  since T2a merged. `AGENTS.md` carried the same claim and was fixed at T2c
-  because it was in that row's file list; `README.md` is in no open row's. See
-  Q4 — this is the third occurrence of one trap, and it needs an answer that
-  fixes the class rather than the instance.
+**Q4 is answered, and the answer is a rule rather than a patch.** Three tracked
+documents had been left stating the opposite of the truth because the row that
+falsified them had no authority to touch them. The plan gained **global
+constraint 9** at T2b: a row that falsifies a tracked document carries that
+document in its `Files` list. It is copied verbatim into every subagent's
+context packet, so the remaining rows inherit it. `README.md` was corrected in
+the same row.
 
 ### The gates this slice will ask for
 
@@ -123,13 +129,14 @@ surfaces, not the LD-01 foundation. They can run in parallel with LD-01.
 
 ## In flight
 
-Nothing. The last pull request is merged and `main` is green.
+**T2b**, open as a pull request: making `scripts/validate` refuse when `npm ci`
+has not been run. Milestone M1 is merged and `main` is green.
 
 ## Done
 
 | What | Evidence |
 | --- | --- |
-| Catalogue entry | `architecture` `universe/repositories.yaml`, `lousydeal:`, `lifecycle: registered-not-implemented` |
+| Catalogue entry | `architecture` `universe/repositories.yaml`, `lousydeal:`, `languages: [shell, typescript]`, `npm_project: true`; `lifecycle` dropped at T2a |
 | `sync-baseline`, then a clean audit | `tooling/universe audit lousydeal` → `clean: 1 repositories audited`, 2026-08-28 |
 | Repository bootstrap | `README.md`, `AGENTS.md`, `CLAUDE.md`, commit `a201410` |
 | One canonical validation command, and CI runs it | `scripts/validate`, `.github/workflows/validate.yml` |
@@ -138,7 +145,7 @@ Nothing. The last pull request is merged and `main` is green.
 | Markdown and link gates | `.markdownlint-cli2.jsonc`, `lychee.toml` |
 | Dependency automation | `renovate.json` extending the `architecture` default template |
 | Plan registered centrally | `architecture` `notable_local_work`, by link |
-| Branch ruleset, complete | `deletion`, `non_fast_forward`, `pull_request`, and `required_status_checks` on the four `Validate` contexts, restricted to the GitHub Actions app, ruleset 21687602, 2026-08-28 |
+| Branch ruleset, complete | `deletion`, `non_fast_forward`, `pull_request`, and `required_status_checks` on five `Validate` contexts — `Canonical validation` added by effect gate E0 at T1b — restricted to the GitHub Actions app, ruleset 21687602 |
 | This resume point, and contract §2b | pull request #3, merged 2026-08-28, four checks green |
 | Reuse assessment against `plepic` (§2) | [`docs/current/plepic-reuse.md`](../current/plepic-reuse.md), 2026-08-28, against `plepic` at `8f367cb` |
 | Gate A, and decisions `001`–`005` | pull request #8, merged 2026-08-28; `005` later superseded by `006` |
@@ -173,7 +180,7 @@ Contract §17. None are started.
 | Slice | What it delivers | State |
 | --- | --- | --- |
 | LD-00 | governance foundation | closed, except the release-failure notifier, which has no build to watch yet |
-| LD-01 | foundation: store, Stripe, three products, checkout, test deploy | **planned**, 17 tasks and 26 rows; not started |
+| LD-01 | foundation: store, Stripe, three products, checkout, test deploy | **in execution**, 28 rows; M1 complete |
 | LD-02 | certificates, public page, vector PDF, email, idempotency | not started |
 | LD-03 | gifting | not started |
 | LD-04 | Printful, three merch items | not started |

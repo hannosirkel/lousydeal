@@ -17,7 +17,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T1b | T1 | lousydeal | `6b6396cec6d0` | AGENT | done | agent | journal, T1b | 2026-08-29 |
 | T2a | T2 | architecture | `a13b02ed37da` | AGENT | done | agent | journal, T2a | 2026-08-29 |
 | T2c | T2c | lousydeal | `c248bf499315` | AGENT | done | agent | journal, T2c | 2026-08-29 |
-| T2b | T2b | lousydeal | `f0b51aac9587` | AGENT | open | agent | — | — |
+| T2b | T2b | lousydeal | `f0b51aac9587` | AGENT | done | agent | journal, T2b | 2026-08-29 |
 | T3a | T3 | lousydeal | `1bcf52d9f1db` | AGENT | open | agent | — | — |
 | T3b | T3 | lousydeal | `89c962fc4c8b` | AGENT | open | agent | — | — |
 | T4a | T4 | lousydeal | `63e00ca45012` | AGENT | open | agent | — | — |
@@ -43,6 +43,18 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-08-29 · global constraint 9 added at T2b; row count unchanged at 28.**
+Not a new row — a new rule. A row that falsifies a tracked document now carries
+that document in its `Files` list. Added after the third occurrence of that
+failure, and `README.md` was added to T2b's `Files` list under it. The plan's
+"Current repository facts" table, stale on three counts since M1 merged, was
+refreshed at the same time and now carries a note that the constraint applies to
+it.
+
+Constraints are copied verbatim into every subagent's context packet, so the
+remaining rows inherit this with their work. No checkbox text changed; all 28
+hashes recomputed, no drift.
 
 **2026-08-29 · T2c added, 27 rows to 28.** T2's stated verification —
 `tooling/universe audit lousydeal` reporting clean — is unreachable from inside

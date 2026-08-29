@@ -482,3 +482,62 @@ T1a's and T1b's did.
 the same falsified claim as `AGENTS.md` did. It is in no open row's `Files`
 list — Q1's answer put it in T1b's, and T1b has closed — so no row has the
 authority to correct it.
+
+---
+
+## 2026-08-29 — T2b, making the dependency refusal actually refuse
+
+Worktree `~/app/.worktrees/lousydeal/t2b-refusal` from `origin/main` at
+`0223574`.
+
+**The row's own subject was correct first time and I could not break it.** The
+refusal now keys on `[ -x node_modules/.bin/<tool> ]` with no `PATH` walk. With
+`node_modules` moved aside and global `markdownlint-cli2` and `eslint` present,
+it refuses at exit 2, names `npm ci`, and never reaches ESLint.
+
+The implementer proved the pinned binaries win by **substitution rather than by
+version**, which mattered: the global `markdownlint-cli2` on this machine is also
+`0.23.2`, so comparing versions would have proved nothing. It planted executables
+of each name at the front of `PATH` that print a marker and fail. None fired.
+Reproduced independently.
+
+**Correction to the T1b entry above.** That entry states: *"`node_modules/.bin`
+is appended rather than prepended to `PATH`, so no dependency shipping a `bin`
+named `gitleaks` can displace the secret scan."* **That claim was never true**,
+and the journal is a dated record, so it is corrected here rather than rewritten
+there.
+
+Appending makes the system copy win **only when a system copy exists**. When one
+does not, `command -v gitleaks` finds a dependency's same-named bin, the
+missing-tool loop reports the secret scanner present, and the `==> secrets` step
+silently runs something else — in a repository whose first global constraint is
+never to commit a secret. Demonstrated both ways:
+
+```text
+with the append      missing required tools: lychee markdownlint-cli2 eslint …
+                     gitleaks absent from the list; a dependency's bin satisfied it
+without the append   missing required tools: lychee gitleaks markdownlint-cli2 …
+                     correctly refuses
+```
+
+The line had also lost its last consumer, so it was deleted. Verified against the
+fixed script: a fake dependency `gitleaks` with no system copy now produces
+`missing required tools: gitleaks`.
+
+**The premise came from the orchestrator, not the implementer.** The task brief
+stated the append was a protection and said "do not reverse it", so the
+implementer correctly engineered around a hole while believing it was a
+safeguard. A confidently-worded constraint in a brief is reviewed by nobody
+unless a reviewer re-derives it from scratch. This one surfaced only because the
+reviewer asked what each check keys on and what else could satisfy it, rather
+than checking the diff against the brief.
+
+**Both review passes found Majors, and all four were the orchestrator's**, none
+in the row's own logic: the stale facts table shipped in the commit adding the
+constraint against exactly that; a comment that contradicted itself after the
+`PATH` line was deleted; and `open-questions.md` still saying Q4 had no owner
+while `status.md` said it was answered.
+
+**Q4 answered by a rule.** Global constraint 9. Three documents had been left
+stating the opposite of the truth because the row that falsified them had no
+authority to touch them. Patching each instance had not stopped the next.

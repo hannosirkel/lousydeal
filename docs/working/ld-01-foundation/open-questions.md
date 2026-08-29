@@ -74,26 +74,30 @@ trustworthy result in this repository. **A later row seeing `incomplete-run` is
 looking at this, not at something it broke.** The pre-commit hook runs `gitleaks`
 only, so commits are unaffected.
 
-**Q4 · raised at the T2c review. `README.md` states the catalogue is behind, and
-no open row can correct it.**
-
-`README.md` lines 13–14 say *"The catalogue still records `languages: [shell]`
-and `npm_project: false` — that is row T2's to correct."* T2a merged, so that is
-false. It is the same failure Q1 raised, recurring one row later.
-
-`AGENTS.md` carried the same claim in different words and **was** fixed here,
-because it is in T2c's `Files` list. `README.md` is not. Q1's answer put `README.md` in T1b's
-list, and T1b has closed, so **no open row has the authority.**
-
-`docs/decisions/001` line 52 says the same thing, but a decision record states
-what was decided at the time and is not rewritten when the world moves on. That
-one is correctly left alone.
-
-Options are the same three Q1 had: add `README.md` to an open row's `Files`
-list, fix it as a standalone orchestrator repair, or open it as the first
-`docs/issues/` entry.
-
 ## Answered
+
+**Q4 · answered at T2b, and the answer is a rule rather than a patch.**
+
+`README.md` stated that the catalogue records `languages: [shell]` and
+`npm_project: false`. T2a falsified it. `AGENTS.md` had carried the same claim
+and was corrected at T2c because it happened to be in that row's `Files` list;
+`README.md` was in no open row's, and Q1's answer had put it in T1b's, which had
+closed.
+
+That was the third occurrence of one failure: a tracked document falsified by a
+merge, with no row authorised to correct it. The operator chose a class-level
+answer over a third patch.
+
+**The plan gained global constraint 9 at T2b:** *a row that falsifies a tracked
+document carries that document in its `Files` list.* Constraints are copied
+verbatim into every subagent's context packet, so the remaining rows inherit it
+with their work rather than depending on the orchestrator remembering. A
+decision record is exempt — it states what was decided then, and is superseded
+rather than rewritten.
+
+`README.md` was added to T2b's `Files` list and corrected in the same row. The
+plan's own "Current repository facts" table, stale on three counts, was
+refreshed under the new constraint at the same time.
 
 **2026-08-29 · T1 boundary batch.** Q1 below, and the workspace typecheck gap
 raised at review pass 2. Both answered; see `decisions.md`. Q1 resolved by
