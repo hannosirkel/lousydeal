@@ -83,6 +83,29 @@ them. Corrected one row after the statement stops being true.
 recomputing every hash gives 26 rows and zero drift against the ledger, so no
 row identity moved.
 
+## 2026-08-29 — the T2 boundary
+
+**T2's verification is unreachable from inside T2 → add T2c, as a cross-repository
+pair.** Clearing the catalogue findings reveals `stale-baseline` and
+`stale-habit-config`, fixed by `sync-baseline` writing `AGENTS.md` and
+`.habit-hooks/config.toml` in `lousydeal`. The operator chose a second row over
+rewriting T2a's checkbox text, which would have re-keyed its ledger row.
+
+**T2a merges before T2c, and T2a was authorised to merge alone.** Mechanism §11.2
+says neither half of a cross-repository pair is merged without the operator
+saying so. The operator merged `architecture` PR #36 explicitly, with the
+ordering stated in its body. The order is not cosmetic: `sync-baseline` reads the
+catalogue from `architecture`'s `main`, so running it first would regenerate the
+old baseline and appear to succeed. The audit is legitimately red in the window
+between the two merges.
+
+**Two inherited renderer defects → `architecture`, not LD-01.** Declaring a
+language re-includes `node_modules` in the generated scan scope, and enables
+three sensors whose tools are not installed. Both confirmed by measurement, both
+predate this plan, and `plepic` carries both today. The operator ruled them
+universe-level work rather than part of this slice, since fixing them here would
+fix them for one repository and leave the cause in place. Recorded as Q3.
+
 ## Model tier substitutions
 
 The binding's §11 assigns T1 to the low tier. T1a was raised to mid and the
@@ -92,3 +115,11 @@ the substrate every one of the twenty-five later rows compiles and lints
 against, and an error in it does not surface locally but as noise spread across
 the rows that follow. Raising an implementer is safe under the tier floor;
 lowering a reviewer is not, and no reviewer has been lowered.
+
+**T2a ran at the binding's assigned low tier**, and the tier's mandatory
+orchestrator check is what caught the row's one real defect: a `languages_note`
+rewritten into a claim that was false. The mechanical edit was correct first
+time. The lesson is not that the tier was wrong — it is that §15's "the
+orchestrator checks lower-tier output before it counts" is load-bearing, and a
+row mixing mechanical work with a judgement call spends its risk entirely on the
+judgement.
