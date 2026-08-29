@@ -7,29 +7,54 @@ does not.
 
 | | |
 | --- | --- |
-| Updated | 2026-08-28 |
-| Current slice | LD-01, planned and not started. |
-| Next action | `start implementing lousydeal/docs/working/ld-01-foundation.md using big-build`. Every prerequisite is met. |
+| Updated | 2026-08-29 |
+| Current slice | LD-01, in execution. Row 1 of 26 done, in review as a pull request. |
+| Next action | `resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build`, once T1a's pull request merges. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
 
 ## Next action, in full
 
-LD-01 is planned. [`ld-01-foundation.md`](./ld-01-foundation.md) holds 17 tasks
-and 26 rows, and its `big-build` binding is at
-`myskills/skills/big-build/plans/ld-01-foundation.md`.
+LD-01 is executing. [`ld-01-foundation.md`](./ld-01-foundation.md) holds 17
+tasks and 26 rows, and its `big-build` binding is at
+`myskills/skills/big-build/plans/ld-01-foundation.md`. **The authoritative row
+state is [`ld-01-foundation/ledger.md`](./ld-01-foundation/ledger.md)**, which
+survives a compaction this file does not attempt to.
 
-Every prerequisite is met. Execute:
+Preflight ran clean on 2026-08-29 and was confirmed. All five external accounts
+are held, all twelve declared absences verified absent, and two missing tools
+resolved: Ansible from `orange`'s virtualenv, `kubeconform` installed.
+
+**T1a — the root npm workspace — is done and open as a pull request.** When it
+merges:
 
 ```text
-start implementing lousydeal/docs/working/ld-01-foundation.md using big-build
+resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build
 ```
 
-Preflight runs first and stops for confirmation. Expect it to ask which external
-accounts are held, and to report twelve declared absences — the workspace,
-images, overlays, OpenBao mounts and namespaces this plan creates. Those are
-passes, not failures.
+Resume re-runs the whole preflight, recomputes every checkbox hash against the
+ledger, and re-verifies external state before continuing. Next row is **T1b**,
+extending `scripts/validate` and the CI workflow.
+
+### What T1a cost, and why it matters to the rows after it
+
+Three review passes, four Major findings, all the same shape: configuration that
+passes its own verification today and fails **silently** later, in a file no
+later row has the authority to repair. The root Vitest config would have left
+thirteen of the plan's test suites running in no gate — the same failure the
+reference implementation records having already suffered. Treat every row that
+configures something for later rows with that suspicion.
+
+Two carried forward:
+
+- **T1b must guard its per-workspace typecheck.** `npm run typecheck --workspace
+  backend` fails today because no workspace exists. The guard is also a silent
+  skip, and no row is obliged to tighten it once T3 lands. T1b's review should be
+  pointed at that.
+- **`AGENTS.md` and `README.md` still say this repository holds documentation
+  only.** False from T1a's merge. T1b corrects them; they are now in its file
+  list.
 
 ### The gates this slice will ask for
 

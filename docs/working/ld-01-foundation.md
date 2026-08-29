@@ -95,7 +95,14 @@ of this build.
 **Repository:** `lousydeal`.
 **Files:** `package.json`, `package-lock.json`, `tsconfig.json`,
 `eslint.config.js`, `vitest.config.ts`, `scripts/validate`,
-`.github/workflows/validate.yml`, `.gitignore`.
+`.github/workflows/validate.yml`, `.gitignore`, `AGENTS.md`, `README.md`.
+
+`AGENTS.md` and `README.md` join the list because both describe this repository
+as holding documentation and checks only, which stops being true the moment the
+first row merges, and no other row in this plan can reach them. `scripts/validate`
+additionally runs `npm run typecheck` per workspace: the root `tsc --noEmit` does
+not recurse into `backend` or `storefront`, so without that fanout the gate
+reports pass while the whole application sits outside it.
 
 - [ ] Add the root workspace: `package.json` declaring workspaces `backend` and
       `storefront`, Node `>=24.18.0`, and the `lint`, `typecheck` and
