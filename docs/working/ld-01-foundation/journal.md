@@ -211,3 +211,96 @@ is the only thing keeping `scripts/validate` green between T1b and T3. But a
 presence guard is itself a silent skip, and nothing in the plan obliges T3 or T8
 to tighten it once their workspace lands; `scripts/validate` is in no row's file
 list but T1's. T1b's reviewer should be pointed at that specific question.
+
+---
+
+## 2026-08-29 — T1b, one canonical validation command
+
+Worktree `~/app/.worktrees/lousydeal/t1b-validate`, branch
+`big-build/ld-01-foundation/t1b-validate` from `origin/main` at `e6d2821`.
+
+Post-merge check of T1a's declared absences: all flipped from expected-absent to
+required and all present. The catalogue absence correctly did **not** flip —
+`languages: [shell]` and `npm_project: false` remain T2's to change, in
+`architecture`.
+
+**Three review passes, one Blocking and one Major.** Both were introduced by a
+change that fixed something real, and neither would have shown in a green run.
+
+**Pass 1 — Blocking.** The `Install lychee` step used `tar -xzf "$archive"
+lychee`, copied from the gitleaks step above it. The two archives differ:
+
+```text
+lychee-x86_64-unknown-linux-gnu/lychee    nested under a top-level directory
+gitleaks                                  at the archive root
+```
+
+Under `set -euo pipefail` the job died there on every run, before reaching the
+validation command. The pinned checksum was correct; only the member path was
+wrong. The job would have been permanently red, and the pending ruleset change
+would have added a required context that could never go green. The reviewer also
+identified the trap in the obvious fix: extracting the whole archive into the
+checkout puts its own `README.md` and `docs/*.md` inside markdownlint's `**/*.md`
+glob and lychee's scan path, since `lychee.toml` excludes only `node_modules`,
+`.next` and `.medusa`. Fixed by extracting the single member into `RUNNER_TEMP`,
+for both tools, with a comment at the site recording the layout difference.
+
+**Pass 2 — Major, and the orchestrator's own error.** The fix brief had ordered
+the workspace list derived from `package.json` rather than hardcoded, to remove a
+maintenance hazard. The implementation used
+`mapfile -t workspaces < <(node -e …)`, and `set -euo pipefail` does not cover
+process substitution while `mapfile` returns 0 regardless. Verified: three
+legitimate npm `workspaces` forms each produced an empty list, a silently skipped
+fanout, and `validate: clean`.
+
+```text
+key absent                      mapfile exit 0, empty, skipped
+{"packages":["backend"]}        mapfile exit 0, empty, skipped
+["apps/*"]                      literal apps/*, guard false, skipped
+```
+
+A hardcoded list that was always right had been replaced by a derived list right
+for one of three legal forms — in the file whose own comment says a check that
+silently did not run reports as a pass. Fixed with a command substitution, which
+`set -e` does abort on, plus explicit refusal of non-array and glob forms.
+
+Pass 2 also corrected the orchestrator's reasoning on a carried item: enforcing
+the local Node floor had been deferred as needing `.npmrc` or `.nvmrc`, which no
+row owns, but `scripts/validate` is in this row's `Files` list and no later
+row's, and already refuses on a missing `node`. It now checks `engines.node`.
+
+**Pass 3 — minor only.** Four minors. One was a residual fail-open the
+orchestrator fixed rather than carried: the `engines.node` parser matched the
+prefix `>=`, so `">=24.18.0 <25"` compared as one string and silently ignored the
+upper bound, and `">= 24.18.0"` produced a false refusal. Both now refuse, with
+every case exercised:
+
+```text
+>=24.18.0 <25   exit 2   cannot parse ... only a bare >=x.y.z floor
+>= 24.18.0      exit 2   cannot parse ... only a bare >=x.y.z floor
+^24.18.0, 24.x  exit 2   cannot parse
+>=24.18.0       exit 0   passes
+>=24.18.1       exit 0   passes (boundary, equal)
+>=24.19.0       exit 2   refuses
+```
+
+`package.json` verified byte-identical to the index after each experiment.
+
+**Other outcomes.** `markdownlint-cli2` became an exact-pinned devDependency
+rather than a global install, which removed a `zizmor: ignore[adhoc-packages]`
+suppression entirely — the suppression's stated justification had rested on the
+orchestrator's over-tight file list, not on the plan's. `node_modules/.bin` is
+appended rather than prepended to `PATH`, so no dependency shipping a `bin` named
+`gitleaks` can displace the secret scan. `actions/setup-node` bumped to v7.0.0,
+SHA verified against the tag.
+
+**Transient, not a defect.** The link checker failed three runs with GitHub
+`504 Gateway Timeout` during repeated local testing and passed on retry.
+`lychee.toml` accepts `200/204/206/429` and retries twice; a 504 is neither.
+Both the `Documentation` job and the new canonical job now run lychee, so a PR
+has two chances to hit it. Recorded as an open question rather than changed —
+`lychee.toml` is in no row's `Files` list.
+
+**Row closed.** Pre-commit gates run before each commit: `git diff --check`
+clean, credential scan of the staged non-lockfile diff clean, `gitleaks protect
+--staged` no leaks, and the tracked `.githooks` hook fired.
