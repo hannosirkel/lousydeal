@@ -1,21 +1,81 @@
 #!/usr/bin/env bash
-# Everything CI checks that can run without a network service, in one command.
+# The shell, markdown, link, secret, lint, typecheck and test checks CI also
+# runs, in one command. Workflow linting (zizmor) runs in CI's own
+# "Workflow lint" job only, not here.
 # Run it before handoff.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# markdownlint-cli2 is a pinned devDependency, not a global tool -- its binary
+# lives in node_modules/.bin. Appended, not prepended: the system copies of
+# gitleaks, node, npm and the linters must win over anything a devDependency
+# happens to ship a same-named bin for.
+export PATH="$PATH:$PWD/node_modules/.bin"
+
 missing=()
-for tool in shellcheck markdownlint-cli2 lychee gitleaks; do
-  command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
+missing_npm_ci=()
+missing_brew=()
+missing_runtime=()
+for tool in shellcheck markdownlint-cli2 lychee gitleaks node npm; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    missing+=("$tool")
+    case "$tool" in
+      markdownlint-cli2) missing_npm_ci+=("$tool") ;;
+      node | npm) missing_runtime+=("$tool") ;;
+      *) missing_brew+=("$tool") ;;
+    esac
+  fi
 done
 
 # A check that silently did not run reports as a pass, which is worse than a
-# failure. See the code-quality standard.
+# failure. See the code-quality standard. The script now hard-depends on
+# node and npm (npm run lint/typecheck/test:unit below), so their absence is
+# refused here too, before a partway-through failure gets confusing.
 if [ ${#missing[@]} -ne 0 ]; then
   echo "validate: missing required tools: ${missing[*]}" >&2
-  echo "  npm install --global markdownlint-cli2" >&2
-  echo "  brew install shellcheck lychee gitleaks" >&2
+  if [ ${#missing_npm_ci[@]} -ne 0 ]; then
+    echo "  npm ci    # installs ${missing_npm_ci[*]} (pinned in package.json)" >&2
+  fi
+  if [ ${#missing_brew[@]} -ne 0 ]; then
+    echo "  brew install ${missing_brew[*]}" >&2
+  fi
+  if [ ${#missing_runtime[@]} -ne 0 ]; then
+    echo "  install Node (npm ships with it) -- see the \"engines\" field in package.json, or https://nodejs.org/" >&2
+  fi
+  exit 2
+fi
+
+# npm does not enforce "engines" without engine-strict, so a too-old local
+# Node degrades to a confusing downstream failure instead of this refusal.
+# Only a bare ">=x.y.z" floor is supported; anything else is refused rather
+# than skipped, including a compound range this cannot honour in full.
+engines_range=$(node -e "const r = require('./package.json').engines && require('./package.json').engines.node;
+  if (typeof r !== 'string') throw new Error('package.json: engines.node must be a string');
+  process.stdout.write(r)")
+case "$engines_range" in
+  '>='*) required_node=${engines_range#>=} ;;
+  *)
+    echo "validate: cannot parse package.json engines.node: '$engines_range'" >&2
+    exit 2
+    ;;
+esac
+# The case above matches a prefix, so a compound range like ">=24.18.0 <25"
+# would reach sort -V with its upper bound attached and be compared as one
+# string -- accepted, with the upper bound silently unenforced. Refuse anything
+# that is not bare digits and dots instead: an unsupported range must fail
+# loudly, not half-apply.
+case "$required_node" in
+  '' | *[!0-9.]*)
+    echo "validate: cannot parse package.json engines.node: '$engines_range'" >&2
+    echo "  only a bare >=x.y.z floor is supported here" >&2
+    exit 2
+    ;;
+esac
+running_node=$(node -e "process.stdout.write(process.versions.node)")
+lowest=$(printf '%s\n%s\n' "$required_node" "$running_node" | sort -V | head -n1)
+if [ "$lowest" != "$required_node" ]; then
+  echo "validate: Node $running_node does not satisfy the required >=$required_node (see package.json engines.node)" >&2
   exit 2
 fi
 
@@ -32,5 +92,31 @@ lychee --no-progress --config lychee.toml .
 
 echo "==> secrets"
 gitleaks git --redact --no-banner
+
+echo "==> lint"
+npm run lint
+
+echo "==> typecheck"
+npm run typecheck
+
+# The workspace list is derived from package.json rather than duplicated
+# here, so a workspace T3 or T8 lands is picked up without editing this file.
+# Each workspace is still guarded on its own package.json -- the same file
+# npm's own workspace resolution keys on -- rather than a flag someone must
+# remember to flip. Non-array and glob forms of "workspaces" are refused
+# rather than silently skipped; only a plain array of paths is supported.
+workspace_list=$(node -e "const w = require('./package.json').workspaces;
+  if (!Array.isArray(w)) throw new Error('package.json: workspaces must be an array');
+  if (w.some((e) => e.includes('*'))) throw new Error('package.json: glob workspaces are not supported by this check');
+  process.stdout.write(w.join('\n'))")
+while IFS= read -r workspace; do
+  [ -z "$workspace" ] && continue
+  if [ -f "${workspace}/package.json" ]; then
+    npm run typecheck --workspace "${workspace}"
+  fi
+done <<< "$workspace_list"
+
+echo "==> unit tests"
+npm run test:unit
 
 echo "validate: clean"

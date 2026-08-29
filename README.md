@@ -8,10 +8,10 @@ Public. Public does not mean it may hold a secret.
 
 ## Status
 
-Documentation and its checks. There is no application code yet: the catalogue
-records `languages: [shell]` for `scripts/validate` and the pre-commit hook, and
-`npm_project: false`. `typescript` joins the list in the same commit as the
-first TypeScript file.
+The root npm workspace: `package.json`, `tsconfig.json`, `eslint.config.js`,
+`vitest.config.ts` and `scripts/validate`. `backend/` and `storefront/` do not
+exist yet. The catalogue still records `languages: [shell]` and
+`npm_project: false` — that is row T2's to correct, in a different repository.
 
 What is being built, in what order, and what has already been decided:
 [`docs/working/fresh-build.md`](./docs/working/fresh-build.md).
@@ -35,11 +35,15 @@ What is being built, in what order, and what has already been decided:
 ## Developing and testing
 
 ```bash
+npm ci
 bash scripts/validate
 ```
 
-It runs markdownlint, the link checker, and the secret scan. It refuses, loudly,
-when a tool it needs is not installed rather than skipping the check.
+It runs shellcheck, markdownlint, the link checker, the secret scan, lint,
+typecheck (the root project's, plus each workspace's own once one exists), and
+the unit tests. It refuses loudly rather than skipping a check: when a tool it
+needs is not installed, and when the running Node is older than the
+`engines.node` floor in `package.json`.
 
 Enable the tracked pre-commit secret scan once per checkout:
 

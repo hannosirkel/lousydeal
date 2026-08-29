@@ -56,18 +56,24 @@ this repository's documentation. It does not own deployment state
 (`hannosirkel/deploys`), cluster or DNS configuration (`hannosirkel/orange`),
 or any secret value.
 
-At the time of writing it holds documentation and the checks that gate it.
-`universe/repositories.yaml` records `languages: [shell]` — `scripts/validate`
-and the pre-commit hook — and `npm_project: false`. `typescript` joins the list
-in the same commit as the first TypeScript file, never ahead of it.
+At the time of writing it holds the root npm workspace — `package.json`,
+`tsconfig.json`, `eslint.config.js`, `vitest.config.ts` and `scripts/validate`
+— with `backend/` and `storefront/` not yet created. `universe/repositories.yaml`
+still records `languages: [shell]` and `npm_project: false`; that catalogue
+entry is row T2's to correct, in a different repository, not a reason to keep
+saying it here.
 
 ## Commands
 
 ```bash
+npm ci
 bash scripts/validate
 ```
 
-It refuses rather than skipping when a tool it needs is absent.
+`npm ci` is a prerequisite: `scripts/validate` runs `npm run lint`,
+`typecheck` and `test:unit` and needs `node_modules` present first. It
+refuses rather than skipping — when a tool it needs is absent, and when the
+running Node is older than the `engines.node` floor in `package.json`.
 
 ## Workflow
 
