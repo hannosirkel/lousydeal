@@ -61,7 +61,7 @@ expires.
 
 | # | Effect | Row | State |
 | --- | --- | --- | --- |
-| E0 | Add `Canonical validation` to the branch ruleset's required contexts | T1b, after merge | **approved 2026-08-29, not yet executed** |
+| E0 | Add `Canonical validation` to the branch ruleset's required contexts | T1b, after merge | **executed 2026-08-29** |
 | E1 | First publish to GHCR | T12b | not requested |
 | E2 | Merging T12 — `Release` fires on the merge that introduces it | T12b | not requested |
 | E3 | First write to `deploys/lousydeal/overlays/*` | T12b, T13a | not requested |
