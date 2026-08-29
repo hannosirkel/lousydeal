@@ -169,3 +169,45 @@ storefront/tests + no config, failing    exit 1, |storefront| suite caught
 backend + storefront, one failing        exit 1, 2 projects, 2 files
 after cleanup, git status --short        no trace of either directory
 ```
+
+**Review pass 3**, top tier, fresh context. **Minor only — no Blocking, no
+Major.** The reviewer exercised every earlier Major rather than reading the
+fixes, including reverting the rejected `"./backend/*"` form to confirm it
+really does fail at startup, and confirming that `./backend/vitest.config.*`
+correctly leaves T17's `vitest.smoke.config.mts` in its own gate. It accounted
+for all fifteen test paths the plan names against the three projects.
+
+Independent verification it ran: `npm ci` on a cleared `node_modules`,
+`bash scripts/validate` end to end, `gitleaks` over the five files, a parse of
+the lockfile confirming 156 entries all resolving to `registry.npmjs.org` with
+integrity hashes and no workspace link entries, and ESLint probes over `.ts`,
+`.tsx` with real JSX, `.mts` and `.js` to confirm the config will not hard-fail
+when T8 lands TSX.
+
+Its one Minor was the wording of the `passWithNoTests` comment, which claimed
+the flag "becomes removable once any suite does" — no row can remove it, since
+this file is in T1's list and no other. Reworded to state that it stays on and
+that a project resolving to zero files therefore does not announce itself.
+**Comment-only, applied after pass 3 and so not itself reviewed**; recorded in
+the pull-request body as such.
+
+**Row closed.** Two commits, work and state kept separate:
+
+```text
+943df5c  Add the root npm workspace
+80e0357  chore(big-build): open the LD-01 ledger and record the T1 boundary
+         decisions
+```
+
+Pre-commit gates run before each: `git diff --check` clean, staged-diff
+credential scan clean, `gitleaks protect --staged` no leaks, and the tracked
+`.githooks` gitleaks hook fired on both commits.
+
+**Carried to T1b's review**, raised by pass 3 and belonging to that row rather
+than this one. `npm run typecheck --workspace backend` exits 1 with
+`No workspaces found: --workspace=backend` on the current tree, so T1b cannot
+copy the reference implementation's three lines literally — the presence guard
+is the only thing keeping `scripts/validate` green between T1b and T3. But a
+presence guard is itself a silent skip, and nothing in the plan obliges T3 or T8
+to tighten it once their workspace lands; `scripts/validate` is in no row's file
+list but T1's. T1b's reviewer should be pointed at that specific question.
