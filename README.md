@@ -10,8 +10,8 @@ Public. Public does not mean it may hold a secret.
 
 The root npm workspace: `package.json`, `tsconfig.json`, `eslint.config.js`,
 `vitest.config.ts` and `scripts/validate`. `backend/` and `storefront/` do not
-exist yet. The catalogue still records `languages: [shell]` and
-`npm_project: false` — that is row T2's to correct, in a different repository.
+exist yet. The catalogue declares `languages: [shell, typescript]` and
+`npm_project: true`.
 
 What is being built, in what order, and what has already been decided:
 [`docs/working/fresh-build.md`](./docs/working/fresh-build.md).
@@ -41,9 +41,11 @@ bash scripts/validate
 
 It runs shellcheck, markdownlint, the link checker, the secret scan, lint,
 typecheck (the root project's, plus each workspace's own once one exists), and
-the unit tests. It refuses loudly rather than skipping a check: when a tool it
-needs is not installed, and when the running Node is older than the
-`engines.node` floor in `package.json`.
+the unit tests. It refuses loudly rather than skipping a check: when `npm ci`
+has not been run, when a tool it needs is not installed, and when the running
+Node is older than the `engines.node` floor in `package.json`. The pinned
+devDependencies are looked for in `node_modules/.bin` rather than on `PATH`, so
+a globally installed copy of the same name cannot stand in for them.
 
 Enable the tracked pre-commit secret scan once per checkout:
 

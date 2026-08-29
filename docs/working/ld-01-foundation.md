@@ -40,16 +40,26 @@ Copied verbatim into every subagent's context packet.
    invent brand, voice, or visual language here.
 8. **Run `bash scripts/validate` before declaring a row done.** It is what CI
    runs.
+9. **A row that falsifies a tracked document carries that document in its
+   `Files` list.** If landing your change makes a sentence in `AGENTS.md`,
+   `README.md`, or any tracked document untrue, correcting it is part of your
+   row, not a later one's. Three documents in this repository were left stating
+   the opposite of the truth because the row that falsified them had no
+   authority to touch them, and no later row did either. A decision record is
+   the exception: it states what was decided then, and is superseded rather than
+   rewritten.
 
 ## Current repository facts
 
-Verified 2026-08-28. An absence below is declared in the binding.
+Verified 2026-08-28; the first three rows refreshed 2026-08-29 as milestone M1
+merged. An absence below is declared in the binding. **Constraint 9 applies to
+this table: a row that falsifies a line here refreshes it.**
 
 | Fact | Value |
 | --- | --- |
-| `lousydeal` `main` | documentation and its checks only; no application code |
-| Declared languages | `[shell]`; `npm_project: false`; `lifecycle: registered-not-implemented` |
-| Branch ruleset | `deletion`, `non_fast_forward`, `pull_request`, `required_status_checks` on four `Validate` contexts |
+| `lousydeal` `main` | the root npm workspace, its TypeScript, ESLint and Vitest configuration, and `scripts/validate`; no application code yet |
+| Declared languages | `[shell, typescript]`; `npm_project: true`; no `lifecycle` key |
+| Branch ruleset | `deletion`, `non_fast_forward`, `pull_request`, `required_status_checks` on five `Validate` contexts, including `Canonical validation` |
 | `deploys/lousydeal/` | **absent**; created by T13 |
 | Argo CD `Application` for Lousy Deal | **absent**; created by T15 |
 | OpenBao mounts `lousydeal`, `lousydeal-test` | **absent**; created by T14 |
@@ -161,7 +171,11 @@ both.
 ## T2b — Make the dependency refusal actually refuse
 
 **Repository:** `lousydeal`. **Runs after T2 merges.**
-**Files:** `scripts/validate`.
+**Files:** `scripts/validate`, `README.md`.
+
+`README.md` is here under global constraint 9. It stated that the catalogue
+records `languages: [shell]` and `npm_project: false`, which T2a falsified, and
+no other open row could reach it.
 
 - [ ] Refuse when `node_modules` is absent rather than inferring it from a tool
       that may also be installed globally, and run the pinned binaries from the

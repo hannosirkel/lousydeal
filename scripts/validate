@@ -7,24 +7,39 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# markdownlint-cli2 is a pinned devDependency, not a global tool -- its binary
-# lives in node_modules/.bin. Appended, not prepended: the system copies of
-# gitleaks, node, npm and the linters must win over anything a devDependency
-# happens to ship a same-named bin for.
-export PATH="$PATH:$PWD/node_modules/.bin"
-
 missing=()
 missing_npm_ci=()
 missing_brew=()
 missing_runtime=()
-for tool in shellcheck markdownlint-cli2 lychee gitleaks node npm; do
+for tool in shellcheck lychee gitleaks node npm; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     missing+=("$tool")
     case "$tool" in
-      markdownlint-cli2) missing_npm_ci+=("$tool") ;;
       node | npm) missing_runtime+=("$tool") ;;
       *) missing_brew+=("$tool") ;;
     esac
+  fi
+done
+
+# Two tool groups, checked two different ways, and the difference is the point.
+#
+# The four above are system tools, found on PATH. The four below are pinned
+# devDependencies, checked as files in node_modules/.bin and never through
+# PATH: `command -v` is satisfied by a global copy of the same name, which is
+# how an earlier version of this refusal shipped without ever firing. "Has
+# npm ci run" is a question about node_modules, not about what answers to a
+# name somewhere on PATH.
+#
+# node_modules/.bin is deliberately not added to PATH. Nothing needs it --
+# markdownlint-cli2 is invoked by explicit path below, and eslint, tsc and
+# vitest run under `npm run`, which prepends that directory itself. Adding it
+# was actively harmful: it makes a system tool win only when a system copy
+# exists, and when one does not, `command -v gitleaks` finds a dependency's
+# same-named bin and the loop above reports the secret scanner present.
+for tool in markdownlint-cli2 eslint tsc vitest; do
+  if [ ! -x "node_modules/.bin/$tool" ]; then
+    missing+=("$tool")
+    missing_npm_ci+=("$tool")
   fi
 done
 
@@ -35,7 +50,7 @@ done
 if [ ${#missing[@]} -ne 0 ]; then
   echo "validate: missing required tools: ${missing[*]}" >&2
   if [ ${#missing_npm_ci[@]} -ne 0 ]; then
-    echo "  npm ci    # installs ${missing_npm_ci[*]} (pinned in package.json)" >&2
+    echo "  npm ci    # installs ${missing_npm_ci[*]} from package-lock.json" >&2
   fi
   if [ ${#missing_brew[@]} -ne 0 ]; then
     echo "  brew install ${missing_brew[*]}" >&2
@@ -85,7 +100,10 @@ echo "==> shellcheck"
 shellcheck scripts/validate .githooks/pre-commit
 
 echo "==> markdownlint"
-markdownlint-cli2
+# By explicit path, not by name: node_modules/.bin is not on PATH, so a bare
+# `markdownlint-cli2` resolves to a global copy when one is installed. This
+# path is what makes the pinned version the one that runs.
+node_modules/.bin/markdownlint-cli2
 
 echo "==> links"
 lychee --no-progress --config lychee.toml .
