@@ -16,6 +16,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T1a | T1 | lousydeal | `e6e994deea2a` | AGENT | done | agent | journal, T1a | 2026-08-29 |
 | T1b | T1 | lousydeal | `6b6396cec6d0` | AGENT | done | agent | journal, T1b | 2026-08-29 |
 | T2a | T2 | architecture | `a13b02ed37da` | AGENT | open | agent | — | — |
+| T2b | T2b | lousydeal | `f0b51aac9587` | AGENT | open | agent | — | — |
 | T3a | T3 | lousydeal | `1bcf52d9f1db` | AGENT | open | agent | — | — |
 | T3b | T3 | lousydeal | `89c962fc4c8b` | AGENT | open | agent | — | — |
 | T4a | T4 | lousydeal | `63e00ca45012` | AGENT | open | agent | — | — |
@@ -39,6 +40,23 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | open | operator | — | — |
 | T16a | T16 | orange | `abf2a5101f88` | JOINT | open | operator | — | — |
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
+
+## Amendments
+
+**2026-08-29 · T2b added, 26 rows to 27.** A defect merged in T1b: on a checkout
+without `node_modules` the missing-tool check passes anyway when the same tools
+exist globally, so `npm run lint` reaches a global ESLint 6 against the pinned 10
+and fails with a message about a missing configuration file. The refusal T1b
+added never fires. `scripts/validate` is in T1's `Files` list and no other, and
+T1 had closed, so no existing row could repair it.
+
+Operator chose to amend the plan rather than open an issue. Implemented as a
+second row rather than an addition to T2's file list, because T2 is in
+`architecture` and this file is in `lousydeal` — global constraint 6 requires two
+rows with a stated order, and the plan states it.
+
+Every existing checkbox hash was recomputed after the edit: **no drift**. No row
+identity moved; one row was added.
 
 ## Classification note
 
