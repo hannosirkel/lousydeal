@@ -18,7 +18,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T2a | T2 | architecture | `a13b02ed37da` | AGENT | done | agent | journal, T2a | 2026-08-29 |
 | T2c | T2c | lousydeal | `c248bf499315` | AGENT | done | agent | journal, T2c | 2026-08-29 |
 | T2b | T2b | lousydeal | `f0b51aac9587` | AGENT | done | agent | journal, T2b | 2026-08-29 |
-| T3a | T3 | lousydeal | `1bcf52d9f1db` | AGENT | open | agent | — | — |
+| T3a | T3 | lousydeal | `1bcf52d9f1db` | AGENT | done | agent | journal, T3a | 2026-08-29 |
 | T3b | T3 | lousydeal | `89c962fc4c8b` | AGENT | open | agent | — | — |
 | T4a | T4 | lousydeal | `63e00ca45012` | AGENT | open | agent | — | — |
 | T5a | T5 | lousydeal | `a0e14c6818fc` | AGENT | open | agent | — | — |
@@ -43,6 +43,25 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-08-29 · three file-list additions at T3a; row count unchanged at 28.**
+Review found that `backend/tsconfig.json` sets `noEmit: true`, which Medusa's
+compiler spreads into `createProgram` while guarding only on `emitSkipped` — a
+flag TypeScript leaves `false` when `noEmit` suppresses output. `medusa build`
+would write zero files, report success, exit 0, and yield an image that cannot
+start. Reproduced directly: `noEmit=true → emitSkipped=false, filesWritten=0`.
+
+The fix is assigned to T3b, which shares T3's `Files` list and is the last row
+authorised to touch that file. Separately, `backend/package.json` had the same
+one-row authority while T6 must add Medusa dependencies and T11 must run a
+`build` script neither could declare, so T6 gained `backend/package.json` and
+`package-lock.json`, and T11 gained both workspace manifests.
+
+The plan's parallel-safety paragraph was corrected in the same pass: T3 and T6
+now share two files, so T3–T7 are no longer disjoint and the binding's conflict
+map must not treat them as parallel-safe.
+
+No checkbox text changed; all 28 hashes recomputed, no drift.
 
 **2026-08-29 · global constraint 9 added at T2b; row count unchanged at 28.**
 Not a new row — a new rule. A row that falsifies a tracked document now carries

@@ -541,3 +541,69 @@ while `status.md` said it was answered.
 **Q4 answered by a rule.** Global constraint 9. Three documents had been left
 stating the opposite of the truth because the row that falsified them had no
 authority to touch them. Patching each instance had not stopped the next.
+
+---
+
+## 2026-08-29 — T3a, the backend's environment reader
+
+Worktree `~/app/.worktrees/lousydeal/t3a-env` from `origin/main` at `6e0203f`.
+**The first application code in the build.**
+
+**The dormant glob fired.** From the repository root — the way `scripts/validate`
+and CI invoke it — the backend suite runs:
+
+```text
+✓ |backend| tests/runtime-config.test.ts › requireEnv › returns the value trimmed
+  Test Files  1 passed (1)   Tests  9 passed (9)
+```
+
+That `|backend|` prefix is T1a's most contested finding finally exercised. A
+Blocking severity, two fix attempts and three review passes went into a projects
+glob that had never matched anything until this row.
+
+**The Major, and why it matters more than anything else found so far.**
+`backend/tsconfig.json` sets `noEmit: true`. Medusa's compiler spreads
+`tsConfig.options` into `createProgram` without overriding it, and guards only on
+`emitResult.emitSkipped`. Verified at the source and reproduced:
+
+```text
+noEmit=true   emitSkipped=false   filesWritten=0
+noEmit=false  emitSkipped=false   filesWritten=1
+```
+
+So `medusa build` writes nothing, the guard does not fire, the build logs
+success and exits 0, and the Dockerfile copies an empty `.medusa/server`. **A
+green CI run, a published image, an immutable digest, and a container that
+cannot start.** It would have surfaced at T11 or in the cluster, eight rows
+downstream of where it was written. T17 exists to catch that class after the
+fact; this caught it before.
+
+Two consequences followed: `medusa-config.ts` sits at the workspace root and
+matches neither `include` glob, so T6's file could never have been compiled; and
+`module: ESNext` with `moduleResolution: Bundler` targets a bundler while
+`backend/package.json` declares no `type` and is therefore CommonJS.
+
+Assigned to T3b by the operator — it shares T3's `Files` list and is the last row
+that may touch the file. The same authority problem applied to
+`backend/package.json`, so T6 and T11 gained the files they need.
+
+**Five instances of one trap.** A file frozen by an early row that a later row
+needs. Constraint 9 closed the document half at T2b; this is the configuration
+half, answered the same way — put the file in the `Files` list of every row that
+needs it.
+
+**A pattern in the minors worth keeping.** Three of five were comments asserting
+something the code does not do. `optionalEnv` claimed a caller could tell "not
+set" from "set to empty" while collapsing both to `undefined`; the module header
+claimed to read `process.env`, which it never does; and the same false claim then
+survived in the test file after being struck from the header. Correct behaviour,
+wrong justification, every time — invisible unless the claim is checked against
+the implementation.
+
+**Mutation testing did the real work on the suite.** Pass 1 found two mutants
+surviving all seven tests: deleting `this.name = "ConfigError"`, and dropping
+`${name}` from the refusal message. Pass 2 then found that the assertion added to
+kill the second one did not: it proved the message contained `STRIPE_SECRET_KEY`,
+not that it named the variable asked for, so hardcoding that string passed nine
+of nine. Fixed by asserting two different names, and verified the hardcoded
+mutant now dies.

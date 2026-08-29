@@ -8,8 +8,8 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-08-29 |
-| Current slice | LD-01, in execution. M1 complete; T2b in review. 4 of 28 rows done. |
-| Next action | `resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build`, once T2b's pull request merges. M2 then begins at T3. |
+| Current slice | LD-01, in execution. M2 begun; T3a in review. 6 of 28 rows done. |
+| Next action | `resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build`, once T3a's pull request merges. Next row is T3b, which must fix the backend tsconfig. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -129,8 +129,15 @@ surfaces, not the LD-01 foundation. They can run in parallel with LD-01.
 
 ## In flight
 
-**T2b**, open as a pull request: making `scripts/validate` refuse when `npm ci`
-has not been run. Milestone M1 is merged and `main` is green.
+**T3a**, open as a pull request: the backend's environment reader, and the first
+application code in the build. Milestone M1 is merged and `main` is green.
+
+**T3b must fix `backend/tsconfig.json` before anything builds.** It sets
+`noEmit: true`, which Medusa's compiler passes through while guarding only on a
+flag TypeScript leaves `false` — so `medusa build` writes zero files, reports
+success, and yields an image that cannot start. T3b is the last row authorised to
+touch that file. This is written into the plan's T3 section; do not start T3b
+without reading it.
 
 ## Done
 

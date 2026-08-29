@@ -197,7 +197,15 @@ Two rows rather than one because T2 is in `architecture` and this file is in
 **Repository:** `lousydeal`.
 **Files:** `backend/package.json`, `backend/tsconfig.json`,
 `backend/vitest.config.mts`, `backend/src/config/env.ts`,
-`backend/src/config/runtime.ts`, `backend/tests/runtime-config.test.ts`.
+`backend/src/config/runtime.ts`, `backend/tests/runtime-config.test.ts`,
+`package-lock.json`, `README.md`, `AGENTS.md`.
+
+`package-lock.json` is here because npm workspaces share one root lockfile, so a
+backend dependency necessarily writes it; the binding's conflict map already
+says as much, and the row that adds it must own it. `README.md` and `AGENTS.md`
+are here under global constraint 9: both state that `backend/` does not exist
+yet, which this task makes untrue. Both belong to the first row of the task, not
+the second.
 
 - [ ] Add `backend/src/config/env.ts` as the only module that reads
       `process.env`, exposing trimmed required and optional readers and a
@@ -207,6 +215,23 @@ Two rows rather than one because T2 is in `architecture` and this file is in
       configuration and **failing closed**: a required value that is absent
       throws at load rather than defaulting. Verified by a test asserting the
       refusal names the missing variable.
+
+**This row also owns `backend/tsconfig.json`, and it is the last row that may
+touch it.** T3a shipped it as a typecheck-only config — `noEmit: true`, and an
+`include` of `src/**` and `tests/**` only. Medusa's compiler spreads
+`tsConfig.options` into `createProgram` without overriding `noEmit`, and guards
+only on `emitSkipped`, which TypeScript leaves `false` when `noEmit` suppresses
+output. `medusa build` would therefore write **zero files**, report success, exit
+0, and hand T11 an image that cannot start. `medusa-config.ts` sits at the
+workspace root and matches neither `include` glob, so T6's file could never be
+compiled either.
+
+Split it the way the reference implementation does: a build config
+(`module`/`moduleResolution` `Node16`, `outDir` `.medusa/server`, `rootDir` `.`,
+including `medusa-config.ts` and `src/**`, excluding `tests`) and a
+`tsconfig.test.json` extending it with `noEmit` for the test surface, with
+`typecheck` running both. Add `vitest.config.mts` to the typechecked set — today
+a type error in it is caught by nothing.
 
 ## T4 — Database URL and SSL resolution
 
@@ -249,7 +274,13 @@ which is how Plepic ran a worker that consumed a queue nothing published to.
 **Repository:** `lousydeal`.
 **Files:** `backend/medusa-config.ts`, `backend/src/config/payment.ts`,
 `backend/tests/payment-provider-config.test.ts`,
-`backend/tests/medusa-config.test.ts`.
+`backend/tests/medusa-config.test.ts`, `backend/package.json`,
+`package-lock.json`.
+
+`backend/package.json` and the root lockfile are here because this row registers
+the Stripe payment module and three Redis modules, which means adding Medusa
+dependencies — and npm workspaces share one lockfile. Without them the row could
+declare modules it cannot install.
 
 - [ ] Assemble `medusa-config.ts` from the runtime configuration, registering
       the Stripe payment module and the three Redis modules. Verified by a test
@@ -335,7 +366,12 @@ legal one, and it stays true when LD-06 adds surcharges.
 **Repository:** `lousydeal`.
 **Files:** `backend/Dockerfile`, `backend/Dockerfile.dockerignore`,
 `storefront/Dockerfile`, `storefront/Dockerfile.dockerignore`,
-`scripts/images.test.ts`.
+`scripts/images.test.ts`, `backend/package.json`, `storefront/package.json`.
+
+Both workspace manifests are here because an image has to run a build, and
+neither manifest declares a `build` script before this row. A Dockerfile that
+invokes one that does not exist fails at image build; a Dockerfile that invokes
+one which emits nothing fails only in the cluster.
 
 - [ ] Build both images from the repository root, each stage on one
       digest-pinned base, running as a non-root UID, declaring **no build
@@ -463,9 +499,15 @@ T1 -> T2 -> T3 -> T4 -> T5 -> T6 -> T7 -> T8 -> T9 -> T10 -> T11 -> T12
                                               T17 (smoke, against test)
 ```
 
-T3 through T7 are backend-only and touch disjoint files. T8 through T10 are
-storefront-only. Neither group shares a file with the other, so the binding may
-declare them parallel-safe; T11 onward is strictly sequential.
+T4, T5 and T7 are backend-only and touch disjoint files. T8 through T10 are
+storefront-only. T11 onward is strictly sequential.
+
+**T3 and T6 are not parallel-safe with anything, including each other.** Both own
+`backend/package.json` and the root `package-lock.json`, which npm workspaces
+share; T3 additionally owns `README.md` and `AGENTS.md` under global constraint 9.
+This paragraph previously said T3 through T7 were backend-only and disjoint, and
+the file-list amendments made both halves false. **The binding's conflict map must
+not declare T3–T7 parallel-safe on the strength of the older wording.**
 
 ## What this slice does not deliver
 

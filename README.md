@@ -9,9 +9,9 @@ Public. Public does not mean it may hold a secret.
 ## Status
 
 The root npm workspace: `package.json`, `tsconfig.json`, `eslint.config.js`,
-`vitest.config.ts` and `scripts/validate`. `backend/` and `storefront/` do not
-exist yet. The catalogue declares `languages: [shell, typescript]` and
-`npm_project: true`.
+`vitest.config.ts` and `scripts/validate`. `backend/` holds the Medusa backend's
+environment reader so far; `storefront/` does not exist yet. The catalogue
+declares `languages: [shell, typescript]` and `npm_project: true`.
 
 What is being built, in what order, and what has already been decided:
 [`docs/working/fresh-build.md`](./docs/working/fresh-build.md).
