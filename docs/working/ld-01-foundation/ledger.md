@@ -61,6 +61,7 @@ expires.
 
 | # | Effect | Row | State |
 | --- | --- | --- | --- |
+| E0 | Add `Canonical validation` to the branch ruleset's required contexts | T1b, after merge | **approved 2026-08-29, not yet executed** |
 | E1 | First publish to GHCR | T12b | not requested |
 | E2 | Merging T12 — `Release` fires on the merge that introduces it | T12b | not requested |
 | E3 | First write to `deploys/lousydeal/overlays/*` | T12b, T13a | not requested |
@@ -68,6 +69,13 @@ expires.
 | E5 | Creating namespaces and starting workloads | T15a | not requested |
 | E6 | Publishing DNS for `test.lousydeal.com` | T16a | not requested |
 | E7 | Applying the Cloudflare Access policy | T16a | not requested |
+
+**E0 was not in the binding's inventory.** It was discovered at T1b: a new CI job
+produces a status-check context the ruleset does not require, so the job runs and
+displays but cannot block a merge. The mechanism's category list is a floor, not
+a ceiling, and an access-policy change on a public repository's default branch is
+an effect gate whether or not the binding enumerated it. Rollback is a `PATCH` of
+the pre-change ruleset JSON, captured before the request was made.
 
 E7 precedes E6. Publishing the hostname before the policy exists leaves it
 public and ungated for the width of the gap.
