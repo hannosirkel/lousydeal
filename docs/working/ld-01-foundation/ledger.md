@@ -16,6 +16,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T1a | T1 | lousydeal | `e6e994deea2a` | AGENT | done | agent | journal, T1a | 2026-08-29 |
 | T1b | T1 | lousydeal | `6b6396cec6d0` | AGENT | done | agent | journal, T1b | 2026-08-29 |
 | T2a | T2 | architecture | `a13b02ed37da` | AGENT | open | agent | — | — |
+| T2b | T2b | lousydeal | `f0b51aac9587` | AGENT | open | agent | — | — |
 | T3a | T3 | lousydeal | `1bcf52d9f1db` | AGENT | open | agent | — | — |
 | T3b | T3 | lousydeal | `89c962fc4c8b` | AGENT | open | agent | — | — |
 | T4a | T4 | lousydeal | `63e00ca45012` | AGENT | open | agent | — | — |
@@ -40,6 +41,23 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T16a | T16 | orange | `abf2a5101f88` | JOINT | open | operator | — | — |
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
+## Amendments
+
+**2026-08-29 · T2b added, 26 rows to 27.** A defect merged in T1b: on a checkout
+without `node_modules` the missing-tool check passes anyway when the same tools
+exist globally, so `npm run lint` reaches a global ESLint 6 against the pinned 10
+and fails with a message about a missing configuration file. The refusal T1b
+added never fires. `scripts/validate` is in T1's `Files` list and no other, and
+T1 had closed, so no existing row could repair it.
+
+Operator chose to amend the plan rather than open an issue. Implemented as a
+second row rather than an addition to T2's file list, because T2 is in
+`architecture` and this file is in `lousydeal` — global constraint 6 requires two
+rows with a stated order, and the plan states it.
+
+Every existing checkbox hash was recomputed after the edit: **no drift**. No row
+identity moved; one row was added.
+
 ## Classification note
 
 The binding's §4 lists T14 and T16 as JOINT and T1–T13 and T17 as AGENT. **T15
@@ -61,6 +79,7 @@ expires.
 
 | # | Effect | Row | State |
 | --- | --- | --- | --- |
+| E0 | Add `Canonical validation` to the branch ruleset's required contexts | T1b, after merge | **executed 2026-08-29** |
 | E1 | First publish to GHCR | T12b | not requested |
 | E2 | Merging T12 — `Release` fires on the merge that introduces it | T12b | not requested |
 | E3 | First write to `deploys/lousydeal/overlays/*` | T12b, T13a | not requested |
@@ -68,6 +87,13 @@ expires.
 | E5 | Creating namespaces and starting workloads | T15a | not requested |
 | E6 | Publishing DNS for `test.lousydeal.com` | T16a | not requested |
 | E7 | Applying the Cloudflare Access policy | T16a | not requested |
+
+**E0 was not in the binding's inventory.** It was discovered at T1b: a new CI job
+produces a status-check context the ruleset does not require, so the job runs and
+displays but cannot block a merge. The mechanism's category list is a floor, not
+a ceiling, and an access-policy change on a public repository's default branch is
+an effect gate whether or not the binding enumerated it. Rollback is a `PATCH` of
+the pre-change ruleset JSON, captured before the request was made.
 
 E7 precedes E6. Publishing the hostname before the policy exists leaves it
 public and ungated for the width of the gap.

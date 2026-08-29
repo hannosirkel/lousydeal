@@ -127,6 +127,26 @@ reports pass while the whole application sits outside it.
 A language declared ahead of its code is a check that never runs; declared
 behind it is a check that was skipped. T1 and T2 are adjacent for that reason.
 
+## T2b — Make the dependency refusal actually refuse
+
+**Repository:** `lousydeal`. **Runs after T2 merges.**
+**Files:** `scripts/validate`.
+
+- [ ] Refuse when `node_modules` is absent rather than inferring it from a tool
+      that may also be installed globally, and run the pinned binaries from the
+      lockfile rather than whatever `PATH` resolves. Verified by a checkout with
+      no `node_modules` refusing and naming `npm ci`, on a machine that has
+      global copies of the same tools installed.
+
+Added after T1 closed. On a checkout that has not run `npm ci`, the missing-tool
+check passed because a global `markdownlint-cli2` satisfied it, and `npm run
+lint` then found a global ESLint 6 against the pinned 10 and failed with
+*"couldn't find a configuration file"* — sending a developer to look for a file
+that is present. The refusal T1b added never fired.
+
+Two rows rather than one because T2 is in `architecture` and this file is in
+`lousydeal`; global constraint 6 governs, and the order is stated above.
+
 ## T3 — Backend runtime configuration
 
 **Repository:** `lousydeal`.

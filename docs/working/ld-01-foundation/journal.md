@@ -304,3 +304,63 @@ has two chances to hit it. Recorded as an open question rather than changed —
 **Row closed.** Pre-commit gates run before each commit: `git diff --check`
 clean, credential scan of the staged non-lockfile diff clean, `gitleaks protect
 --staged` no leaks, and the tracked `.githooks` hook fired.
+
+---
+
+## 2026-08-29 — E0, and a defect found on merged main
+
+**T1b merged** as `ba9cb1a`. CI on `main` green. Task T1 closed.
+
+**A defect in the merged code, found by running the command on a real checkout.**
+`~/app/lousydeal` has never had `npm ci` run. `bash scripts/validate` there:
+
+```text
+==> lint
+ESLint: 6.4.0.
+ESLint couldn't find a configuration file.
+exit=2
+```
+
+The missing-tool check passed because a global `markdownlint-cli2` exists at
+`/usr/local/bin` and satisfies `command -v` — so the one proxy for "dependencies
+are installed" was defeated. `npm run lint` then fell through to a global ESLint
+`6.4.0` against the pinned `^10.8.1`, four majors apart, and ESLint 6 cannot read
+flat config. The developer is sent to look for a configuration file that exists.
+
+Review pass 3 raised the ingredient and rated it Minor, framing the consequence as
+version drift with a safe failure direction. That was right about
+`markdownlint-cli2` and missed that the same check was load-bearing for
+`node_modules` as a whole. The orchestrator accepted that framing. CI is
+unaffected because it runs `npm ci` first, which is why every gate was green.
+
+The lesson is narrow and worth keeping: **a check that passes in CI and on the
+author's machine has been tested on two configured environments and no
+unconfigured one.** The defect was only visible on a checkout nobody had prepared.
+
+**E0 — effect gate, approved and executed.** Adding `Canonical validation` to
+ruleset `21687602`. Not in the binding's inventory; discovered at T1b. The
+mechanism's category list is a floor, and an access-policy change on a public
+repository's default branch is an effect gate whether the binding enumerated it
+or not.
+
+State was committed before the write and again immediately after. Verified after
+executing:
+
+```text
+required contexts: Documentation, Shell, Workflow lint, Secret scan,
+                   Canonical validation
+rules:             deletion, non_fast_forward, pull_request,
+                   required_status_checks
+enforcement:       active
+```
+
+The four pre-existing contexts and all other rules are unchanged — the patch
+appended rather than rewrote. Rollback JSON retained.
+
+**Plan amended, 26 rows to 27.** T2b added to repair the defect. The operator
+chose amendment over an issue entry. Implemented as a second row rather than an
+addition to T2's file list: T2 is in `architecture`, `scripts/validate` is in
+`lousydeal`, and global constraint 6 requires two rows with a stated order.
+
+Every existing checkbox hash recomputed after the edit — **no drift**, one row
+added. Row identity is keyed on checkbox text, and no checkbox text changed.
