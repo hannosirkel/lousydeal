@@ -8,7 +8,7 @@ Governed by [`architecture`](https://github.com/hannosirkel/architecture).
 | --- | --- |
 | Profile | `application-public` |
 | Visibility | declared public, currently public |
-| Languages | shell |
+| Languages | shell, typescript |
 
 **Standards that apply here.** Read a standard before you change something it
 governs.
@@ -20,7 +20,7 @@ governs.
 - [Work routing](https://github.com/hannosirkel/architecture/blob/main/standards/work-routing.md) — where a change starts, and where a working plan belongs
 - [Planning](https://github.com/hannosirkel/architecture/blob/main/standards/planning.md) — how a plan row is sized, the pull-request size gate
 - [GitOps and deployment](https://github.com/hannosirkel/architecture/blob/main/standards/gitops-and-deployment.md) — promotion by digest, rollback, the sanctioned secrets path
-- Language standards: [shell](https://github.com/hannosirkel/architecture/blob/main/standards/languages/shell.md)
+- Language standards: [shell](https://github.com/hannosirkel/architecture/blob/main/standards/languages/shell.md), [typescript](https://github.com/hannosirkel/architecture/blob/main/standards/languages/typescript.md)
 
 **Never commit to a default branch.** Work in `~/app/.worktrees/lousydeal/<task>`.
 Branch from `origin/main`. Open a pull request.
@@ -58,10 +58,11 @@ or any secret value.
 
 At the time of writing it holds the root npm workspace — `package.json`,
 `tsconfig.json`, `eslint.config.js`, `vitest.config.ts` and `scripts/validate`
-— with `backend/` and `storefront/` not yet created. `universe/repositories.yaml`
-still records `languages: [shell]` and `npm_project: false`; that catalogue
-entry is row T2's to correct, in a different repository, not a reason to keep
-saying it here.
+— with `backend/` and `storefront/` not yet created. The catalogue declares
+`languages: [shell, typescript]` and `npm_project: true`, and the managed
+section above is generated from it — so a change to what this repository
+contains is not complete until `tooling/universe sync-baseline lousydeal` has
+run and its output has landed here.
 
 ## Commands
 

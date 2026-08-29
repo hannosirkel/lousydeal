@@ -8,16 +8,17 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-08-29 |
-| Current slice | LD-01, in execution. Rows 1 and 2 of 26 done; T1b in review as a pull request. |
-| Next action | `resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build`, once T1b's pull request merges. Milestone M1 closes with T2. |
+| Current slice | LD-01, in execution. Milestone M1 complete: 4 of 28 rows done. |
+| Next action | `resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build`, once T2c's pull request merges. Next row is T2b, then M2 begins at T3. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
 
 ## Next action, in full
 
-LD-01 is executing. [`ld-01-foundation.md`](./ld-01-foundation.md) holds 17
-tasks and 26 rows, and its `big-build` binding is at
+LD-01 is executing. [`ld-01-foundation.md`](./ld-01-foundation.md) holds 28
+rows — it began at 26; see *Rows added during execution* below — and its
+`big-build` binding is at
 `myskills/skills/big-build/plans/ld-01-foundation.md`. **The authoritative row
 state is [`ld-01-foundation/ledger.md`](./ld-01-foundation/ledger.md)**, which
 survives a compaction this file does not attempt to.
@@ -26,42 +27,73 @@ Preflight ran clean on 2026-08-29 and was confirmed. All five external accounts
 are held, all twelve declared absences verified absent, and two missing tools
 resolved: Ansible from `orange`'s virtualenv, `kubeconform` installed.
 
-**T1a is merged. T1b — one canonical validation command — is done and open as a
-pull request.** When it merges:
+**T1a, T1b and T2a are merged. T2c — resyncing the generated artifacts — is done
+and open as a pull request.** It completes milestone M1. When it merges:
 
 ```text
 resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build
 ```
 
 Resume re-runs the whole preflight, recomputes every checkbox hash against the
-ledger, and re-verifies external state before continuing. Next row is **T2**, in
-`architecture` rather than here: `languages: [shell, typescript]` and
-`npm_project: true`, which closes milestone M1.
+ledger, and re-verifies external state before continuing. Next row is **T2b**,
+here: make `scripts/validate` refuse when `node_modules` is absent. Then M2
+begins at T3, the backend runtime configuration.
 
-**One gate is outstanding and belongs to the operator.** T1b adds a fifth CI job
-whose context is `Canonical validation`. The branch ruleset requires four
-contexts and does not know about it, so the job runs and displays but **does not
-block a merge**. Adding it is an access-policy change and is gated separately;
-the current ruleset JSON is captured for rollback.
+**Effect gate E0 is executed, not outstanding.** The branch ruleset now requires
+five contexts — `Documentation`, `Shell`, `Workflow lint`, `Secret scan` and
+`Canonical validation`. The pre-change JSON is retained as rollback. No further
+effect gate fires until T12.
 
-### What T1a cost, and why it matters to the rows after it
+### Rows added during execution
 
-Three review passes, four Major findings, all the same shape: configuration that
-passes its own verification today and fails **silently** later, in a file no
-later row has the authority to repair. The root Vitest config would have left
-thirteen of the plan's test suites running in no gate — the same failure the
-reference implementation records having already suffered. Treat every row that
-configures something for later rows with that suspicion.
+The plan began at 26 rows and is at 28. Each addition repaired a defect that no
+existing row had the authority to touch, which is the `Files`-list discipline
+working rather than failing.
 
-Two carried forward:
+| Row | Why |
+| --- | --- |
+| T2b | `scripts/validate`'s `npm ci` refusal never fires when the same tools exist globally |
+| T2c | T2's verification was unreachable from inside T2 — `sync-baseline` writes here, not in `architecture` |
 
-- **T1b must guard its per-workspace typecheck.** `npm run typecheck --workspace
-  backend` fails today because no workspace exists. The guard is also a silent
-  skip, and no row is obliged to tighten it once T3 lands. T1b's review should be
-  pointed at that.
-- **`AGENTS.md` and `README.md` still say this repository holds documentation
-  only.** False from T1a's merge. T1b corrects them; they are now in its file
-  list.
+No checkbox text was ever edited, so no ledger row has been re-keyed. Every
+amendment recomputed all hashes and reported no drift.
+
+### Open questions, and one that will mislead you
+
+Read [`ld-01-foundation/open-questions.md`](./ld-01-foundation/open-questions.md)
+before starting a row. **Q3 in particular:** from T2c onward `habit-hooks`
+reports `incomplete-run` in this repository, because three generated sensors have
+no installed tool. `AGENTS.md` tells you to run `habit-hooks` before declaring an
+edit done. **That output is Q3, not something you broke.** `plepic` has the same
+three failures; the remedy is in `architecture` and is tracked outside LD-01.
+
+### What milestone M1 cost, and what it teaches the rows after it
+
+Four rows, eleven review passes, two Blocking and eight Major findings. Almost
+every one had the same shape: **a change that passes its own verification today
+and fails silently later, in a file no later row has the authority to repair.**
+
+- The root Vitest config would have left thirteen of the plan's test suites
+  running in no gate at all — the failure the reference implementation records
+  having already suffered once.
+- A CI job installed a binary from an archive member that does not exist, so it
+  would have been red on every run, permanently.
+- A workspace list derived through `mapfile < <(node …)` swallowed failure,
+  because `set -euo pipefail` does not cover process substitution.
+
+Two habits earned their cost and should continue: **run the command on an
+unconfigured checkout**, since CI and an author's machine are both configured
+environments and neither exercises the refusal path; and **check what a test
+actually demonstrated**, since two separate fixtures here passed for the wrong
+reason before anyone noticed.
+
+Carried forward:
+
+- **`README.md` still says the catalogue records `languages: [shell]`.** False
+  since T2a merged. `AGENTS.md` carried the same claim and was fixed at T2c
+  because it was in that row's file list; `README.md` is in no open row's. See
+  Q4 — this is the third occurrence of one trap, and it needs an answer that
+  fixes the class rather than the instance.
 
 ### The gates this slice will ask for
 

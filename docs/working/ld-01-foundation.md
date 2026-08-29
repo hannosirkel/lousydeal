@@ -76,7 +76,7 @@ of this build.
 
 | # | Criterion | Fed by |
 | --- | --- | --- |
-| C1 | `bash scripts/validate` passes and is what CI runs | T1, T2 |
+| C1 | `bash scripts/validate` passes and is what CI runs | T1, T2, T2b, T2c |
 | C2 | The backend refuses to start on a missing or wrong Redis, and on absent required configuration | T3, T5 |
 | C3 | Medusa migrates and starts against PostgreSQL with SSL resolved identically on both paths | T4, T6 |
 | C4 | The three tiers exist at $5, $10 and $25, seeded idempotently | T7 |
@@ -126,6 +126,37 @@ reports pass while the whole application sits outside it.
 
 A language declared ahead of its code is a check that never runs; declared
 behind it is a check that was skipped. T1 and T2 are adjacent for that reason.
+
+## T2c — Resync the generated artifacts
+
+**Repository:** `lousydeal`. **Runs after T2 merges, and only after.**
+**Files:** `AGENTS.md`, `.habit-hooks/config.toml`.
+
+- [ ] Commit the output of `tooling/universe sync-baseline lousydeal`, run from
+      an `architecture` checkout that already carries T2's catalogue change.
+      Verified by `tooling/universe audit lousydeal` reporting clean, and by the
+      committed files being byte-identical to what the generator produces.
+
+T2 declares the language in `architecture`; this materialises what that
+declaration generates here. Two rows because they are two repositories, and this
+one is second because `sync-baseline` reads the catalogue from `architecture`'s
+`main` — run before T2 merges, it regenerates the old baseline and looks like it
+worked. `architecture`'s own `Baseline drift` job reported exactly this pairing
+on the merge that landed T2: *"1 repositories affected … fix: tooling/universe
+sync-baseline lousydeal, then open a pull request."* It reports affected
+repositories only when a push invalidates one, so after this row it reports
+none.
+
+The generated `.habit-hooks/config.toml` carries **two** defects that are not
+this row's to fix, both recorded as Q3 and both tracked against `architecture`.
+The `typescript` entry's own exclusions land before the generic fallback's
+`**/*.md`, `**/*.yaml` and `**/*.yml` — the fallback's identical
+`!**/node_modules/**` is the one de-duplicated away — and `pathspec` is
+last-match-wins, so `node_modules` re-enters the root scan scope. And three
+generated sensors have no installed tool, so `habit-hooks` reports
+`incomplete-run` from this row onward. **A later row seeing that is looking at
+Q3, not at something it broke.** Both predate this plan and `plepic` carries
+both.
 
 ## T2b — Make the dependency refusal actually refuse
 

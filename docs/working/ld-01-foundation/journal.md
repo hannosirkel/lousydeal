@@ -364,3 +364,121 @@ addition to T2's file list: T2 is in `architecture`, `scripts/validate` is in
 
 Every existing checkbox hash recomputed after the edit — **no drift**, one row
 added. Row identity is keyed on checkbox text, and no checkbox text changed.
+
+---
+
+## 2026-08-29 — T2a, declaring TypeScript in the catalogue
+
+Repository `architecture`, worktree `~/app/.worktrees/architecture/t2a-catalogue`
+from `origin/main` at `a451e1e`. Merged as `a513021`, PR #36.
+
+Dispatched at the binding's **low** tier, which §11 assigns to T2. The mechanical
+part was correct first time. The judgement part was not, and that is what the
+tier's mandatory orchestrator check exists for.
+
+**Evidence, re-run by the orchestrator rather than accepted:**
+
+```text
+tooling/universe validate                     clean: 14 repositories validated
+tooling/universe audit lousydeal              2 failing, 0 advisory
+                                              (stale-baseline, stale-habit-config)
+python3 -m unittest discover -s tooling       Ran 120 tests ... OK
+tooling/universe sync-baseline --dry-run      would write AGENTS.md,
+                                              .habit-hooks/config.toml
+```
+
+A full-universe audit before and after reported 5 failing and 7 advisory across
+13 repositories in both cases: `lousydeal`'s two findings swapped kind rather
+than multiplying, and nothing else in the catalogue moved.
+
+**The `languages_note` field was rewritten three times and was wrong twice.**
+The implementer turned it from future to past tense and asserted `typescript`
+"was added in the same commit as the first TypeScript file" — impossible, since
+the code is in `lousydeal` and the catalogue is in `architecture`. The
+orchestrator's replacement said "the change immediately after", which review pass
+1 showed skipped two intervening changes on `main`. Pass 2 then found an
+ambiguous antecedent and an undefined hedge in the third version.
+
+Four lines of prose in a YAML file took more review attention than the three
+functional changes around it. That is the right allocation: the functional
+changes are verifiable by running a command, and prose in a governance catalogue
+is verifiable only by someone going and checking. It is the part most likely to
+be believed without checking.
+
+**Dropping `lifecycle: registered-not-implemented`** is the one behaviour-changing
+deletion. Its only reader suppresses the profile's `expected_docs` advisory while
+a repository is unimplemented; `lousydeal` has `docs/current/`, so nothing newly
+fires — confirmed by `0 advisory`. No generated artifact reads the field.
+
+**Two inherited defects surfaced, both dispositioned to `architecture`.** See Q3.
+Neither is introduced by the row; `plepic` carries both today, and the only way
+to avoid them is not to declare the language, which the plan requires.
+
+**Plan amended, 27 rows to 28.** T2c added, because T2's stated verification is
+unreachable from inside T2. All existing hashes recomputed: no drift.
+
+`architecture`'s own `Baseline drift` job reported the companion work on the
+merge, unprompted:
+
+```text
+fix: tooling/universe sync-baseline lousydeal, then open a pull request
+1 repositories affected by HEAD~1..HEAD. This is a report, not a failure.
+```
+
+---
+
+## 2026-08-29 — T2c, resyncing the generated artifacts
+
+Worktree `~/app/.worktrees/lousydeal/t2c-baseline` from `origin/main` at
+`7073710`. Generated from `architecture` `a513021`, which carries T2a.
+
+The second half of the cross-repository pair. **T2's stated verification is
+reachable for the first time:**
+
+```text
+tooling/universe audit lousydeal --path <worktree>   clean: 1 repositories audited
+tooling/universe sync-baseline --dry-run --path ...  nothing to do; every
+                                                     generated artifact is current
+bash scripts/validate                                validate: clean
+28 checkboxes recomputed                             no drift
+```
+
+Two files, both generated: the managed section of `AGENTS.md`, and
+`.habit-hooks/config.toml`.
+
+**The review's central check was byte-identity**, and it was established twice
+from a clean `git archive` of the base tree rather than from the worktree — once
+as a fixed point (the generator reports nothing to do against the staged files)
+and once by regenerating from pristine and diffing. No hand-edit, nothing stale,
+nothing smuggled into a file whose next reader will assume the generator vouched
+for it.
+
+**Three Major findings, all in the record rather than the artifact, all the
+orchestrator's.**
+
+`AGENTS.md` still carried prose written at T1b saying the catalogue "still
+records `languages: [shell]` and `npm_project: false`". T2a merged, so it was
+false — in the file this row commits, whose subject is that the catalogue now
+says `typescript`. `AGENTS.md` is the agent contract: a later subagent reads it,
+believes the catalogue is behind, and may redo T2. This is Q1's failure recurring
+one row after Q1 was answered, which is the point worth keeping: the answer to Q1
+put the file in a row's `Files` list, and that fixed the instance, not the class.
+
+The ledger marked T2a `done` with `evidence-ref: journal, T2a` while no such
+entry existed. The ledger's own preamble says a row without one is not done,
+whatever it claims.
+
+`open-questions.md` reported the sensor measurement as markers going "0 to 2".
+Measured: the `incomplete-run` marker goes absent to present carrying 3 failing
+sensors, and total markers go 1 to 2. Wrong under either reading, in the file a
+later row is told to consult when it sees that output.
+
+**`status.md` was stale on five counts**, including describing effect gate E0 as
+outstanding when the ledger records it executed and the live ruleset requires
+five contexts. PR #14 merged without moving it. The closing commit moves it, as
+T1a's and T1b's did.
+
+**Q4 opened, and it is the third occurrence of one trap.** `README.md` carries
+the same falsified claim as `AGENTS.md` did. It is in no open row's `Files`
+list — Q1's answer put it in T1b's, and T1b has closed — so no row has the
+authority to correct it.

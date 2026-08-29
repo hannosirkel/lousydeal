@@ -15,7 +15,8 @@ Started 2026-08-29. Preflight confirmed the same day.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | T1a | T1 | lousydeal | `e6e994deea2a` | AGENT | done | agent | journal, T1a | 2026-08-29 |
 | T1b | T1 | lousydeal | `6b6396cec6d0` | AGENT | done | agent | journal, T1b | 2026-08-29 |
-| T2a | T2 | architecture | `a13b02ed37da` | AGENT | open | agent | — | — |
+| T2a | T2 | architecture | `a13b02ed37da` | AGENT | done | agent | journal, T2a | 2026-08-29 |
+| T2c | T2c | lousydeal | `c248bf499315` | AGENT | done | agent | journal, T2c | 2026-08-29 |
 | T2b | T2b | lousydeal | `f0b51aac9587` | AGENT | open | agent | — | — |
 | T3a | T3 | lousydeal | `1bcf52d9f1db` | AGENT | open | agent | — | — |
 | T3b | T3 | lousydeal | `89c962fc4c8b` | AGENT | open | agent | — | — |
@@ -42,6 +43,19 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-08-29 · T2c added, 27 rows to 28.** T2's stated verification —
+`tooling/universe audit lousydeal` reporting clean — is unreachable from inside
+T2. Clearing the catalogue findings reveals `stale-baseline` and
+`stale-habit-config`, fixed by `sync-baseline` writing `AGENTS.md` and
+`.habit-hooks/config.toml` in `lousydeal`. `.habit-hooks/config.toml` was in no
+row's `Files` list anywhere in the plan.
+
+T2a and T2c are a cross-repository pair under the mechanism's §11.2: two pull
+requests, stated merge order, neither merged alone. T2a first, because
+`sync-baseline` reads the catalogue from `architecture`'s `main`.
+
+All existing hashes recomputed after the edit: **no drift**, one row added.
 
 **2026-08-29 · T2b added, 26 rows to 27.** A defect merged in T1b: on a checkout
 without `node_modules` the missing-tool check passes anyway when the same tools
