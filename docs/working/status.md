@@ -9,7 +9,7 @@ does not.
 | --- | --- |
 | Updated | 2026-08-28 |
 | Current slice | LD-01, planned and not started. |
-| Next action | Rename the Stripe key file, then `start implementing lousydeal/docs/working/ld-01-foundation.md using big-build`. See below. |
+| Next action | `start implementing lousydeal/docs/working/ld-01-foundation.md using big-build`. Every prerequisite is met. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -20,14 +20,7 @@ LD-01 is planned. [`ld-01-foundation.md`](./ld-01-foundation.md) holds 17 tasks
 and 26 rows, and its `big-build` binding is at
 `myskills/skills/big-build/plans/ld-01-foundation.md`.
 
-**One operator action first, and it is an undo.** Decision `005` asked for a
-rename that was wrong; [`006`](../decisions/006-two-naming-categories-in-keys.md)
-supersedes it. Rename `.keys/lousydeal-stripe-test` back to
-`stripe-lousydeal-sandbox`, which is what it was supplied as and what
-`stripe-plepic-sandbox` beside it already matches. Nothing reads the file by
-name, so this costs only the rename.
-
-Then execute:
+Every prerequisite is met. Execute:
 
 ```text
 start implementing lousydeal/docs/working/ld-01-foundation.md using big-build
@@ -91,7 +84,6 @@ Nothing. The last pull request is merged and `main` is green.
 
 | Item | State | Needed by |
 | --- | --- | --- |
-| Rename `.keys/lousydeal-stripe-test` back to `stripe-lousydeal-sandbox` | operator action, undoing the bad `005` rename; see [`006`](../decisions/006-two-naming-categories-in-keys.md) | before execution |
 | Certificate PDF renderer | deferred by Gate A — no LD-01 row depends on it | LD-02 planning |
 | Release-failure notifier | open, not yet applicable — there is no build to fail | before the first LD-01 deployment |
 | `docs/issues/` | correctly absent — an empty directory fails conformance | the first known issue |
@@ -137,7 +129,7 @@ What is actually held, as against what the contract expects in §2b.
 | --- | --- | --- |
 | Domain `lousydeal.com` | yes | DNS not yet published |
 | Company identity, Aislopica OÜ | yes | §2b |
-| Stripe sandbox keys | yes | in the Orange checkout as `lousydeal-stripe-test`, to be renamed back to `stripe-lousydeal-sandbox` per `006`; not yet seeded into OpenBao |
+| Stripe test-mode keys | yes | `.keys/stripe-lousydeal-test` in the Orange checkout, provider-first per `006`; not yet seeded into OpenBao |
 | Stripe live keys | no | not before the publication gate, by design |
 | Printful account and sandbox | no | request before LD-04 |
 | SMTP transactional credentials | no | request before LD-02 |

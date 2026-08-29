@@ -55,7 +55,7 @@ Verified 2026-08-28. An absence below is declared in the binding.
 | OpenBao mounts `lousydeal`, `lousydeal-test` | **absent**; created by T14 |
 | Namespaces | **absent**; created by T15 |
 | Images in GHCR | **absent**; first published by T12 |
-| Stripe | sandbox only, held at `.keys/stripe-lousydeal-sandbox` per decision `006` |
+| Stripe | test mode only, held at `.keys/stripe-lousydeal-test`, provider-first per decision `006` |
 | Reference implementation | `plepic` at `8f367cb`, Medusa 2.18.0, Node `>=24.18.0` |
 
 ## Target exposure
