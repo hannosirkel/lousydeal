@@ -8,8 +8,8 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-08-29 |
-| Current slice | LD-01, in execution. Row 1 of 26 done, in review as a pull request. |
-| Next action | `resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build`, once T1a's pull request merges. |
+| Current slice | LD-01, in execution. Rows 1 and 2 of 26 done; T1b in review as a pull request. |
+| Next action | `resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build`, once T1b's pull request merges. Milestone M1 closes with T2. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -26,16 +26,23 @@ Preflight ran clean on 2026-08-29 and was confirmed. All five external accounts
 are held, all twelve declared absences verified absent, and two missing tools
 resolved: Ansible from `orange`'s virtualenv, `kubeconform` installed.
 
-**T1a — the root npm workspace — is done and open as a pull request.** When it
-merges:
+**T1a is merged. T1b — one canonical validation command — is done and open as a
+pull request.** When it merges:
 
 ```text
 resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build
 ```
 
 Resume re-runs the whole preflight, recomputes every checkbox hash against the
-ledger, and re-verifies external state before continuing. Next row is **T1b**,
-extending `scripts/validate` and the CI workflow.
+ledger, and re-verifies external state before continuing. Next row is **T2**, in
+`architecture` rather than here: `languages: [shell, typescript]` and
+`npm_project: true`, which closes milestone M1.
+
+**One gate is outstanding and belongs to the operator.** T1b adds a fifth CI job
+whose context is `Canonical validation`. The branch ruleset requires four
+contexts and does not know about it, so the job runs and displays but **does not
+block a merge**. Adding it is an access-policy change and is gated separately;
+the current ruleset JSON is captured for rollback.
 
 ### What T1a cost, and why it matters to the rows after it
 

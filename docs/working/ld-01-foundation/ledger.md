@@ -14,7 +14,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | id | task | repo | hash | class | status | owner | evidence-ref | timestamp |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | T1a | T1 | lousydeal | `e6e994deea2a` | AGENT | done | agent | journal, T1a | 2026-08-29 |
-| T1b | T1 | lousydeal | `6b6396cec6d0` | AGENT | open | agent | — | — |
+| T1b | T1 | lousydeal | `6b6396cec6d0` | AGENT | done | agent | journal, T1b | 2026-08-29 |
 | T2a | T2 | architecture | `a13b02ed37da` | AGENT | open | agent | — | — |
 | T3a | T3 | lousydeal | `1bcf52d9f1db` | AGENT | open | agent | — | — |
 | T3b | T3 | lousydeal | `89c962fc4c8b` | AGENT | open | agent | — | — |

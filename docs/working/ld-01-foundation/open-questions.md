@@ -6,7 +6,29 @@ anyway.
 
 ## Open
 
-None.
+**Q2 · raised at T1b, for the M1 boundary. The link checker is flaky against
+GitHub, and now runs twice per pull request.**
+
+During T1b's local testing `lychee` failed three separate runs with
+`504 Gateway Timeout` on `github.com` URLs and passed on retry. `lychee.toml`
+sets `accept = ["200", "204", "206", "429"]` and `max_retries = 2`; a 504 is
+neither accepted nor reliably survived by two retries.
+
+Before this row, CI ran `lychee` once, in the `Documentation` job. The canonical
+job now runs it again through `scripts/validate`, so a pull request has two
+independent chances to fail on a transient upstream timeout. That is the cost of
+the row's own goal — CI running the identical command — and is not a defect in
+it.
+
+`lychee.toml` is in **no row's `Files` list** in the 26-row plan, so no row is
+authorised to change it. Options, for the operator:
+
+1. Accept the flakiness and re-run failed jobs. Costs nothing now.
+2. Add `lychee.toml` to a later row's `Files` list and add `502`, `503`, `504` to
+   `accept`, or raise `max_retries`. Trades strictness for stability.
+3. Treat it as the first `docs/issues/` entry.
+
+Not urgent — it is a re-run, not a wrong result. But it will recur.
 
 ## Answered
 
