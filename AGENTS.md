@@ -57,10 +57,11 @@ this repository's documentation. It does not own deployment state
 or any secret value.
 
 At the time of writing it holds the root npm workspace — `package.json`,
-`tsconfig.json`, `eslint.config.js`, `vitest.config.ts` and `scripts/validate` —
-plus `backend/`'s environment reader, with `storefront/` not yet created. The
-catalogue declares `languages: [shell, typescript]` and `npm_project: true`, and
-the managed section above is generated from it — so a change to what this
+`tsconfig.json`, `eslint.config.js`, `vitest.config.ts` and
+`scripts/validate` — plus `backend/`'s environment reader and configuration
+assembler, with `storefront/` not yet created. The catalogue declares
+`languages: [shell, typescript]` and `npm_project: true`, and the managed
+section above is generated from it — so a change to what this
 repository contains is not complete until `tooling/universe sync-baseline
 lousydeal` has run and its output has landed here.
 

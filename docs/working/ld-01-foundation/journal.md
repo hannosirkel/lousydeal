@@ -663,3 +663,78 @@ left the first with no blank line before the paragraph that followed, so the
 hash absorbed the paragraph and T14a showed drift. Restored the blank line; all
 28 rows then recomputed with no drift. The check earned its keep on a formatting
 mistake rather than a textual one.
+
+---
+
+## 2026-08-30 — T3b, the configuration assembler, and the frozen tsconfig
+
+Worktree `~/app/.worktrees/lousydeal/t3b-runtime` from `origin/main` at
+`ef9a42a`.
+
+**The `noEmit` defect is fixed, proved against Medusa's real compiler** rather
+than against `tsc` — which is the point, because `tsc --noEmit` did exactly what
+the broken config asked and so every gate stayed green:
+
+```text
+BEFORE (origin/main)  noEmit=true   emitSkipped=false  filesWritten=0  []
+AFTER  (this row)     noEmit=false  emitSkipped=false  filesWritten=2
+                      [src/config/env.js, src/config/runtime.js]
+```
+
+**The defect was worse than described.** `Compiler.buildAppBackend` copies
+`package.json` into the output directory unconditionally, after the
+`emitSkipped` guard. So the broken build did not leave an empty
+`.medusa/server` — it left a directory containing one file and no compiled code.
+Anyone checking "did the build produce output?" would have said yes. Found by the
+implementer, unprompted, and confirmed twice.
+
+**Three more freezing defects, found inside the repair for a freezing defect.**
+`backend/tsconfig.json`, `backend/tsconfig.test.json` and
+`backend/vitest.config.mts` are each in T3's `Files` list and no other.
+
+- The unit suite's `include` would have collected T17's smoke tests, which
+  refuse without a live Medusa, PostgreSQL and Redis — turning `scripts/validate`
+  and CI red on every bare checkout from T17 onward, with no row able to fix it.
+  T17 could not have repaired it either: `scripts/validate` runs the **root**
+  `test:unit`, and the root config loads `./backend/vitest.config.*` as a
+  project, so the backend's own script is never invoked.
+- `tsconfig.test.json` named `vitest.config.mts` as a literal, so T17's
+  `vitest.smoke.config.mts` would have been typechecked by nothing — the exact
+  hole this row was sent to close, reopened one file over.
+- Three strictness options had been dropped without mandate. Without
+  `lib: ["ES2023"]`, the default for that target includes DOM, so `document` and
+  `localStorage` compiled clean in a Node-only backend.
+
+**A review's own evidence was wrong, and a fixer caught it.** Pass 1 justified
+restoring `isolatedModules` with `import type { X } from "./env"; export { X };`.
+That snippet typechecks clean **with the flag on as well as off**, so it
+demonstrated nothing — and the orchestrator passed it to the fixer unverified.
+The fixer built an isolated project, found the demonstration did not
+discriminate, worked out why, and substituted `export { X } from "./env";`, which
+yields `TS1205` with the flag and is clean without. Confirmed in a four-cell
+matrix.
+
+```text
+                      isolatedModules=true   false
+import type + export  clean                  clean     <- proves nothing
+export { X } from     TS1205                 clean     <- discriminates
+```
+
+The conclusion was right and the evidence was not. That is the fifth instance in
+this build of a claim nobody checked against the thing it describes — it has now
+appeared in comments, in tests, in a task brief, and in a review's own findings.
+
+**Pass 2's freeze analysis is worth keeping.** It checked the frozen configs
+against every later row's `Files` list rather than against today: `include`
+covers every backend file T4–T17 name; `@types/node` supplies `fetch`, `URL`,
+`AbortController` and the rest without the DOM lib, so dropping DOM costs T17
+nothing; and `exclude: ["tests"]` in the build config is load-bearing, because
+Medusa's own `backendIgnoreFiles` does not contain `tests` — without it the unit
+suite would be emitted into `.medusa/server` and shipped inside T11's image.
+
+**What `runtime.ts` requires, and why only two values.** `JWT_SECRET` and
+`COOKIE_SECRET`, because `defineConfig` resolves them to a shared placeholder
+outside production and to `undefined` inside it — the "defaults instead of
+refuses" behaviour the checkbox exists to close. CORS is left to a later row with
+the finding recorded: Medusa defaults those too, but unconditionally and in
+production as well, which the first version of the comment got wrong.

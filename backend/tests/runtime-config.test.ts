@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ConfigError, optionalEnv, requireEnv } from "../src/config/env";
+import { type BackendRuntimeConfig, readBackendRuntimeConfig } from "../src/config/runtime";
 
 // A plain object stands in for an environment on purpose. `env.ts` holds the
 // rule for reading one, not a reference to any particular one -- its readers
@@ -54,5 +55,40 @@ describe("optionalEnv", () => {
 
   it("returns undefined for a whitespace-only variable", () => {
     expect(optionalEnv({ FOO: "   " }, "FOO")).toBeUndefined();
+  });
+});
+
+describe("readBackendRuntimeConfig", () => {
+  const validEnvironment = {
+    JWT_SECRET: "jwt-secret-value",
+    COOKIE_SECRET: "cookie-secret-value",
+  };
+
+  it("assembles the http secrets from the environment", () => {
+    const config: BackendRuntimeConfig = readBackendRuntimeConfig(validEnvironment);
+    expect(config).toEqual({
+      http: { jwtSecret: "jwt-secret-value", cookieSecret: "cookie-secret-value" },
+    });
+  });
+
+  // Fails closed *at load*: the call itself throws, with the returned value
+  // never touched. A lazily-validating assembler (a Proxy, or getters that
+  // check on read) would let this exact call return normally and only fail
+  // once some later caller happened to read the missing field -- the weaker
+  // behaviour the checkbox rules out ("throws at load rather than
+  // defaulting"). Wrapping only the call, with no property access on its
+  // result, is what a lazy implementation could not pass.
+  it("refuses at the call itself, not when a field is later read", () => {
+    expect(() =>
+      readBackendRuntimeConfig({ COOKIE_SECRET: "cookie-secret-value" }),
+    ).toThrow(ConfigError);
+  });
+
+  // Two names, not one: an assertion against a single name passes just as
+  // well when the message hardcodes it -- see the equivalent comment on
+  // requireEnv above, which is exactly the mistake this checks for here.
+  it("names the missing variable in the refusal", () => {
+    expect(() => readBackendRuntimeConfig({ COOKIE_SECRET: "x" })).toThrow(/JWT_SECRET/);
+    expect(() => readBackendRuntimeConfig({ JWT_SECRET: "x" })).toThrow(/COOKIE_SECRET/);
   });
 });
