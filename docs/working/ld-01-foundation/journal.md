@@ -1349,3 +1349,67 @@ established from `region-module.js` and `tax-module-service.js` rather than
 copied from Plepic's `.toUpperCase()`, which Medusa would have normalised away.
 And writing *"HTTP 500"* in a comment trips T7a's bare-price-literal guard; the
 comment was reworded rather than the test weakened.
+
+## 2026-08-30 — T7c, the binding, and the first row with no Majors
+
+`backend/src/scripts/configure-commerce.ts`, `backend/tests/commerce-configuration.test.ts`.
+**43 lines, 2 files** — the smallest row in the build. `bash scripts/validate`
+clean at **130 tests**. T7 closes with it.
+
+**Review returned no Major findings.** The first row in fifteen to manage that.
+Four Minors, all corrections rather than deletions, and every citation in the
+diff opened at exactly the lines quoted.
+
+**What the row closes.** Registering the payment module offers it to nobody:
+`@medusajs/medusa/dist/api/store/payment-providers/route.js:7-15` requires a
+`region_id` and filters on it. Until a region carries the provider,
+`/store/payment-providers` returns nothing.
+
+**Why a field and not a step.**
+`set-regions-payment-providers.js:51-53` filters its input with
+`isDefined(payment_providers)`, so an input without the key is **skipped, not
+cleared** — a missing binding is silent at the Medusa layer. That is why the
+plan's checkbox specified a field on the region record, and why the mutation
+that matters most is omitting it.
+
+**The provider validation question, settled by measurement.**
+`validatePaymentProvidersExists` calls
+`listPaymentProviders({ id: { $in: ids }, is_enabled: true })` and throws
+`NOT_FOUND` before any link is created, on both the create and update paths. So
+a typo'd provider id fails loudly at `predeploy` rather than surfacing when a
+customer tries to pay. Good news for T9.
+
+**Two corrections, both about naming the right mechanism.**
+
+The header credited the enabled-provider requirement to the boot that *"registers
+the Stripe module"*. `is_enabled: true` is a **database row**, not a container
+registration — module registration alone would not satisfy it. What does is
+`registerProvidersInDb` upserting every registered provider
+(`@medusajs/payment/dist/loaders/providers.js:81-95`), reached through
+`loaders/index.js:121`, which `medusa exec` runs at `commands/exec.js:67` before
+invoking the default export at `:76`. **The claim was true and its stated reason
+was not**, which is the species this build keeps producing — and the same file
+had cited the analogous ordering claim properly three paragraphs earlier, so it
+fell below a standard it set itself.
+
+The field's doc said *"a record that omits this field is skipped, not cleared"*.
+The field is **required**, so no `CommerceRecord` can omit it — removing it is a
+compile error. True of the step's input, unreachable for a record. Scoped.
+
+**One behaviour recorded rather than fixed.** Sending the key on every run is
+what makes the binding exact: the same step **dismisses** any other provider
+linked to this region (`:69-83`) and skips links that already exist (`:87-93`).
+So a provider added to this region in the Admin does not survive the next
+`predeploy`. That is what "exactly that provider id" means, and it is the same
+species as the region-name hazard T7b carried — an Admin edit the seed reverts.
+
+**And one construct removed for buying nothing.** The test cast its filtered
+record with `as Extract<CommerceRecord, { kind: "region" }>`. TypeScript already
+narrows on `record.kind === "region"`, and a sibling test relies on that without
+a cast. A cast in a test is the construct most able to mask later drift; this
+one masked nothing yet and is gone.
+
+**Untested surface, disclosed not discovered.** Deleting `payment_providers`
+from either workflow call site leaves all 130 tests and both typechecks green.
+`MedusaCommerceConfigurationTarget` is exercised by nothing, and its header says
+so. Misspelling the key at either site *is* caught — by `tsc`, not by a test.
