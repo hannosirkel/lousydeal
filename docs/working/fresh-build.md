@@ -162,8 +162,18 @@ and a role address, not a person's contact details, so committing them is a
 deliberate §2a decision rather than an oversight.
 
 Do **not** extend that decision. A director's name, a registry code, a VAT
-number, and a bank account are each their own decision, and the VAT
-registration is a legal-gate question (§23).
+number, and a bank account are each their own decision.
+
+**Aislopica OÜ is VAT registered** — the operator, 2026-08-30. This paragraph
+called the registration a legal-gate question (§23); that was about *performing*
+it, and it has been performed. §23 still owns the wording the number appears in.
+
+**The number itself is still not committed**, and the rule above is unchanged by
+the registration. It reaches a page the way the reference delivers it — read
+server-side at runtime from `MERCHANT_VAT_NUMBER`
+(`plepic/storefront/src/config/runtime-config.ts:176`, typed `string | null`),
+never a literal in a repository. That is global constraint 2, not a separate
+policy for this one field.
 
 The §23 exclusion still holds either way: putting the entity into a template is
 build work; writing the terms it appears above is not.
