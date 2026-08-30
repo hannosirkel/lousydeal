@@ -198,7 +198,7 @@ Two rows rather than one because T2 is in `architecture` and this file is in
 **Files:** `backend/package.json`, `backend/tsconfig.json`,
 `backend/vitest.config.mts`, `backend/src/config/env.ts`,
 `backend/src/config/runtime.ts`, `backend/tests/runtime-config.test.ts`,
-`package-lock.json`, `README.md`, `AGENTS.md`.
+`backend/tsconfig.test.json`, `package-lock.json`, `README.md`, `AGENTS.md`.
 
 **`backend/src/config/runtime.ts` is the one module that assembles backend
 configuration. Every later row that produces a configuration value carries it.**
