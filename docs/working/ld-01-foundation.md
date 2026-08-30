@@ -377,7 +377,8 @@ declare modules it cannot install.
 `backend/src/scripts/seed-product.ts`,
 `backend/src/scripts/configure-commerce.ts`,
 `backend/tests/commerce-product-seed.test.ts`,
-`backend/tests/commerce-configuration.test.ts`, `backend/package.json`.
+`backend/tests/commerce-configuration.test.ts`, `backend/package.json`,
+`docs/decisions/007-usd-and-tax-inclusive-pricing.md`.
 
 Both scripts are `medusa exec` entry points and are unreachable code without the
 npm scripts that invoke them. The predeploy Job in `deploys` runs
