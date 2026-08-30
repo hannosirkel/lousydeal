@@ -1200,3 +1200,73 @@ the four wallets renders.
 Two things the operator still owns: PayPal requires the Stripe account be in
 Europe, Switzerland or the UK, and nothing in this repository records the account
 country; and domain validation may collide with Cloudflare Access at T16.
+
+## 2026-08-30 — T7a, the three tiers, and a ruling that did not hold by itself
+
+`backend/src/commerce/product-model.ts`, `backend/tests/commerce-product-seed.test.ts`,
+`docs/decisions/007-usd-and-tax-inclusive-pricing.md`, one line of the plan.
+296 lines, 4 files. `bash scripts/validate` clean at 115 tests.
+
+Three tiers, USD minor units, `manageInventory: false`. Enterprise is named in
+`concept.md` and deferred there, so it is not declared. No tier copy leaked —
+the plan says the names are structural and the words belong to a later gate.
+
+**Two operator decisions had no truth-maker.** The currency and the reading of
+the amount were both settled on 2026-08-30, cited in a comment as *"the operator
+ruled USD, 2026-08-30"*, and **recorded nowhere in this repository**.
+`docs/decisions/` held 001–006 and none was about currency; `concept.md` writes
+`$` and names no code. Constraint 10's *cited* limb asks for a truth-maker
+precise enough to open, and there was none — the comment cited a conversation.
+
+Record `007` now holds both, and the model points at it.
+
+**The record carries a finding the ruling does not buy on its own.**
+Tax-inclusiveness is **not a property of an amount** in Medusa. It is a stored
+row: `@medusajs/pricing/dist/models/price-preference.js:9` defines
+`is_tax_inclusive` with `.default(false)`, and
+`pricing-module.js:237` resolves a calculated price's flag from that row and
+nowhere else. A price written without a preference is a price Medusa reads as
+**tax-exclusive, whatever the operator ruled.** And a Region arrives with
+`automatic_taxes` on — `@medusajs/region/dist/models/region.js:12`,
+`.default(true)`.
+
+So `$5` is what the customer pays today for a narrower reason than the ruling:
+no tax rate exists, so exclusive and inclusive come to the same number. **T7b
+must write the preference** — `attribute: "currency_code"`, `value: "usd"`,
+`is_tax_inclusive: true` — or the ruling is recorded in `docs/` and contradicted
+by the database.
+
+**The guard was real; the test guarding the guard was not.** "No price literal
+exists elsewhere" is trivially satisfiable by a test that scans nothing, so it
+got eleven plants in review: each of the three amounts in three different files,
+one beside the model in `src/commerce/`, one in a new subdirectory, one in a
+file with the model's own basename. **Every plant that should have gone red
+did**, and the coverage assertion fails correctly when a scanned file moves.
+
+But the assertion named *"excludes exactly that path"* could not fail for that
+property. Mutating the exclusion from `path !== excludedFile` to
+`!path.endsWith("product-model.ts")` left the suite at 10/10 — and under that
+weakening a planted `backend/src/config/product-model.ts` carrying `2500` was
+**silently exempt**. There is no same-basename file on disk to assert about, so
+the exclusion is now a named predicate the test interrogates directly with a
+path that does not exist. The mutation goes red.
+
+**Three deletions, all the same species.** A free universal — *"no VAT, tax
+region or tax rate is configured against it anywhere in this codebase"* —
+executed by nothing, true only vacuously, and falsifiable by **both** successor
+rows. A media justification (*"an empty value would clear media an operator
+uploaded in the Admin"*) that is true of Medusa and belongs to a **seed script
+this row does not have**; it moves to T7b. And a contrast with Plepic that was
+false for one of its three items: Plepic declares no thumbnail or image key
+either, so the real contrast is packaging and customs.
+
+**One inert construct.** `as const` on the tier array bought nothing — the
+`readonly ProductTierModel[]` annotation widens it away. Proved by running the
+same `tsc` probe with and without it and getting byte-identical output, which is
+the step that separates *not load-bearing* from *inert*. The literal `false` on
+`manageInventory` is the opposite and stays: `true` is a compile error, which is
+a genuine improvement on the reference's `boolean`.
+
+**A trap recorded for T9.** The scan covers `backend/src/**` only. T8 lands the
+storefront and T9 renders these three prices — outside the scanned root, and the
+likeliest place for `$5` to be typed a second time.
