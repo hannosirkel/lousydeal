@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@medusajs/framework": "2.18.0",
+    "@medusajs/medusa": "2.18.0",
     "redis": "6.2.1"
   },
   "devDependencies": {

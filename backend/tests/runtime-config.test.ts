@@ -5,6 +5,8 @@ import {
   type BackendRuntimeConfig,
   readBackendRuntimeConfig,
   readRedisRuntimeConfig,
+  redisConnectionOptions,
+  redisConnectionUrl,
 } from "../src/config/runtime";
 
 // A plain object stands in for an environment on purpose. `env.ts` holds the
@@ -184,5 +186,18 @@ describe("readRedisRuntimeConfig", () => {
 
     expect(read).toThrow(ConfigError);
     expect(read).not.toThrow(new RegExp(rejected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  });
+});
+
+describe("redisConnectionUrl and redisConnectionOptions", () => {
+  const redis = { host: "redis.internal", port: 6379, password: "redis-secret-value" };
+
+  it("builds a redis:// URL from the host and port, and never from the password", () => {
+    expect(redisConnectionUrl(redis)).toBe("redis://redis.internal:6379");
+    expect(redisConnectionUrl(redis)).not.toContain(redis.password);
+  });
+
+  it("carries the password in the options object, not the URL", () => {
+    expect(redisConnectionOptions(redis)).toEqual({ password: "redis-secret-value" });
   });
 });

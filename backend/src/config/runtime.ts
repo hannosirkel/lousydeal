@@ -112,3 +112,22 @@ export function readRedisRuntimeConfig(environment: Environment): RedisRuntimeCo
     password: requireEnv(environment, "REDIS_PASSWORD"),
   };
 }
+
+/**
+ * `redis://host:port`, and deliberately **no credentials in it**.
+ *
+ * Every consumer T5b declares -- the event bus, the workflow engine and the
+ * locking provider -- is handed this URL alongside {@link redisConnectionOptions}
+ * and authenticates from the options object instead. A password folded into
+ * the userinfo (`redis://:password@host:port`) is a password in every log
+ * line, error message and connection-string dump that echoes the URL; one
+ * that was never in the URL cannot leak out of it.
+ */
+export function redisConnectionUrl(redis: RedisRuntimeConfig): string {
+  return `redis://${redis.host}:${String(redis.port)}`;
+}
+
+/** The ioredis options every one of T5b's three Redis wirings is given. */
+export function redisConnectionOptions(redis: RedisRuntimeConfig): { readonly password: string } {
+  return { password: redis.password };
+}
