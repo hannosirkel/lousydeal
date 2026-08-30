@@ -7,11 +7,10 @@
  * script before Medusa loads, so it has no assembler to be handed values by
  * and passes `process.env` to `readRedisRuntimeConfig` itself.
  *
- * This row adds the database URL and SSL resolution; Redis wiring's own parts
- * follow immediately below. Stripe is still absent. It also covers the two
- * values Medusa itself already needs and, absent an explicit setting, silently
- * defaults rather than refuses -- `@medusajs/utils`' `defineConfig` resolves an
- * unset `JWT_SECRET`/`COOKIE_SECRET` to a shared placeholder string outside
+ * {@link readBackendRuntimeConfig} also covers the two values Medusa itself
+ * already needs and, absent an explicit setting, silently defaults rather than
+ * refuses -- `@medusajs/utils`' `defineConfig` resolves an unset
+ * `JWT_SECRET`/`COOKIE_SECRET` to a shared placeholder string outside
  * production and to `undefined` inside it. Medusa also silently defaults
  * `STORE_CORS`/`ADMIN_CORS`/`AUTH_CORS`, but unconditionally and including in
  * production, so a later row may want them required too.
@@ -34,6 +33,7 @@ export interface BackendRuntimeConfig {
     readonly driverOptions: DatabaseDriverOptions;
   };
   readonly redis: RedisRuntimeConfig;
+  readonly stripe: StripeRuntimeConfig;
 }
 
 /**
@@ -51,6 +51,10 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
       driverOptions: resolveDatabaseDriverOptions(environment),
     },
     redis: readRedisRuntimeConfig(environment),
+    stripe: {
+      apiKey: requireEnv(environment, "STRIPE_SECRET_KEY"),
+      webhookSecret: requireEnv(environment, "STRIPE_WEBHOOK_SECRET"),
+    },
   };
 }
 
@@ -130,4 +134,21 @@ export function redisConnectionUrl(redis: RedisRuntimeConfig): string {
 /** The ioredis options every one of T5b's three Redis wirings is given. */
 export function redisConnectionOptions(redis: RedisRuntimeConfig): { readonly password: string } {
   return { password: redis.password };
+}
+
+/**
+ * The two values `@medusajs/payment-stripe` reads: see
+ * `node_modules/@medusajs/payment-stripe/dist/core/stripe-base.js:13-19`, which
+ * throws when `apiKey` is missing and warns when `webhookSecret` is. Read
+ * through {@link requireEnv} so both fail the same way as everything else in
+ * this file: at load, naming the variable.
+ *
+ * Which key reaches this reader -- a Stripe test key or a live one -- is a
+ * per-environment secret delivered at runtime, not a choice this repository
+ * makes; see the "Target exposure" table in `docs/working/ld-01-foundation.md`
+ * ("a live key never reaches test").
+ */
+export interface StripeRuntimeConfig {
+  readonly apiKey: string;
+  readonly webhookSecret: string;
 }
