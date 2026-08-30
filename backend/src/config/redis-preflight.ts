@@ -29,10 +29,14 @@ import { readRedisRuntimeConfig, type RedisRuntimeConfig } from "./runtime";
  * Nothing redacts it, because nothing formats it: `@medusajs/cli`'s entry point
  * installs `process.on("uncaughtException", (error) => console.log(error))`,
  * and `console.log` of an `Error` is `util.inspect`, which prints every
- * enumerable own property the error carries. Measured against a real Redis
- * started with `--requirepass`, one failed `medusa start` writes the plaintext
- * password 29 times, and one `medusa db:migrate` -- which exits 0 -- writes it
- * 6 more.
+ * enumerable own property the error carries. Measured from this repository's
+ * own `medusa build` output against a real Redis 8 started with
+ * `--requirepass` (Q6, 2026-08-30, admin bundle stubbed): one failed
+ * `medusa start` wrote the plaintext password 24 times, twice over, and one
+ * `medusa db:migrate` — which exits 0 — wrote it 6 more on a first migration
+ * and 4 on a rerun. Neither count is a constant: it moves with how much work
+ * start-up and migration do before giving up, which is why the reference
+ * measured 29 on its own, heavier build.
  *
  * So the failure is moved in front of Medusa, and this file is the whole of
  * what runs there. It has three properties, and each of them is why it exists:
@@ -48,7 +52,11 @@ import { readRedisRuntimeConfig, type RedisRuntimeConfig } from "./runtime";
  * 2. **It prints no value it read**, and renders no error object. Not the
  *    password, not the host, not the port. The two connection failures below
  *    are classified from the reply and then described in this file's own
- *    words -- the reply text itself is read and discarded. Configuration
+ *    words -- the reply text itself is read and discarded. Measured
+ *    2026-08-30, a pre-6 server's `HELLO` rejection puts the password
+ *    directly into that same text -- `ERR unknown command 'HELLO', with args
+ *    beginning with: '3', 'AUTH', 'default', '<password>'` -- which this rule
+ *    already discards. Configuration
  *    refusals raised by `readRedisRuntimeConfig` do surface their own message
  *    (see the `refused` branch), which names a variable and never a value.
  *    That is the standard `runtime.ts` and `database-url.ts` already keep:
@@ -59,11 +67,11 @@ import { readRedisRuntimeConfig, type RedisRuntimeConfig } from "./runtime";
  *    A preflight that hangs is a pod that never reports anything, which is
  *    worse than the log it replaces.
  *
- * **What it also closes.** `medusa db:migrate` exits 0 with no Redis at all --
- * the one fail-open path in this image -- so `predeploy` would migrate happily
- * against a Redis that was never there and fail one command later. With the
- * preflight in front of it the Job refuses first, and a green migration stops
- * being evidence of nothing.
+ * **What it also closes.** `medusa db:migrate` exits 0 with no Redis at all,
+ * and equally with a wrong password -- both measured 2026-08-30 -- so
+ * `predeploy` would migrate happily against a Redis that was never there and
+ * fail one command later. With the preflight in front of it the Job refuses
+ * first, and a green migration stops being evidence of nothing.
  *
  * **What it is not.** It is a check at one instant, not a guarantee. A
  * password rotated in Redis while a pod is running still reaches `ioredis`,
@@ -82,8 +90,14 @@ export type RedisPreflightFailure = "unreachable" | "authentication";
  * incident. Matching is on the RESP error code at the start of the reply --
  * `WRONGPASS` for a wrong password against `--requirepass` or an ACL user,
  * `NOAUTH` for a server that wanted a password it was not given, `NOPERM` for
- * an ACL that permits no `PING`, the pre-6 `ERR invalid password`, and
- * `ERR Client sent AUTH ...` for a server with no password set at all.
+ * an ACL that permits no `PING`, the pre-6 `ERR invalid password`, and the
+ * pre-6 `ERR Client sent AUTH` for a server with no password set — both
+ * measured against redis:5.0.14 and only there: from 6.0.0 a passwordless
+ * server answers a bare AUTH with `ERR AUTH <password> called without any
+ * password configured for the default user`, which this pattern deliberately
+ * leaves to `unreachable`. Through node-redis 6.2.1 neither pre-6 reply is
+ * reachable anyway — the client opens with `HELLO 3 AUTH`, which Redis 5
+ * rejects as an unknown command and a passwordless Redis 6+ accepts outright.
  *
  * Anything unmatched is reported as `unreachable`, which is the safe
  * direction: it is the message that claims less.

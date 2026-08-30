@@ -73,6 +73,12 @@ Copied verbatim into every subagent's context packet.
     worst instance found sat on an "each" that the list did not then cover. Added after twenty instances across nine rows of text asserting
     something untrue of the code it described; **not one of the twenty erred by
     claiming too little.**
+11. **A claim proven false may be corrected by a maintenance pull request, in
+    any file, when no open row declares that file.** The correction cites what
+    disproved it and changes no behaviour. Constraint 9 covers a row that
+    falsifies a document; this covers a claim already false, in a file every
+    row that could have fixed it has closed — which happened four times before
+    it was named.
 
 ## Current repository facts
 
@@ -370,12 +376,19 @@ declare modules it cannot install.
 **Files:** `backend/src/commerce/product-model.ts`,
 `backend/src/scripts/seed-product.ts`,
 `backend/src/scripts/configure-commerce.ts`,
-`backend/tests/commerce-product-seed.test.ts`, `backend/package.json`.
+`backend/tests/commerce-product-seed.test.ts`,
+`backend/tests/commerce-configuration.test.ts`, `backend/package.json`.
 
 Both scripts are `medusa exec` entry points and are unreachable code without the
 npm scripts that invoke them. The predeploy Job in `deploys` runs
 `npm run predeploy`, and that chain is declared here — the other repository
 cannot add it.
+
+The region carries the payment provider, which is why the third checkbox is
+here rather than with T6. `@medusajs/medusa`'s `/store/payment-providers`
+route filters by `region_id`, so the Region link — not the module
+registration — is what a storefront can see. Registering the Stripe package
+registers eight provider services and offers none of them until this row runs.
 
 - [ ] Declare the three tiers — Lousy Deal $5, Lousy Deal Plus $10, Lousy Deal
       Pro $25 — in one module that is the single source for price and handle.
@@ -385,6 +398,10 @@ cannot add it.
       idempotently, so a re-run neither duplicates nor errors. Verified by a
       test running the seed twice against a stubbed Medusa and asserting one
       set of products.
+- [ ] Bind the region's payment providers to the id
+      `src/config/payment.ts` derives, as a field on the region record
+      rather than a separate step. Verified by a test asserting the region
+      carries exactly that provider id.
 
 Copy no tier *copy* here. The names are structural; the words are Gate B's.
 
@@ -466,16 +483,29 @@ legal one, and it stays true when LD-06 adds surcharges.
 **Files:** `backend/Dockerfile`, `backend/Dockerfile.dockerignore`,
 `storefront/Dockerfile`, `storefront/Dockerfile.dockerignore`,
 `scripts/images.test.ts`, `backend/package.json`, `storefront/package.json`,
-`storefront/next.config.ts`.
+`storefront/next.config.ts`, `backend/src/config/redis-preflight.ts`,
+`package-lock.json`.
 
 `next.config.ts` is here because a standalone image runs `node server.js`, which
 Next emits only under `output: "standalone"` — T8 has no reason to set it and is
 the last row before this one that names the file.
 
+`redis-preflight.ts` is here because two of its claims are about a container
+image that does not exist until this row, and this is the row that can check
+them against the real thing.
+
 Both workspace manifests are here because an image has to run a build, and
 neither manifest declares a `build` script before this row. A Dockerfile that
 invokes one that does not exist fails at image build; a Dockerfile that invokes
 one which emits nothing fails only in the cluster.
+
+**`medusa build` cannot complete on the lockfile as it stands** (Q8): the
+backend half compiles and the admin-frontend half fails, because
+`@medusajs/admin-sdk` is declared nowhere and `defineRouteConfig` resolves to
+`__vite-optional-peer-dep`. The operator ruled on 2026-08-30 that it is added.
+The reference declares it at `2.18.0` alongside six further admin-side
+packages, so this row proves the build completes rather than assuming one
+dependency is enough — and the root lockfile is here for that.
 
 - [ ] Build both images from the repository root, each stage on one
       digest-pinned base, running as a non-root UID, declaring **no build
@@ -492,7 +522,7 @@ There are none, so there is nothing to review later.
 **Files:** `.github/workflows/release.yml`,
 `.github/workflows/deploy-test.yml`, `scripts/update-gitops-digest.sh`,
 `scripts/workflows.test.ts`, `scripts/validate`,
-`.github/workflows/validate.yml`, `scripts/yaml-subset.ts`.
+`.github/workflows/validate.yml`, `scripts/yaml-subset.ts`, `lychee.toml`.
 
 **T13 runs first, and the order is not cosmetic.** `Release` writes both digests
 into `deploys/lousydeal/overlays/live/kustomization.yaml` on the merge that
@@ -510,6 +540,10 @@ shebang, as the reference implementation and the `deploys` repository already do
 rather than appending one path per row. `scripts/yaml-subset.ts` is here because
 the row verifies "against the parsed document" and nothing in this repository
 parses YAML; the reference hand-rolls it rather than taking a dependency.
+
+`lychee.toml` is here because this row already declares
+`.github/workflows/validate.yml`, and is where the duplicate link-check run in
+the `Documentation` job can be removed.
 
 - [ ] Add the digest guard and the label-triggered `Deploy Test` promotion,
       with the three-job split: the job that runs head code holds no
@@ -643,12 +677,16 @@ build left on two applications.
 
 **Repository:** `lousydeal`.
 **Files:** `scripts/store-smoke`, `backend/vitest.smoke.config.mts`,
-`backend/tests/smoke/store-api.test.ts`, `backend/package.json`, `compose.yaml`.
+`backend/tests/smoke/store-api.test.ts`, `backend/package.json`, `compose.yaml`,
+`backend/src/config/database-url.ts`.
 
 `scripts/store-smoke` invokes `npm run build`, `predeploy`, `start` and
 `test:smoke` in the backend workspace, and only `build` is promised before this
 row. `compose.yaml` stands up PostgreSQL and Redis on the digests the cluster
 runs — inlining `docker run` here would put the same pins in a third place.
+
+`database-url.ts` is here because this row declares `compose.yaml`, the
+artefact that can falsify that file's "no compose file" universal.
 
 - [ ] Stand up PostgreSQL, Redis and a migrated Medusa, then assert the store
       API answers with the three tiers and that a cart can be created. Verified

@@ -36,9 +36,12 @@
  * used here, for three reasons `backend/tests/database-ssl.test.ts`
  * establishes against the installed Medusa rather than assumes:
  *
- * 1. **It cannot express `verify-full`.** `getDefaultDriverOptions` returns
- *    exactly two objects; a URL can land on either but never on `ssl: true`.
- *    Verification is reachable only through driver options.
+ * 1. **It cannot express `verify-full`.** `getDefaultDriverOptions` returns one
+ *    of exactly three objects — `ssl: false`, `ssl: { rejectUnauthorized: false }`,
+ *    or a bare `{}` reachable only when it is handed no URL at all; the
+ *    migration path always hands it one, so a URL can land on the first two
+ *    but never on `ssl: true`. Verification is reachable only through driver
+ *    options.
  * 2. **A stated option is what both paths read.** The heuristic is a *default*
  *    consulted only when driver options are absent — which is precisely the
  *    condition that let the two paths disagree in the first place.
