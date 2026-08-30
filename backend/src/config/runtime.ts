@@ -16,7 +16,7 @@
  * production, so a later row may want them required too.
  */
 
-import { type Environment, ConfigError, requireEnv } from "./env";
+import { type Environment, ConfigError, optionalEnv, requireEnv } from "./env";
 import {
   type DatabaseDriverOptions,
   resolveDatabaseDriverOptions,
@@ -54,6 +54,10 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
     stripe: {
       apiKey: requireEnv(environment, "STRIPE_SECRET_KEY"),
       webhookSecret: requireEnv(environment, "STRIPE_WEBHOOK_SECRET"),
+      paymentMethodConfiguration: optionalEnv(
+        environment,
+        "STRIPE_PAYMENT_METHOD_CONFIGURATION_ID",
+      ),
     },
   };
 }
@@ -137,18 +141,27 @@ export function redisConnectionOptions(redis: RedisRuntimeConfig): { readonly pa
 }
 
 /**
- * The two values `@medusajs/payment-stripe` reads: see
+ * The three values `@medusajs/payment-stripe` reads: see
  * `node_modules/@medusajs/payment-stripe/dist/core/stripe-base.js:13-19`, which
- * throws when `apiKey` is missing and warns when `webhookSecret` is. Read
- * through {@link requireEnv} so both fail the same way as everything else in
- * this file: at load, naming the variable.
+ * throws when `apiKey` is missing and warns when `webhookSecret` is. Both are
+ * read through {@link requireEnv} so they fail the same way as everything else
+ * in this file: at load, naming the variable.
  *
  * Which key reaches this reader -- a Stripe test key or a live one -- is a
  * per-environment secret delivered at runtime, not a choice this repository
  * makes; see the "Target exposure" table in `docs/working/ld-01-foundation.md`
  * ("a live key never reaches test").
+ *
+ * `paymentMethodConfiguration` is **optional**, unlike the two secrets above,
+ * and read through {@link optionalEnv} rather than {@link requireEnv}. It is a
+ * `pmc_...` identifier the operator creates in the Stripe Dashboard -- not a
+ * secret, and `stripe-base.js:60-64` tolerates it being `undefined` (it is
+ * only consulted when no `payment_method_types` is set). Requiring it would
+ * mean the backend cannot boot until that Dashboard step, which no row in this
+ * plan performs.
  */
 export interface StripeRuntimeConfig {
   readonly apiKey: string;
   readonly webhookSecret: string;
+  readonly paymentMethodConfiguration: string | undefined;
 }

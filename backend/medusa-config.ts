@@ -20,10 +20,13 @@
  *
  * The three Redis modules are T5b's wirings, imported rather than restated --
  * see `src/config/redis.ts` for why each of the three needs its own shape.
- * The Stripe payment module is registered here directly.
+ * The Stripe payment module is T6b's wiring, imported the same way -- see
+ * `src/config/payment.ts` for why its provider id is derived rather than
+ * written down here.
  */
 import { defineConfig } from "@medusajs/framework/utils";
 
+import { stripePaymentModule } from "./src/config/payment";
 import { redisEventBusModule, redisLockingModule, redisWorkflowEngineModule } from "./src/config/redis";
 import { readBackendRuntimeConfig } from "./src/config/runtime";
 
@@ -42,20 +45,6 @@ export default defineConfig({
     redisEventBusModule(runtime.redis),
     redisWorkflowEngineModule(runtime.redis),
     redisLockingModule(runtime.redis),
-    {
-      resolve: "@medusajs/medusa/payment",
-      options: {
-        providers: [
-          {
-            resolve: "@medusajs/medusa/payment-stripe",
-            id: "stripe",
-            options: {
-              apiKey: runtime.stripe.apiKey,
-              webhookSecret: runtime.stripe.webhookSecret,
-            },
-          },
-        ],
-      },
-    },
+    stripePaymentModule(runtime.stripe),
   ],
 });
