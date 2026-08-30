@@ -6,6 +6,45 @@ anyway.
 
 ## Open
 
+**Q6 · raised at T5a, from the claim-defect diagnosis. Seven unverified claims,
+ranked, most checkable only at a later row.**
+
+Twenty instances across nine rows of text asserting something untrue of the code
+it described prompted a diagnosis (see the journal, 2026-08-30). It produced
+global constraint 10 and a ranked list of currently-unverified claims. **Six were
+confirmed wrong and fixed at T5a.** These seven remain, in rank order:
+
+1. *"one failed `medusa start` writes the plaintext password 29 times, and one
+   `medusa db:migrate` … writes it 6 more"* — `redis-preflight.ts`. Inherited
+   from the reference **with two of its own qualifiers dropped**: the reference
+   says "measured *from the built server*" and adds that the count moves with how
+   many reconnection attempts the client makes. Restated here as flat integers,
+   in a repository with no built server. Checkable at **T11**.
+2. *"the script runs this file from the compiled `.js` in the image"* and *"the
+   one fail-open path in this image"* — no image exists. The guard
+   `[ -f ./src/config/redis-preflight.js ]` only fires when cwd is the build
+   output root, which depends on a `WORKDIR` no row has written. **T11.**
+3. *"`ioredis` — the client every Medusa Redis module uses"* — true of the
+   reference; `ioredis` is absent from this tree until the modules arrive.
+   Currently a universal over an empty set. **T5b.**
+4. Three of the five alternatives in `AUTHENTICATION_REPLY` are exercised by
+   **zero** tests. The claim is about a server's wire text and is pinned by
+   nothing. Needs a real `redis-server`.
+5. `backend/vitest.config.mts`'s `tests/smoke/**` rationale describes two files
+   that do not exist and is **frozen** after T3. **T17** proves or falsifies it.
+6. *"no compose file, no CI job, no deployment manifest sets one"* —
+   `database-url.ts`. A universal over three sets that are all currently empty;
+   true only vacuously. **T13** and **T17** can falsify it and neither declares
+   the file.
+7. *"`getDefaultDriverOptions` returns exactly two objects"* — it returns three.
+   The operative sub-clause is correct; the count is not. Fixable in
+   `database-url.ts`, which T5 and T6 declare.
+
+Items 1, 2, 3, 5 and 6 are claims about artefacts later rows build. **A row that
+creates one of those artefacts should check the claims made about it in advance**
+— that is constraint 10's *cited* limb arriving late, and it is the cheapest
+moment to settle them.
+
 **Q5 · raised at T4, for the publication gate. Medusa 2.18.0 brings 17 advisories
 with it.**
 

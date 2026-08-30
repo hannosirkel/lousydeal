@@ -3,13 +3,16 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "redis:preflight": "if [ -f ./src/config/redis-preflight.js ]; then node ./src/config/redis-preflight.js; else node -r ts-node/register ./src/config/redis-preflight.ts; fi",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@medusajs/framework": "2.18.0"
+    "@medusajs/framework": "2.18.0",
+    "redis": "6.2.1"
   },
   "devDependencies": {
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "ts-node": "^10.9.2"
   }
 }

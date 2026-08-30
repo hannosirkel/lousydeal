@@ -48,6 +48,29 @@ Copied verbatim into every subagent's context packet.
    authority to touch them, and no later row did either. A decision record is
    the exception: it states what was decided then, and is superseded rather than
    rewritten.
+10. **A claim is bounded, cited, or executed. Otherwise it does not go in.**
+    This governs comments, JSDoc, test names, error messages, task briefs and
+    review findings alike — the last three because more than half the claims this
+    rule exists for came from briefs and reviews, not from implementers.
+    - **Bounded.** *only, every, no, any, all, never, always, exactly N,
+      deterministic, regardless of* are permitted when the set they range over is
+      enumerated where the reader stands. Otherwise name the members or drop the
+      quantifier. "Every failure emits X" is not allowed; "the two of the six
+      measured here emit X" is.
+    - **Cited.** If the truth-maker is outside this file — a dependency, a tool's
+      semantics, another repository, an artefact a later row builds — name it
+      precisely enough to open: a path and symbol under `node_modules/`, a
+      repository and commit, or the command run and its output. A measurement
+      carries the conditions it was taken under, including the ones that would
+      move it.
+    - **Executed.** If the claim is *the reason a line of code exists* — if the
+      code would be wrong were the claim false — a test asserts it against the
+      real thing, not a local model of it, and goes red when it stops being true.
+
+    A claim fitting none of the three is deleted. The code is not worse without
+    the sentence. Added after twenty instances across nine rows of text asserting
+    something untrue of the code it described; **not one of the twenty erred by
+    claiming too little.**
 
 ## Current repository facts
 
@@ -200,6 +223,16 @@ Two rows rather than one because T2 is in `architecture` and this file is in
 `backend/src/config/runtime.ts`, `backend/tests/runtime-config.test.ts`,
 `backend/tsconfig.test.json`, `package-lock.json`, `README.md`, `AGENTS.md`.
 
+**T3a's first checkbox below is inaccurate and is left unchanged deliberately.**
+`env.ts` does not read `process.env` — it reads an object it is handed, which is
+what makes it testable and is what the row's own verification requires. The only
+module under `backend/src/` naming `process.env` is `redis-preflight.ts`, which
+passes it in; the test files name it too. The row
+is closed and its checkbox text is its ledger identity, so correcting the words
+would re-key a completed row; the correction goes here instead. Global constraint
+10 exists because this sentence was struck from a module header and from a test
+file and still survived here, in the document copied into every context packet.
+
 **`backend/src/config/runtime.ts` is the one module that assembles backend
 configuration. Every later row that produces a configuration value carries it.**
 That is a design fact rather than a textual one, so no rule about `Files` lists
@@ -278,7 +311,11 @@ candidate causes without saying which.
 `backend/src/config/redis.ts`, `backend/tests/redis-preflight.test.ts`,
 `backend/tests/redis-modules.test.ts`, `backend/src/config/runtime.ts`,
 `backend/package.json`, `package-lock.json`,
-`backend/tests/runtime-config.test.ts`.
+`backend/tests/runtime-config.test.ts`, `backend/src/config/env.ts`.
+
+`env.ts` is here under global constraint 10. Its header claims trimming, absence
+and refusal "all live here"; there are eight `ConfigError` throw sites across
+three files. T3 is closed and owned it, so no open row could correct it.
 
 The preflight must run **before Medusa loads**, which means an npm script, not
 just a module; the test spawns that script, so it has to exist. The Redis client
@@ -366,9 +403,14 @@ Copy no tier *copy* here. The names are structural; the words are Gate B's.
 **The storefront cannot have its own Vitest config.** The root `vitest.config.ts`
 lists it as an *inline* project, not a config glob, and that file is frozen — a
 `storefront/vitest.config.ts` would never be loaded. So no `@/*` path alias in
-anything a test imports, no raised timeout, no non-`node` environment. The
-reference implementation uses all three, which makes it a likely source of copied
-code that silently does not run.
+anything a test imports, no raised timeout, no non-`node` environment.
+
+Of those three, the reference implementation
+(`plepic` `8f367cb`, `storefront/vitest.config.ts`) uses **one**: it raises
+`testTimeout` to 120s and `hookTimeout` to 180s. It sets `environment: "node"`
+explicitly and declares no `resolve.alias` — the `@/*` alias exists only in its
+`storefront/tsconfig.json`, for application code, and no test there imports
+through it. The raised timeout is the real hazard to watch when copying.
 
 - [ ] Add the storefront workspace and the runtime-configuration seam: one
       module reading `process.env`, one object assembled per request inside a
