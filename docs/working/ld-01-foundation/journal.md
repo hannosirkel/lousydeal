@@ -607,3 +607,59 @@ kill the second one did not: it proved the message contained `STRIPE_SECRET_KEY`
 not that it named the variable asked for, so hardcoding that string passed nine
 of nine. Fixed by asserting two different names, and verified the hardcoded
 mutant now dies.
+
+---
+
+## 2026-08-30 — plan audit, before T3b
+
+Six times the same defect had bitten: a file created by an early row that no
+later row is authorised to touch. It cost two new rows, three file-list
+amendments, and one Major that would have published an image that cannot start.
+The seventh was already visible in T3b's setup, so rather than discover the
+eighth at T4 and the ninth at T6, a top-tier audit read every remaining row
+against what its checkbox text actually requires.
+
+**It found roughly twenty gaps and two problems that were not gaps at all.**
+
+**T4 would have stopped on its first command.** Its verification runs *Medusa's
+own resolver* against the produced object, and the backend manifest declares zero
+dependencies — Medusa arrives at T6. There was no way to satisfy that checkbox
+from inside T4; hand-copying the resolver defeats its purpose, which is that
+Medusa's resolver and the runtime path must agree.
+
+**T14's second checkbox could not go green, and would have broken a gate.** It
+confirms a Secret exists in a namespace; namespaces are created at T15, which ran
+after. Worse, the moment a `lousydeal` entry joined the projection contract
+without a namespace, `orange`'s static coverage test would go red and stay red —
+which is not hypothetical: on 2026-08-17 that exact condition made `kubectl diff`
+exit 2 and failed the whole argocd role for every consumer at once. Split, as T2
+was: T14 registers and creates the namespaces, T15 starts the workloads, T15b
+seeds and confirms.
+
+**T12 would have promoted into a path that does not exist.** `Release` writes
+both digests into `deploys/lousydeal/overlays/live/kustomization.yaml` on the
+merge that introduces it, and T13 creates that file. T13 now runs first — on a
+merge the operator approves as a deployment, a promotion that silently does
+nothing is the failure class this build has already met twice.
+
+**A frozen gate nobody had noticed.** `scripts/validate` and the validate
+workflow hardcode `shellcheck scripts/validate .githooks/pre-commit`. T12 adds
+one shell file and T17 another; neither would be linted by anything, in files
+frozen since T1 and T2b. T12 now derives the set from `git ls-files`, as the
+reference and the `deploys` repository already do.
+
+**What no rule would have caught.** The audit was asked whether a tenth global
+constraint could prevent the remaining instances, and answered honestly: partly.
+Two clauses are mechanical — a row that adds a dependency carries the manifest
+and the lockfile; a row that adds an executable carries the *list* that makes it
+run. Those would have caught most of the table. But the `runtime.ts` class is not
+a list problem. "This row produces configuration, and configuration is assembled
+somewhere" is a design fact, and no constraint about `Files` lists finds it. The
+answer was a sentence in the plan naming the single assembler, which is now in
+T3's section beside the paragraph doing the same job for the tsconfig.
+
+**One slip of my own, caught by the hash check.** Removing T14's second checkbox
+left the first with no blank line before the paragraph that followed, so the
+hash absorbed the paragraph and T14a showed drift. Restored the blank line; all
+28 rows then recomputed with no drift. The check earned its keep on a formatting
+mistake rather than a textual one.

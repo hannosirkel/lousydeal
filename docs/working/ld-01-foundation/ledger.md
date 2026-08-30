@@ -16,8 +16,8 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T1a | T1 | lousydeal | `e6e994deea2a` | AGENT | done | agent | journal, T1a | 2026-08-29 |
 | T1b | T1 | lousydeal | `6b6396cec6d0` | AGENT | done | agent | journal, T1b | 2026-08-29 |
 | T2a | T2 | architecture | `a13b02ed37da` | AGENT | done | agent | journal, T2a | 2026-08-29 |
-| T2c | T2c | lousydeal | `c248bf499315` | AGENT | done | agent | journal, T2c | 2026-08-29 |
 | T2b | T2b | lousydeal | `f0b51aac9587` | AGENT | done | agent | journal, T2b | 2026-08-29 |
+| T2c | T2c | lousydeal | `c248bf499315` | AGENT | done | agent | journal, T2c | 2026-08-29 |
 | T3a | T3 | lousydeal | `1bcf52d9f1db` | AGENT | done | agent | journal, T3a | 2026-08-29 |
 | T3b | T3 | lousydeal | `89c962fc4c8b` | AGENT | open | agent | — | — |
 | T4a | T4 | lousydeal | `63e00ca45012` | AGENT | open | agent | — | — |
@@ -32,17 +32,54 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T9a | T9 | lousydeal | `22cc7f437c32` | AGENT | open | agent | — | — |
 | T10a | T10 | lousydeal | `c3a7e99c1078` | AGENT | open | agent | — | — |
 | T11a | T11 | lousydeal | `81ee905861f8` | AGENT | open | agent | — | — |
-| T12a | T12 | lousydeal | `234cf0544066` | AGENT | open | agent | — | — |
-| T12b | T12 | lousydeal | `0c6ea7af7367` | AGENT | open | agent | — | — |
 | T13a | T13 | deploys | `7a9e39588f5a` | AGENT | open | agent | — | — |
 | T13b | T13 | deploys | `247bd5352e35` | AGENT | open | agent | — | — |
+| T12a | T12 | lousydeal | `234cf0544066` | AGENT | open | agent | — | — |
+| T12b | T12 | lousydeal | `0c6ea7af7367` | AGENT | open | agent | — | — |
 | T14a | T14 | orange | `fb76dadcfabe` | AGENT | open | agent | — | — |
-| T14b | T14 | orange | `4a2ff1e326c2` | JOINT | open | operator | — | — |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | open | operator | — | — |
+| T15b | T15b | orange | `4a2ff1e326c2` | JOINT | open | operator | — | — |
 | T16a | T16 | orange | `abf2a5101f88` | JOINT | open | operator | — | — |
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-08-30 · plan audit; row count unchanged at 28, one row re-keyed.**
+The same defect had bitten six times — a file created by an early row that no
+later row may touch — so rather than discover the seventh at T4, a top-tier audit
+read every remaining row against what its checkbox text actually requires. It
+found roughly twenty gaps and two problems that were not file-list gaps at all.
+
+*Applied, all hash-safe:*
+
+- **Files-list additions across T4–T17.** Mostly dependencies (npm workspaces
+  share one root lockfile), scripts that another row's tooling invokes, and
+  documents falsified under global constraint 9.
+- **`backend/src/config/runtime.ts` named as the single configuration
+  assembler**, in T3's section, and added to T4, T5 and T6. No rule about
+  `Files` lists would have found this: "configuration is assembled somewhere" is
+  a design fact, not a textual one.
+- **T13 now runs before T12.** T12's `Release` writes both digests into
+  `deploys/lousydeal/overlays/live/kustomization.yaml` on the merge that
+  introduces it, and T13 creates that file. In the original order the first
+  promotion would have written to a path that does not exist, on a merge
+  approved as a deployment.
+- **T14 split; its second checkbox becomes T15b.** The checkbox confirms a
+  Secret exists *in a namespace*; namespaces are created at T14 and the
+  SecretStores that render into them reconcile at T15, so it could not be
+  verified before both landed. **Row `T14b` is re-keyed to `T15b`. The checkbox
+  text is unchanged, so the hash `4a2ff1e326c2` is unchanged; only the task
+  moved.** T14 additionally gained `roles/argocd/defaults/main.yml`, where the
+  ESO roles actually live, and `roles/argocd/tasks/namespaces.yml` — enrolling a
+  consumer in the projection contract without creating its namespace made
+  `kubectl diff` exit 2 and failed the whole argocd role for every consumer on
+  2026-08-17.
+- **T12 owns the shell gate.** `scripts/validate` and the validate workflow
+  hardcode `shellcheck scripts/validate .githooks/pre-commit`; T12 adds one
+  shell file and T17 another, and neither would be linted. T12 derives the set
+  from `git ls-files`, as the reference and the `deploys` repository do.
+
+All 28 hashes recomputed after the amendment: no drift.
 
 **2026-08-29 · three file-list additions at T3a; row count unchanged at 28.**
 Review found that `backend/tsconfig.json` sets `noEmit: true`, which Medusa's
@@ -127,9 +164,9 @@ expires.
 | E0 | Add `Canonical validation` to the branch ruleset's required contexts | T1b, after merge | **executed 2026-08-29** |
 | E1 | First publish to GHCR | T12b | not requested |
 | E2 | Merging T12 — `Release` fires on the merge that introduces it | T12b | not requested |
-| E3 | First write to `deploys/lousydeal/overlays/*` | T12b, T13a | not requested |
-| E4 | Seeding OpenBao, test sources | T14b | not requested |
-| E5 | Creating namespaces and starting workloads | T15a | not requested |
+| E3 | First write to `deploys/lousydeal/overlays/*` | T13a, then T12b | not requested |
+| E4 | Seeding OpenBao, test sources | T15b | not requested |
+| E5 | Creating namespaces (T14a) and starting workloads (T15a) | T14a, T15a | not requested |
 | E6 | Publishing DNS for `test.lousydeal.com` | T16a | not requested |
 | E7 | Applying the Cloudflare Access policy | T16a | not requested |
 
@@ -140,5 +177,13 @@ a ceiling, and an access-policy change on a public repository's default branch i
 an effect gate whether or not the binding enumerated it. Rollback is a `PATCH` of
 the pre-change ruleset JSON, captured before the request was made.
 
-E7 precedes E6. Publishing the hostname before the policy exists leaves it
+E7 precedes E6.
+
+**E3, E4 and E5 moved with the audit.** T13 now lands the overlays before T12's
+`Release` writes into them, so E3's first write is T13a's rather than a
+promotion into a path that does not exist. E4 belongs to T15b, which was split
+out of T14 because a Secret cannot be confirmed in a namespace before the
+namespace and its SecretStore exist. E5 is now two rows: T14a creates the
+namespaces, because enrolling a consumer in the projection contract without one
+breaks a gate for every other consumer, and T15a starts the workloads. Publishing the hostname before the policy exists leaves it
 public and ungated for the width of the gap.
