@@ -6,111 +6,6 @@ anyway.
 
 ## Open
 
-**Q6 · raised at T5a, from the claim-defect diagnosis. Seven unverified claims,
-ranked, most checkable only at a later row.**
-
-Twenty instances across nine rows of text asserting something untrue of the code
-it described prompted a diagnosis (see the journal, 2026-08-30). It produced
-global constraint 10 and a ranked list of currently-unverified claims. **Six were
-confirmed wrong and fixed at T5a.** These seven remain, in rank order:
-
-1. *"one failed `medusa start` writes the plaintext password 29 times, and one
-   `medusa db:migrate` … writes it 6 more"* — `redis-preflight.ts`. Inherited
-   from the reference **with two of its own qualifiers dropped**: the reference
-   says "measured *from the built server*" and adds that the count moves with how
-   many reconnection attempts the client makes. Restated here as flat integers,
-   in a repository with no built server. Checkable at **T11**.
-2. *"the script runs this file from the compiled `.js` in the image"* and *"the
-   one fail-open path in this image"* — no image exists. The guard
-   `[ -f ./src/config/redis-preflight.js ]` only fires when cwd is the build
-   output root, which depends on a `WORKDIR` no row has written. **T11.**
-3. ~~*"`ioredis` — the client every Medusa Redis module uses"*~~ — **settled at
-   T5b, and the claim was wrong as stated while right in substance.** `ioredis`
-   does arrive, but because `event-bus-redis`, `workflow-engine-redis` and
-   `locking-redis` each declare it as their own direct dependency at 5.11.1, not
-   because every Medusa Redis module uses it. Narrowed to those three packages
-   and cited to `npm ls ioredis` under global constraint 10 — the first claim
-   that constraint caught before a review did.
-4. Three of the five alternatives in `AUTHENTICATION_REPLY` are exercised by
-   **zero** tests. The claim is about a server's wire text and is pinned by
-   nothing. Needs a real `redis-server`.
-5. `backend/vitest.config.mts`'s `tests/smoke/**` rationale describes two files
-   that do not exist and is **frozen** after T3. **T17** proves or falsifies it.
-6. *"no compose file, no CI job, no deployment manifest sets one"* —
-   `database-url.ts`. A universal over three sets that are all currently empty;
-   true only vacuously. **T13** and **T17** can falsify it and neither declares
-   the file.
-7. *"`getDefaultDriverOptions` returns exactly two objects"* — it returns three.
-   The operative sub-clause is correct; the count is not. Fixable in
-   `database-url.ts`, which T5 and T6 declare.
-
-Items 1, 2, 3, 5 and 6 are claims about artefacts later rows build. **A row that
-creates one of those artefacts should check the claims made about it in advance**
-— that is constraint 10's *cited* limb arriving late, and it is the cheapest
-moment to settle them.
-
-**Q5 · raised at T4, for the publication gate. Medusa 2.18.0 brings 17 advisories
-with it.**
-
-Installing `@medusajs/framework@2.18.0` — the version the plan names as the
-reference implementation and records as a Current Repository Fact — added **593
-packages** and 17 advisories. **T5b then installed `@medusajs/medusa@2.18.0`,
-required for the three Redis module loaders, and the figure moved to 77: 12
-moderate, 65 high, across 1,273 packages.** The lockfile went from 11,359 lines
-to 18,773. All of it is in Medusa's own transitive tree — much of it under
-`@graphql-codegen/*` — rather than in anything this repository chose.
-
-**The operator re-affirmed the ruling at the higher figure on 2026-08-30**, not
-only at the original 17. The reasoning is unchanged: the reference pins 2.18.0
-and the whole plan is built on that alignment, nothing is deployed until T15, and
-the apex is never published in this slice.
-
-The operator ruled on 2026-08-30 that the pin stays. Moving off the reference
-version unilaterally would break the alignment the whole plan is built on, and
-the advisories are not reachable from anything LD-01 ships to a public surface:
-nothing is deployed until T15, and the apex is not published in this slice at
-all.
-
-**What the gate needs, and does not yet have:** which of the 65 high advisories
-are reachable from what LD-01 actually runs, whether a patched 2.18.x exists, and
-what `@graphql-codegen` is doing in a production dependency tree at all. A raw
-count is not a decision.
-
-**This belongs to the publication gate, not to a build row.** That gate already
-precedes any live deployment and already owns the legal and tax questions; the
-dependency posture is the same kind of decision. Before it, someone should
-establish which advisories are actually reachable, whether a patched transitive
-version exists that does not diverge the lockfile from the reference, and whether
-Medusa has released a later 2.18.x.
-
-Recorded rather than acted on, deliberately. A row scoped to database SSL
-resolution is not the place to take a security judgement about a framework's
-dependency tree.
-
-**Q2 · raised at T1b, for the M1 boundary. The link checker is flaky against
-GitHub, and now runs twice per pull request.**
-
-During T1b's local testing `lychee` failed three separate runs with
-`504 Gateway Timeout` on `github.com` URLs and passed on retry. `lychee.toml`
-sets `accept = ["200", "204", "206", "429"]` and `max_retries = 2`; a 504 is
-neither accepted nor reliably survived by two retries.
-
-Before this row, CI ran `lychee` once, in the `Documentation` job. The canonical
-job now runs it again through `scripts/validate`, so a pull request has two
-independent chances to fail on a transient upstream timeout. That is the cost of
-the row's own goal — CI running the identical command — and is not a defect in
-it.
-
-`lychee.toml` is in **no row's `Files` list** in the 26-row plan, so no row is
-authorised to change it. Options, for the operator:
-
-1. Accept the flakiness and re-run failed jobs. Costs nothing now.
-2. Add `lychee.toml` to a later row's `Files` list and add `502`, `503`, `504` to
-   `accept`, or raise `max_retries`. Trades strictness for stability.
-3. Treat it as the first `docs/issues/` entry.
-
-Not urgent — it is a re-run, not a wrong result. But it will recur.
-
 **Q3 · answered by the operator; the work it points at is open in another
 repository. Raised at T2a and T2c. Declaring a language inherits two defects in
 the universe renderer.**
@@ -156,6 +51,77 @@ looking at this, not at something it broke.** The pre-commit hook runs `gitleaks
 only, so commits are unaffected.
 
 ## Answered
+
+**Q8 · answered by the operator 2026-08-30. `@medusajs/admin-sdk` is added, and
+T11 proves the build rather than assuming it.**
+
+`medusa build` cannot complete on the lockfile as it stands: the backend half
+compiles, the admin-frontend half fails with `"defineRouteConfig" is not
+exported by __vite-optional-peer-dep`. **T11 hits this on its first build.**
+
+The operator ruled the dependency is added. It belongs to T11, which already
+declares `backend/package.json` and now declares the root lockfile too. The
+reference declares `@medusajs/admin-sdk` at `2.18.0` alongside six further
+admin-side packages (`admin-shared`, `caching`, `cli`, `dashboard`,
+`draft-order`, `ui`), so **whether one dependency is enough is unmeasured** —
+T11's verification is that both images build, not that a named package was
+added.
+
+Note the interaction with Q5: the admin bundle carries the react-router
+advisories, the only cluster with a deployed-surface future. Adding the SDK does
+not change that; exposing the admin would, and no row in LD-01 does.
+
+**Q9 · answered by the operator 2026-08-30. The Region carries the provider, in
+the reference's pattern, and T7 gains a checkbox for it.**
+
+`@medusajs/medusa/dist/api/store/payment-providers/route.js:7-15` filters by
+`region_id`, so the Region link — not the module registration — is what a
+storefront can see. Registering the Stripe package registers eight provider
+services and offers none of them until something binds one.
+
+The reference does it as a **field on the region record**, not a separate step:
+`~/app/plepic/backend/src/commerce/configuration.ts` carries
+`paymentProviderIds: [STRIPE_PAYMENT_PROVIDER_ID]` beside the region's currency,
+countries and tax flags. T7 already declares `configure-commerce.ts` and already
+configures the region, so this is one more checkbox there rather than a new
+task: **T7c, `93a5605cdcad`**.
+
+It also settles what T6b's review deleted. `payment.ts` had claimed "the
+customer-facing gate is a later row's Region link", which was false because no
+such row existed. The row exists now; the sentence stays deleted, because the
+binding is asserted by a test rather than by a comment.
+
+**Q2 · answered 2026-08-30. The diagnosis was wrong about the mechanism; the
+window was too short, not the retry logic.**
+
+lychee does retry 5xx — `lychee-lib/src/retry.rs:21-26` in the pinned 0.24.2,
+all 5xx plus 408 and 429 are retryable. The problem was the window:
+`max_retries = 2` gave three attempts across 1s+2s, which a GitHub blip past
+~3s outlives. Fixed in `lychee.toml`: `max_retries = 4`, `retry_wait_time = 3`,
+five attempts across 3+6+12+24 = 45 seconds. The token theory was rejected: in
+0.24.2 a token never reaches the plain HTTP GET, only the API fallback, which
+would help only 2 of the 12 `github.com` links. The duplicate run belongs to
+T12.
+
+**Q5 · answered 2026-08-30. 77 rows are 11 root advisories across 7 packages;
+the pin holds through LD-01.**
+
+Of the 65 "high" rows only 2 are root highs. None is reachable from what this
+project runs; the react-router cluster in the admin bundle is the only one
+with a deployed future, at T15. No 2.18.1 exists; 2.19.0 fixes 7 of 11, and
+npm's `fixAvailable` over-promises. The pin holds through LD-01, with a
+lockstep bump of both repositories recommended before T15.
+
+**Q6 · answered 2026-08-30. Items 1, 4 and 7 settled false and corrected;
+item 2 true in substance with its universal removed; item 3 already settled;
+item 6 re-measured true; item 5 alone still waits.**
+
+Items 1, 4 and 7 settled **false** and are corrected here, in
+`redis-preflight.ts` and `database-url.ts`. Item 2 settled **true in
+substance**, with its universal removed. Item 3 was already settled. Item 6
+was re-measured **true**. **Item 5 alone is not settleable** and waits for
+T17, which should conform its artefacts to the frozen description rather than
+the reverse.
 
 **Q7 · answered by the operator at T6b. Card, Google Pay, Apple Pay, Link and
 PayPal — and most of the answer is not this repository's business.**
