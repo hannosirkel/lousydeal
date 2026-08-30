@@ -11,9 +11,13 @@ import { readRedisRuntimeConfig, type RedisRuntimeConfig } from "./runtime";
  * **One `PING` in front of Medusa, because a Medusa that dials Redis itself
  * writes the password into the pod log.**
  *
- * `ioredis` -- the client every Medusa Redis module uses, and the one this
- * repository never imports directly -- attaches the failing command to its
- * `ReplyError`:
+ * `ioredis` -- the client `event-bus-redis`, `workflow-engine-redis` and
+ * `locking-redis` each declare as their own direct dependency at `^5.4.1`
+ * (each package's own `package.json`), resolved and deduped to 5.11.1
+ * (`npm ls ioredis` inside `backend/`, checked at T5b once `@medusajs/medusa`
+ * was installed -- this was an open question, Q6 item 3, until then), and the
+ * one this repository never imports directly -- attaches the failing command
+ * to its `ReplyError`:
  *
  * ```text
  * ReplyError: WRONGPASS invalid username-password pair or user is disabled.

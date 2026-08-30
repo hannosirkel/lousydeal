@@ -24,9 +24,13 @@ confirmed wrong and fixed at T5a.** These seven remain, in rank order:
    one fail-open path in this image"* — no image exists. The guard
    `[ -f ./src/config/redis-preflight.js ]` only fires when cwd is the build
    output root, which depends on a `WORKDIR` no row has written. **T11.**
-3. *"`ioredis` — the client every Medusa Redis module uses"* — true of the
-   reference; `ioredis` is absent from this tree until the modules arrive.
-   Currently a universal over an empty set. **T5b.**
+3. ~~*"`ioredis` — the client every Medusa Redis module uses"*~~ — **settled at
+   T5b, and the claim was wrong as stated while right in substance.** `ioredis`
+   does arrive, but because `event-bus-redis`, `workflow-engine-redis` and
+   `locking-redis` each declare it as their own direct dependency at 5.11.1, not
+   because every Medusa Redis module uses it. Narrowed to those three packages
+   and cited to `npm ls ioredis` under global constraint 10 — the first claim
+   that constraint caught before a review did.
 4. Three of the five alternatives in `AUTHENTICATION_REPLY` are exercised by
    **zero** tests. The claim is about a server's wire text and is pinned by
    nothing. Needs a real `redis-server`.
@@ -50,15 +54,27 @@ with it.**
 
 Installing `@medusajs/framework@2.18.0` — the version the plan names as the
 reference implementation and records as a Current Repository Fact — added **593
-packages**, and `npm audit` reports **17 vulnerabilities: 4 moderate, 13 high**,
-all in Medusa's own transitive tree rather than in anything this repository
-chose.
+packages** and 17 advisories. **T5b then installed `@medusajs/medusa@2.18.0`,
+required for the three Redis module loaders, and the figure moved to 77: 12
+moderate, 65 high, across 1,273 packages.** The lockfile went from 11,359 lines
+to 18,773. All of it is in Medusa's own transitive tree — much of it under
+`@graphql-codegen/*` — rather than in anything this repository chose.
+
+**The operator re-affirmed the ruling at the higher figure on 2026-08-30**, not
+only at the original 17. The reasoning is unchanged: the reference pins 2.18.0
+and the whole plan is built on that alignment, nothing is deployed until T15, and
+the apex is never published in this slice.
 
 The operator ruled on 2026-08-30 that the pin stays. Moving off the reference
 version unilaterally would break the alignment the whole plan is built on, and
 the advisories are not reachable from anything LD-01 ships to a public surface:
 nothing is deployed until T15, and the apex is not published in this slice at
 all.
+
+**What the gate needs, and does not yet have:** which of the 65 high advisories
+are reachable from what LD-01 actually runs, whether a patched 2.18.x exists, and
+what `@graphql-codegen` is doing in a production dependency tree at all. A raw
+count is not a decision.
 
 **This belongs to the publication gate, not to a build row.** That gate already
 precedes any live deployment and already owns the legal and tax questions; the

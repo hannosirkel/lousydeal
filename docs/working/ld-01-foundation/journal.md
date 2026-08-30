@@ -930,3 +930,79 @@ meant editing a checkbox, which re-keyed **T3a — a closed row** — and the ha
 check said so. The checkbox text is the ledger's identity, so the words were
 restored and the correction moved into prose beside them. The rule that a
 completed row is not silently re-keyed did its job on the orchestrator.
+
+---
+
+## 2026-08-30 — T5b, and what four rounds of correction taught
+
+Worktree `~/app/.worktrees/lousydeal/t5b-modules` from `origin/main` at
+`4faba0d`. Installs `@medusajs/medusa@2.18.0`.
+
+**The row's own work was right from the first pass and stayed right.** Three
+option shapes reaching the built connection, all four `resolve` strings
+discriminating, all three in-family swaps red, the password in no URL,
+`runtime.ts` fail-closed, 84 tests. Verified independently at every pass.
+
+**One real gap, found at pass 1.** The suite never executed `resolve` — the
+field Medusa actually keys on. A mistyped string left the tests green, because
+they imported by hardcoded package name. The silent case is worse than a typo:
+
+```text
+@medusajs/medusa/locking        -> locking
+@medusajs/medusa/locking-redis  -> locking     same key
+@medusajs/event-bus-redis       -> undefined   bare name, throws loudly
+```
+
+Two valid strings key onto the same value, so pointing a wiring at the wrong one
+is accepted with no error and leaves the intended module on its in-memory
+default. `resolve` is a string literal with no logic in it, which is why nobody
+had written a test for it, and why it was the only part that could fail
+silently.
+
+**Then five Majors in a row, none of them in the code.**
+
+| pass | Majors | where they came from |
+| --- | --- | --- |
+| 1 | 2 | one real gap, one false claim |
+| 2 | 2 | **both written by pass 1's fix** |
+| 3 | 2 | one written by pass 2's fix, one untouched since pass 1 |
+| confirming | 1 | a clause the deletion pass exempted |
+
+**Every false claim after the first was introduced while correcting another
+false claim.** Three generations of the same defect in the same paragraph.
+Constraint 10 shapes how a claim is written; it does not read the claim someone
+writes while removing a different one, and correcting a claim requires writing
+one.
+
+**So the operator ruled deletion rather than a fourth rewrite**, applying
+constraint 10's own last line — *a claim fitting none of the three is deleted;
+the code is not worse without the sentence.* 26 net lines of prose went. Every
+deleted passage narrated **which mechanism catches which failure**. Those were
+wrong at every pass, and the tests demonstrate the behaviour without them: mutate
+a line, run the suite, read what goes red. That is more reliable than any
+sentence, and it is what four reviewers actually did.
+
+**What survived is the distinction worth keeping.** A claim about a dependency is
+cheap to falsify — open the cited file, run the grep. A claim about what your own
+tests catch is expensive — it needs four mutation results reconstructed, which is
+why nobody checks it and why those sentences were wrong every single time. The
+citations survived four passes untouched. The coverage narration did not survive
+one.
+
+**The confirming pass found the exemption was one clause too generous.** The
+deleted prose had spared a sentence saying a credential-less connection's failure
+is "logged, not thrown". Measured against a `-NOAUTH` server: only
+`locking-redis` logs anything. `event-bus-redis` sets `enableReadyCheck: false`,
+issues no command at connect, and reports *"Connection to Redis … established"*
+with `password=null`; `workflow-engine-redis` logs *established* twice while the
+connection is `reconnecting`. **Two of three announce a connection they do not
+have** — worse than the sentence claimed, and exactly this row's subject. Deleted
+rather than restated.
+
+**And one of the orchestrator's own checks was theatre.** Verifying the deletion,
+a mutation was run to confirm the suite still catches a dropped `redisOptions`.
+It reported 84 passing and was recorded as evidence. The pattern had not matched
+— the wirings are functions with multi-line options — so nothing was mutated and
+the green result meant nothing. Re-run correctly it goes red at
+`expected null to be 'redis-modules-fixture-password-…'`. A check that appears to
+run and does not, committed while verifying a fix for that exact class.
