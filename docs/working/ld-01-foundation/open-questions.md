@@ -6,6 +6,30 @@ anyway.
 
 ## Open
 
+**Q7 · raised at T6a. Registering Stripe registers eight payment providers,
+and seven of them are nobody's decision yet.**
+
+`@medusajs/payment-stripe` with `id: "stripe"` does not register one provider
+service. It registers eight, and
+`node_modules/@medusajs/payment/dist/loaders/providers.js:81-95` upserts every
+one as `is_enabled: true`:
+
+```text
+pp_stripe_stripe          pp_stripe-ideal_stripe        pp_stripe-blik_stripe
+pp_stripe-bancontact_stripe   pp_stripe-giropay_stripe  pp_stripe-oxxo_stripe
+pp_stripe-przelewy24_stripe   pp_stripe-promptpay_stripe
+```
+
+The storefront will offer all eight on any region they are enabled for. Card
+payment is `pp_stripe_stripe`; the other seven are local European and Asian
+methods, each of which has its own Stripe dashboard enablement, settlement
+behaviour and refund semantics.
+
+Nothing in the plan mentions them. **T6b derives the provider id and is where
+this becomes visible**, but the decision — offer them, or restrict the provider
+list — is the operator's and has a consumer-facing consequence. Not a blocker
+for T6b, which can derive `pp_stripe_stripe` correctly either way.
+
 **Q6 · raised at T5a, from the claim-defect diagnosis. Seven unverified claims,
 ranked, most checkable only at a later row.**
 

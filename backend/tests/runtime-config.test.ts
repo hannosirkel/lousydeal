@@ -81,9 +81,11 @@ describe("readBackendRuntimeConfig", () => {
     REDIS_HOST: "redis.internal",
     REDIS_PORT: "6379",
     REDIS_PASSWORD: "redis-secret-value",
+    STRIPE_SECRET_KEY: "stripe-secret-key-value",
+    STRIPE_WEBHOOK_SECRET: "stripe-webhook-secret-value",
   };
 
-  it("assembles the http secrets, the database connection and the Redis parts from the environment", () => {
+  it("assembles the http secrets, the database connection, the Redis parts and the Stripe values from the environment", () => {
     const config: BackendRuntimeConfig = readBackendRuntimeConfig(validEnvironment);
     expect(config).toEqual({
       http: { jwtSecret: "jwt-secret-value", cookieSecret: "cookie-secret-value" },
@@ -92,6 +94,7 @@ describe("readBackendRuntimeConfig", () => {
         driverOptions: { connection: { ssl: false } },
       },
       redis: { host: "redis.internal", port: 6379, password: "redis-secret-value" },
+      stripe: { apiKey: "stripe-secret-key-value", webhookSecret: "stripe-webhook-secret-value" },
     });
   });
 
@@ -131,6 +134,16 @@ describe("readBackendRuntimeConfig", () => {
     const withoutPassword: Record<string, string> = { ...validEnvironment };
     delete withoutPassword.REDIS_PASSWORD;
     expect(() => readBackendRuntimeConfig(withoutPassword)).toThrow(/REDIS_PASSWORD/);
+  });
+
+  it("names the missing Stripe variable in the refusal", () => {
+    const withoutApiKey: Record<string, string> = { ...validEnvironment };
+    delete withoutApiKey.STRIPE_SECRET_KEY;
+    expect(() => readBackendRuntimeConfig(withoutApiKey)).toThrow(/STRIPE_SECRET_KEY/);
+
+    const withoutWebhookSecret: Record<string, string> = { ...validEnvironment };
+    delete withoutWebhookSecret.STRIPE_WEBHOOK_SECRET;
+    expect(() => readBackendRuntimeConfig(withoutWebhookSecret)).toThrow(/STRIPE_WEBHOOK_SECRET/);
   });
 });
 

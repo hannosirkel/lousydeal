@@ -1006,3 +1006,110 @@ It reported 84 passing and was recorded as evidence. The pattern had not matched
 the green result meant nothing. Re-run correctly it goes red at
 `expected null to be 'redis-modules-fixture-password-…'`. A check that appears to
 run and does not, committed while verifying a fix for that exact class.
+
+## 2026-08-30 — T6a, the configuration Medusa loads
+
+`backend/medusa-config.ts`, `backend/tests/medusa-config.test.ts`,
+`backend/src/config/runtime.ts`, `backend/tests/runtime-config.test.ts`.
+313 lines, 4 files. `bash scripts/validate` clean at 89 tests.
+
+Everything T3 through T5 built becomes one configuration: the environment
+reader, the fail-closed assembler, the database URL and its TLS mode, and the
+three Redis wirings imported from `redis.ts` rather than restated. The assembler
+gains Stripe's API key and webhook secret.
+
+**The `noEmit` loop closed, five rows after it opened.** T3b rewrote
+`backend/tsconfig.json` because the original set `noEmit: true`, which makes
+`medusa build` write zero files while logging success and exiting 0 — an image
+that publishes, carries a digest, and cannot start. That fix was verified
+against synthetic inputs, because `medusa-config.ts` did not exist yet, and the
+file is named in that config's `include`. Driving `ts.createProgram`/`.emit()`
+with it now: `medusa-config.ts` in `fileNames`, 0 diagnostics,
+`emitSkipped: false`, `medusa-config.js` present in the output.
+
+One correction: T3b's fix was to **delete** `noEmit`, not to set it `false`. The
+implementer reported it as `false`; it resolves `undefined`. Same emit, wrong
+description of the file.
+
+**Two mutations passed the entire suite.** The row's verification was written as
+the plan asks — load the config, assert the module list — and it discriminated
+on everything it named: the Stripe `resolve`, `id`, both option values and their
+ordering, each of the three Redis slots including a dropped and a mis-keyed one.
+It missed two things, both of which its own test name asserted.
+
+| mutation | result |
+| --- | --- |
+| register a **fourth** module, `cache-redis` → unauthenticated `redis://somewhere-else:6379` | **all 88 green** |
+| hardcode the Stripe `apiKey` as a literal, ignore the environment | **all 88 green** |
+| hardcode the Redis parts | green |
+| drop `databaseDriverOptions` entirely — **removes SSL** | **all 88 green** |
+| wrong `databaseUrl` literal | green |
+| re-derive a Redis wiring inline, never call `redis.ts` | **all 88 green** |
+
+The refusal tests do not close the second group. They prove a variable is
+*required*, not that it is *used* — a literal written in place of a runtime read
+passes every one of them.
+
+**Asserting the module list cannot notice a module being added.** `defineConfig`
+merges Medusa's defaults, so `Object.keys(config.modules)` is 27 entries, and
+`cache` is already one of them with the value
+`{"resolve":"@medusajs/medusa/cache-inmemory"}`. Comparing key *names* against a
+written-down list catches nothing, because the name is usually already there.
+The set is now a diff against a baseline `defineConfig` produces from the same
+`projectConfig` — the baseline comes from Medusa, so it does not go stale when
+Medusa's defaults change.
+
+**And nothing proved a value came from the environment.** The config is now
+loaded twice, under environments sharing no value, which a literal cannot
+survive. `projectConfig` is asserted in both — nothing else in the repository
+checks that `databaseUrl` and `databaseDriverOptions` reach Medusa at all, and
+C3 is fed by T4 and T6 only. T6 is the one row that declares this file; after
+T6b nobody owns it.
+
+**`REVERSED_MODULE_PACKAGE_NAMES` does not apply to providers.** T5b established
+that Medusa keys *modules* on the exact `resolve` string through that table, and
+this row assumed the same held inside `options.providers`. It does not:
+`node_modules/@medusajs/modules-sdk/dist/loaders/module-provider-loader.js:15-27`
+requires the string plainly, no table lookup. Measured — neither
+`@medusajs/payment-stripe` nor `@medusajs/medusa/payment-stripe` is a key in it.
+
+The `resolve` still changed, for a different reason. `@medusajs/payment-stripe`
+is a package this repository never declares; it resolves only because npm hoists
+it out of `@medusajs/medusa`'s tree, and `redis.ts:25-33` argues the subpath
+convention at length for the three modules sitting in the same array. The
+subpath is a thin `__exportStar` re-export and derives the identical provider
+id, so this is about a declared dependency, not about correctness of keying.
+
+**A fact T6b needs.** Registering `@medusajs/payment-stripe` with `id: "stripe"`
+registers **eight** provider services, not one, and
+`node_modules/@medusajs/payment/dist/loaders/providers.js:81-95` upserts all
+eight as `is_enabled: true`: `pp_stripe_stripe` plus bancontact, blik, giropay,
+ideal, przelewy24, promptpay and oxxo. The storefront will see eight Stripe
+providers on a region. T6b's derived provider id is `pp_stripe_stripe`, and the
+other seven need a decision.
+
+**The prose, again — six false sentences, five deleted.** One claimed the
+`toEqual` against `redis.ts`'s wiring functions *proves* the modules come from
+`redis.ts`; `toEqual` is structural, and re-deriving them inline passed all 88.
+One asserted what a future row would do, sourced to no document. One narrated
+which line of `runtime.ts` the Stripe fields sit at, and was wrong for two of
+the three things it could mean.
+
+That last one got the class fix rather than the sentence fix. `runtime.ts`'s
+header carried a per-row changelog — *"This row adds the database URL and SSL
+resolution"* — in a file **three rows have edited**, and it had been stale or
+wrong at each. Correcting the sentence would have invited a fourth. The
+changelog is gone; the header keeps what it says about the file and the
+`JWT_SECRET`/`COOKIE_SECRET` silent-default trade-off, which is a real
+constraint with a real citation.
+
+**One thing the fix brief got wrong.** It predicted `typeof
+import("../medusa-config")["default"]` resolves to `any`, because
+`medusa-config.ts` sits outside `tsconfig.test.json`'s `include` (T3a). It does
+not — tsc follows the import regardless of `include`, and under
+`moduleResolution: Node16` with the backend emitting CommonJS it types
+`.default` as the module namespace rather than the value. Annotating the return
+`ConfigModule` failed outright. Vitest transforms the file to ESM, where
+`.default` is that value, so tsc and Vitest genuinely disagree about this import
+and the cast records why. The accesses are checked either way, which was the
+point.
