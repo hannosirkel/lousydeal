@@ -34,11 +34,25 @@
  * function does not run the workflow. This is the only place that says so;
  * `seed-product.ts` names the channel without claiming who made it.
  *
- * The region carries no `payment_providers`: binding Stripe is T7c's
- * checkbox, and omitting the key rather than writing `[]` is what keeps this
- * row off it -- `setRegionsPaymentProvidersStep` skips any region whose input
- * carries no such key at all
- * (`@medusajs/core-flows/dist/region/steps/set-regions-payment-providers.js`).
+ * The region's `payment_providers` is `STRIPE_PAYMENT_PROVIDER_ID`
+ * (`../config/payment.ts`), T7c's checkbox: `setRegionsPaymentProvidersStep`
+ * requires the id to already resolve to an enabled provider --
+ * `validatePaymentProvidersExists` throws `MedusaError.Types.NOT_FOUND`
+ * otherwise
+ * (`@medusajs/core-flows/dist/region/steps/set-regions-payment-providers.js:6-16`).
+ * That is a database row and not a container registration, so what satisfies
+ * it is `registerProvidersInDb`, which upserts every registered provider
+ * `is_enabled: true` (`@medusajs/payment/dist/loaders/providers.js:81-95`),
+ * reached through the module loaders at
+ * `@medusajs/medusa/dist/loaders/index.js:121`. `medusa exec` runs those
+ * loaders (`@medusajs/medusa/dist/commands/exec.js:67`) before it invokes this
+ * file's `default export` (`:76`).
+ *
+ * Sending the key on every run is what makes the binding exact: the same step
+ * dismisses any other provider linked to this region
+ * (`set-regions-payment-providers.js:69-83`) and skips links that already
+ * exist (`:87-93`). So a provider added to this region in the Admin does not
+ * survive the next `predeploy`.
  */
 
 import type { ExecArgs, MedusaContainer } from "@medusajs/framework/types";
@@ -55,6 +69,7 @@ import {
 
 import { PRODUCT_TIERS } from "../commerce/product-model";
 import { ESTONIAN_STANDARD_VAT_PERCENT, EU_MEMBER_STATE_CODES, TAX_PROVIDER_ID, VAT_RATE_CODE, VAT_RATE_NAME } from "../commerce/tax-model";
+import { STRIPE_PAYMENT_PROVIDER_ID } from "../config/payment";
 
 /**
  * The one region every tier prices into, and the natural key `applyRegion`
@@ -102,6 +117,15 @@ export type CommerceRecord =
       readonly taxInclusivePrices: boolean;
       /** `true` -- explicit, not `@medusajs/region/dist/models/region.js:12`'s default, so this record still says so once that default changes. */
       readonly automaticTaxes: boolean;
+      /**
+       * The provider ids this region offers at checkout, bound here rather
+       * than as a separate apply -- `setRegionsPaymentProvidersStep` filters
+       * its input with `isDefined(payment_providers)`
+       * (`@medusajs/core-flows/dist/region/steps/set-regions-payment-providers.js:51-53`),
+       * so a step input carrying no such key is skipped rather than cleared.
+       * This field is required, so no `CommerceRecord` can reach that branch.
+       */
+      readonly paymentProviderIds: readonly string[];
     }
   | {
       /** One EU member state's tax region and its single, default rate. */
@@ -143,6 +167,7 @@ export function commerceRecords(): readonly CommerceRecord[] {
       countryCodes: WORLDWIDE_COUNTRY_CODES,
       taxInclusivePrices: false,
       automaticTaxes: true,
+      paymentProviderIds: [STRIPE_PAYMENT_PROVIDER_ID],
     },
     ...EU_MEMBER_STATE_CODES.map<CommerceRecord>((countryCode) => ({
       kind: "tax-region",
@@ -269,6 +294,7 @@ export class MedusaCommerceConfigurationTarget implements CommerceConfigurationT
               countries,
               automatic_taxes: record.automaticTaxes,
               is_tax_inclusive: record.taxInclusivePrices,
+              payment_providers: [...record.paymentProviderIds],
             },
           ],
         },
@@ -285,6 +311,7 @@ export class MedusaCommerceConfigurationTarget implements CommerceConfigurationT
           countries,
           automatic_taxes: record.automaticTaxes,
           is_tax_inclusive: record.taxInclusivePrices,
+          payment_providers: [...record.paymentProviderIds],
         },
       },
     });

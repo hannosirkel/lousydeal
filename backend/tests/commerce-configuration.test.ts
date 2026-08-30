@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { STRIPE_PAYMENT_PROVIDER_ID } from "../src/config/payment";
 import { EU_MEMBER_STATE_CODES } from "../src/commerce/tax-model";
 import {
   type CommerceRecord,
@@ -62,6 +63,17 @@ describe("commerceRecords", () => {
     // A version bump that adds or drops a country is not a regression in this
     // row, so the assertion does not pin the number the comment reports.
     expect(region.countryCodes.length).toBeGreaterThan(200);
+  });
+
+  // T7c's checkbox: the region carries exactly the one provider id
+  // `payment.ts` derives -- not a literal, so a change to either half of
+  // `STRIPE_PAYMENT_PROVIDER_ID` cannot drift unnoticed from what the region
+  // is bound to, and not merely "contains it", so a second id added beside it
+  // or the field dropped both go red.
+  it("binds the region to exactly the one provider id payment.ts derives, and no other", () => {
+    const regionRecords = records.filter((record) => record.kind === "region");
+    const region = regionRecords[0]!;
+    expect(region.paymentProviderIds).toEqual([STRIPE_PAYMENT_PROVIDER_ID]);
   });
 
   // The row's whole tax claim: a tax region for each EU member state, all
