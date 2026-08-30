@@ -8,8 +8,8 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-08-29 |
-| Current slice | LD-01, in execution. M2 begun; 7 of 28 rows done. Plan audited 2026-08-30. |
-| Next action | `resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build`, once T3b's pull request merges. Next row is T4, which installs Medusa. |
+| Current slice | LD-01, in execution. M2 begun; 8 of 28 rows done. Plan audited 2026-08-30. |
+| Next action | `resume implementing lousydeal/docs/working/ld-01-foundation.md using big-build`, once T4's pull request merges. Next row is T5, Redis wiring and preflight. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -129,8 +129,8 @@ surfaces, not the LD-01 foundation. They can run in parallel with LD-01.
 
 ## In flight
 
-**T3b**, open as a pull request: the configuration assembler, and the fix for a
-tsconfig that would have shipped an image containing no compiled code.
+**T4**, open as a pull request: the database URL and its TLS resolution, and the
+first Medusa dependency. Carries an operator-approved size override.
 
 **The plan was audited on 2026-08-30 and the order changed.** T13 now runs before
 T12; T14's second checkbox became T15b, after T15. Roughly twenty file-list gaps
