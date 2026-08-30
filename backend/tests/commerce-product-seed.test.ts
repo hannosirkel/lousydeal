@@ -4,6 +4,7 @@ import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { PRODUCT_TIERS } from "../src/commerce/product-model";
+import { type ProductSeedRecord, type ProductSeedTarget, productSeedRecords, seedProduct } from "../src/scripts/seed-product";
 
 describe("PRODUCT_TIERS", () => {
   it("declares exactly these three tiers, in this order, with these handles and minor-unit amounts", () => {
@@ -126,5 +127,61 @@ describe("no tier amount is a bare literal in any .ts under backend/src except p
 
   it.each(sources)("%s carries no bare 500, 1000 or 2500 token", (_file, source) => {
     expect(source).not.toMatch(PRICE_LITERAL_PATTERN);
+  });
+});
+
+/**
+ * A `ProductSeedTarget` that behaves the way a real backend must: `apply` is
+ * a lookup by natural key (`handle`) followed by a create *or* an update,
+ * modelled here as a `Map.set` -- the same key applied twice overwrites
+ * rather than accumulates. `calls` records every invocation, so an assertion
+ * about the second run's behaviour does not have to trust a mock's call
+ * count.
+ */
+class RecordingProductSeedTarget implements ProductSeedTarget {
+  readonly calls: ProductSeedRecord[] = [];
+  private readonly products = new Map<string, ProductSeedRecord>();
+
+  async apply(record: ProductSeedRecord): Promise<void> {
+    this.calls.push(record);
+    this.products.set(record.handle, record);
+  }
+
+  get seededHandles(): readonly string[] {
+    return [...this.products.keys()].sort();
+  }
+}
+
+describe("seedProduct run twice", () => {
+  it("is called once per tier on each run, and converges on one product per handle", async () => {
+    const target = new RecordingProductSeedTarget();
+
+    await seedProduct(target);
+    await seedProduct(target);
+
+    // apply() is invoked for every record on every run -- idempotency lives
+    // in what the target does with a repeated natural key, not in skipping
+    // the call. Two runs of three tiers is six calls.
+    expect(target.calls).toHaveLength(productSeedRecords().length * 2);
+
+    // The natural key is what converges: two runs still leave exactly one
+    // product per handle, matching PRODUCT_TIERS -- not six, and not a
+    // count a mock's assertion could get right by accident.
+    expect(target.seededHandles).toEqual(PRODUCT_TIERS.map((tier) => tier.handle).sort());
+  });
+
+  it("produces the same records on a second call, so a repeated run asserts the same tiers", () => {
+    expect(productSeedRecords()).toEqual(productSeedRecords());
+  });
+
+  // `productSeedRecords`'s own doc says "in declaration order", and the
+  // handles are written out here rather than read back from PRODUCT_TIERS, so
+  // reversing either the model or the mapping goes red.
+  it("emits one record per tier in declaration order", () => {
+    expect(productSeedRecords().map((record) => record.handle)).toEqual([
+      "lousy-deal",
+      "lousy-deal-plus",
+      "lousy-deal-pro",
+    ]);
   });
 });

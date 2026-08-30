@@ -1,7 +1,7 @@
-# 007. Price the three tiers in USD, tax-inclusive, with no tax configured
+# 007. Price the three tiers in USD, tax-inclusive, with no tax configured (the tax ruling superseded by [`008`](./008-plepic-tax-treatment.md); the USD currency ruling stands)
 
 - **Date:** 2026-08-30
-- **Status:** accepted
+- **Status:** accepted; its tax ruling superseded by [`008`](./008-plepic-tax-treatment.md) (the USD currency ruling stands)
 
 ## Context and problem statement
 

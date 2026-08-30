@@ -374,11 +374,14 @@ declare modules it cannot install.
 
 **Repository:** `lousydeal`.
 **Files:** `backend/src/commerce/product-model.ts`,
+`backend/src/commerce/tax-model.ts`,
 `backend/src/scripts/seed-product.ts`,
 `backend/src/scripts/configure-commerce.ts`,
 `backend/tests/commerce-product-seed.test.ts`,
 `backend/tests/commerce-configuration.test.ts`, `backend/package.json`,
-`docs/decisions/007-usd-and-tax-inclusive-pricing.md`.
+`docs/decisions/007-usd-and-tax-inclusive-pricing.md`,
+`docs/decisions/008-plepic-tax-treatment.md`,
+`docs/current/plepic-reuse.md`.
 
 Both scripts are `medusa exec` entry points and are unreachable code without the
 npm scripts that invoke them. The predeploy Job in `deploys` runs
