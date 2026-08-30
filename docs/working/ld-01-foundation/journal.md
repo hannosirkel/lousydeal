@@ -1113,3 +1113,90 @@ not — tsc follows the import regardless of `include`, and under
 `.default` is that value, so tsc and Vitest genuinely disagree about this import
 and the cast records why. The accesses are checked either way, which was the
 point.
+
+## 2026-08-30 — T6b, the Stripe provider, and a constant that should not have existed
+
+`backend/src/config/payment.ts`, `backend/tests/payment-provider-config.test.ts`,
+plus `medusa-config.ts`, `runtime.ts` and two tests. 269 lines, 6 files.
+`bash scripts/validate` clean at 105 tests.
+
+The provider id is composed the way `@medusajs/payment/dist/loaders/providers.js:45`
+composes it, from two named constants, and the test composes it the same way —
+reading `identifier` off the installed package rather than typing the answer on
+both sides. `STRIPE_PROVIDER_IDENTIFIER → "not-stripe"` goes red.
+
+**The citations were clean, and that is new.** Twelve citations into
+`node_modules`, each opened individually by the reviewer, all twelve pointing at
+real files saying what they were quoted as saying. One line number was off by
+one. Every previous row's Majors included at least one citation to a file that
+did not contain the claim. **Every defect this time was in an *uncited*
+sentence** — which is the first evidence that constraint 10's *cited* limb is
+doing work rather than being obeyed decoratively.
+
+**`STRIPE_WEBHOOK_PATH` was in the brief and should not have been.** The
+orchestrator asked for it. Three independent grounds killed it:
+
+- Its central claim was unexecuted. The test sliced off a hardcoded
+  `"/hooks/payment/".length` and asserted only the tail, so changing the prefix
+  to `/hooks/paymnet/` — same length — passed **all 99 tests and both
+  typechecks**.
+- Nothing imports it. `grep -rn "webhook" docs/working/ld-01-foundation.md`
+  returns one hit: constraint 1, "no webhook signing secret". No row in LD-01
+  creates a webhook route, so the "later row" its JSDoc deferred to does not
+  exist.
+- It was a third deliverable in a row whose text asks for two.
+
+Seventeen lines of prose and two correct citations went with it.
+
+**Four false sentences, all in one JSDoc block, all explaining why something is
+*not* there.** That is the pattern worth recording: prose doing the job of a
+test or of a decision record.
+
+| the sentence | why it was false |
+| --- | --- |
+| the subpath relies on "the same hoisting `redis.ts` relies on" | it resolves through a **declared** dependency's `exports` map; hoisting is what T6a switched *away* from, and `redis.ts:25-33` says so four lines from the claim |
+| a PaymentIntent here "has neither `payment_method_types` nor `automatic_payment_methods` set" | the function four lines below registers `automaticPaymentMethods: true` |
+| the pinned `Stripe-Version` "turns Automatic Payment Methods on by default" | the file concedes the truth-maker is a changelog, and cites none |
+| "the customer-facing gate is a later row's Region link" | no row does that, and **Q7 records it as the operator's decision** |
+
+The last is the sharpest: a comment asserting as settled what a tracked document
+records as open. Constraint 9 covers a row falsifying a document; this was a row
+**contradicting** one.
+
+**Three gaps in the verification, each found by mutation.**
+
+`paymentMethodConfiguration` could be dropped from the registered options and
+`medusa-config.test.ts` stayed fully green — vitest's `toEqual` treats an
+expected `undefined` as satisfied by an **absent** property, and neither
+synthetic environment set the variable at all. So the one value this row added
+was the one value the two-environment technique was never applied to. Both
+environments now carry distinct `pmc_…` values.
+
+The test imported `@medusajs/payment-stripe` **by bare name** — a package
+declared in no `package.json` here, resolving only by hoisting. That is exactly
+what T6a changed the production `resolve` to escape, reintroduced in the test of
+the row that inherited the fix. It now reads the eight registered services
+through the declared `@medusajs/medusa` subpath, which is both correct and a
+stronger assertion.
+
+And the no-literal-key guard scanned **two hardcoded paths**. A Stripe-shaped
+`sk_live_…` literal in `backend/src/config/env.ts` passed all 99 tests *and*
+`gitleaks dir --redact .` reported `no leaks found` on the same tree — no second
+line of defence. The guard now globs `src/config/*.ts` plus `medusa-config.ts`,
+so a file added to that directory is covered the day it lands. Verified
+independently: planting the literal goes red, `env.ts` restored clean.
+
+**Q7 answered, and most of it is not this repository's business.** Card, Google
+Pay, Apple Pay, Link and PayPal — the operator's chosen set. Google Pay, Apple
+Pay and Link are not Medusa providers at all; they are wallets on the card
+intent, surfaced by Stripe's Payment Element, and Medusa needs no configuration
+for any of them. What the code had to get right was to *not* pin
+`payment_method_types`, which it does not: `stripe-provider.js:12`'s
+`paymentIntentOptions` returns `{}` and only the seven country sub-providers pin
+theirs. The rest is Dashboard work: enable the five, disable the seven, and
+register `test.lousydeal.com` as a payment method domain, without which none of
+the four wallets renders.
+
+Two things the operator still owns: PayPal requires the Stripe account be in
+Europe, Switzerland or the UK, and nothing in this repository records the account
+country; and domain validation may collide with Cloudflare Access at T16.
