@@ -29,6 +29,7 @@ const VALID_ENVIRONMENT: Record<string, string> = {
   REDIS_PASSWORD: "redis-secret-value",
   STRIPE_SECRET_KEY: "stripe-secret-key-value",
   STRIPE_WEBHOOK_SECRET: "stripe-webhook-secret-value",
+  STRIPE_PAYMENT_METHOD_CONFIGURATION_ID: "pmc_valid_environment_value",
 };
 
 /**
@@ -51,6 +52,7 @@ const OTHER_ENVIRONMENT: Record<string, string> = {
   REDIS_PASSWORD: "other-redis-secret",
   STRIPE_SECRET_KEY: "other-stripe-secret-key",
   STRIPE_WEBHOOK_SECRET: "other-stripe-webhook-secret",
+  STRIPE_PAYMENT_METHOD_CONFIGURATION_ID: "pmc_other_environment_value",
 };
 
 const ORIGINAL_ENV = { ...process.env };
@@ -139,6 +141,9 @@ describe("medusa-config", () => {
             options: {
               apiKey: "stripe-secret-key-value",
               webhookSecret: "stripe-webhook-secret-value",
+              capture: true,
+              automaticPaymentMethods: true,
+              paymentMethodConfiguration: "pmc_valid_environment_value",
             },
           },
         ],
@@ -174,6 +179,9 @@ describe("medusa-config", () => {
             options: {
               apiKey: "other-stripe-secret-key",
               webhookSecret: "other-stripe-webhook-secret",
+              capture: true,
+              automaticPaymentMethods: true,
+              paymentMethodConfiguration: "pmc_other_environment_value",
             },
           },
         ],

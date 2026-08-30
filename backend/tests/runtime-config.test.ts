@@ -94,7 +94,11 @@ describe("readBackendRuntimeConfig", () => {
         driverOptions: { connection: { ssl: false } },
       },
       redis: { host: "redis.internal", port: 6379, password: "redis-secret-value" },
-      stripe: { apiKey: "stripe-secret-key-value", webhookSecret: "stripe-webhook-secret-value" },
+      stripe: {
+        apiKey: "stripe-secret-key-value",
+        webhookSecret: "stripe-webhook-secret-value",
+        paymentMethodConfiguration: undefined,
+      },
     });
   });
 
@@ -144,6 +148,23 @@ describe("readBackendRuntimeConfig", () => {
     const withoutWebhookSecret: Record<string, string> = { ...validEnvironment };
     delete withoutWebhookSecret.STRIPE_WEBHOOK_SECRET;
     expect(() => readBackendRuntimeConfig(withoutWebhookSecret)).toThrow(/STRIPE_WEBHOOK_SECRET/);
+  });
+
+  // Unlike the two assertions above, this one must NOT throw: unlike the two
+  // Stripe secrets, STRIPE_PAYMENT_METHOD_CONFIGURATION_ID is not in the
+  // requireEnv set (see src/config/payment.ts for why), and `validEnvironment`
+  // never sets it.
+  it("assembles with no Stripe payment method configuration set, leaving it undefined", () => {
+    const config = readBackendRuntimeConfig(validEnvironment);
+    expect(config.stripe.paymentMethodConfiguration).toBeUndefined();
+  });
+
+  it("reads the Stripe payment method configuration when set, trimmed", () => {
+    const config = readBackendRuntimeConfig({
+      ...validEnvironment,
+      STRIPE_PAYMENT_METHOD_CONFIGURATION_ID: "  pmc_test_value\n",
+    });
+    expect(config.stripe.paymentMethodConfiguration).toBe("pmc_test_value");
   });
 });
 
