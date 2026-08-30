@@ -245,13 +245,21 @@ a type error in it is caught by nothing.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/config/database-url.ts`,
 `backend/tests/database-ssl.test.ts`, `backend/src/config/runtime.ts`,
-`backend/package.json`, `package-lock.json`.
+`backend/package.json`, `package-lock.json`, `README.md`, `AGENTS.md`,
+`backend/tests/runtime-config.test.ts`.
 
 The row's verification runs **Medusa's own resolver** against the produced
 object, and Medusa is not installed until this row installs it — the manifest and
 the shared root lockfile are here for that. Hand-copying the resolver into the
 test would defeat its purpose, which is precisely that Medusa's resolver and the
 runtime path must agree.
+
+`README.md` and `AGENTS.md` are here under global constraint 9, and this row
+should end the recurring cost rather than pay it again. Both currently
+**enumerate** what `backend/` holds — "the environment reader and configuration
+assembler so far" — which T4, T5, T6 and T7 each falsify in turn. Rewrite the
+sentence so it describes the backend at a level that stays true as modules are
+added, and no later row has to touch either file for this reason again.
 
 - [ ] Resolve the database URL and driver options so the migration path and the
       runtime path choose SSL identically, and so `verify-full` is expressible.
@@ -269,7 +277,8 @@ candidate causes without saying which.
 **Files:** `backend/src/config/redis-preflight.ts`,
 `backend/src/config/redis.ts`, `backend/tests/redis-preflight.test.ts`,
 `backend/tests/redis-modules.test.ts`, `backend/src/config/runtime.ts`,
-`backend/package.json`, `package-lock.json`.
+`backend/package.json`, `package-lock.json`,
+`backend/tests/runtime-config.test.ts`.
 
 The preflight must run **before Medusa loads**, which means an npm script, not
 just a module; the test spawns that script, so it has to exist. The Redis client
@@ -295,7 +304,14 @@ which is how Plepic ran a worker that consumed a queue nothing published to.
 **Files:** `backend/medusa-config.ts`, `backend/src/config/payment.ts`,
 `backend/tests/payment-provider-config.test.ts`,
 `backend/tests/medusa-config.test.ts`, `backend/package.json`,
-`package-lock.json`, `backend/src/config/runtime.ts`.
+`package-lock.json`, `backend/src/config/runtime.ts`,
+`backend/tests/runtime-config.test.ts`.
+
+**A row that extends the assembler carries the assembler's test.** Its
+`toEqual` enumerates the shape `readBackendRuntimeConfig` returns, so adding a
+field to the assembler necessarily changes that assertion — no ordering or
+restructuring avoids it. T4 hit this and disclosed it; T5 and T6 declare the file
+so they do not have to.
 
 `backend/package.json` and the root lockfile are here because this row registers
 the Stripe payment module and three Redis modules, which means adding Medusa

@@ -738,3 +738,79 @@ outside production and to `undefined` inside it — the "defaults instead of
 refuses" behaviour the checkbox exists to close. CORS is left to a later row with
 the finding recorded: Medusa defaults those too, but unconditionally and in
 production as well, which the first version of the comment got wrong.
+
+---
+
+## 2026-08-30 — T4, database URL and SSL resolution
+
+Worktree `~/app/.worktrees/lousydeal/t4-database` from `origin/main` at
+`d8eb3b1`. Installs `@medusajs/framework@2.18.0` — the first Medusa dependency,
+593 packages.
+
+**The row's empirical finding, confirmed by two reviewers independently.** Medusa
+strips the **underscored** spelling before either path reads it:
+
+```text
+?ssl_mode=disable   stripped   -> TLS ON
+?sslmode=disable    survives   -> TLS off
+```
+
+So the spelling Medusa's own source comment uses produces the opposite of what it
+reads like. Pinned in an `it.each` that derives "stripped" from Medusa's returned
+`clientUrl` rather than from a local copy of the regex — proved by patching
+Medusa's own strip in `node_modules` and watching the table go red.
+
+**Three review passes; the row's one guarantee took two attempts to get right,
+and both failures were the orchestrator's.**
+
+Pass 1 found that an explicit `DATABASE_URL` was returned unvalidated while `pg`
+applies a parsed connection string *over* the explicit `ssl` — so
+`DATABASE_SSL_MODE=verify-full` plus `?sslmode=disable` yielded no TLS, and the
+suite **pinned that downgrade as expected behaviour**. The fix brief specified a
+denylist: refuse `/[?&]sslmode=/i`.
+
+Pass 2 found that denylist circumventable. `pg-connection-string` builds its
+config from `new URL(str).searchParams` — **percent-decoded** keys — and acts on
+seven of them:
+
+```text
+passes   ?ssl%6Dode=disable      verify-full -> no TLS   decodes to sslmode
+passes   ?ssl=0                  verify-full -> no TLS
+passes   ?sslrootcert=/etc/hosts -> fs.readFileSync at connect
+REFUSED  ?SSLMODE=disable        pg ignores it: a false positive
+```
+
+**The lesson is exact.** A denylist matched a *key name* against the raw string,
+and decoding changes key names. The replacement refuses any *query component*,
+and decoding can neither create nor destroy one — the delimiter is by definition
+an unencoded `?`. Verified: `…/d%3Fsslmode=disable` parses to
+`database="d%3Fsslmode=disable"`, `ssl=undefined`. Same file, same input class,
+opposite reliability.
+
+**Pass 3 tried to break it and could not.** Brute force over every BMP code point
+in two positions: 0 hits. libpq keyword and socket connection-string forms: no
+`ssl` own-property, so nothing to clobber with. 51 mode/URL combinations end to
+end through both Medusa builders: 0 disagreements. The five-part path cannot
+compose a `?` — host validated, port digits-only, the rest percent-encoded. And
+`PGSSLMODE` is closed because the module always states `ssl`, while pg's
+environment fallback only fires when it is `undefined`.
+
+**Two disclosures worth keeping.** The implementer edited
+`backend/tests/runtime-config.test.ts`, outside its declared list, and said so —
+extending the assembler's return shape necessarily breaks a `toEqual` that
+enumerates the old one. Accepted, and T4, T5 and T6 now declare that file. And it
+recorded that two `pg` copies already coexist upstream, out of scope but not
+quietly ignored.
+
+**Size override, approved by the operator:** 900 changed lines against an
+800-line gate. ~230 module, ~640 test. Two passes found real defects in this
+row's security-relevant behaviour and the third could not; splitting the module
+from the tests that prove it would have been worse.
+
+**Seven instances now of a claim nobody checked against the thing it describes.**
+This row alone produced four more: a comment saying every component is
+percent-encoded next to a raw `${host}`; "regardless of spelling case" in an
+operator-facing refusal when pg reads those keys case-sensitively; a test
+asserting an exports map has two subpaths when it has 32, three lines below an
+import proving otherwise; and a comment claiming an extraction catches "any
+change" when it catches one shape of change.

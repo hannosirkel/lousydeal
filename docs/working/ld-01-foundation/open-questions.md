@@ -6,6 +6,32 @@ anyway.
 
 ## Open
 
+**Q5 · raised at T4, for the publication gate. Medusa 2.18.0 brings 17 advisories
+with it.**
+
+Installing `@medusajs/framework@2.18.0` — the version the plan names as the
+reference implementation and records as a Current Repository Fact — added **593
+packages**, and `npm audit` reports **17 vulnerabilities: 4 moderate, 13 high**,
+all in Medusa's own transitive tree rather than in anything this repository
+chose.
+
+The operator ruled on 2026-08-30 that the pin stays. Moving off the reference
+version unilaterally would break the alignment the whole plan is built on, and
+the advisories are not reachable from anything LD-01 ships to a public surface:
+nothing is deployed until T15, and the apex is not published in this slice at
+all.
+
+**This belongs to the publication gate, not to a build row.** That gate already
+precedes any live deployment and already owns the legal and tax questions; the
+dependency posture is the same kind of decision. Before it, someone should
+establish which advisories are actually reachable, whether a patched transitive
+version exists that does not diverge the lockfile from the reference, and whether
+Medusa has released a later 2.18.x.
+
+Recorded rather than acted on, deliberately. A row scoped to database SSL
+resolution is not the place to take a security judgement about a framework's
+dependency tree.
+
 **Q2 · raised at T1b, for the M1 boundary. The link checker is flaky against
 GitHub, and now runs twice per pull request.**
 

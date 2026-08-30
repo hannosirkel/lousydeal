@@ -20,7 +20,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T2c | T2c | lousydeal | `c248bf499315` | AGENT | done | agent | journal, T2c | 2026-08-29 |
 | T3a | T3 | lousydeal | `1bcf52d9f1db` | AGENT | done | agent | journal, T3a | 2026-08-29 |
 | T3b | T3 | lousydeal | `89c962fc4c8b` | AGENT | done | agent | journal, T3b | 2026-08-30 |
-| T4a | T4 | lousydeal | `63e00ca45012` | AGENT | open | agent | — | — |
+| T4a | T4 | lousydeal | `63e00ca45012` | AGENT | done | agent | journal, T4 | 2026-08-30 |
 | T5a | T5 | lousydeal | `a0e14c6818fc` | AGENT | open | agent | — | — |
 | T5b | T5 | lousydeal | `6529013e47b8` | AGENT | open | agent | — | — |
 | T6a | T6 | lousydeal | `3e544245f6b8` | AGENT | open | agent | — | — |
