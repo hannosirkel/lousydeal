@@ -59,15 +59,28 @@ describe("optionalEnv", () => {
 });
 
 describe("readBackendRuntimeConfig", () => {
+  // T4 makes the database URL required alongside the two http secrets; see
+  // backend/tests/database-ssl.test.ts for the database-specific behaviour
+  // (SSL mode resolution, the DATABASE_URL/five-part precedence). This
+  // fixture only needs to be complete enough that assembly succeeds.
   const validEnvironment = {
     JWT_SECRET: "jwt-secret-value",
     COOKIE_SECRET: "cookie-secret-value",
+    DATABASE_HOST: "db.internal",
+    DATABASE_PORT: "5432",
+    DATABASE_NAME: "lousydeal",
+    DATABASE_USER: "medusa",
+    DATABASE_PASSWORD: "db-secret-value",
   };
 
-  it("assembles the http secrets from the environment", () => {
+  it("assembles the http secrets and the database connection from the environment", () => {
     const config: BackendRuntimeConfig = readBackendRuntimeConfig(validEnvironment);
     expect(config).toEqual({
       http: { jwtSecret: "jwt-secret-value", cookieSecret: "cookie-secret-value" },
+      database: {
+        url: "postgres://medusa:db-secret-value@db.internal:5432/lousydeal",
+        driverOptions: { connection: { ssl: false } },
+      },
     });
   });
 

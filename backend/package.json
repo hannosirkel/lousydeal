@@ -5,5 +5,11 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@medusajs/framework": "2.18.0"
+  },
+  "devDependencies": {
+    "pg": "^8.16.3"
   }
 }
