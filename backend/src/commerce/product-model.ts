@@ -2,10 +2,11 @@
  * The three tiers this shop sells.
  *
  * Names and prices are `docs/current/concept.md:21-24`. That document writes
- * `$` and names no currency code; the currency, and the reading of the amount
- * as tax-inclusive -- what the customer pays -- are
- * `docs/decisions/007-usd-and-tax-inclusive-pricing.md`. Amounts below are
- * minor units (cents).
+ * `$` and names no currency code; the currency is
+ * `docs/decisions/007-usd-and-tax-inclusive-pricing.md`. The reading of the
+ * amount is `docs/decisions/008-plepic-tax-treatment.md`, which supersedes
+ * `007`'s tax half: the amount below is **net**, and an EU buyer's charge is
+ * this amount plus VAT. Amounts below are minor units (cents).
  *
  * The three amounts are declared here and nowhere else under `backend/src/`:
  * `backend/tests/commerce-product-seed.test.ts` reads every other `.ts` file
@@ -34,7 +35,7 @@ export interface ProductTierModel {
    * `node_modules/@medusajs/region/dist/services/region-module.js:127`.
    */
   readonly currency: string;
-  /** Minor units, tax-inclusive -- the amount the customer pays. */
+  /** Minor units, net of tax -- see this file's header and `008`. */
   readonly amountMinor: number;
   /** Always `false`. See this file's header for why. */
   readonly manageInventory: false;

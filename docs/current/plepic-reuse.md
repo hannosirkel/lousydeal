@@ -27,7 +27,7 @@ decision is still open and is listed in *Decisions this forces*.
 | `deploys/` overlay layout | copy the layout, fix the worker probe gap |
 | Storefront proxy and canonical host | copy the rule, not the redirect map |
 | Legal content structure | copy the placeholder mechanism only |
-| Tax model | **do not copy** — a decision, not a pattern |
+| Tax model | copy it — the operator ruled it inherited on 2026-08-30, decision `008` |
 | Analytics and consent | copy the consent seam, re-choose the events |
 | Catalogue import, Turnstile, newsletter | **do not copy** — Plepic-specific |
 
@@ -141,9 +141,11 @@ Plepic-specific behaviour, all of it load-bearing there and meaningless here:
 - **The assets PVC and media provider.** Certificates are derived and served by
   the application. The contract forbids object storage, and a PVC is the same
   dependency wearing a different hat.
-- **The tax model.** Plepic's is a settled operator decision about a EUR 25.00
-  net price at 24 % Estonian VAT. Lousy Deal's tax treatment is a legal-gate
-  question under §23 and must not be inherited by copying a file.
+- **The tax model — reversed 2026-08-30.** Plepic's is a settled operator
+  decision about a EUR 25.00 net price at 24 % Estonian VAT. This line made Lousy
+  Deal's a legal-gate question under §23, not to be inherited by copying a file.
+  The operator reversed that on 2026-08-30 and ruled it inherited —
+  [`008`](../decisions/008-plepic-tax-treatment.md).
 
 ## What Plepic got wrong, and what Lousy Deal does instead
 
