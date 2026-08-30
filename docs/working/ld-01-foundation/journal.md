@@ -1270,3 +1270,82 @@ a genuine improvement on the reference's `boolean`.
 **A trap recorded for T9.** The scan covers `backend/src/**` only. T8 lands the
 storefront and T9 renders these three prices — outside the scanned root, and the
 likeliest place for `$5` to be typed a second time.
+
+## 2026-08-30 — T7b, the seed, and a test that could not fail
+
+`tax-model.ts`, `seed-product.ts`, `configure-commerce.ts`, two tests,
+decision `008`, and corrections to `007`, `plepic-reuse.md` and the plan.
+**995 lines, 11 files** — over both of constraint 3's thresholds; the operator
+granted a size override at 913/9 before the fix pass, and the fix added two
+falsified documents and the supersession. `bash scripts/validate` clean at
+**129 tests**.
+
+**The row's shape is the reason its test is a test.** A pure records function, a
+one-method target interface, an apply loop, and the Medusa implementation behind
+the interface. Without that seam, "run twice against a stubbed Medusa" means
+mocking a container and asserting call counts.
+
+**Twenty mutations were run in review.** Seventeen went red, including every one
+that matters commercially: the rate, the inclusivity flag, `automatic_taxes`, a
+duplicate region, a rest-of-world region, a dropped tier, and a target that
+silently ignores every write.
+
+**Three did not, and the first is the one worth remembering.**
+
+| mutation | before |
+| --- | --- |
+| delete `"MT"` from `EU_MEMBER_STATE_CODES` | **all 21 green** |
+| reverse `commerceRecords()` | **all 21 green** |
+| send the price in minor units instead of major | green — no test exercises the Medusa target |
+
+The member-state one is the sharpest failure of a test this build has produced.
+`tax-model.ts` claimed *"the 27 EU member states"*, and the test asserted
+`toHaveLength(EU_MEMBER_STATE_CODES.length)` — **the list's length against its
+own length.** Both sides move together, so a silent deletion ships a country
+whose buyers are charged no VAT, with the suite green. **The reference does not
+have this hole**: Plepic holds its list against an independent second one and
+tests both directions. The port kept the claim and dropped the second list. Now
+held against 27 literal codes.
+
+The order one is the same species: `commerceRecords()` declares records in
+dependency order, both scripts said *"in order"* in a one-liner, and reversing
+the array changed nothing. Asserted now; the one-liners are gone, since they
+also narrated the three-line loop beneath them.
+
+**Four sentences, one fact, three disagreements.** `configure-commerce.ts` said
+in three places that Medusa's migration creates the default sales channel;
+`seed-product.ts` said `configure:commerce` does. All four false.
+`db:migrate` calls `initializeContainer` and nothing else
+(`@medusajs/medusa/dist/commands/db/migrate.js:119`); `createDefaultsWorkflow`
+runs in the loaders (`loaders/index.js:134-135`), and `medusa exec` runs the
+same loaders (`commands/exec.js:67`) — so **`configure:commerce`'s own boot
+creates it.** Said once now.
+
+**Two documents this row falsified.** `plepic-reuse.md` said the tax treatment
+*"must not be inherited by copying a file"* — in a bullet **and** in a one-line
+summary table, so correcting only the bullet would have left the table asserting
+the opposite. Both corrected, and the file added to T7's `Files` list under
+constraint 9. `007`'s status and heading now record the partial supersession:
+its tax ruling falls to `008`, its USD ruling stands.
+
+**And three claims about a row that does not exist.** `tax-model.ts`,
+`seed-product.ts` and `008` each justified something by *"a later shipping
+row"*. `grep -i shipping` across the plan and the status document returns
+nothing. Deleted — the third time this build has shipped a justification resting
+on a future row and removed it.
+
+**Decision `008` was the highest-risk artefact here**, and the risk was the
+orchestrator's making: its content was corrected three times *while it was being
+written*, and one correction deleted a claim an earlier one had asked to keep.
+The residue was exactly what that predicts — a sentence asserting **this
+supplier distance-sells goods**, which is a two-shops phrasing re-pointed at one
+shop. Aislopica OÜ sells electronically supplied services and this row builds no
+fulfillment. Corrected, and the record now attributes its reading of the VAT
+Directive to the operator rather than stating it as law.
+
+**What held.** Every `node_modules` citation in 913 lines was opened and
+verified in review — a long list, all accurate. The country-code case was
+established from `region-module.js` and `tax-module-service.js` rather than
+copied from Plepic's `.toUpperCase()`, which Medusa would have normalised away.
+And writing *"HTTP 500"* in a comment trips T7a's bare-price-literal guard; the
+comment was reworded rather than the test weakened.
