@@ -52,8 +52,9 @@ Copied verbatim into every subagent's context packet.
     This governs comments, JSDoc, test names, error messages, task briefs and
     review findings alike — the last three because more than half the claims this
     rule exists for came from briefs and reviews, not from implementers.
-    - **Bounded.** *only, every, no, any, all, never, always, exactly N,
-      deterministic, regardless of* are permitted when the set they range over is
+    - **Bounded.** *only, every, each, both, none, no, any, all, never, always,
+      exactly N, deterministic, regardless of* are permitted when the set they
+      range over is
       enumerated where the reader stands. Otherwise name the members or drop the
       quantifier. "Every failure emits X" is not allowed; "the two of the six
       measured here emit X" is.
@@ -68,7 +69,8 @@ Copied verbatim into every subagent's context packet.
       real thing, not a local model of it, and goes red when it stops being true.
 
     A claim fitting none of the three is deleted. The code is not worse without
-    the sentence. Added after twenty instances across nine rows of text asserting
+    the sentence. *each*, *both* and *none* joined the list at T5b, where the
+    worst instance found sat on an "each" that the list did not then cover. Added after twenty instances across nine rows of text asserting
     something untrue of the code it described; **not one of the twenty erred by
     claiming too little.**
 
