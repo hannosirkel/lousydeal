@@ -3,19 +3,21 @@
  * that produces a configuration value (the three Redis wirings, the Stripe
  * module) extends {@link BackendRuntimeConfig} and folds its reading into
  * {@link readBackendRuntimeConfig} rather than reading `process.env` on its
- * own -- `env.ts` stays the only module that touches an environment directly.
+ * own. `redis-preflight.ts` is the one exception: it runs as a standalone
+ * script before Medusa loads, so it has no assembler to be handed values by
+ * and passes `process.env` to `readRedisRuntimeConfig` itself.
  *
- * This row adds the database URL and SSL resolution; Redis and Stripe are
- * still absent. It also covers the two values Medusa itself already needs
- * and, absent an explicit setting, silently defaults rather than refuses --
- * `@medusajs/utils`' `defineConfig` resolves an unset
- * `JWT_SECRET`/`COOKIE_SECRET` to a shared placeholder string outside
+ * This row adds the database URL and SSL resolution; Redis wiring's own parts
+ * follow immediately below. Stripe is still absent. It also covers the two
+ * values Medusa itself already needs and, absent an explicit setting, silently
+ * defaults rather than refuses -- `@medusajs/utils`' `defineConfig` resolves an
+ * unset `JWT_SECRET`/`COOKIE_SECRET` to a shared placeholder string outside
  * production and to `undefined` inside it. Medusa also silently defaults
  * `STORE_CORS`/`ADMIN_CORS`/`AUTH_CORS`, but unconditionally and including in
  * production, so a later row may want them required too.
  */
 
-import { type Environment, requireEnv } from "./env";
+import { type Environment, ConfigError, requireEnv } from "./env";
 import {
   type DatabaseDriverOptions,
   resolveDatabaseDriverOptions,
@@ -31,6 +33,7 @@ export interface BackendRuntimeConfig {
     readonly url: string;
     readonly driverOptions: DatabaseDriverOptions;
   };
+  readonly redis: RedisRuntimeConfig;
 }
 
 /**
@@ -47,5 +50,65 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
       url: resolveDatabaseUrl(environment),
       driverOptions: resolveDatabaseDriverOptions(environment),
     },
+    redis: readRedisRuntimeConfig(environment),
+  };
+}
+
+/**
+ * The one Redis this deployment has, as three parts rather than a URL.
+ *
+ * Kept as parts, not assembled into a connection string, because the checkbox
+ * this type feeds names the failure mode directly: a password folded into a
+ * `redis://user:password@host:port` string is a password in every log line
+ * that echoes the string, every error that quotes it, and `ps`. The client
+ * options object a Redis client is handed can carry the password instead --
+ * see `redis-preflight.ts`, the first consumer. T5b's module wirings and any
+ * connection-string helper they need are theirs to add; this row adds only
+ * the parts and the reader.
+ */
+export interface RedisRuntimeConfig {
+  readonly host: string;
+  readonly port: number;
+  readonly password: string;
+}
+
+/**
+ * A bare hostname or IPv4 address -- no scheme, no port, no userinfo. Redis is
+ * reached in this deployment by Service name or by `127.0.0.1` in a compose
+ * checkout; nothing here needs bracket notation, so IPv6 literals are refused
+ * with everything else that is not a plain label.
+ */
+const REDIS_HOST_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.-]*$/;
+
+/**
+ * Read and validate `REDIS_HOST`, `REDIS_PORT` and `REDIS_PASSWORD`.
+ *
+ * Read on its own, not only through {@link readBackendRuntimeConfig}: the
+ * Redis preflight in `redis-preflight.ts` runs as a standalone script before
+ * Medusa loads, and needs only these three variables -- requiring the http
+ * secrets and the database connection there as well would make the preflight
+ * refuse on a missing `JWT_SECRET`, which is not what it exists to catch.
+ *
+ * @throws {ConfigError} naming the offending variable, and never its value.
+ */
+export function readRedisRuntimeConfig(environment: Environment): RedisRuntimeConfig {
+  const host = requireEnv(environment, "REDIS_HOST");
+
+  if (!REDIS_HOST_PATTERN.test(host)) {
+    throw new ConfigError(
+      "REDIS_HOST must be a hostname or IPv4 address, with no scheme, port or credentials.",
+    );
+  }
+
+  const rawPort = requireEnv(environment, "REDIS_PORT");
+
+  if (!/^[1-9][0-9]*$/.test(rawPort) || Number(rawPort) > 65535) {
+    throw new ConfigError("REDIS_PORT must be a TCP port between 1 and 65535.");
+  }
+
+  return {
+    host,
+    port: Number(rawPort),
+    password: requireEnv(environment, "REDIS_PASSWORD"),
   };
 }

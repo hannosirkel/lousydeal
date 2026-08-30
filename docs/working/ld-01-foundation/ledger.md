@@ -21,7 +21,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T3a | T3 | lousydeal | `1bcf52d9f1db` | AGENT | done | agent | journal, T3a | 2026-08-29 |
 | T3b | T3 | lousydeal | `89c962fc4c8b` | AGENT | done | agent | journal, T3b | 2026-08-30 |
 | T4a | T4 | lousydeal | `63e00ca45012` | AGENT | done | agent | journal, T4 | 2026-08-30 |
-| T5a | T5 | lousydeal | `a0e14c6818fc` | AGENT | open | agent | — | — |
+| T5a | T5 | lousydeal | `a0e14c6818fc` | AGENT | done | agent | journal, T5a | 2026-08-30 |
 | T5b | T5 | lousydeal | `6529013e47b8` | AGENT | open | agent | — | — |
 | T6a | T6 | lousydeal | `3e544245f6b8` | AGENT | open | agent | — | — |
 | T6b | T6 | lousydeal | `31224de76ebd` | AGENT | open | agent | — | — |
@@ -43,6 +43,14 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-08-30 · global constraint 10 added at T5a; row count unchanged at 28.**
+A claim is bounded, cited, or executed. Added after twenty instances across nine
+rows of text asserting something untrue of the code it described; the diagnosis
+is in the journal. `backend/src/config/env.ts` joined T5a's `Files` list to
+correct a header T3 had frozen, and T8's brief and the note beside T3a's
+checkbox were corrected in the same pass. No checkbox text changed; all 28 hashes
+recomputed, no drift.
 
 **2026-08-30 · plan audit; row count unchanged at 28, one row re-keyed.**
 The same defect had bitten six times — a file created by an early row that no

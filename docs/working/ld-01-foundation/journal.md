@@ -814,3 +814,119 @@ operator-facing refusal when pg reads those keys case-sensitively; a test
 asserting an exports map has two subpaths when it has 32, three lines below an
 import proving otherwise; and a comment claiming an extraction catches "any
 change" when it catches one shape of change.
+
+---
+
+## 2026-08-30 — the claim defect, diagnosed
+
+Nine rows had produced **twenty instances** of one thing: text asserting
+something untrue of the code it described. Every one was caught by a review;
+none by a gate. The operator asked for the systemic cause rather than another
+patch, so it was diagnosed with a prediction test — a cause that only explains
+the twenty already found is worth less than one that says where the next is.
+
+**The orchestrator's hypothesis was wrong in its strong form.** It proposed that
+failing claims are about things the file cannot see. Thirteen of twenty were
+external; **seven were internal**, and two of those were contradicted by text on
+the same screen. Distance to the truth-maker is a risk multiplier, not the
+mechanism.
+
+**The cause is free universals.** Twelve of twenty attach a quantifier — *only,
+every, no, never, exactly N, deterministic, regardless of* — to a set nobody
+enumerated. The tell is decisive: **not one of the twenty erred by claiming too
+little.** That is not carelessness, it is rhetorical inflation. An unbounded
+claim reads stronger and costs nothing to write.
+
+The clinching evidence is one comment slot. The reference said *"node-redis emits
+every failure as an `error` event."* A reviewer caught it. The replacement said
+*"none of [six named modes] actually emit one."* **Both are false** — measured by
+deleting the listener and driving the real client: a mid-handshake RST and a
+close-after-reply crash the process without it. The same three lines held two
+contradictory universals over the same six-element set. The defect was never the
+fact; it was that a quantifier was attached to a set nobody counted.
+
+**It is not a tier problem.** Four of the twenty came from orchestrator task
+briefs, one from a top-tier review's own evidence forwarded unverified, and one
+from the orchestrator's own replacement prose. A remedy scoped to implementers
+would miss a fifth of the population.
+
+**The prediction held — six confirmed wrong, all fixed here.**
+
+- The `error`-listener comment called a **load-bearing** line "cheap insurance".
+  A future reader would delete it as dead weight and restore the exact failure
+  the file exists to prevent.
+- A corroborating measurement was attributed to the reference; `git grep` over
+  its full history finds no such measurement anywhere.
+- `env.ts` claimed trimming, absence and refusal "all live here" — eight
+  `ConfigError` throw sites across three files.
+- The preflight header claimed it never prints an upstream error message, 160
+  lines above a branch that does.
+- **The plan itself** still said `env.ts` is "the only module that reads
+  `process.env`" — in the document copied verbatim into every context packet.
+  The only module under `backend/src/` naming `process.env` is the preflight.
+- **T8's brief**, not yet executed, told a future row the reference uses three
+  specific hazards. One of three is true. T8 would have gone hunting for two
+  that do not exist.
+
+**And the count in this entry was wrong when written.** It said "third
+survival". Review pass 3 found a **fourth**, in `runtime.ts` — *"`env.ts` stays
+the only module that touches an environment directly"* — two lines above a
+paragraph this row edited, in a file this row owns. **This row's own
+`redis-preflight.ts` is what falsified it**, and the same claim was corrected in
+the plan and rewritten in `env.ts` in the same pass while the copy between them
+survived. A Major after three passes, escalated to the operator, who authorised a
+fourth. The row that adopted constraint 10 shipped a fresh instance of the exact
+sentence the constraint was written for, and the constraint's own review step
+caught it.
+
+**The review step needed correcting on first use.** It was specified as a grep of
+*added* lines. This defect sits on a **context** line, so `grep '^+'` cannot see
+it. Every future dispatch greps the diff **with context** instead. That one word
+would have caught this at pass 1.
+
+**Global constraint 10 adopted:** a claim is bounded, cited, or executed,
+otherwise it does not go in. It would have caught seventeen of the twenty. The
+diagnosis was explicit about the three it misses, that it cannot be gated, and
+that "make the claim executable" is right only when the code would be wrong were
+the claim false — pinning a fact that changes no decision costs a test that goes
+red on every upgrade and buys nothing.
+
+**And the honest part, recorded because it is the larger half.** No rule reads a
+claim; only a reader does. All twenty were found by fresh-context reviewers who
+re-derived rather than diffed. The added review step is a grep of the diff for
+the quantifier words — twelve of the twenty lived inside that set. A checklist
+item, not a gate, and better called one.
+
+**The step was re-scoped after two uses, on measurement rather than taste.** Run
+raw it produced 136 hits on a 1,100-line diff, of which roughly 86 carried no
+claim at all — `Promise.all`, `Promise<never>`, `no scheme, port or credentials`
+inside an error string. Reported that way it buries three findings under 120
+lines of noise, which is how a checklist item becomes ritual.
+
+The distribution is sharp and points the same way in both directions. **Every
+finding, including the pass-3 Major, came from a quantifier ranging over a set of
+modules, files or code paths that the reader cannot see from where they stand** —
+*"the only module naming `process.env`"*, *"Every assertion below"*, *"Both RESP
+codes a real Redis uses"*. **Not one came from a word negating a concrete
+adjacent thing** — *"no `url` field"*, *"never quotes the rejected value"* — because
+those are pinned by an assertion within a few lines, which is constraint 10's
+*executed* limb already working.
+
+So the step is: grep with context, then check only the hits whose quantifier
+ranges over a set not enumerated on screen, and skip any hit within about five
+lines of an `expect`. That takes 136 to roughly 15 and would have lost nothing
+found so far.
+
+**Two of the orchestrator's own numbers in this entry were wrong** and are
+corrected above: the grep figure was quoted from the diagnosis rather than
+measured here, and the row's size was reported to the operator as though the
+journal drove it past the gate. It did not — 923 of the 1,100 lines are backend
+code and tests, and this entry is 89 lines, about 8%. Stripping every word of
+process documentation would still leave the row a quarter over the bound. The
+override was earned by the preflight and its suite.
+
+**One correction the mechanism caught.** Fixing the plan's `env.ts` sentence
+meant editing a checkbox, which re-keyed **T3a — a closed row** — and the hash
+check said so. The checkbox text is the ledger's identity, so the words were
+restored and the correction moved into prose beside them. The rule that a
+completed row is not silently re-keyed did its job on the orchestrator.

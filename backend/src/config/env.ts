@@ -1,8 +1,13 @@
 /**
- * The only place in this backend that decides how an environment value is
- * read -- trimming, absence, and refusal all live here. Every other module
- * receives configuration as plain values rather than reading an environment
- * itself, which is what keeps the rest of the backend testable without
+ * Where the backend's environment-reading rule lives: how a value is trimmed,
+ * when absence counts as absence, and what a reader raises when a required one
+ * is missing. Modules that assemble configuration -- `runtime.ts`,
+ * `database-url.ts` -- raise `ConfigError` themselves for their own rules;
+ * what they do not do is decide how to read a raw value. Modules receive
+ * configuration as plain values rather than reading an environment
+ * themselves -- `redis-preflight.ts` excepted, since it has no assembler to
+ * be handed values by -- which is what keeps the rest of the backend testable
+ * without
  * mutating global state: these readers accept any object shaped like an
  * environment, so a test passes a plain object and production passes
  * `process.env`.

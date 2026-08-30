@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { ConfigError, optionalEnv, requireEnv } from "../src/config/env";
-import { type BackendRuntimeConfig, readBackendRuntimeConfig } from "../src/config/runtime";
+import {
+  type BackendRuntimeConfig,
+  readBackendRuntimeConfig,
+  readRedisRuntimeConfig,
+} from "../src/config/runtime";
 
 // A plain object stands in for an environment on purpose. `env.ts` holds the
 // rule for reading one, not a reference to any particular one -- its readers
@@ -59,7 +63,8 @@ describe("optionalEnv", () => {
 });
 
 describe("readBackendRuntimeConfig", () => {
-  // T4 makes the database URL required alongside the two http secrets; see
+  // T4 makes the database URL required alongside the two http secrets, and
+  // T5a adds the three Redis parts alongside both; see
   // backend/tests/database-ssl.test.ts for the database-specific behaviour
   // (SSL mode resolution, the DATABASE_URL/five-part precedence). This
   // fixture only needs to be complete enough that assembly succeeds.
@@ -71,9 +76,12 @@ describe("readBackendRuntimeConfig", () => {
     DATABASE_NAME: "lousydeal",
     DATABASE_USER: "medusa",
     DATABASE_PASSWORD: "db-secret-value",
+    REDIS_HOST: "redis.internal",
+    REDIS_PORT: "6379",
+    REDIS_PASSWORD: "redis-secret-value",
   };
 
-  it("assembles the http secrets and the database connection from the environment", () => {
+  it("assembles the http secrets, the database connection and the Redis parts from the environment", () => {
     const config: BackendRuntimeConfig = readBackendRuntimeConfig(validEnvironment);
     expect(config).toEqual({
       http: { jwtSecret: "jwt-secret-value", cookieSecret: "cookie-secret-value" },
@@ -81,6 +89,7 @@ describe("readBackendRuntimeConfig", () => {
         url: "postgres://medusa:db-secret-value@db.internal:5432/lousydeal",
         driverOptions: { connection: { ssl: false } },
       },
+      redis: { host: "redis.internal", port: 6379, password: "redis-secret-value" },
     });
   });
 
@@ -103,5 +112,77 @@ describe("readBackendRuntimeConfig", () => {
   it("names the missing variable in the refusal", () => {
     expect(() => readBackendRuntimeConfig({ COOKIE_SECRET: "x" })).toThrow(/JWT_SECRET/);
     expect(() => readBackendRuntimeConfig({ JWT_SECRET: "x" })).toThrow(/COOKIE_SECRET/);
+  });
+
+  // The Redis parts are required too, and refused by the same name-only rule
+  // -- this is what keeps C2 ("refuses to start on ... absent required
+  // configuration") true for Redis and not only for the database.
+  it("names the missing Redis variable in the refusal", () => {
+    const withoutHost: Record<string, string> = { ...validEnvironment };
+    delete withoutHost.REDIS_HOST;
+    expect(() => readBackendRuntimeConfig(withoutHost)).toThrow(/REDIS_HOST/);
+
+    const withoutPort: Record<string, string> = { ...validEnvironment };
+    delete withoutPort.REDIS_PORT;
+    expect(() => readBackendRuntimeConfig(withoutPort)).toThrow(/REDIS_PORT/);
+
+    const withoutPassword: Record<string, string> = { ...validEnvironment };
+    delete withoutPassword.REDIS_PASSWORD;
+    expect(() => readBackendRuntimeConfig(withoutPassword)).toThrow(/REDIS_PASSWORD/);
+  });
+});
+
+describe("readRedisRuntimeConfig", () => {
+  const validEnvironment = {
+    REDIS_HOST: "redis.internal",
+    REDIS_PORT: "6379",
+    REDIS_PASSWORD: "redis-secret-value",
+  };
+
+  it("returns the three parts, with the port as a number", () => {
+    expect(readRedisRuntimeConfig(validEnvironment)).toEqual({
+      host: "redis.internal",
+      port: 6379,
+      password: "redis-secret-value",
+    });
+  });
+
+  // REDIS_HOST is validated, not encoded, for the same reason DATABASE_HOST
+  // is in database-url.ts: a scheme, port or credential folded into the host
+  // would silently re-cut where the client actually connects.
+  it("refuses a REDIS_HOST carrying a scheme, port or credential", () => {
+    expect(() => readRedisRuntimeConfig({ ...validEnvironment, REDIS_HOST: "redis://x" })).toThrow(
+      ConfigError,
+    );
+    expect(() =>
+      readRedisRuntimeConfig({ ...validEnvironment, REDIS_HOST: "user:pass@redis" }),
+    ).toThrow(ConfigError);
+  });
+
+  it("refuses a REDIS_PORT that is not a bare positive integer", () => {
+    expect(() => readRedisRuntimeConfig({ ...validEnvironment, REDIS_PORT: "6379zzz" })).toThrow(
+      /REDIS_PORT/,
+    );
+    expect(() => readRedisRuntimeConfig({ ...validEnvironment, REDIS_PORT: "0" })).toThrow(
+      /REDIS_PORT/,
+    );
+    expect(() => readRedisRuntimeConfig({ ...validEnvironment, REDIS_PORT: "70000" })).toThrow(
+      /REDIS_PORT/,
+    );
+  });
+
+  // Never in the message: a refusal names only the variable, exactly as
+  // requireEnv already does -- this is the property redis-preflight.ts's own
+  // refusal path relies on to quote the message safely. Asserted positively
+  // as well as negatively, because `.not.toThrow(/x/)` also passes when
+  // nothing throws at all, which would hide the refusal disappearing.
+  it.each([
+    ["a malformed port", { REDIS_PORT: "6379zzz-not-a-port" }, "6379zzz-not-a-port"],
+    ["a rejected host", { REDIS_HOST: "bad host:with@delimiters" }, "bad host:with@delimiters"],
+  ])("never quotes the rejected value when refusing %s", (_case, override, rejected) => {
+    const read = () => readRedisRuntimeConfig({ ...validEnvironment, ...override });
+
+    expect(read).toThrow(ConfigError);
+    expect(read).not.toThrow(new RegExp(rejected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   });
 });
