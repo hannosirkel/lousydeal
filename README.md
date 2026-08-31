@@ -9,16 +9,17 @@ Public. Public does not mean it may hold a secret.
 ## Status
 
 The root npm workspace: `package.json`, `tsconfig.json`, `eslint.config.js`,
-`vitest.config.ts` and `scripts/validate`. `backend/` is the Medusa backend,
-under construction module by module; `storefront/` does not exist yet. The
-catalogue declares `languages: [shell, typescript]` and `npm_project: true`.
+`vitest.config.ts` and `scripts/validate`. `backend/` is the Medusa backend
+and `storefront/` is the Next.js App Router storefront, both under
+construction module by module. The catalogue declares
+`languages: [shell, typescript]` and `npm_project: true`.
 
 What is being built, in what order, and what has already been decided:
 [`docs/working/fresh-build.md`](./docs/working/fresh-build.md).
 
 ## What it owns
 
-- The storefront and the Medusa backend, once they land.
+- The storefront and the Medusa backend.
 - Certificate issuance and rendering.
 - Baldrick, the scripted sales chatbot. No LLM backend, by decision.
 - Its own documentation, local architecture, and decisions.
@@ -40,8 +41,8 @@ bash scripts/validate
 ```
 
 It runs shellcheck, markdownlint, the link checker, the secret scan, lint,
-typecheck (the root project's, plus each workspace's own once one exists), and
-the unit tests. It refuses loudly rather than skipping a check: when `npm ci`
+typecheck (the root project's, plus each workspace's own), and the unit
+tests. It refuses loudly rather than skipping a check: when `npm ci`
 has not been run, when a tool it needs is not installed, and when the running
 Node is older than the `engines.node` floor in `package.json`. The pinned
 devDependencies are looked for in `node_modules/.bin` rather than on `PATH`, so
