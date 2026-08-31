@@ -490,15 +490,21 @@ here.
 
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/checkout/page.tsx`,
+`storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/lib/store-checkout.ts`, `storefront/src/lib/store-payment.ts`,
 `storefront/src/app/api/store/[...path]/route.ts`,
-`storefront/tests/store-checkout.test.ts`, `storefront/package.json`,
-`package-lock.json`.
+`storefront/tests/store-checkout.test.ts`, `storefront/src/app/cart/page.tsx`,
+`storefront/package.json`, `package-lock.json`.
 
 - [ ] Proxy the store API server-side so the browser never learns the backend
       origin, and complete a cart through Stripe test mode to a paid order.
       Verified by a test against a stubbed backend, and by the smoke check in
       T17 against a real one.
+
+`PaymentForm.tsx` is here because `"use client"` is file-scoped and
+`checkout/page.tsx` must call `cookies()`, which a client component cannot;
+`cart/page.tsx` is here for the one link this row adds from the cart to
+`/checkout`, the only route a shopper reaches it by.
 
 The final price is explicit before payment. That is a build requirement, not a
 legal one, and it stays true when LD-06 adds surcharges.
