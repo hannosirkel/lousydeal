@@ -20,7 +20,7 @@ import {
   type StoreApiFetch,
 } from "../src/app/api/store/[...path]/route";
 import { STORE_PUBLISHABLE_KEY_HEADER, type FetchJson, type StoreFetchInit } from "../src/lib/medusa-client";
-import { getCheckoutCart } from "../src/lib/store-checkout";
+import { getCheckoutCart, setCartCountry } from "../src/lib/store-checkout";
 import { addLineToCart, createCart } from "../src/lib/store-cart";
 import {
   completeCheckoutCart,
@@ -246,6 +246,105 @@ describe("getCheckoutCart", () => {
   it("refuses a cart the stub answers with no numeric total", async () => {
     const fetchJson = stubStoreApi({ total: "25" });
     await expect(getCheckoutCart(fetchJson, "cart_fixture")).rejects.toThrow(/incomplete cart/);
+  });
+});
+
+describe("setCartCountry sends the country to Medusa and reads back what it returned", () => {
+  it("posts country_code on both shipping_address and billing_address, and returns the shipping-address country and tax_total the stub answered with", async () => {
+    let seenBody: unknown;
+    const fetchJson: FetchJson = (async <T>(path: string, init?: StoreFetchInit): Promise<T> => {
+      if (path === "/store/carts/cart_country" && init?.method === "POST") {
+        seenBody = init.body === undefined ? undefined : JSON.parse(init.body);
+        return {
+          cart: { id: "cart_country", shipping_address: { country_code: "ee" }, tax_total: 97 },
+        } as T;
+      }
+      throw new Error(`stub has no route for ${path} (${init?.method ?? "GET"})`);
+    }) as FetchJson;
+
+    // "ee" -- lower-case, the shape this row's Finding 1 fix requires: a
+    // value taken from a region's own `countries` (`medusa-client.ts`'s
+    // `StoreRegion.countries`, already lower-case per
+    // `@medusajs/region/dist/loaders/defaults.js:10`) is the only shape
+    // `update-cart.js:30-34`'s strict `===` against `iso_2` accepts.
+    // `PaymentForm.tsx` now sources this argument from exactly that list
+    // (its `<select>`), rather than from Stripe's upper-case `AddressElement`
+    // country, which is what this test asserted before this fix and why that
+    // assertion had to change.
+    const result = await setCartCountry(fetchJson, "cart_country", "ee");
+
+    // The country this row's brief requires "reaching the cart" -- sent on
+    // both address fields (T10b: only shipping drives tax, but billing is
+    // set too -- see `store-checkout.ts`'s own comment for why), and proven
+    // by inspecting the exact request body, not merely by not-throwing.
+    expect(seenBody).toEqual({
+      shipping_address: { country_code: "ee" },
+      billing_address: { country_code: "ee" },
+    });
+    // What this function returns is the API's own response, read back, not
+    // assumed to equal what was sent.
+    expect(result).toEqual({ countryCode: "ee", taxTotal: 97 });
+  });
+
+  it("refuses a response with no shipping-address country", async () => {
+    const fetchJson: FetchJson = (async <T>(): Promise<T> => {
+      return { cart: { id: "cart_country" } } as T;
+    }) as FetchJson;
+
+    await expect(setCartCountry(fetchJson, "cart_country", "ee")).rejects.toThrow(
+      /did not return a shipping-address country/,
+    );
+  });
+
+  it("returns an undefined taxTotal, rather than throwing, when the response carries a country but no numeric tax_total -- nothing in this row reads the value (PaymentForm.tsx discards setCartCountry's return), so its absence is not the failure a missing country is", async () => {
+    const fetchJson: FetchJson = (async <T>(): Promise<T> => {
+      return { cart: { id: "cart_country", shipping_address: { country_code: "ee" } } } as T;
+    }) as FetchJson;
+
+    const result = await setCartCountry(fetchJson, "cart_country", "ee");
+    expect(result).toEqual({ countryCode: "ee", taxTotal: undefined });
+  });
+});
+
+/**
+ * These two do not test Medusa's tax rule. They test that `setCartCountry`
+ * passes whatever country it is given through to the request body, and
+ * surfaces whatever `tax_total` the response carries back -- unmodified,
+ * unrecomputed. The stub below encodes *this test file's own model* of
+ * Medusa's EU/non-EU rule (a positive `tax_total` for `ee`, zero for `us`) so
+ * the two cases read differently in this test; it is not a claim that a real
+ * Medusa applies that rule the same way. No row in this LD-01 slice proves
+ * Medusa's tax rule against a real backend: T17's own checkbox
+ * (`docs/working/ld-01-foundation.md`) reads "Stand up PostgreSQL, Redis and
+ * a migrated Medusa, then assert the store API answers with the three tiers
+ * and that a cart can be created" -- no tax, no country -- and its `Files`
+ * list is entirely `backend/` and `scripts/`. That proof does not exist in
+ * this repository yet.
+ */
+describe("setCartCountry against a stub modelling (not proving) an EU/non-EU tax-region split", () => {
+  function stubTaxByCountry(): FetchJson {
+    return (async <T>(path: string, init?: StoreFetchInit): Promise<T> => {
+      if (path === "/store/carts/cart_tax" && init?.method === "POST") {
+        const body = JSON.parse(String(init.body)) as { shipping_address: { country_code: string } };
+        const country = body.shipping_address.country_code;
+        // This test's own model of Medusa's rule, not Medusa itself: an EU
+        // country code resolves a tax region and a positive tax_total; any
+        // other code resolves none. See this describe block's own comment.
+        const taxTotal = country === "ee" ? 97 : 0;
+        return { cart: { id: "cart_tax", shipping_address: { country_code: country }, tax_total: taxTotal } } as T;
+      }
+      throw new Error(`stub has no route for ${path} (${init?.method ?? "GET"})`);
+    }) as FetchJson;
+  }
+
+  it("surfaces a positive tax_total for an EU country (ee), per this test's stub model of Medusa's rule", async () => {
+    const result = await setCartCountry(stubTaxByCountry(), "cart_tax", "ee");
+    expect(result).toEqual({ countryCode: "ee", taxTotal: 97 });
+  });
+
+  it("surfaces a zero tax_total for a non-EU country (us), per this test's stub model of Medusa's rule", async () => {
+    const result = await setCartCountry(stubTaxByCountry(), "cart_tax", "us");
+    expect(result).toEqual({ countryCode: "us", taxTotal: 0 });
   });
 });
 

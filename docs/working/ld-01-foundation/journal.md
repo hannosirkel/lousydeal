@@ -1676,3 +1676,67 @@ Region↔payment-provider link. **T7c performed it.** Constraint 11 territory.
 **Method note, repeating.** Every behavioural finding in the last two rows came
 from running the thing — a stub backend, `curl`, a real production server. None
 came from reading it.
+
+## 2026-08-31 — T10b, a row that did not work, and tests that defended it
+
+`PaymentForm.tsx`, `checkout/page.tsx`, `medusa-client.ts`, `store-checkout.ts`,
+its test, plus the plan and ledger amendments. **328 lines, 7 files.**
+`bash scripts/validate` clean at **211 tests**.
+
+**The first attempt failed on every submission, for every country.** Stripe's
+`AddressElement` returns the country **uppercase**.
+`@medusajs/core-flows/dist/cart/workflows/update-cart.js:30-34` matches
+`region.countries` on `iso_2` with a strict `===`, those rows are lowercase in
+three independent places (`region/dist/loaders/defaults.js:10`,
+`configure-commerce.ts:285`, `region-module.js:129`), and the normalizer at
+`:35-38` runs **after** the lookup — so it can only ever help input that was
+already lowercase. Result: `400` before any payment was attempted.
+
+**And the row's own tests asserted the broken value.** They pinned `"EE"` and
+`"US"`, so applying the one-line fix turned all three red. **A broken feature
+whose tests enforce the breakage** is the worst shape this build has produced —
+worse than an untested claim, because the suite actively defends the defect.
+
+`bash scripts/validate` was green throughout. Nothing in this repository's gates
+sees a value only a real Medusa rejects.
+
+**The fix is not a lowercase call.** The country now comes from the region's own
+`countries`, fetched from `/store/regions` — **the same rows Medusa matches
+against**, already lowercase. The mismatch is unreachable rather than patched,
+and the list cannot drift from what Medusa accepts because it *is* what Medusa
+accepts. `medusa-client.ts` was already calling that endpoint and discarding the
+array.
+
+**That settled the over-collection question against the orchestrator's own
+suggestion.** The brief proposed `AddressElement` on Constraint 7 grounds. Its
+installed typings cannot narrow it — `fields` covers `phone` and `name` only,
+`display` the name only, `allowedCountries` restricts the dropdown and not the
+field set, and there is no country-only mode. So a buyer typed name, street,
+city and postcode for a $5 certificate and **every one was discarded**. And
+Constraint 7 cuts the other way: an unstyled `<label>` and `<select>` is the
+register of `<p>Total: …</p>` and `<button>Pay</button>` already on the page,
+while `AddressElement` renders a Stripe-designed multi-field form — more visual
+language than anything else in the storefront, and none of it ours.
+
+The checkbox says *collect the customer's country*. The select is what that asks
+for; the address form over-delivered.
+
+**Three false sentences.** That `elements.submit()` is required with more than
+one Element — its own citation scopes it to *the Payment Element*, and Stripe
+scopes the requirement to an Elements object **without** an Intent, which this
+is not. That **T17 establishes Medusa's tax rule** — T17's checkbox mentions
+neither tax nor country, and its `Files` list is entirely `backend/` and
+`scripts/`. That `update-cart.js`'s case-insensitive comparison persists
+something — it is a change detector that writes nothing.
+
+The T17 one is worth its own name: **a row transferring its unmet verification
+obligation to a row that never agreed to it.**
+
+**And the orchestrator ran verification theatre while checking the fix.** A
+`sed` mutation to prove the tests now reject uppercase reported 26 passing — the
+pattern was `country_code: countryCode,` and the file says
+`country_code: countryCode }`, so **nothing was mutated and the green meant
+nothing.** Re-run with an assertion that the replacement applied, three tests go
+red. This is the identical failure recorded at T5b, committed by the same
+orchestrator that recorded it. **A mutation without an applied-check is not a
+measurement.**
