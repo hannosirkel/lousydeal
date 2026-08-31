@@ -1490,7 +1490,7 @@ with it, and C5 is met.
 strips everything after `//` to end of line and says being naive about strings
 *"only makes the test stricter, never blinder."* Measured against the real file:
 
-```
+```text
 const u = "https://x" + process.env.NEXT_PUBLIC_LEAK;   → passes the guard
 ```
 
