@@ -21,5 +21,12 @@
     "MD041": false
   },
   "globs": ["**/*.md"],
-  "ignores": ["node_modules"]
+  // A bare "node_modules" matches only a top-level directory of that name --
+  // not a nested one (e.g. a workspace's own node_modules, or a package
+  // manager's own dependency-conflict copy), and not a build output
+  // directory. Both are already excluded from git via .gitignore, but this
+  // tool globs the filesystem rather than reading git, so it walked into a
+  // vendored README the first time a workspace produced a nested
+  // node_modules. Four explicit globs, matching the reference implementation.
+  "ignores": ["node_modules/**", "**/node_modules/**", "**/.next/**", "**/.medusa/**"]
 }

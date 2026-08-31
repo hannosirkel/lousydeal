@@ -58,12 +58,13 @@ or any secret value.
 
 At the time of writing it holds the root npm workspace — `package.json`,
 `tsconfig.json`, `eslint.config.js`, `vitest.config.ts` and
-`scripts/validate` — plus `backend/`, the Medusa backend under construction
-module by module, with `storefront/` not yet created. The catalogue declares
-`languages: [shell, typescript]` and `npm_project: true`, and the managed
-section above is generated from it — so a change to what this
-repository contains is not complete until `tooling/universe sync-baseline
-lousydeal` has run and its output has landed here.
+`scripts/validate` — plus `backend/` and `storefront/`, the Medusa backend
+and the Next.js App Router storefront, both under construction module by
+module. The catalogue declares `languages: [shell, typescript]` and
+`npm_project: true`, and the managed section above is generated from it — so
+a change to what this repository contains is not complete until
+`tooling/universe sync-baseline lousydeal` has run and its output has landed
+here.
 
 ## Commands
 

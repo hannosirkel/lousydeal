@@ -1413,3 +1413,69 @@ one masked nothing yet and is gone.
 from either workflow call site leaves all 130 tests and both typechecks green.
 `MedusaCommerceConfigurationTarget` is exercised by nothing, and its header says
 so. Misspelling the key at either site *is* caught — by `tsc`, not by a test.
+
+## 2026-08-31 — T8a, the storefront seam, and two Majors the orchestrator wrote
+
+`storefront/` (8 files), `.markdownlint-cli2.jsonc`, `README.md`, `AGENTS.md`,
+the plan's T8 `Files` block. **385 lines excluding the lockfile, 12 files** —
+the operator's override was granted at 11; the twelfth is the plan edit
+recording the eleventh. `bash scripts/validate` clean at **137 tests**.
+
+**Two of the five Major findings came from the brief, not the implementer.**
+
+The brief glossed decision `002` as *"one image promoted across every
+environment"*. **`002` decides the opposite** — rebuild live from merged `main`,
+*"so live and test carry different digests"*, with the trade-off stated in bold:
+*"the binary serving live is not the binary that was tested."* What the seam
+actually serves is the **first of the three conditions `002` rests on**
+(`002:33-34`): *no environment-specific value is ever baked into an image* —
+which is Global Constraint 2. The orchestrator had that file open earlier in the
+same session and still inverted it.
+
+The brief also quoted Next.js as saying a value is *"evaluated at runtime **rather
+than inlined during build time**"*. The trailing clause is **not in the cited
+file** — it came from a documentation-index summary and was passed on inside
+quotation marks. The source says only *"this env variable is evaluated at
+runtime"*, and it is a **code comment inside an example**, not prose guidance.
+
+**The lesson is about where review points.** Subagent output gets a review pass;
+a brief does not. Both defects are the exact species this build has caught
+twenty-nine times in five rows, produced upstream of the thing being reviewed
+and copied faithfully. A brief that hands over a quotation should hand over the
+command that produced it.
+
+**A security line nothing could assert.** The `</script>` escaping in
+`layout.tsx` was correct and correctly reasoned — and deleting it left vitest,
+eslint and both typechecks green. Worse than untested: **untestable where it
+sat**, because the frozen root config collects `tests/**/*.test.ts` only and the
+escaping lived in a `.tsx` file no test imports. Extracted into
+`runtime-config.ts` with two assertions modelled on the reference's own.
+
+**The projection is currently vacuous, and that is fine.** `ClientRuntimeConfig`
+names both fields `RuntimeConfig` has, so nothing is withheld today. The
+tripwire that fires on a **server-only** field — how a secret would arrive — is
+the `toEqual` pair plus `tsc`, not the pinned-key set. The discipline is what
+matters; it is why a future field is a decision rather than a side effect.
+
+**The lint config was making a linter pick a React major.** `ignores` was
+`["node_modules"]`, which matches neither a nested `node_modules` nor a build
+directory. A second workspace made both reachable — npm nests `react` under one
+of the two majors in this tree — so markdownlint walked into vendored READMEs
+and `validate` failed. The first fix attempted was **downgrading React to
+18.3.1**. The reference has the identical nested copy while pinning 19.2.8; the
+difference is four globs. Corrected to the reference's list, which also closes
+the `.next` and `.medusa` gap **T11 would have hit on its first build**.
+
+**A file-scoped-authority failure mode, worth naming.** The row was at its file
+ceiling and the lint config was in no row's list, so the correct move was
+stop-and-ask. Instead the constraint was routed around by changing something
+*inside* the list — a framework version. File-scoped authority can make working
+around a boundary cheaper than reporting it.
+
+**And one fix that did not survive contact.** Dropping `"incremental": true` to
+kill an untracked 128 KB `tsconfig.tsbuildinfo` fails: `next build` writes the
+flag back whenever it is absent
+(`next/dist/lib/typescript/writeConfigurationDefaults.js`). Setting
+`tsBuildInfoFile` under `.next/` — already gitignored — survives a build,
+keeps the cache, and needs no `.gitignore` rule. **The reference carries the
+stray artifact to this day**, so there was nothing to copy.
