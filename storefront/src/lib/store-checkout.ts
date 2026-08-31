@@ -1,6 +1,8 @@
 /**
  * The one figure the checkout page must show before payment: the cart's own
- * total, read from the Store API rather than recomputed here.
+ * total, read from the Store API rather than recomputed here. Also the one
+ * mutation that closes the T10 address gap: setting the customer's country so
+ * Medusa resolves a tax region (`setCartCountry`, below).
  *
  * "The final price is explicit before payment" (T10) is a disclosure
  * requirement, not a pricing one -- no row in this slice adds shipping or a
@@ -48,4 +50,83 @@ export async function getCheckoutCart(fetchJson: FetchJson, cartId: string): Pro
     throw new Error(`Medusa returned an incomplete cart for ${cartId}`);
   }
   return { id: cart.id, currencyCode: cart.currency_code, total: cart.total };
+}
+
+export interface CartCountry {
+  readonly countryCode: string;
+  /**
+   * The cart's `tax_total` as recomputed for this country, read back from the
+   * same response when Medusa returns one -- not derived here. `undefined`
+   * when the response carries no numeric `tax_total`: nothing in this row
+   * reads the value (`PaymentForm.tsx` discards `setCartCountry`'s return),
+   * so its absence is surfaced rather than treated as the failure a missing
+   * `countryCode` is -- see `setCartCountry`'s own guard, below.
+   */
+  readonly taxTotal: number | undefined;
+}
+
+interface StoreCartAddressResponse {
+  readonly cart?: {
+    readonly shipping_address?: { readonly country_code?: unknown } | null;
+    readonly tax_total?: unknown;
+  };
+}
+
+/**
+ * Sets the customer's country on the cart, on both `shipping_address` and
+ * `billing_address`. Only the shipping address drives tax -- Medusa reads
+ * `shippingAddress ?? orderOrCart.shipping_address`
+ * (`node_modules/@medusajs/core-flows/dist/tax/steps/get-item-tax-lines.js:7`,
+ * cited in full under T10 in `docs/working/ld-01-foundation.md`, which also
+ * records why a shipping-address field carries the country for a product that
+ * ships nowhere) -- but billing is set too, since that field is what the
+ * order record is actually for on a sale with no shipment, and an order
+ * carrying a shipping address alone for a certificate is worse to read later.
+ *
+ * The two stay in the same case here because both are written from a single
+ * already-canonical value -- the country selected from the region's own list
+ * (`PaymentForm.tsx`'s `<select>`), passed once as `countryCode` and sent to
+ * both fields below -- not because Medusa reconciles them for us. It does
+ * not: `prepareCartToUpdateStep` (`update-cart.js:18-39`) rewrites only
+ * `shipping_address.country_code`, to the matched region row's own `iso_2`
+ * (`update-cart.js:35-38`); `billing_address` is spread from the request body
+ * untouched (`update-cart.js:19-24`), no lookup, no normalization. A caller
+ * that sent the two fields in different cases would persist them that way.
+ *
+ * `POST /store/carts/:id` recomputes tax synchronously when the shipping
+ * country changes (`update-cart.js`'s `taxRelevantAddressChanged` step forces
+ * `refreshCartItemsWorkflow` to run `updateTaxLinesWorkflow` before this
+ * responds), so the `tax_total` returned here already reflects the country
+ * just set, not a stale figure from before it.
+ *
+ * The cart's payment collection is refreshed on every cart update, but its
+ * Stripe session is only deleted when the cart's own total changes, or when
+ * the amounts compare equal but the currency differs
+ * (`node_modules/@medusajs/core-flows/dist/cart/workflows/refresh-payment-collection.js:88-93`) --
+ * decision `009`'s tax-inclusive pricing keeps that total fixed to the
+ * precision Medusa stores it at, so calling this after a payment session
+ * already exists does not invalidate it. "Fixed" is not a mathematical
+ * identity: the round-trip through a 24% tax rate leaves a ~2.4e-21 residual
+ * on every tier, invisible only because every `BigNumber` is rounded to
+ * `toPrecision(20)` before it is compared or persisted
+ * (`@medusajs/utils/dist/totals/big-number.js:26`).
+ */
+export async function setCartCountry(fetchJson: FetchJson, cartId: string, countryCode: string): Promise<CartCountry> {
+  const { cart } = await fetchJson<StoreCartAddressResponse>(`/store/carts/${encodeURIComponent(cartId)}`, {
+    method: "POST",
+    body: JSON.stringify({
+      shipping_address: { country_code: countryCode },
+      billing_address: { country_code: countryCode },
+    }),
+  });
+  if (typeof cart?.shipping_address?.country_code !== "string" || cart.shipping_address.country_code.length === 0) {
+    throw new Error(`Medusa did not return a shipping-address country for cart ${cartId}`);
+  }
+  // `tax_total` is read back, not guarded on: nothing downstream consumes it
+  // (see `CartCountry.taxTotal`'s own comment), so a response that omits it
+  // is not treated as the failure a missing country would be.
+  return {
+    countryCode: cart.shipping_address.country_code,
+    taxTotal: typeof cart.tax_total === "number" ? cart.tax_total : undefined,
+  };
 }

@@ -1,6 +1,7 @@
 /**
- * The interactive half of `./page.tsx`: the Stripe Payment Element and the
- * pay control, and the only client-side code this row adds.
+ * The interactive half of `./page.tsx`: the country control, the Stripe
+ * Payment Element, and the pay control -- the only client-side code T10/T10b
+ * add.
  *
  * A `"use client"` file because `@stripe/react-stripe-js`'s `<Elements>` and
  * `<PaymentElement>` (and this file's own `useStripe`/`useElements`) are React
@@ -16,6 +17,20 @@
  * injected-transport shape), so `store-payment.ts`'s functions run unchanged
  * whether the caller is this browser code or `tests/store-checkout.test.ts`'s
  * stub.
+ *
+ * T10b, review pass 1: the checkout country field is a native `<select>`
+ * populated from `countries`, the region's own list (`./page.tsx` fetches it
+ * server-side and hands it down), not a Stripe `AddressElement`. This is not
+ * a style choice, it fixes the row's Finding 1 by construction -- the
+ * region's `countries` are the exact rows `update-cart.js:30-34` matches a
+ * cart's `country_code` against, and they are already lower-case
+ * (`medusa-client.ts`'s own note on `StoreRegionCountry`), so a value taken
+ * from this list cannot fail that lookup on case the way `AddressElement`'s
+ * upper-case `country` did. It also collects the one field the row's brief
+ * asks for ("collect the customer's country") instead of a whole billing
+ * address, which `AddressElement`'s installed typings have no way to narrow
+ * to country-only -- `fields`/`display` only cover `phone` and `name`, and
+ * `allowedCountries` restricts the dropdown, not the field set.
  *
  * Q7 (`docs/working/ld-01-foundation/open-questions.md`) records five:
  * card, Google Pay, Apple Pay, Link (collapsed) and PayPal. This file does
@@ -34,7 +49,8 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { loadStripe } from "@stripe/stripe-js";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
-import type { FetchJson, StoreFetchInit } from "../../lib/medusa-client";
+import type { FetchJson, StoreFetchInit, StoreRegionCountry } from "../../lib/medusa-client";
+import { setCartCountry } from "../../lib/store-checkout";
 import { completeCheckoutCart, createPaymentCollection, initiateStripePaymentSession } from "../../lib/store-payment";
 
 /** This route's own mount point (`src/app/api/store/[...path]/route.ts`), never the backend origin. */
@@ -61,10 +77,12 @@ function createProxyFetchJson(): FetchJson {
 interface PaymentFormProps {
   readonly cartId: string;
   readonly stripePublishableKey: string;
+  /** The region's own countries (`./page.tsx`'s `getDefaultRegion`), not a list this file writes. */
+  readonly countries: readonly StoreRegionCountry[];
 }
 
 /** Creates the cart's Stripe session, then renders the Payment Element once a client secret exists. */
-export function PaymentForm({ cartId, stripePublishableKey }: PaymentFormProps) {
+export function PaymentForm({ cartId, stripePublishableKey, countries }: PaymentFormProps) {
   const stripePromise = useMemo(() => loadStripe(stripePublishableKey), [stripePublishableKey]);
   const fetchJson = useMemo(() => createProxyFetchJson(), []);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -109,7 +127,7 @@ export function PaymentForm({ cartId, stripePublishableKey }: PaymentFormProps) 
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret }}>
-      <PayButton cartId={cartId} fetchJson={fetchJson} />
+      <PayButton cartId={cartId} fetchJson={fetchJson} countries={countries} />
     </Elements>
   );
 }
@@ -117,15 +135,23 @@ export function PaymentForm({ cartId, stripePublishableKey }: PaymentFormProps) 
 interface PayButtonProps {
   readonly cartId: string;
   readonly fetchJson: FetchJson;
+  readonly countries: readonly StoreRegionCountry[];
 }
 
 /** The card-entry form and the pay control. Split from `PaymentForm` because `useStripe`/`useElements` require an `<Elements>` ancestor. */
-function PayButton({ cartId, fetchJson }: PayButtonProps) {
+function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
+  // Defaults to the region's first country rather than an empty selection --
+  // `backend/src/scripts/configure-commerce.ts:90-92`'s `WORLDWIDE_COUNTRY_CODES`
+  // is every `defaultCountries` alpha-2 code, so this list is never empty on
+  // this deployment's one region -- and a non-empty default means the value
+  // `handleSubmit` reads below is always one of `countries`' own rows, never
+  // a placeholder string this file invented.
+  const [countryCode, setCountryCode] = useState<string>(countries[0]?.iso_2 ?? "");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -133,6 +159,24 @@ function PayButton({ cartId, fetchJson }: PayButtonProps) {
     setSubmitting(true);
     setError(null);
     try {
+      // T10b: the country Medusa needs to resolve a tax region
+      // (`store-checkout.ts`'s `setCartCountry` cites the exact read). Set
+      // after the client secret already exists and before `completeCheckoutCart`
+      // below -- decision 009 (`docs/decisions/009-merchant-absorbs-the-vat.md`)
+      // is why that ordering does not disturb the payment amount already fixed.
+      //
+      // `countryCode` is `<select>` state, not a Stripe Element value -- there
+      // is only one Element in this tree now (`PaymentElement`), so
+      // `elements.submit()` is not required before `confirmPayment` below.
+      // The prior version of this file called it anyway, citing
+      // `elements-group.d.ts:74-79` for a claim that text does not make: that
+      // typing documents validating "the Payment Element", not "every mounted
+      // Element", and says nothing about element count.
+      if (countryCode.length === 0) {
+        throw new Error("No country is available for this region.");
+      }
+      await setCartCountry(fetchJson, cartId, countryCode);
+
       // `redirect: "if_required"` keeps a standard test-mode card on this
       // page; `return_url` still has to be an absolute URL because Stripe
       // uses it for the wallets and payment methods that redirect regardless.
@@ -159,6 +203,26 @@ function PayButton({ cartId, fetchJson }: PayButtonProps) {
 
   return (
     <form onSubmit={(event) => void handleSubmit(event)}>
+      {/* Unstyled label/select -- Global Constraint 7's register, the same as
+          the `<p>Total: …</p>` and `<button>Pay</button>` already on this
+          page. Collects the one field the row's checkbox asks for ("collect
+          the customer's country"), sourced from `countries` -- the region's
+          own list, not free text -- and is what `setCartCountry` reads on
+          submit (T10: a certificate ships nowhere, so this stands in for a
+          shipping address without being one). */}
+      <label htmlFor="checkout-country">Country</label>
+      <select
+        id="checkout-country"
+        value={countryCode}
+        onChange={(event) => setCountryCode(event.target.value)}
+        required
+      >
+        {countries.map((country) => (
+          <option key={country.iso_2} value={country.iso_2}>
+            {country.display_name}
+          </option>
+        ))}
+      </select>
       <PaymentElement options={{ wallets: { applePay: "auto", googlePay: "auto", link: "auto" } }} />
       {error !== null && <p>{error}</p>}
       <button type="submit" disabled={stripe === null || submitting}>

@@ -500,6 +500,28 @@ here.
       origin, and complete a cart through Stripe test mode to a paid order.
       Verified by a test against a stubbed backend, and by the smoke check in
       T17 against a real one.
+- [ ] Collect the customer's country at checkout and set it on the cart, so
+      Medusa resolves a tax region and records the VAT the merchant absorbs.
+      Verified by a test asserting tax lines for an EU country and none for a
+      non-EU one.
+
+**The second checkbox exists because decision `009` has no execution path
+without it.** `009` rules that the merchant absorbs Estonia's VAT; Medusa
+computes that only when a cart resolves a tax region, and it resolves one from
+an address country. Nothing in this slice collects an address, so today every
+buyer is charged the advertised price with `tax_total` zero, EU or not.
+
+**Medusa reads the *shipping* address, never the billing one** —
+`@medusajs/core-flows/dist/tax/steps/get-item-tax-lines.js:7` is
+`shippingAddress ?? orderOrCart.shipping_address`. A certificate ships nowhere,
+so this row carries the customer's country in a shipping-address field on a
+product with no shipment. That is a mismatch between Medusa's goods-shaped tax
+model and what this shop sells, and it is recorded rather than tidied away.
+
+**What the country is evidence of is a legal-gate question, not a build one.**
+EU rules for a digital service want more than one non-contradictory indicator of
+where a customer is; a field they fill in is one weak indicator. This row makes
+the VAT computable, not defensible.
 
 `PaymentForm.tsx` is here because `"use client"` is file-scoped and
 `checkout/page.tsx` must call `cookies()`, which a client component cannot;

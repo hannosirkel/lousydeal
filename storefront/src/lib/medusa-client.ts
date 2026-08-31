@@ -105,10 +105,42 @@ export class StoreApiError extends Error {
   }
 }
 
-/** The Store API's own region shape, narrowed to the two fields this row reads. */
+/**
+ * One row of a region's own `countries`, narrowed to the two fields the
+ * checkout country control (`checkout/PaymentForm.tsx`) reads: `iso_2` to
+ * send back to Medusa, `display_name` to show. `iso_2` is exactly the value
+ * `update-cart.js:30-34`'s `data.region.countries.find((c) => c.iso_2 === ...)`
+ * matches a cart's `country_code` against, and it is already lower-case on
+ * this row -- `@medusajs/region/dist/loaders/defaults.js:10` writes
+ * `iso_2: c.alpha2.toLowerCase()` when the country table is seeded. A value
+ * read from this array cannot fail that lookup on case, because it *is* one
+ * of the rows the lookup matches against.
+ */
+export interface StoreRegionCountry {
+  readonly iso_2: string;
+  readonly display_name: string;
+}
+
+/**
+ * The Store API's own region shape, narrowed to the fields this row reads:
+ * `id` and `currency_code` (T9), and `countries` (T10b, for the checkout
+ * country control). `GET /store/regions` already returns `countries` by
+ * default -- `@medusajs/medusa/dist/api/store/regions/query-config.js`'s
+ * `defaultStoreRegionFields` includes `"*countries"` -- so widening this
+ * interface is the whole change; no request changes to `getDefaultRegion`
+ * below were needed to reach the data.
+ *
+ * `countries` is optional on the type, not because the live endpoint ever
+ * omits it, but because `tests/store-cart.test.ts` -- outside this row's
+ * authority, so not a file this row edits -- builds its own `StoreRegion`
+ * fixture without it; `listTiers` never reads the field, so that fixture is
+ * faithful to what it stubs. `getDefaultRegion`'s caller (`checkout/page.tsx`)
+ * defaults a missing array to `[]` rather than assuming presence.
+ */
 export interface StoreRegion {
   readonly id: string;
   readonly currency_code: string;
+  readonly countries?: readonly StoreRegionCountry[];
 }
 
 /**
