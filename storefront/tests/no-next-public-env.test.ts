@@ -19,6 +19,7 @@
  * build inside the unit gate is outside this row.
  */
 
+import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
@@ -64,12 +65,68 @@ describe("no NEXT_PUBLIC_ anywhere in the storefront's own source", () => {
 
   // Named by path rather than counted, so a walker that stops recursing, or
   // an extension filter that stops matching .tsx, goes red on the specific
-  // file it dropped instead of merely finding fewer than some floor.
+  // file it dropped instead of merely finding fewer than some floor. T9 adds
+  // four files in two directories this list never had (src/app/cart/,
+  // src/lib/); named directly here rather than left for the derived check
+  // below, so today's four are covered by this commit and not only once a
+  // later `git add` makes them visible to that check.
   it("scans every file this guard exists to cover", () => {
     expect(relativePaths).toContain("src/config/env.ts");
     expect(relativePaths).toContain("src/config/runtime-config.ts");
     expect(relativePaths).toContain("src/app/layout.tsx");
     expect(relativePaths).toContain("next.config.ts");
+    expect(relativePaths).toContain("src/app/page.tsx");
+    expect(relativePaths).toContain("src/app/cart/page.tsx");
+    expect(relativePaths).toContain("src/lib/medusa-client.ts");
+    expect(relativePaths).toContain("src/lib/store-cart.ts");
+  });
+
+  /**
+   * The check above is a fixed list, and T8b recorded exactly the failure
+   * mode that produces: a row adds files, the list is not extended, and the
+   * test's own name -- "scans every file this guard exists to cover" --
+   * becomes false while the test keeps passing on the four names it already
+   * had. This derives the expected set instead, from `git ls-files`, so a
+   * later row's new file is covered without anyone remembering to add a
+   * ninth `toContain` line above.
+   *
+   * Subset, not equality: `git ls-files` only sees what has been `git add`ed,
+   * and a file created earlier in this same change (before it is staged)
+   * exists on disk -- so `relativePaths`, a live filesystem walk, legitimately
+   * contains files `git ls-files` does not yet know about. Equality would go
+   * red on exactly that ordinary mid-change state. Subset in this direction
+   * still catches the failure this guards against: a walker that stops
+   * recursing, or narrows its extension filter, drops a file `git` already
+   * tracks, and that file then fails to appear in `relativePaths`.
+   */
+  // Computed once, above both tests below, rather than re-declared in each:
+  // two independent copies of this `git ls-files` call and filter can drift
+  // out of step with each other and with the live predicate they claim to
+  // exercise, which is exactly the failure class this file exists to catch
+  // in the walker itself.
+  const repoRoot = join(storefrontDir, "..");
+  const trackedUnderStorefront = execFileSync("git", ["ls-files", "storefront"], { cwd: repoRoot, encoding: "utf8" })
+    .split("\n")
+    .filter((path) => path.length > 0)
+    .map((path) => path.replace(/^storefront\//, ""));
+  const trackedGuardFiles = trackedUnderStorefront.filter(
+    (path) => (path.startsWith("src/") && /\.(ts|tsx)$/.test(path)) || path === "next.config.ts",
+  );
+
+  it("covers every git-tracked source file, so a walker regression is caught even before this list above is updated", () => {
+    for (const path of trackedGuardFiles) {
+      expect(relativePaths).toContain(path);
+    }
+  });
+
+  // Proves the subset check above actually discriminates, without needing a
+  // real walker regression to demonstrate it: a `relativePaths` that is
+  // missing one git-tracked file is a `relativePaths` the check above would
+  // reject, on the same predicate it uses live.
+  it("would reject a walker that dropped one of those git-tracked files", () => {
+    const missingOne = relativePaths.filter((path) => path !== "src/config/env.ts");
+
+    expect(trackedGuardFiles.every((path) => missingOne.includes(path))).toBe(false);
   });
 
   // The scan is only as good as what survives stripping, and the reference's

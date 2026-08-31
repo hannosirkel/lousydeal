@@ -467,8 +467,16 @@ promotion model.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/page.tsx`, `storefront/src/app/cart/page.tsx`,
 `storefront/src/lib/medusa-client.ts`, `storefront/src/lib/store-cart.ts`,
-`storefront/tests/store-cart.test.ts`, `storefront/package.json`,
-`package-lock.json`.
+`storefront/tests/store-cart.test.ts`, `storefront/tests/no-next-public-env.test.ts`,
+`storefront/src/config/runtime-config.ts`, `storefront/tests/runtime-config.test.ts`,
+`storefront/package.json`, `docs/working/ld-01-foundation.md` (this Files
+block only), `package-lock.json`.
+
+`no-next-public-env.test.ts` is here because this row's four new files land in
+two directories its coverage assertion did not previously name
+(`src/app/cart/`, `src/lib/`); extending that assertion is right on its own
+merits — otherwise its own name, "scans every file this guard exists to
+cover," would be false while the test stayed green.
 
 - [ ] Render the three tiers from the store API and let one be added to a cart.
       Verified by a test against a stubbed store API asserting the three tiers

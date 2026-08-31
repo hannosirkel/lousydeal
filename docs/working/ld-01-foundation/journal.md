@@ -1537,3 +1537,71 @@ is corrected under constraint 11.
 Redis and a migrated Medusa for one real-dependency smoke check. Left standing,
 the plan told that row a long-running test was unreachable — and it would have
 designed around a constraint that does not exist.
+
+## 2026-08-31 — T9, and a guard aimed at the wrong side of a division
+
+`storefront/src/{app/page.tsx,app/cart/page.tsx,lib/medusa-client.ts,lib/store-cart.ts}`,
+three tests, `runtime-config.ts`, the plan's T9 `Files` block.
+**742 lines, 9 files.** `bash scripts/validate` clean at **170 tests**.
+
+**The trap this row was warned about was not closed, and the warning was
+misread.** T7a recorded that its price-literal scan covers `backend/src/**` only
+and named this row as *"the likeliest place for **`$5`** to be typed a second
+time."* The scan added here mirrored the backend's faithfully — and
+`seed-product.ts:122` writes `amount: record.amountMinor / 100`, so the Store API
+carries **5, 10, 25**. The mirror matched exactly the three tokens the storefront
+cannot legitimately produce:
+
+```text
+planted `const PLANTED_TOP_TIER_PRICE = 25;` in a page → 13 passed, GREEN
+```
+
+**Mirroring a guard is not inheriting it.** The backend's numbers are correct for
+the backend; a division sits between the two sides, and the pattern crossed it
+unchanged. A sigil-and-digits pattern now catches `$5` — the shape actually
+recorded. A bare major-unit integer stays uncatchable, and the file says so
+rather than claiming closure: widening to `\b(5|10|25)\b` was **measured** to
+match the literal `10` in an unrelated comment two files away, so the limit is
+stated with its evidence instead of asserted.
+
+**The checkbox passed while the behaviour did not accumulate.** Three clicks made
+three carts, orphaned two, and left `/cart` showing only the last line — because
+the action never read the cookie it set. *"Let one be added to a cart"* was
+satisfied literally. **C6 is assigned to T9 and T10** and needs the cart a
+customer built. Reuse also makes Medusa's merging reachable: the same variant
+twice is one line at quantity two, measured by driving the shipped
+`getLineItemActionsStep` rather than reasoning about it.
+
+**A trap for T10 that T10 could not have escaped.** Every page shipped
+`backendUrl` to the browser, where nothing read it. T10's row promises *the
+browser never learns the backend origin*, and its `Files` list contains neither
+`layout.tsx` nor `runtime-config.ts`. That config file had asked the question
+outright — *"T9/T10 decide whether the browser also needs it directly"* — and
+this row is one of the two named. It decided server-side and left the field in
+anyway. Dropped here, where the question was posed.
+
+**Three findings the fixer produced that nobody asked for**, all of the same
+kind — checking a claim instead of carrying it:
+
+- The `<script>`-escaping test planted its payload in `medusa.backendUrl`. Once
+  that field was dropped, **the test would have kept passing for the wrong
+  reason** — absence rather than escaping. Moved to a field still published. A
+  fix silently defanging an unrelated security test is a failure mode worth a
+  name.
+- The orchestrator's brief said spreading `init.headers` "yields `{}`" for both
+  a `Headers` and an array. Measured: the array spreads to index-keyed garbage,
+  not `{}`. Corrected before it entered the file.
+- Its own draft comment contained the substring `500`, and the scan it had just
+  extended caught it. The guard is live.
+
+**Two Majors were the orchestrator's.** A conclusion drawn from two accurate
+citations — *"no `region_id`, no price"* — when `normalize-data-for-context.js`
+falls back to the store's default region or throws a 400. And a plan sentence
+attributing the guard extension to a **T8b record that does not exist**: that
+was read in a review report and remembered as recorded. The extension is right
+on its own merits, which is what the plan says now.
+
+**The review method is what found most of this.** It built the production server
+and drove it with a logging stub — three clicks, a stale cookie, a traversal
+string in the cart id. Every behavioural finding here came from running the
+thing; none came from reading it.

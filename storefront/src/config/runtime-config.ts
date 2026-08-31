@@ -29,9 +29,18 @@ import { readEnv, type EnvRecord } from "./env";
 
 export interface RuntimeConfig {
   readonly medusa: {
-    /** Consumed server-side today; T9/T10 decide whether the browser also needs it directly. */
+    /**
+     * Server-side only. T9 answered the question this comment used to pose:
+     * nothing in the browser reads the backend origin, and T10's row promises
+     * it never will (`docs/working/ld-01-foundation.md`, T10) — so this field
+     * is not in `ClientRuntimeConfig` and never reaches the browser.
+     */
     readonly backendUrl: string | null;
-    /** Public credential, safe to hand to the browser. */
+    /**
+     * Public credential, safe to hand to the browser -- but not published
+     * either, because nothing in the browser reads it yet. A row that adds a
+     * browser-side Medusa call names it in `ClientRuntimeConfig` on purpose.
+     */
     readonly publishableKey: string | null;
   };
   readonly stripe: {
@@ -67,7 +76,6 @@ export function getRuntimeConfig(env: EnvRecord = process.env): RuntimeConfig {
  * makes on purpose instead of a side effect of adding it to `RuntimeConfig`.
  */
 export interface ClientRuntimeConfig {
-  readonly medusa: RuntimeConfig["medusa"];
   readonly stripe: RuntimeConfig["stripe"];
 }
 
@@ -77,7 +85,7 @@ export interface ClientRuntimeConfig {
  * listed here that is not a key of `ClientRuntimeConfig` — fails at `tsc`,
  * not in this suite.
  */
-export const CLIENT_RUNTIME_CONFIG_KEYS: readonly (keyof ClientRuntimeConfig)[] = ["medusa", "stripe"];
+export const CLIENT_RUNTIME_CONFIG_KEYS: readonly (keyof ClientRuntimeConfig)[] = ["stripe"];
 
 /** The id `layout.tsx` gives the inert JSON script element carrying the projection below. */
 export const RUNTIME_CONFIG_ELEMENT_ID = "lousydeal-runtime-config";
@@ -85,7 +93,6 @@ export const RUNTIME_CONFIG_ELEMENT_ID = "lousydeal-runtime-config";
 /** Projects `RuntimeConfig` onto the subset the browser is given. Not a spread — see the module comment above. */
 export function toClientRuntimeConfig(config: RuntimeConfig): ClientRuntimeConfig {
   return {
-    medusa: config.medusa,
     stripe: config.stripe,
   };
 }
