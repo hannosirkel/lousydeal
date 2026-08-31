@@ -1,10 +1,17 @@
 /**
  * The tax treatment this deployment charges.
  *
- * **Every tier's price is net. VAT is added for an EU buyer.**
- * `docs/decisions/008-plepic-tax-treatment.md` is the operator's ruling, made
- * 2026-08-30, and it supersedes the tax half of `007` (tax-inclusive, no tax
- * configured). `is_tax_inclusive` is `false` on both the store currency and
+ * **Every tier's price is what the customer pays. Estonia's VAT, where it
+ * applies, is absorbed by the merchant rather than added on top.**
+ * `docs/decisions/009-merchant-absorbs-the-vat.md` is the operator's ruling,
+ * made 2026-08-31, and it supersedes the tax half of `008` (net prices, VAT
+ * added for an EU buyer) -- itself a supersession of `007`'s tax half
+ * (tax-inclusive, no tax configured at all). `009` is not a reversion to
+ * `007`: `007` configured no tax region and no tax rate; this file still
+ * declares both, for the same 27 EU member states at the same rate. What
+ * changed across all three rulings is only who pays the VAT `008` and `009`
+ * both compute -- nobody under `007`, the buyer under `008`, the merchant
+ * under `009`. `is_tax_inclusive` is `true` on both the store currency and
  * the region -- `backend/src/scripts/configure-commerce.ts` moves the two
  * together, because a price with no matching preference is read as
  * tax-exclusive regardless of what either flag says elsewhere

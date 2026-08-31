@@ -45,17 +45,17 @@ describe("commerceRecords", () => {
     ]);
   });
 
-  it("declares exactly one store-currency record, net of tax", () => {
+  it("declares exactly one store-currency record, tax-inclusive", () => {
     const currencyRecords = records.filter((record) => record.kind === "store-currency");
     expect(currencyRecords).toHaveLength(1);
-    expect(currencyRecords[0]).toMatchObject({ currencyCode: "usd", taxInclusivePrices: false });
+    expect(currencyRecords[0]).toMatchObject({ currencyCode: "usd", taxInclusivePrices: true });
   });
 
-  it("declares exactly one region, worldwide, net of tax, with automatic tax calculation on", () => {
+  it("declares exactly one region, worldwide, tax-inclusive, with automatic tax calculation on", () => {
     const regionRecords = records.filter((record) => record.kind === "region");
     expect(regionRecords).toHaveLength(1);
     const region = regionRecords[0]!;
-    expect(region).toMatchObject({ name: "Worldwide", currencyCode: "usd", taxInclusivePrices: false, automaticTaxes: true });
+    expect(region).toMatchObject({ name: "Worldwide", currencyCode: "usd", taxInclusivePrices: true, automaticTaxes: true });
     // Every country Medusa knows, not a hand-picked subset. This assertion is
     // a floor, deliberately, not the count: `defaultCountries.length` is 250
     // at `@medusajs/utils` 2.18.0, measured in this checkout by

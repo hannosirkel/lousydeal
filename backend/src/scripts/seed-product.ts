@@ -34,7 +34,7 @@ export interface ProductSeedRecord {
   readonly title: string;
   /** Lowercase ISO 4217; see `commerce/product-model.ts`. */
   readonly currency: string;
-  /** Minor units, net of tax -- see `commerce/tax-model.ts`. */
+  /** Minor units, what the customer pays -- see `commerce/tax-model.ts`. */
   readonly amountMinor: number;
   readonly manageInventory: boolean;
 }

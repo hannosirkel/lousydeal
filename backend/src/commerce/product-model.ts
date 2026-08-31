@@ -4,9 +4,10 @@
  * Names and prices are `docs/current/concept.md:21-24`. That document writes
  * `$` and names no currency code; the currency is
  * `docs/decisions/007-usd-and-tax-inclusive-pricing.md`. The reading of the
- * amount is `docs/decisions/008-plepic-tax-treatment.md`, which supersedes
- * `007`'s tax half: the amount below is **net**, and an EU buyer's charge is
- * this amount plus VAT. Amounts below are minor units (cents).
+ * amount is `docs/decisions/009-merchant-absorbs-the-vat.md`, which
+ * supersedes `008`'s tax half: the amount below is what the customer pays.
+ * Estonia's VAT, where it applies, is absorbed out of it rather than added
+ * on top. Amounts below are minor units (cents).
  *
  * The three amounts are declared here and nowhere else under `backend/src/`:
  * `backend/tests/commerce-product-seed.test.ts` reads every other `.ts` file
@@ -35,7 +36,7 @@ export interface ProductTierModel {
    * `node_modules/@medusajs/region/dist/services/region-module.js:127`.
    */
   readonly currency: string;
-  /** Minor units, net of tax -- see this file's header and `008`. */
+  /** Minor units, what the customer pays -- see this file's header and `009`. */
   readonly amountMinor: number;
   /** Always `false`. See this file's header for why. */
   readonly manageInventory: false;
