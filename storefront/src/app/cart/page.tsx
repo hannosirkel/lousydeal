@@ -61,6 +61,8 @@ export default async function CartPage() {
           </li>
         ))}
       </ul>
+      {/* The only route to `/checkout` from anywhere a shopper can reach by clicking -- see T10's report (Minor 10). */}
+      <a href="/checkout">Checkout</a>
     </main>
   );
 }

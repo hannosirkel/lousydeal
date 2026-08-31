@@ -1605,3 +1605,74 @@ on its own merits, which is what the plan says now.
 and drove it with a logging stub — three clicks, a stale cookie, a traversal
 string in the cart id. Every behavioural finding here came from running the
 thing; none came from reading it.
+
+## 2026-08-31 — T10, and a promise enforced in one direction
+
+The proxy, the checkout, Stripe test mode. **~1,190 lines excluding the
+lockfile, 9 files** — the operator granted a size override at 921 before the fix
+pass. `bash scripts/validate` clean at **206 tests**.
+
+**The resolver held completely.** Review ran **41 attack inputs** against the
+real exported function and then through a `next build` production server: double
+and triple encoding, `..%2f`, `%2e%2e%5c`, protocol-relative `//host`, an
+absolute URL as the path, `@`-userinfo, fullwidth U+FF0E and U+FF0F, U+2024,
+overlong UTF-8 `%c0%ae`, a null byte, CRLF, a 100,017-character path, 5,000
+segments. **Not one escaped `/store/`.** Case comparison fails closed by `Set`
+semantics; a spoofed publishable key is overwritten rather than appended.
+
+**And the defence was one-directional.** Every one of those five layers guards
+the way *in*. The row's promise — *the browser never learns the backend origin* —
+is symmetric, and four channels carried it back out, measured against a real
+server:
+
+```text
+location:         https://medusa-internal.…svc.cluster.local:9000/store/redirecting/
+set-cookie:       connect.sid=abc; Domain=medusa-internal.…svc.cluster.local
+content-location: https://medusa-internal.…svc.cluster.local:9000/store/products
+link:             <https://medusa-internal.…:9000/store/products?page=2>; rel="next"
+```
+
+`redirect: "manual"` — chosen so a 3xx reaches the browser rather than being
+followed inside `fetch` — is what made the first one visible. **A setting picked
+for correctness became the exposure.**
+
+**The fifth channel did not exist, and not fixing it is the result.** Review saw
+an error body echoing scheme and host. Traced through the installed framework:
+`errorHandler` builds its message from the thrown error and never from the
+request, and a path matching no route falls through to Express's own default,
+which echoes `req.originalUrl` — a path, never a scheme or host. **The leak was
+the review's stub's shape.** The brief said not to fix a channel that does not
+exist; the fixer measured, found none, and applied nothing.
+
+**The request path was a denylist and never said so.** `new Headers(request.headers)`
+copied everything and deleted ten names, so a browser `Cookie`, an
+`Authorization`, an `x-medusa-access-token` and a client-supplied
+`x-forwarded-host: evil.example` all reached the internal Medusa. The file
+calling itself the highest-risk file in the row enumerated its defences and
+never stated its largest design choice. Now an allowlist of two, proven by
+absence.
+
+**Seven exported methods became two.** The flow uses `GET` and `POST`.
+Forwarding `OPTIONS` handed the storefront's CORS answer for `/api/store/*` to
+the backend's `STORE_CORS` — a value `runtime.ts:15` records as not required and
+silently defaulted.
+
+**One Major was the orchestrator's again**: a parenthetical citing *"T10's
+anti-goals: no fulfillment, no shipping"*. The row has no anti-goals. That list
+was a **heading in the brief**, and the file attributed it to the plan. A brief's
+own section headings can be misread as sources.
+
+**Two things this row could not fix, both recorded for later.**
+
+`configure-commerce.ts` writes 27 EU tax regions at 24% with `automaticTaxes`
+on, and Medusa resolves tax from the **address country**. This checkout never
+collects an address, so `tax_total` is 0 and an EU buyer is charged the net
+price. The row's own requirement holds — the displayed number *is* the charged
+number — but **decision `008`'s treatment has no path to execute in LD-01**.
+
+And Q7 says *"no row in this plan performs that binding"* of the
+Region↔payment-provider link. **T7c performed it.** Constraint 11 territory.
+
+**Method note, repeating.** Every behavioural finding in the last two rows came
+from running the thing — a stub backend, `curl`, a real production server. None
+came from reading it.
