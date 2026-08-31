@@ -64,6 +64,18 @@ describe("only a named, pinned subset of the runtime config is published to the 
     const widened = { ...config, futureField: "must-not-be-published" } as unknown as RuntimeConfig;
     expect(JSON.stringify(toClientRuntimeConfig(widened))).not.toContain("must-not-be-published");
   });
+
+  // T9 answered the question `runtime-config.ts` used to leave open for T9/T10:
+  // the backend origin is server-side only. Asserted on the serialized output,
+  // not just the key list, so a future field named `medusaUrl` or nested one
+  // level differently would still be caught by string content, not only by key
+  // name.
+  it("does not publish the Medusa backend origin or publishable key", () => {
+    const serialized = JSON.stringify(toClientRuntimeConfig(config));
+    expect(serialized).not.toContain("backend.example");
+    expect(serialized).not.toContain("pk_medusa_example");
+    expect("medusa" in toClientRuntimeConfig(config)).toBe(false);
+  });
 });
 
 /**
@@ -74,10 +86,15 @@ describe("only a named, pinned subset of the runtime config is published to the 
  */
 describe("serializeRuntimeConfig", () => {
   it("escapes '<' so the payload cannot close its enclosing script tag", () => {
+    // Planted in `stripe.publishableKey`, not `medusa`: `medusa` is dropped by
+    // `toClientRuntimeConfig` before this function ever sees it, so a payload
+    // placed there would pass this assertion for the wrong reason -- absence,
+    // not escaping. `stripe.publishableKey` is the field this projection
+    // actually publishes.
     const closingTag = `</${"script"}>`;
     const withClosingTag: RuntimeConfig = {
-      medusa: { backendUrl: `${closingTag}<script>alert(1)</script>`, publishableKey: null },
-      stripe: { publishableKey: null },
+      medusa: { backendUrl: null, publishableKey: null },
+      stripe: { publishableKey: `${closingTag}<script>alert(1)</script>` },
     };
     const serialized = serializeRuntimeConfig(toClientRuntimeConfig(withClosingTag));
     expect(serialized).not.toContain(closingTag);
