@@ -1,7 +1,7 @@
 # 008. Take Plepic's tax treatment: net prices, Estonia's rate to the EU, no rest-of-world region
 
 - **Date:** 2026-08-30
-- **Status:** accepted
+- **Status:** accepted; its net-price ruling superseded by [`009`](./009-merchant-absorbs-the-vat.md) (the tax regions, the rate, and the one-rate/threshold reasoning stand)
 - **Supersedes:** the tax ruling of [`007`](./007-usd-and-tax-inclusive-pricing.md) (its currency ruling, USD, is unaffected and stands)
 
 ## Context and problem statement

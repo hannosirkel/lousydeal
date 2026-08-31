@@ -98,9 +98,11 @@ export type CommerceRecord =
   | {
       /**
        * Whether a price denominated in this currency contains its tax.
-       * `false`: net prices, VAT added -- decision 008. Moves only together
-       * with the region record's own flag below; a price with no matching
-       * preference is read as tax-exclusive regardless of either one
+       * `true`: the advertised price is what the customer pays and Estonia's
+       * VAT, where it applies, comes out of it -- decision 009, which
+       * supersedes 008's net-price ruling. Moves only together with the
+       * region record's own flag below; a price with no matching preference
+       * is read as tax-exclusive regardless of either one
        * (`node_modules/@medusajs/pricing/dist/services/pricing-module.js:237`).
        */
       readonly kind: "store-currency";
@@ -157,7 +159,7 @@ export function commerceRecords(): readonly CommerceRecord[] {
       kind: "store-currency",
       key: STORE_CURRENCY,
       currencyCode: STORE_CURRENCY,
-      taxInclusivePrices: false,
+      taxInclusivePrices: true,
     },
     {
       kind: "region",
@@ -165,7 +167,7 @@ export function commerceRecords(): readonly CommerceRecord[] {
       name: REGION_NAME,
       currencyCode: STORE_CURRENCY,
       countryCodes: WORLDWIDE_COUNTRY_CODES,
-      taxInclusivePrices: false,
+      taxInclusivePrices: true,
       automaticTaxes: true,
       paymentProviderIds: [STRIPE_PAYMENT_PROVIDER_ID],
     },
