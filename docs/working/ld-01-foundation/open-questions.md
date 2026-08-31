@@ -6,6 +6,51 @@ anyway.
 
 ## Open
 
+**Q10 · raised at T11, and it blocks a real deployment. Nothing in this
+repository adds USD to the store, so `predeploy` cannot complete on a clean
+database.**
+
+`@medusajs/core-flows/dist/defaults/steps/create-default-store.js:41-47` spreads
+the store data it is given and then **overrides** the currency list regardless:
+
+```text
+{
+    // TODO: Revisit for a more sophisticated approach
+    ...data.store,
+    supported_currencies: [
+        { currency_code: "eur", is_default: true },
+    ],
+}
+```
+
+So Medusa's default store is EUR-only, always. And
+`backend/src/scripts/configure-commerce.ts:255-257` **throws** when the store
+does not already support the currency, rather than adding it:
+
+```text
+The store does not support usd; it cannot price anything this deployment sells
+```
+
+**Measured at T11**, against a real Postgres 17 and Redis 8 running the built
+image: `npm run predeploy` reaches `configure:commerce` and fails there. It was
+invisible until T11 because the migration Job's own `EACCES` failure (Major 1 of
+that row) aborted the chain one command earlier.
+
+**T7b's checkbox is not met.** It reads *"Seed the tiers and configure the
+region, sales channel and currency idempotently, so a re-run neither duplicates
+nor errors."* On a clean database the **first** run errors. Its verification ran
+against a stub, and the stub did not model the store Medusa actually creates —
+the same shape as T10b, where a stub modelled a rule Medusa does not have.
+
+**What it blocks.** C4 (the three tiers seeded idempotently) cannot be met in a
+deployment; T13's Job, T15's workloads and T17's smoke check all run this chain.
+
+**What it needs.** `applyStoreCurrency` should make the store support the
+currency rather than refusing when it does not — `updateStoresWorkflow` already
+replaces `supported_currencies` wholesale, which T7b's own review established.
+Whether the refusal should survive as a second, later check is a design
+question. `configure-commerce.ts` is declared by no open row.
+
 **Q3 · answered by the operator; the work it points at is open in another
 repository. Raised at T2a and T2c. Declaring a language inherits two defects in
 the universe renderer.**
