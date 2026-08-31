@@ -1814,3 +1814,60 @@ USD is absent rather than adding it.
 neither duplicates nor errors"* — on a clean database it errors on the first
 run. Its verification was a stub, and the stub did not model Medusa's default
 store. **Recorded as Q10.**
+
+## 2026-08-31 — T7d, and the first end-to-end verification in the build
+
+`configure-commerce.ts` and its test. **356 lines, 2 files.**
+`bash scripts/validate` clean at **231 tests**.
+
+**Q10, closed.** Medusa's `create-default-store.js:42-47` spreads the store data
+it is given and then **overrides** `supported_currencies` to EUR-only —
+Medusa's own `// TODO: Revisit` sits on the line. `applyStoreCurrency` **threw**
+when the store did not support USD rather than adding it. So `predeploy` could
+not complete on a clean database, and **nothing in this repository ever added
+USD**. T7b's checkbox promises a run that *"neither duplicates nor errors"*; the
+first run errored.
+
+It converges now: other currencies preserved and demoted, the deployment's
+currency set default with its tax preference, EUR kept rather than dropped. **The
+refusal survives as a post-condition** — it re-reads after the workflow and fires
+only if convergence did not happen. A guard against a silent half-apply, not
+against a state the code can now fix itself. *"Do not delete a guard because it
+fired"* was the instruction, and this is what it looks like honoured.
+
+**This row was verified against real services, and that was the point.** Two
+consecutive rows had shipped green suites over stubs that modelled things Medusa
+does not do — T7b's stub did not model the store Medusa creates, T10b's modelled
+a tax rule Medusa does not have. Both rows were broken and both suites passed.
+
+So the row built the image, stood up a real PostgreSQL 17 and Redis 8, and ran
+`predeploy` **twice** as UID 10001. Exit 0 both times; the second run wrote
+nothing, `updated_at` unmoved.
+
+**And the reviewer reproduced it from scratch** — own image, own network, own
+containers — reaching the same state: three published tiers, one USD region with
+automatic taxes and `pp_stripe_stripe`, 27 EU tax regions at 24%, `usd` default
+with `eur` demoted, no duplicated rows. **The first claim in this build
+reproduced by a second party rather than read off a transcript.**
+
+**Two checks were weaker than the invariants they named**, and the review found
+both by hand-editing states the code cannot reach on its own:
+
+- The post-condition asserted **presence**; the early return required
+  **default**. So Medusa persisting `usd` while dropping `is_default` — the exact
+  half-failure the guard exists for — passed it, after which every later
+  `predeploy` would rewrite the store forever without complaining. Deleting the
+  whole block left the suite green.
+- The convergence check asked whether the currency carries `is_default`, never
+  whether it is the **only** one. A second default short-circuited the write that
+  demotes everything else — measured, twice, stably wrong.
+
+Both now share one predicate. **Weakening it to presence-only turns exactly the
+two new tests red** — verified by the orchestrator with an applied-check on the
+mutation, which is the discipline T10b recorded after a `sed` that silently
+matched nothing.
+
+**And the row falsified its own file's header as it wrote it.** The header said
+no test exercises the Medusa target, and that the seam is stubbed *"without
+mocking a Medusa container"*. Both were true until this commit added a suite
+doing both. Constraint 9 turned inward.
