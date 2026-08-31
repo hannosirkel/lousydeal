@@ -1479,3 +1479,61 @@ flag back whenever it is absent
 `tsBuildInfoFile` under `.next/` — already gitignored — survives a build,
 keeps the cache, and needs no `.gitignore` rule. **The reference carries the
 stray artifact to this day**, so there was nothing to copy.
+
+## 2026-08-31 — T8b, the guard, and a comment that talked me out of checking
+
+`storefront/tests/no-next-public-env.test.ts` and one paragraph of the plan.
+**106 lines, 2 files.** `bash scripts/validate` clean at **143 tests**. T8 closes
+with it, and C5 is met.
+
+**The reference's stripper had a hole, and its own comment is what hid it.** It
+strips everything after `//` to end of line and says being naive about strings
+*"only makes the test stricter, never blinder."* Measured against the real file:
+
+```text
+const u = "https://x" + process.env.NEXT_PUBLIC_LEAK;   → passes the guard
+```
+
+The `//` inside the URL eats the rest of its own line, taking the live read with
+it. **Blinder, not stricter** — the exact opposite of what the sentence
+promises, in a guard the plan says the promotion model rests on.
+
+**The general lesson is about reasoned lines.** This build has now found three
+defects in the reference rather than patterns to copy — an untracked
+`tsbuildinfo`, a member-state list with no independent second source, and this.
+A *reasoned* line is more dangerous to copy than an unreasoned one: the
+reasoning is what discourages checking it. The stripper's comment is a small
+argument, and a small argument is exactly what makes a reader stop.
+
+Line comments are now stripped only where `//` opens the line, which makes the
+reference's claim true rather than aspirational. Three assertions hold it, and
+one of them would pass against a stripper that removed nothing at all — which is
+why the other two are there, and the file says so.
+
+**The coverage assertion names files rather than counting them.** The reference
+asserts `files.length > 15`; this storefront has four, so the number was tuned
+to a tree rather than to a property, and it passes against a walker that
+silently stopped recursing as long as it still finds sixteen. T7a rejected that
+shape once already, where a member-state list was asserted against its own
+length.
+
+**Two Majors, both prose, and one of them the orchestrator's.**
+
+The header claimed Next inlines *any* `NEXT_PUBLIC_` read *regardless of how it
+is written*. Next's own documentation gives two forms it does **not** inline — a
+variable key, and a re-assigned `process.env` — and states that *"dynamic
+property lookups on process.env will not be inlined."* Inherited near-verbatim
+from the reference. The guard is unaffected: it trips on those forms anyway, so
+it is over-broad in the safe direction. Only the sentence was wrong.
+
+The second was written by the orchestrator: that there is no dynamic
+counterpart *because the storefront has no config of its own to raise a timeout
+in*. Both facts are true and the inference is not — **Vitest takes a per-test
+timeout as an argument**, needing no config at all. The plan carried the same
+over-inference at its T8 note, which is where the test file got it, so the plan
+is corrected under constraint 11.
+
+**That correction was worth more than this row.** `T17` stands up PostgreSQL,
+Redis and a migrated Medusa for one real-dependency smoke check. Left standing,
+the plan told that row a long-running test was unreachable — and it would have
+designed around a constraint that does not exist.

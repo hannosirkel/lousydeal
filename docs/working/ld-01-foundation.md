@@ -431,7 +431,16 @@ second workspace made both reachable.
 **The storefront cannot have its own Vitest config.** The root `vitest.config.ts`
 lists it as an *inline* project, not a config glob, and that file is frozen — a
 `storefront/vitest.config.ts` would never be loaded. So no `@/*` path alias in
-anything a test imports, no raised timeout, no non-`node` environment.
+anything a test imports, no *config-level* raised timeout, no non-`node`
+environment.
+
+**A per-test timeout needs no config**, and this paragraph previously implied
+otherwise — corrected at T8b under global constraint 11, after that inference
+reached a test file's comment. Vitest takes one as a third argument,
+`it("…", async () => {…}, 120_000)`, or as `{ timeout }` in an options object.
+So a row that needs one long-running test can have it; what it cannot have is a
+raised default for every test at once. **T17 depends on this** — its smoke check
+stands up real services, and the frozen config is not what would stop it.
 
 Of those three, the reference implementation
 (`plepic` `8f367cb`, `storefront/vitest.config.ts`) uses **one**: it raises
