@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "build": "medusa build",
+    "start": "npm run redis:preflight && medusa start",
     "redis:preflight": "if [ -f ./src/config/redis-preflight.js ]; then node ./src/config/redis-preflight.js; else node -r ts-node/register ./src/config/redis-preflight.ts; fi",
     "configure:commerce": "medusa exec \"$(if [ -f ./src/scripts/configure-commerce.js ]; then echo ./src/scripts/configure-commerce.js; else echo ./src/scripts/configure-commerce.ts; fi)\"",
     "seed:product": "medusa exec \"$(if [ -f ./src/scripts/seed-product.js ]; then echo ./src/scripts/seed-product.js; else echo ./src/scripts/seed-product.ts; fi)\"",
@@ -11,6 +13,7 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
+    "@medusajs/admin-sdk": "2.18.0",
     "@medusajs/framework": "2.18.0",
     "@medusajs/medusa": "2.18.0",
     "redis": "6.2.1"

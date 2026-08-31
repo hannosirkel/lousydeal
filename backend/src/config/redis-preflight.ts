@@ -38,6 +38,21 @@ import { readRedisRuntimeConfig, type RedisRuntimeConfig } from "./runtime";
  * start-up and migration do before giving up, which is why the reference
  * measured 29 on its own, heavier build.
  *
+ * **T11 built the image this admin bundle was stubbed against, and nothing on
+ * the route that produced those counts changed.** `@medusajs/cli`'s handler
+ * is unchanged at 2.18.0 (`node_modules/@medusajs/cli/dist/index.js:29`,
+ * `console.log(error)` on `uncaughtException`), and it fires on a
+ * module-loading failure -- a `redisUrl` a loader could not connect. The
+ * Express `app` itself is built by the caller and handed in
+ * (`node_modules/@medusajs/medusa/dist/commands/start.js:213-215`); what
+ * precedes the admin bundle is the loader ordering inside it --
+ * `MedusaAppLoader().load()` (`loaders/index.js:121`) runs before
+ * `loadEntrypoints` (`:133`), which is what reaches the admin loader
+ * (`:78`, `node_modules/@medusajs/medusa/dist/loaders/admin.js`'s
+ * `serveProductionBuild`). A real admin bundle instead of a stubbed one
+ * changes nothing this leak reaches through, so this is not an image
+ * measurement and does not claim to be one.
+ *
  * So the failure is moved in front of Medusa, and this file is the whole of
  * what runs there. It has three properties, and each of them is why it exists:
  *

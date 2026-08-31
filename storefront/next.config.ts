@@ -14,6 +14,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  // A standalone image runs `node server.js`, which Next only emits under
+  // this setting -- see `storefront/Dockerfile`, which copies
+  // `.next/standalone` rather than the full `node_modules` tree.
+  output: "standalone",
 };
 
 export default nextConfig;

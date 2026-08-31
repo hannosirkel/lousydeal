@@ -1,0 +1,65 @@
+# The build context for `backend/Dockerfile`, which is the repository root.
+#
+# This repository's builders -- verified against podman 5.4.2 / buildah
+# 1.39.3 only, and T12 will exercise a different one, which is the builder
+# this claim needs to hold for -- read this file because it is named after
+# the Dockerfile and sits beside it; a plain `backend/.dockerignore` would be
+# read only if the context were `backend/`, which it cannot be -- the
+# dependency tree comes from the workspace lockfile at the repository root.
+# See `scripts/images.test.ts`.
+#
+# Bounded: these patterns reach the `build` stage of the Dockerfile only, and
+# the runtime stage copies `.medusa/server` selectively rather than the build
+# context wholesale -- a decoy file that reaches the build context (a stray
+# `backend/secrets.json`, `env.local` or `id_rsa` not matched below) still
+# cannot reach the image that ships unless something in the Dockerfile copies
+# it in by name.
+
+# Build output and dependency trees. Every one of these is produced inside the
+# image from the lockfile; a copy from the developer's machine would silently
+# replace it with whatever that machine happens to have.
+**/node_modules
+**/.next
+**/.medusa
+**/coverage
+**/*.tsbuildinfo
+
+# Version control, CI definitions and hooks. None of it is application code.
+.git
+.gitignore
+.githooks
+.github
+
+# Tests and configuration that exist to run them.
+**/tests
+**/*.test.ts
+**/*.test.tsx
+**/vitest.config.ts
+**/vitest.config.mts
+
+# Design masters, in case one is ever committed by mistake -- this repository
+# ships web derivatives only.
+**/*.psd
+**/*.ai
+**/*.sketch
+**/*.fig
+**/*.xcf
+**/*.afdesign
+**/*.afphoto
+**/*.tif
+**/*.tiff
+
+# Prose, plans and local environment files. Named patterns only -- `.env` and
+# `.env.*`, not every shape a secret can take. `backend/secrets.json`,
+# `env.local` and `id_rsa` are none of these and do reach the build context;
+# see the bounding note above for why that does not reach the image.
+**/*.md
+docs
+**/.env
+**/.env.*
+
+# The other workspace. Its `package.json` is re-included because npm reads
+# every workspace manifest before it resolves anything, even when installing
+# only this one.
+storefront
+!storefront/package.json
