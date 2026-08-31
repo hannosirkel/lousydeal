@@ -32,7 +32,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T8b | T8 | lousydeal | `b2127ede8a79` | AGENT | done | agent | journal, T8b | 2026-08-31 |
 | T9a | T9 | lousydeal | `22cc7f437c32` | AGENT | done | agent | journal, T9 | 2026-08-31 |
 | T10a | T10 | lousydeal | `c3a7e99c1078` | AGENT | done | agent | journal, T10 | 2026-08-31 |
-| T10b | T10 | lousydeal | `61a28edfad62` | AGENT | open | agent | — | — |
+| T10b | T10 | lousydeal | `61a28edfad62` | AGENT | done | agent | journal, T10b | 2026-08-31 |
 | T11a | T11 | lousydeal | `81ee905861f8` | AGENT | open | agent | — | — |
 | T13a | T13 | deploys | `7a9e39588f5a` | AGENT | open | agent | — | — |
 | T13b | T13 | deploys | `247bd5352e35` | AGENT | open | agent | — | — |
