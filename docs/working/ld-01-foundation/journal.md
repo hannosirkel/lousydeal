@@ -1740,3 +1740,77 @@ nothing.** Re-run with an assertion that the replacement applied, three tests go
 red. This is the identical failure recorded at T5b, committed by the same
 orchestrator that recorded it. **A mutation without an applied-check is not a
 measurement.**
+
+## 2026-08-31 — T11, an image that worked for one of its two jobs
+
+Both Dockerfiles, both dockerignores, `scripts/images.test.ts`, three manifests,
+`redis-preflight.ts`. **912 lines, 9 files.** `bash scripts/validate` clean at
+**225 tests**. Built with **podman** — the Docker daemon does not run here.
+
+**Q6 item 2 is settled after ten rows, and settled in both directions.**
+`redis-preflight.ts` claimed the script runs from the compiled `.js` in the
+image. The guard — `[ -f ./src/config/redis-preflight.js ]` — fires only when the
+working directory is the build output root, and **no row had written a
+`WORKDIR`**. Measured inside the image: the compiled branch runs; removing that
+file forces the `ts-node` branch, which fails `MODULE_NOT_FOUND` because
+`ts-node` is a devDependency absent from a production install. **Two
+distinguishable failures**, so the guard fires on the real branch rather than
+passing by coincidence.
+
+**Q8 needed one package, not seven.** The failure was reproduced first,
+`@medusajs/admin-sdk` added alone, `medusa build` completed, `npm audit`
+unchanged at 77. The reference's other five admin packages were not added
+because the build did not ask for them — and the digest was resolved twice
+independently rather than copied, which is how we know the tag has not moved
+rather than assuming it.
+
+**The image did not work for one of its two jobs.** The Dockerfile's first
+sentence says the API and the predeploy Job both run from it. Against real
+Postgres and Redis:
+
+| as | result |
+| --- | --- |
+| UID 10001 | **exit 1**, nine `EACCES` |
+| root | exit 0 |
+
+Medusa's migration runner creates module migration directories **inside the
+package tree**, and the copied `node_modules` landed root-owned. `fsGroup` does
+not help — it applies to mounted volumes, not a baked layer.
+
+**The API path was unaffected.** A smoke check that starts the server and curls
+`/health` passes. **T13 writes the Job that would have hit this in a cluster, on
+first deploy.** The reference has the same shape, so it is inherited — this is
+simply the first row that could measure it.
+
+**An allowlist of names is not a constraint on values.** The test permitted
+`PORT`, `HOSTNAME`, `NODE_ENV` by name, so
+`ENV HOSTNAME=lousydeal-test.example.com` passed green — reading as intentional
+configuration rather than a mistake, against the one constraint this row exists
+to enforce. Values are asserted now.
+
+And **three properties the row's own text requires were guarded by nothing** —
+digest pinning, the non-root UID, the cleared `ENTRYPOINT` — true today and
+evidenced only by terminal output in a report the next reader will not have. The
+digest matters most: dropping an `@sha256:` while bumping a base tag looks
+exactly like a routine version bump in review.
+
+**Two false sentences had sound conclusions and wrong mechanisms**, and were
+corrected rather than deleted. `HOSTNAME` is declared not because a base image
+could change Next's default — that default is a literal in generated
+`server.js:15` — but because **the container runtime injects
+`HOSTNAME=<container id>` when the image does not declare one**, and Next would
+bind to that.
+
+**And fixing the Job exposed a blocker underneath it.** With `db:migrate` no
+longer aborting, `configure:commerce` throws *"The store does not support usd"*.
+`@medusajs/core-flows/dist/defaults/steps/create-default-store.js:44-46` spreads
+the caller's store and then **overrides** `supported_currencies` to
+`[{ currency_code: "eur", is_default: true }]` regardless of input, carrying
+Medusa's own `// TODO: Revisit`. `configure-commerce.ts:255-257` **throws** when
+USD is absent rather than adding it.
+
+**Nothing in this repository ever adds USD to the store.** T7b's checkbox says
+*"configure the region, sales channel and currency idempotently, so a re-run
+neither duplicates nor errors"* — on a clean database it errors on the first
+run. Its verification was a stub, and the stub did not model Medusa's default
+store. **Recorded as Q10.**
