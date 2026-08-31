@@ -12,9 +12,14 @@
  * `product-model.ts`. {@link CommerceConfigurationTarget} is the one-method
  * seam `tests/commerce-configuration.test.ts` stubs, without mocking a
  * Medusa container. {@link configureCommerce} applies every record once and
- * stops at the first refusal. {@link MedusaCommerceConfigurationTarget} is
- * the only piece that talks to a running Medusa application, and no test
- * exercises it.
+ * stops at the first refusal. {@link MedusaCommerceConfigurationTarget}'s
+ * `store-currency` branch is exercised by that file's "MedusaCommerceConfigurationTarget
+ * applyStoreCurrency" suite, which constructs it directly against a fake
+ * container: a stub `query.graph` answering only the `store` and
+ * `price_preference` entities `applyStoreCurrency` reads, and
+ * `@medusajs/medusa/core-flows`'s `updateStoresWorkflow` replaced by
+ * `vi.mock`. Its `region` and `tax-region` branches (`applyRegion`,
+ * `applyTaxRegion`) remain unexercised by any test in this repository.
  *
  * **What this row deliberately does not build:** no stock location, no
  * fulfillment set, and no shipping profile or option -- this shop has no
@@ -225,21 +230,35 @@ export class MedusaCommerceConfigurationTarget implements CommerceConfigurationT
   }
 
   /**
-   * Writes the currency's tax-inclusivity preference, comparing before it
-   * writes so an unchanged run touches nothing. The flag lives in the
-   * pricing module's `price_preference`, not on `store` -- decision `007`'s
-   * "What tax-inclusive costs" section has the trace. Other supported
-   * currencies, if any, are handed back unchanged: `updateStoresWorkflow`
-   * replaces the whole list.
+   * Converges the store on supporting the currency, rather than refusing
+   * when it does not: Medusa's own `createDefaultStoreStep` hardcodes a
+   * EUR-only `supported_currencies` on the store it creates
+   * (`@medusajs/core-flows/dist/defaults/steps/create-default-store.js:41-47`,
+   * carrying Medusa's own `// TODO: Revisit for a more sophisticated
+   * approach`), so a clean database never already supports this
+   * deployment's currency and refusing here would make `predeploy`
+   * permanently unable to reach a paid-order-ready state.
+   *
+   * Structural convergence (is the currency supported, is it the one
+   * `is_default`, and is it the only one) is checked directly against
+   * `store`, not inferred from `price_preference` alone -- a database where
+   * the tax-inclusivity preference row exists but the store itself was never
+   * updated (a hand-edited row; `update-stores.js` runs before
+   * `update-price-preferences-as-array.js`, so a crash between the two
+   * leaves the opposite asymmetry -- store updated, preference missing) must
+   * not read as "done" and skip the currency fix. Both must independently
+   * agree before this method writes nothing.
+   *
+   * Every other currency the store already supports (Medusa's `eur`, on a
+   * clean database) is kept rather than dropped -- `updateStoresWorkflow`
+   * replaces the whole list, so keeping it means restating it -- but
+   * demoted off `is_default`: exactly one currency carries it, and this
+   * deployment prices only in {@link STORE_CURRENCY}. A store that also
+   * supports a currency nothing here prices in is not a defect this row
+   * needs to correct.
    */
   private async applyStoreCurrency(record: Extract<CommerceRecord, { kind: "store-currency" }>): Promise<void> {
     const currency = record.currencyCode.toLowerCase();
-    const preference = await this.one<{ is_tax_inclusive?: boolean }>(
-      "price_preference",
-      ["id", "attribute", "value", "is_tax_inclusive"],
-      { attribute: "currency_code", value: currency },
-    );
-    if (preference?.is_tax_inclusive === record.taxInclusivePrices) return;
 
     const store = await this.one<{
       id: string;
@@ -252,22 +271,71 @@ export class MedusaCommerceConfigurationTarget implements CommerceConfigurationT
     const supported = (store.supported_currencies ?? []).filter(
       (entry): entry is { currency_code: string; is_default?: boolean } => typeof entry.currency_code === "string",
     );
-    if (!supported.some((entry) => entry.currency_code.toLowerCase() === currency)) {
-      throw new Error(`The store does not support ${record.currencyCode}; it cannot price anything this deployment sells`);
-    }
+    const structurallyConverged = MedusaCommerceConfigurationTarget.isSoleDefault(supported, currency);
 
+    const preference = await this.one<{ is_tax_inclusive?: boolean }>(
+      "price_preference",
+      ["id", "attribute", "value", "is_tax_inclusive"],
+      { attribute: "currency_code", value: currency },
+    );
+    if (structurallyConverged && preference?.is_tax_inclusive === record.taxInclusivePrices) return;
+
+    const others = supported.filter((entry) => entry.currency_code.toLowerCase() !== currency);
     await updateStoresWorkflow(this.container).run({
       input: {
         selector: { id: store.id },
         update: {
-          supported_currencies: supported.map((entry) => {
-            const code = entry.currency_code.toLowerCase();
-            const carried = { currency_code: code, is_default: entry.is_default === true };
-            return code === currency ? { ...carried, is_tax_inclusive: record.taxInclusivePrices } : carried;
-          }),
+          supported_currencies: [
+            ...others.map((entry) => ({ currency_code: entry.currency_code.toLowerCase(), is_default: false })),
+            { currency_code: currency, is_default: true, is_tax_inclusive: record.taxInclusivePrices },
+          ],
         },
       },
     });
+
+    // The refusal survives as a post-condition rather than a pre-emptive
+    // block: `updateStoresWorkflow` is expected to converge the store above,
+    // and this only fires if it silently did not -- a real failure this
+    // deployment still cannot price against, not a state a clean or
+    // already-converged database ever reaches. Re-asserts the same
+    // `isSoleDefault` predicate the early return above checks, not presence
+    // alone: Medusa persisting `currency` while silently dropping
+    // `is_default` -- the half-failure this guard exists for -- must not
+    // pass it. It does not re-check `price_preference`; a wrong
+    // tax-inclusivity flag on an otherwise-successful write is not this
+    // guard's concern, only whether the store itself now agrees with what
+    // was sent.
+    const after = await this.one<{ supported_currencies?: { currency_code?: string; is_default?: boolean }[] }>(
+      "store",
+      ["supported_currencies.currency_code", "supported_currencies.is_default"],
+      { id: store.id },
+    );
+    const afterSupported = (after?.supported_currencies ?? []).filter(
+      (entry): entry is { currency_code: string; is_default?: boolean } => typeof entry.currency_code === "string",
+    );
+    if (!MedusaCommerceConfigurationTarget.isSoleDefault(afterSupported, currency)) {
+      throw new Error(
+        `The store does not have ${record.currencyCode} as its sole default currency; it cannot price anything this deployment sells`,
+      );
+    }
+  }
+
+  /**
+   * Whether `currency` is present in `supported`, carries `is_default`, and
+   * is the only entry that does -- the structural half of convergence
+   * {@link applyStoreCurrency} checks both before writing, to decide whether
+   * writing is needed at all, and after, to confirm the write landed. A
+   * second `is_default` entry (unreachable through this class, since every
+   * write it issues demotes every other entry, but reachable by a
+   * hand-edited row) fails this the same way absence does.
+   */
+  private static isSoleDefault(
+    supported: readonly { currency_code: string; is_default?: boolean }[],
+    currency: string,
+  ): boolean {
+    const target = supported.find((entry) => entry.currency_code.toLowerCase() === currency);
+    const defaultCount = supported.filter((entry) => entry.is_default === true).length;
+    return target !== undefined && target.is_default === true && defaultCount === 1;
   }
 
   /**

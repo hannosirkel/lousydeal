@@ -406,6 +406,27 @@ registers eight provider services and offers none of them until this row runs.
       `src/config/payment.ts` derives, as a field on the region record
       rather than a separate step. Verified by a test asserting the region
       carries exactly that provider id.
+- [ ] Make the store support the currency the tiers price in, rather than
+      refusing when it does not. Verified by `npm run predeploy` reaching a
+      paid-order-ready state twice in a row against a real PostgreSQL, Redis and
+      the built image.
+
+**The fourth checkbox exists because the second one is not met.** T7b promises a
+run that *"neither duplicates nor errors"*; on a clean database the **first** run
+errors. `@medusajs/core-flows/dist/defaults/steps/create-default-store.js:41-47`
+spreads the store data it is given and then **overrides**
+`supported_currencies` to `[{ currency_code: "eur", is_default: true }]`
+regardless — Medusa carries its own `// TODO: Revisit` on that line — and
+`configure-commerce.ts` throws when the store does not already support the
+currency instead of adding it. Nothing in this repository ever adds USD.
+Recorded as Q10, measured at T11 against the built image.
+
+**Its verification is a real deployment, not a stub, and that is the point.**
+T7b's stub did not model the store Medusa actually creates, and T10b's stub
+modelled a rule Medusa does not have — two rows in a row whose suites passed
+against a fiction. T11 established that a real PostgreSQL, a real Redis and the
+built image can be stood up locally with podman, so this row uses them. **A
+second `predeploy` run is what proves the idempotency T7b's checkbox claims.**
 
 Copy no tier *copy* here. The names are structural; the words are Gate B's.
 

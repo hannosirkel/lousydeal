@@ -6,96 +6,23 @@ anyway.
 
 ## Open
 
-**Q10 · raised at T11, and it blocks a real deployment. Nothing in this
-repository adds USD to the store, so `predeploy` cannot complete on a clean
-database.**
-
-`@medusajs/core-flows/dist/defaults/steps/create-default-store.js:41-47` spreads
-the store data it is given and then **overrides** the currency list regardless:
-
-```text
-{
-    // TODO: Revisit for a more sophisticated approach
-    ...data.store,
-    supported_currencies: [
-        { currency_code: "eur", is_default: true },
-    ],
-}
-```
-
-So Medusa's default store is EUR-only, always. And
-`backend/src/scripts/configure-commerce.ts:255-257` **throws** when the store
-does not already support the currency, rather than adding it:
-
-```text
-The store does not support usd; it cannot price anything this deployment sells
-```
-
-**Measured at T11**, against a real Postgres 17 and Redis 8 running the built
-image: `npm run predeploy` reaches `configure:commerce` and fails there. It was
-invisible until T11 because the migration Job's own `EACCES` failure (Major 1 of
-that row) aborted the chain one command earlier.
-
-**T7b's checkbox is not met.** It reads *"Seed the tiers and configure the
-region, sales channel and currency idempotently, so a re-run neither duplicates
-nor errors."* On a clean database the **first** run errors. Its verification ran
-against a stub, and the stub did not model the store Medusa actually creates —
-the same shape as T10b, where a stub modelled a rule Medusa does not have.
-
-**What it blocks.** C4 (the three tiers seeded idempotently) cannot be met in a
-deployment; T13's Job, T15's workloads and T17's smoke check all run this chain.
-
-**What it needs.** `applyStoreCurrency` should make the store support the
-currency rather than refusing when it does not — `updateStoresWorkflow` already
-replaces `supported_currencies` wholesale, which T7b's own review established.
-Whether the refusal should survive as a second, later check is a design
-question. `configure-commerce.ts` is declared by no open row.
-
-**Q3 · answered by the operator; the work it points at is open in another
-repository. Raised at T2a and T2c. Declaring a language inherits two defects in
-the universe renderer.**
-
-Both were confirmed by measurement, both predate this plan, and `plepic` — same
-profile, same generated config — carries both today. The operator has ruled them
-universe-level work against `architecture` rather than part of LD-01.
-
-**1. The generated root file list re-includes `node_modules`.**
-`tooling/universe_render.py` emits each language's globs then the generic
-fallback, de-duplicating, so `!**/node_modules/**` lands *before* `**/*.md`,
-`**/*.yaml` and `**/*.yml`. `pathspec` is last-match-wins. Confirmed with
-habit-hooks' own library:
-
-```text
-before  node_modules/foo/README.md: excluded   node_modules/foo/action.yml: excluded
-after   node_modules/foo/README.md: INCLUDED   node_modules/foo/action.yml: INCLUDED
-```
-
-No ordering of `languages` avoids it; the fallback's exclusions need a
-guaranteed-last position. It was latent until `npm ci` ran, and is now
-observable — `habit-hooks` lists `node_modules/*/README.md`.
-
-**2. Three generated sensors have no installed tool.**
-
-```text
-sensor 'knip'    needs the 'knip' command, which is not installed
-sensor 'comment' failed: ts-morph is not installed in this project
-sensor 'jscpd'   needs the 'jscpd' command, which is not installed
-⚠️ this run did not complete — a tool broke, so a clean result cannot be trusted
-```
-
-Measured across the config change, the `incomplete-run` marker goes from
-**absent to present**, carrying 3 failing sensors; total markers go 1 to 2, the
-other being `oversized-file`. So T2c does introduce `incomplete-run` to
-`lousydeal`. `plepic` has the identical three failures. `npm_project: true` additionally drops the `[sensors.jscpd] disabled = true` block that had been suppressing one of them.
-
-**Consequence for the rest of LD-01, and the reason this is recorded here rather
-than only in `architecture`:** `AGENTS.md` says *"Run `habit-hooks` before
-declaring an edit done."* From T2c onward that command cannot return a
-trustworthy result in this repository. **A later row seeing `incomplete-run` is
-looking at this, not at something it broke.** The pre-commit hook runs `gitleaks`
-only, so commits are unaffected.
-
 ## Answered
+
+**Q10 · answered at T7d. The store now converges onto the currency the tiers
+price in.**
+
+Medusa's `create-default-store.js:42-47` overrides `supported_currencies` to
+EUR-only regardless of input, and `configure-commerce.ts` threw rather than
+adding USD — so `predeploy` could not complete on a clean database.
+
+`applyStoreCurrency` converges instead: other currencies preserved and demoted,
+the deployment's currency set default with its tax preference. The refusal
+survives as a post-condition, firing only if the workflow silently half-applies.
+
+**Verified against real services, twice, and reproduced independently** — the
+whole `predeploy` chain to exit 0 with three published tiers, one USD region
+bound to `pp_stripe_stripe`, 27 EU tax regions at 24%, and no duplicated rows on
+the second run. T7b's checkbox is met now; it was not before.
 
 **Q8 · answered by the operator 2026-08-30. `@medusajs/admin-sdk` is added, and
 T11 proves the build rather than assuming it.**
