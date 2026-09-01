@@ -173,9 +173,9 @@ expires.
 | # | Effect | Row | State |
 | --- | --- | --- | --- |
 | E0 | Add `Canonical validation` to the branch ruleset's required contexts | T1b, after merge | **executed 2026-08-29** |
-| E1 | First publish to GHCR | T12b | not requested |
-| E2 | Merging T12 — `Release` fires on the merge that introduces it | T12b | not requested |
-| E3 | First write to `deploys/lousydeal/overlays/*` | T13a, then T12b | not requested |
+| E1 | First publish to GHCR | T12b | **approved 2026-09-01**, operator, merging PR #40 |
+| E2 | Merging T12 — `Release` fires on the merge that introduces it | T12b | **approved 2026-09-01**, operator, merging PR #40 |
+| E3 | First write to `deploys/lousydeal/overlays/*` | T13a, then T12b | **approved 2026-09-01** for T12b's live write, operator |
 | E4 | Seeding OpenBao, test sources | T15b | not requested |
 | E5 | Creating namespaces (T14a) and starting workloads (T15a) | T14a, T15a | not requested |
 | E6 | Publishing DNS for `test.lousydeal.com` | T16a | not requested |
@@ -198,3 +198,23 @@ namespace and its SecretStore exist. E5 is now two rows: T14a creates the
 namespaces, because enrolling a consumer in the projection contract without one
 breaks a gate for every other consumer, and T15a starts the workloads. Publishing the hostname before the policy exists leaves it
 public and ungated for the width of the gap.
+
+## Size overrides
+
+Constraint 3 bounds a row at 800 changed lines or 10 files without a named
+operator override.
+
+| Row | Size | Override |
+| --- | --- | --- |
+| T7b | 913 lines | operator, 2026-08-30 |
+| T10 | 921 lines | operator, 2026-08-31 |
+| T13a | 17 files, 1,847 lines | operator, 2026-08-31 |
+| T12a | 5 files, 1,637 lines | operator, 2026-09-01 |
+| T12b | 4 files, 4,130 lines | operator, 2026-09-01 |
+
+**T12b is the largest by a wide margin, and the reason is on the record.** Five
+review passes applied 278 mutations and found the same defect five times; the
+assertion mechanism that finally closed it — pinning four jobs to their exact
+step content, and closing the job, root and file-set key sets — is most of the
+growth. About 1,300 lines began as a byte-identical port of the reference's
+guard and its tests, both since grown by this row's own fixes.
