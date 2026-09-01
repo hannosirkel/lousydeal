@@ -620,7 +620,7 @@ parses YAML; the reference hand-rolls it rather than taking a dependency.
 `.github/workflows/validate.yml`, and is where the duplicate link-check run in
 the `Documentation` job can be removed.
 
-- [ ] Add the digest guard and the label-triggered `Deploy Test` promotion,
+- [x] Add the digest guard and the label-triggered `Deploy Test` promotion,
       with the three-job split: the job that runs head code holds no
       credential, the job that holds the credential runs no head code. Verified
       by a test asserting each of those against the parsed document.

@@ -27,12 +27,11 @@ jobs:
         with:
           globs: '**/*.md'
 
-      - name: Check links
-        # lycheeverse/lychee-action v2.9.0
-        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8
-        with:
-          args: --no-progress --config lychee.toml .
-          fail: true
+      # Link checking runs once for a pull request, inside `canonical`'s
+      # `bash scripts/validate` -- that step runs the identical
+      # `lychee --config lychee.toml` invocation, so a second one here checked
+      # nothing this job's sibling did not already check, twice, on every
+      # pull request.
 
   shell:
     name: Shell
@@ -45,7 +44,33 @@ jobs:
           persist-credentials: false
 
       - name: Lint the shell
-        run: shellcheck scripts/validate .githooks/pre-commit
+        # The set is derived, not listed -- see scripts/validate's identical
+        # derivation for why a listed set is one script away from being wrong
+        # and silent about it.
+        run: |
+          set -euo pipefail
+          mapfile -t shell_files < <(
+            git ls-files | while IFS= read -r candidate; do
+              case "${candidate}" in
+                *.sh | *.bats)
+                  printf '%s\n' "${candidate}"
+                  continue
+                  ;;
+              esac
+              [ -f "${candidate}" ] || continue
+              IFS= read -r shebang <"${candidate}" || shebang=''
+              case "${shebang}" in
+                '#!'*[\ /]bash* | '#!'*[\ /]sh | '#!'*[\ /]sh\ *)
+                  printf '%s\n' "${candidate}"
+                  ;;
+              esac
+            done
+          )
+          if [ "${#shell_files[@]}" -eq 0 ]; then
+            echo 'shellcheck found no shell files to lint, which cannot be right' >&2
+            exit 1
+          fi
+          shellcheck -- "${shell_files[@]}"
 
   workflows:
     name: Workflow lint
