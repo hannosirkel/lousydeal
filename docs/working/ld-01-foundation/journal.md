@@ -2208,3 +2208,49 @@ credential at all. The boundary this row spends 2,719 lines asserting is now
 also enforced by GitHub, and by the pin on `build`'s steps. Three independent
 layers, which is the right number for the job that holds `packages: write` and
 produces every value the promotion consumes.
+
+### T12b postscript: the workflow could not run
+
+**`Release` fired on its own merge, exactly as the plan predicted, and
+`validate` failed in 30 seconds:**
+
+```text
+validate: missing required tools: lychee gitleaks
+```
+
+`release.yml`'s `validate` job ran `bash scripts/validate` without installing
+`lychee` or `gitleaks`. `validate.yml`'s `canonical` job has six steps; this one
+had four. **The job could never have passed.**
+
+`build` and `promote` were skipped, so **E1 and E2 did not happen** — nothing
+published, nothing written to the live overlay. The workflow failed closed. Its
+safety properties held; its liveness did not exist.
+
+**Five review passes and 278 mutations did not find this, and could not have.**
+Every one interrogated the parsed document — the row's own verification phrase,
+inherited from T12a, is *"against the parsed document"*. That phrase was written
+to stop a `grep` passing where a parser would fail, and it did that. **It says
+nothing about whether the document describes a job that can run.** A workflow can
+be perfectly well-formed, exhaustively pinned, and structurally sound in every
+credential dimension, and still abort on its fourth step.
+
+The pin made it worse in one narrow sense: `VALIDATE_STEPS` pinned four steps
+byte-for-byte, so the fixture recorded the defect as the intended state. **A
+fixture pins what is, not what should be.**
+
+The fix adds the two install steps, regenerates the fixture **from the workflow
+itself** rather than by hand, and adds the assertion that would have caught it:
+every job whose script runs `bash scripts/validate` must install each tool
+`scripts/validate` declares, with the list **read from `scripts/validate`** so
+that adding a tool there cannot leave a caller behind. `shellcheck` is on the
+runner image and `node`/`npm` arrive with `actions/setup-node`; everything else
+needs a step. Both the shipped defect and a partial version — only `gitleaks`
+removed — go red.
+
+**The orchestrator repeated the build's own recurring mistake while fixing it**:
+it read `grep`-filtered vitest output showing `95 passed`, and reported progress,
+when the suite had in fact failed to load at all on a `ReferenceError` for a
+helper that did not exist. The full output said `Test Files 1 failed`. **Reading
+a filtered view and concluding success is the same error as trusting an
+implementer's self-selected sample** — which this build had already recorded
+twice, about other agents.
