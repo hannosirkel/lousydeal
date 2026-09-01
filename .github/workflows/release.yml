@@ -1,0 +1,357 @@
+---
+name: Release
+
+# Promotes merged `main` into the live environment.
+#
+# **Once this file exists, every merge to `main` is a live deployment.** There
+# is no label, no second gate and no manual approval step: the merge is the
+# approval, and what is approved is a source revision rather than a digest.
+# The `live` GitHub Environment below scopes secrets to `promote` and records
+# deployments; it approves nothing itself -- reading it as a second gate
+# would be wrong. As of 2026-09-01, `gh api repos/hannosirkel/lousydeal/
+# environments/live` shows one protection rule, a deployment branch policy
+# (`custom_branch_policies: true`, one policy, `main`) restricting which
+# branch may deploy to this environment -- not who approves the deployment;
+# there are no required reviewers and no wait timer. A branch policy is a
+# restriction on *what*, not an approval gate on *whether*, so the
+# conclusion above still holds. This citation is of mutable state -- GitHub
+# environment protection rules, unlike a pinned commit SHA, can change
+# without this file changing, and did: an earlier version of this comment
+# cited `protection_rules: []` here, true when written and false by the time
+# it was read again. It now names the date it was read instead of asserting
+# the API response as a permanent fact -- re-read it before trusting it past
+# that date. That claim is only as good as what stands between "opened a
+# pull request" and "merged to main" -- named here because MAJOR 8 found
+# this file asserting it without citing it anywhere:
+# `hannosirkel/lousydeal` ruleset "main branch protection" (id 21687602,
+# `enforcement: active` as of 2026-09-01, the same mutability caveat as
+# above) targets `~DEFAULT_BRANCH` and requires `pull_request`
+# (`required_approving_review_count: 1`, dismiss-stale-review on push,
+# `bypass_actors: []`), `non_fast_forward`, `deletion` and
+# `required_status_checks` (Documentation, Shell, Workflow lint, Secret
+# scan, Canonical validation). `bypass_actors: []` -- nobody, no team, no
+# app is granted a bypass -- is the repository-wide fact worth citing here,
+# not the API's `current_user_can_bypass`, which answers "can the caller who
+# just asked bypass this" and would read differently depending on who asked.
+# That is what makes "the merge is the approval" true; it is enforced
+# outside this repository's files and nothing here can verify it stays
+# configured, only assert what it was found to be.
+# Live is rebuilt from merged `main` instead of re-tagging the digest the
+# test environment was approved on, so the two digests differ. That is only
+# acceptable because no per-environment value is ever baked into an image --
+# the same source produces an image that serves either environment, and the
+# locked dependency tree plus digest-pinned base images keep the rebuild
+# faithful.
+#
+# It shares `concurrency: lousydeal-gitops-promotion` with `deploy-test.yml`,
+# so a live promotion and a test promotion never write the `deploys`
+# repository at the same time.
+#
+# `push` to `main` has no untrusted head the way a pull request does: every
+# commit reaching this trigger already has write access behind it, so there is
+# no fork, no external contributor and nothing for a `gate`-style repository
+# check to filter. That removes the *reason* `deploy-test.yml` needs a
+# same-repository check and a re-verification step immediately before
+# spending the credential -- it does not remove the reason `promote` checks
+# out no `lousydeal` working tree: a compromised dependency or a bad merge is
+# still exactly as capable of reaching `main` as any other commit, and
+# `promote` runs beside a write token for `hannosirkel/deploys` regardless of
+# how the revision it acts on arrived. So the job split stays: `gate` checks
+# out no code and reads the guard by content, from the exact pushed SHA rather
+# than a mutable ref; `build` runs repository code but holds no GitOps
+# credential; `promote` holds the credential -- a GitHub App token minted for
+# `hannosirkel/deploys` alone -- checks out no `lousydeal` working tree, and
+# executes only the guard script, read by that same SHA, plus the `deploys`
+# repository's own manifest test, which arrived via `promote`'s one checkout
+# of `deploys` rather than from `lousydeal` at all. `scripts/workflows.test.ts`
+# asserts every one of those against the parsed document.
+
+'on':
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: lousydeal-gitops-promotion
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the pushed revision
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node
+        # actions/setup-node v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.18.1'
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run canonical validation
+        run: |
+          set -euo pipefail
+          bash scripts/validate
+
+  gate:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      guard: ${{ steps.verify.outputs.guard }}
+      source_sha: ${{ steps.verify.outputs.source_sha }}
+    steps:
+      - name: Read the digest guard from the pushed revision
+        id: verify
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          api='https://api.github.com'
+          headers=(
+            --header "Authorization: Bearer $GITHUB_TOKEN"
+            --header 'Accept: application/vnd.github+json'
+            --header 'X-GitHub-Api-Version: 2022-11-28'
+          )
+
+          printf '%s' "$SOURCE_SHA" | grep -Eq '^[0-9a-f]{40}$'
+
+          # Read rather than check out. The guard is the one file from this
+          # repository the credentialed job executes, and fetching it as bytes
+          # is what keeps that job free of a working tree it could run
+          # anything else from.
+          guard_response="$(curl --fail --silent --show-error "${headers[@]}" \
+            "${api}/repos/${REPOSITORY}/contents/scripts/update-gitops-digest.sh?ref=${SOURCE_SHA}")"
+          jq -e '
+            .type == "file" and
+            .encoding == "base64" and
+            (.content | type == "string")
+          ' >/dev/null <<<"$guard_response"
+          guard="$RUNNER_TEMP/update-gitops-digest.sh"
+          trap 'rm -f -- "$guard"' EXIT
+          jq -er '.content | gsub("\\n"; "")' <<<"$guard_response" \
+            | base64 --decode >"$guard"
+          grep -qx '#!/bin/sh' "$guard"
+          guard_content="$(base64 --wrap=0 "$guard")"
+
+          echo "source_sha=$SOURCE_SHA" >>"$GITHUB_OUTPUT"
+          echo "guard=$guard_content" >>"$GITHUB_OUTPUT"
+
+  build:
+    needs: [validate, gate]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      backend_digest: ${{ steps.build.outputs.backend_digest }}
+      storefront_digest: ${{ steps.build.outputs.storefront_digest }}
+    env:
+      SOURCE_SHA: ${{ needs.gate.outputs.source_sha }}
+    steps:
+      - name: Check out the validated revision
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.gate.outputs.source_sha }}
+          persist-credentials: false
+
+      - name: Set up the attestation-capable Buildx driver
+        # docker/setup-buildx-action v4.2.0
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+
+      - name: Authenticate to GHCR
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io \
+            --username "${GITHUB_ACTOR}" --password-stdin
+
+      - name: Build and publish both images
+        id: build
+        env:
+          BACKEND_IMAGE: ghcr.io/hannosirkel/lousydeal-backend
+          STOREFRONT_IMAGE: ghcr.io/hannosirkel/lousydeal-storefront
+          # `org.opencontainers.image.source` is what makes GitHub link a
+          # published package to this repository; an unlinked package is
+          # private on first push with nothing to inherit read access from.
+          # A `--label` on the shared `docker buildx build` invocation, not a
+          # Dockerfile `LABEL`: `publish()` builds both images through one
+          # function, so one flag here covers both.
+          SOURCE_URL: https://github.com/hannosirkel/lousydeal
+        run: |
+          set -euo pipefail
+          publish() {
+            image="$1"
+            dockerfile="$2"
+            output="$3"
+            metadata="$RUNNER_TEMP/${output}.json"
+            docker buildx build --platform linux/amd64 \
+              --provenance=mode=min --sbom=true \
+              --label "org.opencontainers.image.source=$SOURCE_URL" \
+              --file "$dockerfile" \
+              --tag "${image}:sha-${SOURCE_SHA}" \
+              --push --metadata-file "$metadata" .
+            digest="$(jq -er '."containerimage.digest"' "$metadata")"
+            # The digest guard: what a promotion is allowed to carry forward
+            # is a content digest, never a floating tag. This is the one
+            # place that value is produced, so it is the one place refusing a
+            # malformed value stops it from ever reaching `promote`.
+            printf '%s' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'
+            echo "${output}=$digest" >>"$GITHUB_OUTPUT"
+          }
+          publish "$BACKEND_IMAGE" backend/Dockerfile backend_digest
+          publish "$STOREFRONT_IMAGE" storefront/Dockerfile storefront_digest
+
+      - name: Scan the published backend digest
+        # aquasecurity/trivy-action v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ghcr.io/hannosirkel/lousydeal-backend@${{ steps.build.outputs.backend_digest }}
+          format: json
+          output: trivy-backend.json
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL
+          scanners: vuln
+          version: v0.70.0
+
+      - name: Scan the published storefront digest
+        # aquasecurity/trivy-action v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ghcr.io/hannosirkel/lousydeal-storefront@${{ steps.build.outputs.storefront_digest }}
+          format: json
+          output: trivy-storefront.json
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL
+          scanners: vuln
+          version: v0.70.0
+
+      - name: Retain the vulnerability reports
+        if: ${{ always() && hashFiles('trivy-backend.json', 'trivy-storefront.json') != '' }}
+        # actions/upload-artifact v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: trivy-live-${{ needs.gate.outputs.source_sha }}
+          path: |
+            trivy-backend.json
+            trivy-storefront.json
+          if-no-files-found: error
+          retention-days: 7
+
+  promote:
+    needs: [validate, gate, build]
+    runs-on: ubuntu-24.04
+    environment: live
+    permissions: {}
+    env:
+      BACKEND_DIGEST: ${{ needs.build.outputs.backend_digest }}
+      STOREFRONT_DIGEST: ${{ needs.build.outputs.storefront_digest }}
+      SOURCE_SHA: ${{ needs.gate.outputs.source_sha }}
+    steps:
+      - name: Mint repository-scoped GitHub App token
+        id: app-token
+        env:
+          APP_CLIENT_ID: ${{ secrets.LOUSYDEAL_DEPLOYER_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.LOUSYDEAL_DEPLOYER_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key="$RUNNER_TEMP/lousydeal-deployer.pem"
+          trap 'rm -f -- "$key"' EXIT
+          printf '%s' "$APP_PRIVATE_KEY" >"$key"
+
+          b64url() {
+            openssl base64 -A | tr '+/' '-_' | tr -d '='
+          }
+          now="$(date +%s)"
+          header="$(printf '%s' '{"alg":"RS256","typ":"JWT"}' | b64url)"
+          payload="$(jq -cn --arg iss "$APP_CLIENT_ID" \
+            --argjson iat "$((now - 60))" --argjson exp "$((now + 540))" \
+            '{iat:$iat,exp:$exp,iss:$iss}' | b64url)"
+          unsigned="${header}.${payload}"
+          signature="$(printf '%s' "$unsigned" \
+            | openssl dgst -sha256 -sign "$key" -binary | b64url)"
+          jwt="${unsigned}.${signature}"
+          github_api=https://api.github.com
+          repository=hannosirkel/deploys
+
+          installation_id="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $jwt" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "${github_api}/repos/${repository}/installation" \
+            | jq -er '.id')"
+          token="$(curl --fail --silent --show-error --request POST \
+            --header "Authorization: Bearer $jwt" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --header 'Content-Type: application/json' \
+            --data '{"repositories":["deploys"]}' \
+            "${github_api}/app/installations/${installation_id}/access_tokens" \
+            | jq -er '.token')"
+          echo "::add-mask::$token"
+          echo "token=$token" >>"$GITHUB_OUTPUT"
+
+      - name: Check out only the GitOps state
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: hannosirkel/deploys
+          token: ${{ steps.app-token.outputs.token }}
+          path: gitops
+          persist-credentials: false
+
+      - name: Apply the exact live image digests
+        env:
+          GUARD_CONTENT: ${{ needs.gate.outputs.guard }}
+        run: |
+          set -euo pipefail
+          guard="$RUNNER_TEMP/update-gitops-digest.sh"
+          printf '%s' "$GUARD_CONTENT" | base64 --decode >"$guard"
+          chmod 0700 "$guard"
+          "$guard" "$BACKEND_DIGEST" "$STOREFRONT_DIGEST" "$GITHUB_WORKSPACE/gitops/lousydeal/overlays/live"
+
+      - name: Commit and push the GitOps update
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+        working-directory: gitops
+        run: |
+          set -euo pipefail
+          git config user.name 'lousydeal-deployer[bot]'
+          git config user.email \
+            'lousydeal-deployer[bot]@users.noreply.github.com'
+          bash lousydeal/tests/manifests.sh
+          kubectl kustomize lousydeal/overlays/live >/dev/null
+          kubectl kustomize lousydeal/overlays/test >/dev/null
+          git diff --check
+          git add lousydeal/overlays/live/kustomization.yaml
+          staged="$(git diff --cached --name-only)"
+          if [ -z "$staged" ]; then
+            echo 'live overlay already records both digests: nothing to promote'
+            exit 0
+          fi
+          [ "$staged" = 'lousydeal/overlays/live/kustomization.yaml' ]
+          git diff --cached --check
+          git commit -m \
+            "deploy(live): ${SOURCE_SHA} ${BACKEND_DIGEST} ${STOREFRONT_DIGEST}"
+          git push "https://x-access-token:${APP_TOKEN}@github.com/hannosirkel/deploys.git" \
+            HEAD:main

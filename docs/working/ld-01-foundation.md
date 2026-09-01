@@ -624,7 +624,7 @@ the `Documentation` job can be removed.
       with the three-job split: the job that runs head code holds no
       credential, the job that holds the credential runs no head code. Verified
       by a test asserting each of those against the parsed document.
-- [ ] Add `Release`, which validates, builds, scans and writes both digests
+- [x] Add `Release`, which validates, builds, scans and writes both digests
       into the live overlay on merge to `main`. Verified by a test asserting
       the promotion writes a digest matching `^sha256:[0-9a-f]{64}$` and never
       a tag.
