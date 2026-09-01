@@ -1871,3 +1871,95 @@ matched nothing.
 no test exercises the Medusa target, and that the seam is stubbed *"without
 mocking a Medusa container"*. Both were true until this commit added a suite
 doing both. Constraint 9 turned inward.
+
+## 2026-08-31 — T13, the first row outside this repository
+
+`deploys` PRs **#30** (T13a, 1,847 lines, 17 files) and **#31** (T13b, 303 lines,
+3 files). Both overlays render and pass `kubeconform -strict` at **25 resources**
+each. The work is in `deploys`; the record is here, as T2a's was for
+`architecture`.
+
+**Effect gate E3 was approved after establishing it was not what its name
+says.** The gate reads *"first write to `deploys/lousydeal/overlays`"*, which
+sounds like a deployment. It is not: `orange` defines Argo CD Applications for
+`plepic` and `servitium` only, and **nothing points at `lousydeal`**. The
+manifests are files in a repository, checked by CI, watched by nothing. The gate
+that starts workloads is E5, at T14a/T15a. **Asking what a gate actually does,
+before asking for it, is the cheap half of the work.**
+
+**A size override was requested before writing rather than after.** The
+reference's equivalent is 1,742 lines, so the cap was going to be exceeded
+whatever happened. Reported estimate: ~1,300–1,600 lines, ~13 files. **Actual:
+1,847 and 17.** Both over what was quoted.
+
+## What the row established
+
+**The backend has no route from outside the cluster.** Not merely no hostname —
+no route. Its Service is `ClusterIP` with no `externalIPs`, and
+`allow-backend-ingress` admits only the storefront pod selector, deliberately
+unlike the reference, which puts an `externalIP` on its own backend and admits an
+administrative CIDR. Review tried **ten routes** and **sixteen traversal shapes**
+through the storefront's real proxy resolver. None reached port 9000.
+
+**The predeploy chain needs no egress**, proven by running it to completion on a
+podman `--internal` network with no DNS and no route to 443 — not by reading
+imports. **Ten** module-migration mounts, not the reference's eleven, and
+dropping one fails with `ENOENT` on a clean database, so the set discriminates.
+
+## The finding that lives between two repositories
+
+Orange renders the Argo `Application` with `replace /spec/ingress/0/from` for
+**both** services. The reference survives that because its
+`allow-backend-ingress` has **two** rules with the CIDR at index 0. **This one
+has a single rule whose index 0 *is* the storefront pod selector** — so the same
+patch would delete the storefront's only path and substitute a private CIDR onto
+port 9000, exactly what the rule exists to withhold.
+
+**Neither repository can catch it.** `tests/manifests.sh` renders
+`kubectl kustomize`, which never observes Application-level patches; Orange's
+template does not know what shape it is patching. **The defect lives entirely in
+the seam**, and only reading the Jinja template exposes it. Recorded where T15
+will read it — and deliberately *not* fixed by adding a second rule, since a
+placeholder `ipBlock` would be an ingress path this row exists to withhold.
+
+## T13b: a checkbox that could not verify itself
+
+Its stated check is `grep -c Probe` returning non-zero — **satisfied by the word
+`Probe` in a comment.** So the row measured instead.
+
+A worker-mode process **does** bind 9000 and answer `/health` 200, while `/app`
+answers **404**. A control flipping only `MEDUSA_WORKER_MODE` to `server` serves
+the Admin bundle at 200, so the absence is **structural**: `loadEntrypoints`
+returns before the admin loader and the API router whenever `isWorkerMode` is
+true.
+
+**The liveness probe is defensible *because* `/health` is narrow.** Redis down
+and PostgreSQL down both leave it at 200, so a dependency outage cannot restart
+the worker into the preflight refusal that would crash-loop it. It is not
+vacuous either: `SIGSTOP` leaves the container `Up` and silent while the endpoint
+stops answering — the one failure nothing else catches. `SIGKILL` takes the
+container down by itself, so the "crashed process" half was free.
+
+**And the property the row established was guarded by nothing.** One line sets
+`MEDUSA_WORKER_MODE: worker`; the default without it is `shared`, which is not
+worker mode. **Deleting a line publishes the Medusa Admin** — measured — while
+every assertion passed. The test had been written *specifically* to assert
+measured shape rather than key presence, and still missed the line the property
+depends on. **Measuring something and guarding it are different acts, and doing
+the first well makes it easy to believe you have done the second.**
+
+## Citations
+
+**T13a shipped five citations to a file that does not exist** —
+`scripts/update-gitops-digest.sh` in this repository, which T12 creates and T12
+runs *after* T13 — while the report claimed to have read it in full. The shape
+was right and was checked against the real consumer in the reference; the
+**provenance** was invented. A sixth instance was found by the fixer, in a place
+the brief had not named, and it caught that its own replacement citation was
+ambiguous inside `deploys`.
+
+One measurement was likewise attributed to an image built at the row's HEAD when
+the only image on the host predates it and **fails** the chain.
+
+**T13b then corrected six line numbers that had drifted, including one in the
+orchestrator's own brief.** A citation ages even when the file does not move.
