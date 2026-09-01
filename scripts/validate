@@ -94,10 +94,44 @@ if [ "$lowest" != "$required_node" ]; then
   exit 2
 fi
 
-# Shell hides: *.sh, anything with a bash shebang, anything a workflow runs as
-# `bash <file>`. The standard names all three.
+# Every shell file this repository owns, gated by `shellcheck`.
+#
+# **The set is derived, not listed.** Shell does not announce itself here: it
+# is `scripts/`, a Git hook, and (from T12b) the guard a promotion decodes and
+# runs, and a listed set is one script away from being wrong and silent about
+# it -- appending one path per row is exactly how `scripts/update-gitops-digest.sh`
+# and `scripts/store-smoke` would have landed unlinted. Matched by name
+# (`*.sh`, `*.bats`) or by a tracked file's own shebang.
+#
+# `[ -f ]`, not `[ -x ]`: a tracked shell script committed without the
+# executable bit set still has a shebang, and `deploys` gates on file
+# existence for exactly that reason (`.github/workflows/validate.yml:104`).
+# `-x` would pass it by silently -- a real gap this repository does not carry
+# today, but T17's `scripts/store-smoke` will, the moment it is committed at
+# `0644`.
+mapfile -t shell_files < <(
+  git ls-files | while IFS= read -r candidate; do
+    case "${candidate}" in
+      *.sh | *.bats)
+        printf '%s\n' "${candidate}"
+        continue
+        ;;
+    esac
+    [ -f "${candidate}" ] || continue
+    IFS= read -r shebang <"${candidate}" || shebang=''
+    case "${shebang}" in
+      '#!'*[\ /]bash* | '#!'*[\ /]sh | '#!'*[\ /]sh\ *)
+        printf '%s\n' "${candidate}"
+        ;;
+    esac
+  done
+)
+if [ "${#shell_files[@]}" -eq 0 ]; then
+  echo 'validate: shellcheck found no shell files to lint, which cannot be right' >&2
+  exit 1
+fi
 echo "==> shellcheck"
-shellcheck scripts/validate .githooks/pre-commit
+shellcheck -- "${shell_files[@]}"
 
 echo "==> markdownlint"
 # By explicit path, not by name: node_modules/.bin is not on PATH, so a bare

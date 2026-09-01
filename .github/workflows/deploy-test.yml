@@ -1,0 +1,365 @@
+---
+name: Deploy Test
+
+# Promotes one pull request's head revision into the test environment.
+#
+# This is a `pull_request_target` workflow: `pull_request_target` fires with
+# the base repository's token and secrets for any pull request, fork-authored
+# ones included, and does not distinguish between them at the trigger. `gate`
+# is what does: it refuses any head whose repository is not this one
+# (`[ "$HEAD_REPOSITORY" = "$REPOSITORY" ]`), so nothing downstream of `gate`
+# ever runs against a fork's pull request at all -- the posture is stronger
+# than "trusts nothing the head could carry", because a fork's head never
+# reaches `build` or `promote` to be distrusted in the first place. What
+# remains defended against is a pull request from a branch of this same
+# repository, whose author already holds write access here. `gate` checks out
+# no code at all and reads the digest guard from the **base** SHA; `build`
+# checks out head code but holds no GitOps credential; `promote` holds the
+# credential, re-verifies the pull request immediately before spending it, and
+# never checks out the head revision -- only the GitOps repository, by the
+# GitHub App token it mints for itself.
+#
+# `scripts/workflows.test.ts` asserts both halves of that split against the
+# parsed document, not by reading this file.
+
+'on':
+  # zizmor: ignore[dangerous-triggers] reviewed design, not an oversight: the
+  # `gate` job verifies trusted pull-request metadata before `build` ever
+  # checks out the head revision, and that checkout is by pinned SHA. See
+  # standards/security.md.
+  pull_request_target:
+    branches:
+      - main
+    types: [labeled]
+
+concurrency:
+  group: lousydeal-gitops-promotion
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  gate:
+    if: >-
+      github.event.label.name == 'deploy-test' &&
+      github.event.pull_request.state == 'open'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    outputs:
+      guard: ${{ steps.verify.outputs.guard }}
+      head_sha: ${{ steps.verify.outputs.head_sha }}
+      pr_number: ${{ steps.verify.outputs.pr_number }}
+    steps:
+      - name: Verify trusted pull request metadata and validation
+        id: verify
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          api='https://api.github.com'
+          headers=(
+            --header "Authorization: Bearer $GITHUB_TOKEN"
+            --header 'Accept: application/vnd.github+json'
+            --header 'X-GitHub-Api-Version: 2022-11-28'
+          )
+
+          printf '%s' "$HEAD_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          printf '%s' "$BASE_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          printf '%s' "$PR_NUMBER" | grep -Eq '^[1-9][0-9]*$'
+          [ "$BASE_REF" = main ]
+          [ "$HEAD_REPOSITORY" = "$REPOSITORY" ]
+
+          pull_request="$(curl --fail --silent --show-error "${headers[@]}" \
+            "${api}/repos/${REPOSITORY}/pulls/${PR_NUMBER}")"
+          jq -e --arg base_sha "$BASE_SHA" --arg head_sha "$HEAD_SHA" \
+            --arg repository "$REPOSITORY" '
+            .state == "open" and
+            .base.ref == "main" and
+            .base.sha == $base_sha and
+            .head.repo.full_name == $repository and
+            .head.sha == $head_sha
+          ' >/dev/null <<<"$pull_request"
+
+          # scripts/update-gitops-digest.sh does not exist on this branch yet
+          # -- it is a separate row's file -- so this fetch fails until that
+          # row merges. Reading it from the base SHA (never the head SHA) is
+          # what keeps the script itself out of the pull request's control;
+          # `promote` never fetches or checks out anything from the head.
+          guard_response="$(curl --fail --silent --show-error "${headers[@]}" \
+            "${api}/repos/${REPOSITORY}/contents/scripts/update-gitops-digest.sh?ref=${BASE_SHA}")"
+          jq -e '
+            .type == "file" and
+            .encoding == "base64" and
+            (.content | type == "string")
+          ' >/dev/null <<<"$guard_response"
+          guard="$RUNNER_TEMP/update-gitops-digest.sh"
+          trap 'rm -f -- "$guard"' EXIT
+          jq -er '.content | gsub("\\n"; "")' <<<"$guard_response" \
+            | base64 --decode >"$guard"
+          grep -qx '#!/bin/sh' "$guard"
+          guard_content="$(base64 --wrap=0 "$guard")"
+
+          for _ in $(seq 1 30); do
+            runs="$(curl --fail --silent --show-error "${headers[@]}" \
+              "${api}/repos/${REPOSITORY}/actions/runs?event=pull_request&status=completed&head_sha=${HEAD_SHA}&per_page=100")"
+            conclusion="$(jq -er --arg head_sha "$HEAD_SHA" '
+              [.workflow_runs[] |
+                select(.name == "Validate" and .head_sha == $head_sha and .status == "completed") |
+                .conclusion
+              ] | first // empty
+            ' <<<"$runs" || true)"
+            if [ -n "$conclusion" ]; then
+              [ "$conclusion" = success ]
+              break
+            fi
+            sleep 10
+          done
+          [ -n "${conclusion:-}" ]
+
+          echo "head_sha=$HEAD_SHA" >>"$GITHUB_OUTPUT"
+          echo "pr_number=$PR_NUMBER" >>"$GITHUB_OUTPUT"
+          echo "guard=$guard_content" >>"$GITHUB_OUTPUT"
+
+  build:
+    needs: gate
+    runs-on: ubuntu-24.04
+    # `packages: write` scopes `github.token` to this repository's own GHCR
+    # packages, but scope is not the reason this job may hold it while running
+    # the pull request's own head code. Two facts carry that:
+    #
+    # 1. BuildKit gives head-authored `RUN` instructions no path to the
+    #    credential in the Docker credential store -- the head's only
+    #    execution happens inside build containers, which are handed no
+    #    registry credential at all. `docker login` runs on the runner, before
+    #    `docker buildx build` starts, not inside anything the Dockerfile
+    #    controls.
+    # 2. `gate` refuses any head whose repository is not `$REPOSITORY`
+    #    (`[ "$HEAD_REPOSITORY" = "$REPOSITORY" ]`, line 72, and again in the
+    #    jq filter) -- so there is no outside contributor on this path at all.
+    #    The head author already holds write access to this repository; a
+    #    fork's pull request never reaches `build`.
+    #
+    # Also load-bearing, independent of both: both overlays pin `digest:
+    # sha256:…`, never a tag, and a content-addressed digest cannot be
+    # overwritten by a later push. The `--tag` this job pushes under is
+    # `pr-${PR_NUMBER}-sha-${HEAD_SHA}`, base-controlled and unique per head
+    # SHA, so it cannot clobber a tag anything else resolves.
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      backend_digest: ${{ steps.build.outputs.backend_digest }}
+      storefront_digest: ${{ steps.build.outputs.storefront_digest }}
+    env:
+      HEAD_SHA: ${{ needs.gate.outputs.head_sha }}
+      PR_NUMBER: ${{ needs.gate.outputs.pr_number }}
+    steps:
+      - name: Check out the validated revision
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.gate.outputs.head_sha }}
+          persist-credentials: false
+
+      - name: Set up the attestation-capable Buildx driver
+        # docker/setup-buildx-action v4.2.0
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+
+      - name: Authenticate to GHCR
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io \
+            --username "${GITHUB_ACTOR}" --password-stdin
+
+      - name: Build and publish both validated images
+        id: build
+        env:
+          BACKEND_IMAGE: ghcr.io/hannosirkel/lousydeal-backend
+          STOREFRONT_IMAGE: ghcr.io/hannosirkel/lousydeal-storefront
+          # `org.opencontainers.image.source` is what makes GitHub link a
+          # published package to this repository; an unlinked package is
+          # private with nothing to inherit read access from, which is an
+          # `ImagePullBackOff` on the cluster's first pull. GHCR creates the
+          # package on its **first** push, and this job -- labelled on a
+          # pull request -- is ordinarily that first push, so the label has
+          # to be here rather than deferred to a later, merge-time publish.
+          # A `--label` on the shared `docker buildx build` invocation, not a
+          # Dockerfile `LABEL`: `publish()` below builds both images through
+          # one function, so one flag here covers both, where a Dockerfile
+          # `LABEL` would need writing (and keeping correct) in both files.
+          SOURCE_URL: https://github.com/hannosirkel/lousydeal
+        run: |
+          set -euo pipefail
+          publish() {
+            image="$1"
+            dockerfile="$2"
+            output="$3"
+            metadata="$RUNNER_TEMP/${output}.json"
+            docker buildx build --platform linux/amd64 \
+              --provenance=mode=min --sbom=true \
+              --label "org.opencontainers.image.source=$SOURCE_URL" \
+              --file "$dockerfile" \
+              --tag "${image}:pr-${PR_NUMBER}-sha-${HEAD_SHA}" \
+              --push --metadata-file "$metadata" .
+            digest="$(jq -er '."containerimage.digest"' "$metadata")"
+            # The digest guard: what a promotion is allowed to carry forward
+            # is a content digest, never a floating tag. This is the one
+            # place that value is produced, so it is the one place refusing
+            # a malformed value stops it from ever reaching `promote`.
+            printf '%s' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'
+            echo "${output}=$digest" >>"$GITHUB_OUTPUT"
+          }
+          publish "$BACKEND_IMAGE" backend/Dockerfile backend_digest
+          publish "$STOREFRONT_IMAGE" storefront/Dockerfile storefront_digest
+
+  promote:
+    needs: [gate, build]
+    runs-on: ubuntu-24.04
+    environment: test
+    # `pull-requests: read` is here, not `{}`, because the leading step below
+    # re-reads the pull request's state before the job mints or spends
+    # anything -- folding what the reference implementation runs as a fourth
+    # job (`recheck`) into this job's first step instead. It still runs before
+    # any credential exists in this job, so it changes nothing about which job
+    # may run head code.
+    #
+    # The fold has a trade-off with an edge in each direction, and only one of
+    # them is free. Shrinking `recheck` to a step shrinks the gap between
+    # "re-verified" and "credential minted" to zero rather than one
+    # job-scheduling boundary -- strictly better. But with `recheck` as its
+    # own job, `promote` would `need` it, so this `environment: test`'s
+    # protection rules -- were any configured -- would be evaluated only after
+    # the re-check had already passed. Folded in, `promote` *starts* as soon
+    # as `gate` and `build` succeed, and environment approval is evaluated at
+    # job start, before any step runs -- so an approver would be approving a
+    # promotion whose promotability has not been re-checked yet, and the
+    # re-check only happens a moment later, still ahead of any credential.
+    # Today's impact is nil: `hannosirkel/lousydeal` declares no `test`
+    # environment yet (`gh api repos/hannosirkel/lousydeal/environments`
+    # returns zero), so there are no protection rules to evaluate at all. It
+    # would matter the day one is added with required reviewers.
+    permissions:
+      pull-requests: read
+    env:
+      BACKEND_DIGEST: ${{ needs.build.outputs.backend_digest }}
+      STOREFRONT_DIGEST: ${{ needs.build.outputs.storefront_digest }}
+      HEAD_SHA: ${{ needs.gate.outputs.head_sha }}
+      PR_NUMBER: ${{ needs.gate.outputs.pr_number }}
+    steps:
+      - name: Re-verify the pull request remains promotable
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          pull_request="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${REPOSITORY}/pulls/${PR_NUMBER}")"
+          jq -e --arg repository "$REPOSITORY" --arg head_sha "$HEAD_SHA" '
+            .state == "open" and
+            .head.repo.full_name == $repository and
+            .head.sha == $head_sha and
+            any(.labels[]; .name == "deploy-test")
+          ' >/dev/null <<<"$pull_request"
+
+      - name: Mint repository-scoped GitHub App token
+        id: app-token
+        env:
+          APP_CLIENT_ID: ${{ secrets.LOUSYDEAL_DEPLOYER_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.LOUSYDEAL_DEPLOYER_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key="$RUNNER_TEMP/lousydeal-deployer.pem"
+          trap 'rm -f -- "$key"' EXIT
+          printf '%s' "$APP_PRIVATE_KEY" >"$key"
+
+          b64url() {
+            openssl base64 -A | tr '+/' '-_' | tr -d '='
+          }
+          now="$(date +%s)"
+          header="$(printf '%s' '{"alg":"RS256","typ":"JWT"}' | b64url)"
+          payload="$(jq -cn --arg iss "$APP_CLIENT_ID" \
+            --argjson iat "$((now - 60))" --argjson exp "$((now + 540))" \
+            '{iat:$iat,exp:$exp,iss:$iss}' | b64url)"
+          unsigned="${header}.${payload}"
+          signature="$(printf '%s' "$unsigned" \
+            | openssl dgst -sha256 -sign "$key" -binary | b64url)"
+          jwt="${unsigned}.${signature}"
+          github_api=https://api.github.com
+          repository=hannosirkel/deploys
+
+          installation_id="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $jwt" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "${github_api}/repos/${repository}/installation" \
+            | jq -er '.id')"
+          token="$(curl --fail --silent --show-error --request POST \
+            --header "Authorization: Bearer $jwt" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --header 'Content-Type: application/json' \
+            --data '{"repositories":["deploys"]}' \
+            "${github_api}/app/installations/${installation_id}/access_tokens" \
+            | jq -er '.token')"
+          echo "::add-mask::$token"
+          echo "token=$token" >>"$GITHUB_OUTPUT"
+
+      - name: Check out only the GitOps state
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: hannosirkel/deploys
+          token: ${{ steps.app-token.outputs.token }}
+          path: gitops
+          persist-credentials: false
+
+      - name: Apply the exact test image digests
+        env:
+          GUARD_CONTENT: ${{ needs.gate.outputs.guard }}
+        run: |
+          set -euo pipefail
+          guard="$RUNNER_TEMP/update-gitops-digest.sh"
+          printf '%s' "$GUARD_CONTENT" | base64 --decode >"$guard"
+          chmod 0700 "$guard"
+          "$guard" "$BACKEND_DIGEST" "$STOREFRONT_DIGEST" "$GITHUB_WORKSPACE/gitops/lousydeal/overlays/test"
+
+      - name: Commit and push the GitOps update
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+        working-directory: gitops
+        run: |
+          set -euo pipefail
+          git config user.name 'lousydeal-deployer[bot]'
+          git config user.email \
+            'lousydeal-deployer[bot]@users.noreply.github.com'
+          bash lousydeal/tests/manifests.sh
+          kubectl kustomize lousydeal/overlays/live >/dev/null
+          kubectl kustomize lousydeal/overlays/test >/dev/null
+          git diff --check
+          git add lousydeal/overlays/test/kustomization.yaml
+          staged="$(git diff --cached --name-only)"
+          if [ -z "$staged" ]; then
+            echo 'test overlay already records both digests: nothing to promote'
+            exit 0
+          fi
+          [ "$staged" = 'lousydeal/overlays/test/kustomization.yaml' ]
+          git diff --cached --check
+          git commit -m \
+            "deploy(test): PR #${PR_NUMBER} ${HEAD_SHA} ${BACKEND_DIGEST} ${STOREFRONT_DIGEST}"
+          git push "https://x-access-token:${APP_TOKEN}@github.com/hannosirkel/deploys.git" \
+            HEAD:main

@@ -1963,3 +1963,131 @@ the only image on the host predates it and **fails** the chain.
 
 **T13b then corrected six line numbers that had drifted, including one in the
 orchestrator's own brief.** A citation ages even when the file does not move.
+
+## T12a: the test promotion
+
+`.github/workflows/deploy-test.yml`, `scripts/yaml-subset.ts`,
+`scripts/workflows.test.ts`, `scripts/validate`,
+`.github/workflows/validate.yml`. 1,892 insertions across five files, under a
+named operator override — the bound is 800.
+
+### The workflow was right and the test file was not
+
+The row's property is two-sided: the job that runs head code holds no
+credential, the job that holds the credential runs no head code. The
+implementation got the workflow close to correct on the first pass. The review
+applied **26 mutations to the workflow and 12 to the parser, and 14 passed.**
+
+Almost every survivor was an assertion checking a spelling instead of a
+property:
+
+- the credential check was `not.toMatch(/LOUSYDEAL_DEPLOYER_/)`, so
+  `secrets.SOME_OTHER_DEPLOY_KEY` walked into the head-code job;
+- it read job scalars only, so a workflow-level `env:` inherited by every job
+  was structurally invisible;
+- it examined **steps**, under a comment claiming it examined "all three of the
+  ways head code could arrive", so `promote` could be handed a head-built image
+  as a job `container:` — the App-token mint and the `git push` executing inside
+  an image built from the pull request's own Dockerfile, with every test green;
+- the remote-code check was a four-entry blacklist matching `curl … | sh`, so
+  `wget … && sh`, `bash <(curl …)`, and download-chmod-execute all passed;
+- the re-verification was pinned by *position* and by the *text* of its jq
+  filter, and by nothing that required it to be able to fail. Dropping `-e` from
+  `jq` makes it print `false` and exit 0. Five separate neuterings passed, in
+  both `gate` and `promote`.
+
+**A test can assert the shape of a guard and still not assert that the guard
+guards.** T13b recorded the same lesson one row earlier from the other
+direction: it measured a property carefully and left the line the property
+depended on unasserted. Here the assertions existed and named the right
+subjects; they matched on names and positions rather than on the reachability
+they claimed to establish.
+
+### The blacklist is the shape to distrust
+
+The same file got this right and wrong in adjacent blocks. Its `git` check is an
+allowlist and survived every mutation. Its download check was a blacklist and
+survived none of three. **A blacklist of ways to fetch and run code cannot be
+completed**, and the fix inverted it.
+
+### The parser was ported without its tests
+
+`scripts/yaml-subset.ts` is byte-identical to the reference's 265 lines — the
+right call, since a trimmed parser is a parser whose untested branches are
+unknown. But the reference's `yaml-subset.test.ts` (154 lines, 13 cases) was
+**not** ported; six cases were written in its place. Five parser mutations
+survived, two of which made `mapping()` and `sequence()` **silently drop**
+deeper-indented content rather than refuse it — the exact behaviour the file's
+own header comment says those throws exist to prevent, and the one that makes
+every assertion above the parser vacuous rather than wrong.
+
+**Porting an implementation and not its tests imports the code and leaves the
+evidence behind.**
+
+### Citations, again
+
+`scripts/workflows.test.ts` cited `scripts/images.test.ts` as guaranteeing
+`WORKDIR /app`. It guarantees `USER 10001:10001` and a cleared `ENTRYPOINT`
+(`images.test.ts:334-343`), and nothing about `WORKDIR` — the only occurrence of
+the string under `scripts/` was the sentence claiming it was asserted. A comment
+in `deploy-test.yml` pointed at "`promote`'s equivalent comment", which does not
+exist; the reasoning it referred to had been deleted, leaving 73 lines of test
+enforcing a property nothing explained.
+
+**Two of the orchestrator's own steers were wrong and the reviewer corrected
+both.** The brief asserted the reference holds `packages: write` only under
+`push`; `plepic/.github/workflows/deploy-test.yml:115-120` holds it under
+`pull_request_target`, which was the load-bearing claim in the steer. The brief
+also expected `deploys/lousydeal` might be absent; it is on `origin/main`. The
+implementer had reported the same thing from a stale clone. **A briefing is a
+claim like any other, and it ages the same way.**
+
+### The `packages: write` exemption
+
+`build` runs head code and holds `packages: write`. The row says that job holds
+no credential. The exemption is sound, but the comment argued it from **scope** —
+cannot read `secrets.*`, cannot write `deploys`, scoped to this run — and every
+clause was true while none was why the job is safe. What carries it: BuildKit
+gives head-authored `RUN` instructions no path to the credential store, and
+`gate` refuses any head not from this repository, so the head author already
+holds repository write. Both overlays pin digests and no tag, and a
+content-addressed digest cannot be overwritten.
+
+The header had the threat model backwards in the other direction, describing "an
+outside contributor" whose fork `gate` in fact refuses outright. **Stating the
+posture correctly is what makes the exemption defensible; overstating the threat
+made the argument weaker, not safer.**
+
+### What this row does not do
+
+`Deploy Test` cannot promote today, and nothing claims it can. `gate` reads
+`scripts/update-gitops-digest.sh` from the base SHA and that file arrives with
+T12b. `lousydeal` has **zero** GitHub environments, so `environment: test` and
+both deployer secrets do not exist. And `hannosirkel/deploys` carries an active
+ruleset on its default branch with four required status checks and two bypass
+Integrations; `/apps/lousydeal-deployer` is 404 while `/apps/plepic-deployer` is
+403, so the App must be created **and added as a bypass actor** or the push is
+rejected. Each of these fails loudly. **T12b's prerequisite is operator-side and
+is recorded here because no row creates it.**
+
+### Two repairs, and the one that was still wrong
+
+The shell gate is now derived from `git ls-files` by name and shebang, and
+resolves today to exactly the two paths the hardcoded line named. The first
+derivation used `[ -x ]`, which misses a tracked mode-0644 script — measured
+with an extensionless `#!/bin/sh` probe, absent at 0644 and present at 0755 —
+while the comment claimed it closed exactly that gap for T17's
+`scripts/store-smoke`, which has no extension. `deploys` uses `[ -f ]`. Matched.
+
+`lychee` ran twice per pull request. The `Documentation` job's action is gone;
+`scripts/validate:137` is the only invocation, byte-identical to the deleted
+step's arguments.
+
+### Verification
+
+84 tests in the `repo` project, 301 in the full suite, `validate` clean. Five
+mutations were re-applied independently by the orchestrator after the fix pass —
+`services:` on `promote`, an arbitrary secret in `build`, a workflow-level `env:`
+carrying the deployer key, `jq -e` → `jq` in `promote`, and `mapping()`'s
+indentation throw turned into a silent skip — and all five went red, with the
+parser restored byte-identical to the reference afterwards.
