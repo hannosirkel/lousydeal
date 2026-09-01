@@ -2091,3 +2091,120 @@ mutations were re-applied independently by the orchestrator after the fix pass �
 carrying the deployer key, `jq -e` → `jq` in `promote`, and `mapping()`'s
 indentation throw turned into a silent skip — and all five went red, with the
 parser restored byte-identical to the reference afterwards.
+
+## T12b: five reviews, one defect
+
+`.github/workflows/release.yml`, `scripts/update-gitops-digest.sh`,
+`scripts/update-gitops-digest.test.ts`, `scripts/workflows.test.ts`. 4,130
+insertions across four files, under a named operator override — the bound is
+800. Five review passes, six fix passes.
+
+### The same defect, five times
+
+| pass | applied / survived | what defeated everything |
+| --- | --- | --- |
+| 1 | 40 / 24 | `wget … && sh` where the check named `curl … \| sh` |
+| 2 | 135 / 74 | `SECRETS.` where the check named `secrets.` |
+| 3 | 51 / 35 | `>>$GITHUB_OUTPUT` where the check named `>>"$GITHUB_OUTPUT"` |
+| 4 | 21 / 15 | `"images":` where the check compared bytes to `images:` |
+| 5 | 31 / 10 | `images: [{…}]` where the check required the line to end at the colon |
+
+**Every one is the same mistake: an enumerated set of spellings standing in for
+a set.** Each fix closed the spellings it was shown. Each next review found the
+next one. The count fell only when the instruction changed from *"fix these"* to
+*"close every set, and compare by meaning"*.
+
+Pass 3's control is the cleanest statement of it. A `trap` forging both digest
+outputs **survived** written `>>$GITHUB_OUTPUT` and **was caught** written
+`>>"$GITHUB_OUTPUT"` — the same semantic mutation, passing or failing on a quote
+character.
+
+### What actually worked
+
+**Pinning, not banning.** `validate`, `gate`, `build` and `promote` are pinned
+to their exact expected step content. That closed, by construction and in one
+change, eleven failure-swallow spellings, five step-level `if:` forms, a private
+key exfiltrated past GitHub's log masking with `base64 | rev`, the wrong
+Dockerfile, a `COPY --from=attacker`, and a second `docker login` handing
+`github.token` to another registry — **none of which anyone had to think of
+first.**
+
+The lesson was already in this build's record twice. T12a's review: *"The `git`
+side of the same file is an allowlist and holds up. Its download check was a
+blacklist and survived none of three."* It took three more passes here to act on
+it.
+
+### Pinning a step is not pinning the job
+
+Pass 3 defeated the whole mechanism with a **job-level** `container:` on `gate`.
+The step stays byte-identical; every binary it calls — `curl`, `jq`, `base64`,
+`bash` — comes from an attacker's image. `gate`'s only product is the base64 blob
+that `promote` decodes and executes beside the `deploys` write token.
+
+Pass 4 did it again one level up: a workflow-root `env: NPM_CONFIG_REGISTRY`
+makes `validate`'s **byte-pinned** `npm ci` install the whole dependency tree
+from an attacker registry, in the job `build` and `promote` both need.
+
+**An allowlist closes only the level it is applied to.** Steps, jobs, the
+workflow root, and the set of workflow files are four levels, and discovery
+filtering on `.yml` left `.yaml` unread entirely.
+
+### Citations of mutable state age
+
+Two comments asserted, as live-verified fact, that the `live` environment had no
+protection rules. True when written. **False the moment the operator added a
+deployment branch policy — on the orchestrator's own recommendation.** The
+conclusion survived; the evidence did not.
+
+Constraint 10's *cited* limb assumes the citation stays true. A pinned commit SHA
+does; a repository setting does not. Where the fix could not cite something
+immutable it now states the date read and that the value can drift.
+
+### What is recorded rather than closed
+
+- A **BOM-prefixed** `images:` key is not matched by the guard. Verified
+  non-exploitable rather than assumed: `kubectl kustomize` refuses the whole
+  file — `unknown field "﻿images"`.
+- Tab- and NBSP-indented fourth keys after the last entry are bounded, not
+  closed; kustomize fails closed on each.
+- `concurrency:`'s sub-key set is not closed. Actions rejects unknown keys at
+  parse time, which is the stronger backstop.
+- `secrets: inherit` is not modelled by `secretsReferenced`. Neither workflow
+  declares a job-level `uses:`, so nothing can inherit today.
+- The verification pass's own entry-count bound has no test; the rewriter
+  refuses first.
+
+### Verification
+
+450 tests, `validate` clean. The orchestrator applied **thirty-eight** mutations
+independently across the passes, all red, and exercised the guard against a real
+clone of `deploys` in both directions: five duplicate-key spellings and three
+rogue pre-entry item shapes all refused; the pristine overlay, a column-0 comment
+inside the `images:` block, and blank lines between entries all promoting
+cleanly at exactly `2 2` on one file with digest-only images rendered.
+
+**The row's checkbox holds** — the promotion writes a digest matching
+`^sha256:[0-9a-f]{64}$` and never a tag, for the value that reaches the overlay,
+bound end to end from `steps.build.outputs.*` through `jobs.build.outputs.*` and
+`promote.env.*` to the guard's argv.
+
+### The prerequisites this row cannot create
+
+`Release` and `Deploy Test` both mint a GitHub App token scoped to
+`hannosirkel/deploys`. None of that is in either repository, and all of it was
+verified rather than assumed: the App holds **exactly** `contents: write` and
+`metadata: read`, is installed on `deploys` alone, mints a token scoping to
+`deploys` alone, and is the third bypass actor on that repository's ruleset —
+without which the promotion publishes, commits locally, and then fails on a push
+the four required status checks reject.
+
+An earlier key in the same file produced `Integration must generate a public
+key`: an App with **no registered public key**. It would have surfaced as a
+failed promotion after the images had already published.
+
+**The deployer secrets are environment-scoped and the repository-level copies
+were removed**, so `build` — which declares no environment — cannot resolve the
+credential at all. The boundary this row spends 2,719 lines asserting is now
+also enforced by GitHub, and by the pin on `build`'s steps. Three independent
+layers, which is the right number for the job that holds `packages: write` and
+produces every value the promotion consumes.
