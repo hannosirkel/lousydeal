@@ -879,6 +879,61 @@ describe("every workflow in this repository", () => {
   });
 });
 
+// `scripts/validate` refuses outright when a tool it needs is absent, so any
+// job that runs it must also install those tools. The `Release` row shipped a
+// `validate` job that did not, and no assertion here noticed: 278 mutations
+// across five review passes all interrogated the parsed document, and a
+// document can be perfectly well-formed and still describe a job that cannot
+// run. The tool list is read from `scripts/validate` itself rather than
+// repeated, so adding a tool there cannot silently leave a caller behind.
+//
+// `shellcheck` ships on the `ubuntu-24.04` image; `node` and `npm` arrive with
+// `actions/setup-node`. Everything else needs an explicit step.
+const RUNNER_PROVIDED_TOOLS = new Set(["shellcheck", "node", "npm"]);
+
+function toolsRequiredByValidate(): string[] {
+  const script = readFileSync(join(repoRoot, "scripts", "validate"), "utf8");
+  const declaration = /^for tool in ([^;]+); do$/m.exec(script)?.[1];
+  expect(
+    declaration,
+    "scripts/validate no longer declares its required tools in a form this test can read",
+  ).toBeTypeOf("string");
+  return String(declaration)
+    .trim()
+    .split(/\s+/)
+    .filter((tool) => !RUNNER_PROVIDED_TOOLS.has(tool));
+}
+
+describe("every job that runs scripts/validate installs what it needs", () => {
+  const required = toolsRequiredByValidate();
+
+  it("reads a non-empty tool list from scripts/validate", () => {
+    expect(required.length, "no externally-installed tool was found").toBeGreaterThan(0);
+  });
+
+  const discovered = readdirSync(workflowDirectory).filter(
+    (entry) => entry.endsWith(".yml") || entry.endsWith(".yaml"),
+  );
+
+  for (const name of discovered) {
+    for (const id of Object.keys(jobs(name))) {
+      const runsValidate = jobScripts(name, id).some(([, script]) =>
+        commands(script).some((command) => /\bbash\s+scripts\/validate\b/.test(command)),
+      );
+      if (!runsValidate) continue;
+      it(`${name}.${id} installs every tool scripts/validate requires`, () => {
+        const text = jobText(name, id);
+        for (const tool of required) {
+          expect(
+            text,
+            `${name}.${id} runs scripts/validate but installs no ${tool}, so the job aborts before it validates anything`,
+          ).toMatch(new RegExp(`/usr/local/bin/${tool}\\b`));
+        }
+      });
+    }
+  }
+});
+
 describe("the pin check itself", () => {
   // The check above is only as good as what it accepts and what it refuses,
   // and neither is observable from workflows that all happen to be written
@@ -1525,23 +1580,39 @@ const VALIDATE_STEPS: ReadonlyArray<{ readonly [key: string]: YamlValue }> = [
     "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
     "with": {
       "fetch-depth": "0",
-      "persist-credentials": "false",
-    },
+      "persist-credentials": "false"
+    }
   },
   {
     "name": "Set up Node",
     "uses": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
     "with": {
-      "node-version": "24.18.1",
-    },
+      "node-version": "24.18.1"
+    }
   },
   {
     "name": "Install locked dependencies",
-    "run": "npm ci",
+    "run": "npm ci"
+  },
+  {
+    "name": "Install lychee",
+    "env": {
+      "LYCHEE_VERSION": "0.24.2",
+      "LYCHEE_SHA256": "1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a"
+    },
+    "run": "set -euo pipefail\narchive=\"${RUNNER_TEMP}/lychee.tar.gz\"\ncurl --fail --silent --show-error --location --output \"$archive\" \\\n  \"https://github.com/lycheeverse/lychee/releases/download/lychee-v${LYCHEE_VERSION}/lychee-x86_64-unknown-linux-gnu.tar.gz\"\necho \"${LYCHEE_SHA256}  ${archive}\" | sha256sum --check --strict\ntar -xzf \"$archive\" -C \"${RUNNER_TEMP}\" --strip-components=1 \\\n  lychee-x86_64-unknown-linux-gnu/lychee\nsudo mv \"${RUNNER_TEMP}/lychee\" /usr/local/bin/lychee"
+  },
+  {
+    "name": "Install gitleaks",
+    "env": {
+      "GITLEAKS_VERSION": "8.30.1",
+      "GITLEAKS_SHA256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+    },
+    "run": "set -euo pipefail\narchive=\"${RUNNER_TEMP}/gitleaks.tar.gz\"\ncurl --fail --silent --show-error --location --output \"$archive\" \\\n  \"https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz\"\necho \"${GITLEAKS_SHA256}  ${archive}\" | sha256sum --check --strict\ntar -xzf \"$archive\" -C \"${RUNNER_TEMP}\" gitleaks\nsudo mv \"${RUNNER_TEMP}/gitleaks\" /usr/local/bin/gitleaks"
   },
   {
     "name": "Run canonical validation",
-    "run": "set -euo pipefail\nbash scripts/validate",
+    "run": "set -euo pipefail\nbash scripts/validate"
   },
 ];
 
@@ -1800,7 +1871,7 @@ describe("validate, gate, build and promote are pinned to their exact expected c
   // See the header comment on `VALIDATE_STEPS`/`GATE_STEPS`/`PROMOTE_STEPS`/
   // `BUILD_STEPS` above for why.
 
-  it("validate's four steps match their pinned fixture exactly", () => {
+  it("validate's six steps match their pinned fixture exactly", () => {
     // Coordinator-caught gap: this pass originally pinned only `gate` and
     // `promote` and left `validate` on the two-spelling `|| true`/`|| exit 0`
     // regex, even though `validate` neutered is the *worse* case -- `build`
