@@ -7,8 +7,9 @@
     "start": "npm run redis:preflight && medusa start",
     "redis:preflight": "if [ -f ./src/config/redis-preflight.js ]; then node ./src/config/redis-preflight.js; else node -r ts-node/register ./src/config/redis-preflight.ts; fi",
     "configure:commerce": "medusa exec \"$(if [ -f ./src/scripts/configure-commerce.js ]; then echo ./src/scripts/configure-commerce.js; else echo ./src/scripts/configure-commerce.ts; fi)\"",
+    "seed:administrator": "medusa exec \"$(if [ -f ./src/scripts/seed-administrator.js ]; then echo ./src/scripts/seed-administrator.js; else echo ./src/scripts/seed-administrator.ts; fi)\"",
     "seed:product": "medusa exec \"$(if [ -f ./src/scripts/seed-product.js ]; then echo ./src/scripts/seed-product.js; else echo ./src/scripts/seed-product.ts; fi)\"",
-    "predeploy": "npm run redis:preflight && medusa db:migrate --execute-safe-links && npm run configure:commerce && npm run seed:product",
+    "predeploy": "npm run redis:preflight && medusa db:migrate --execute-safe-links && npm run seed:administrator && npm run configure:commerce && npm run seed:product",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "test:unit": "vitest run"
   },

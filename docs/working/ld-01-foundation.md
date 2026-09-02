@@ -707,7 +707,7 @@ The reference solves it at `plepic/backend/src/scripts/seed-administrator.ts`,
 wired into `predeploy` between `db:migrate` and `configure:commerce`, reading
 credentials the `*-database-admin` Secret carries. Follow it.
 
-- [ ] Seed an initial administrator from the `database-admin` credentials, in
+- [x] Seed an initial administrator from the `database-admin` credentials, in
       the predeploy chain after the migration and before the commerce
       configuration. Verified by a test asserting the seeding is idempotent and
       that neither the password nor anything derived from it is logged.

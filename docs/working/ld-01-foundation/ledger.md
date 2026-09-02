@@ -40,7 +40,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T12a | T12 | lousydeal | `234cf0544066` | AGENT | done | agent | journal, T12a | 2026-09-01 |
 | T12b | T12 | lousydeal | `0c6ea7af7367` | AGENT | done | agent | journal, T12b | 2026-09-01 |
 | T14a | T14 | orange | `fb76dadcfabe` | AGENT | done | agent | journal, T14a | 2026-09-02 |
-| T14b | T14b | lousydeal | `5b597cbbfad6` | AGENT | open | agent | — | — |
+| T14b | T14b | lousydeal | `5b597cbbfad6` | AGENT | done | agent | journal, T14b | 2026-09-02 |
 | T14c | T14b | deploys | `8d000bb603d2` | AGENT | open | agent | — | — |
 | T14d | T14b | orange | `34ed48cbeed6` | AGENT | open | agent | — | — |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | open | operator | — | — |

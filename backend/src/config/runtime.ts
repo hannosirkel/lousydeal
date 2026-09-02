@@ -3,9 +3,14 @@
  * that produces a configuration value (the three Redis wirings, the Stripe
  * module) extends {@link BackendRuntimeConfig} and folds its reading into
  * {@link readBackendRuntimeConfig} rather than reading `process.env` on its
- * own. `redis-preflight.ts` is the one exception: it runs as a standalone
- * script before Medusa loads, so it has no assembler to be handed values by
- * and passes `process.env` to `readRedisRuntimeConfig` itself.
+ * own. `redis-preflight.ts` and `../admin/seed-administrator.ts` (via
+ * `../scripts/seed-administrator.ts`) are the two exceptions. The former runs
+ * as a standalone script before Medusa loads, so it has no assembler to be
+ * handed values by, and passes `process.env` to `readRedisRuntimeConfig`
+ * itself. The latter reads `MEDUSA_ADMIN_EMAIL`/`MEDUSA_ADMIN_PASSWORD`
+ * outside this type deliberately: folding them into
+ * {@link BackendRuntimeConfig} would make every backend and worker pod
+ * refuse to boot without a credential only the predeploy Job ever holds.
  *
  * {@link readBackendRuntimeConfig} also covers the two values Medusa itself
  * already needs and, absent an explicit setting, silently defaults rather than
