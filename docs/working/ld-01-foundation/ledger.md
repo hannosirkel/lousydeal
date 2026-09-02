@@ -39,7 +39,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T13b | T13 | deploys | `247bd5352e35` | AGENT | done | agent | journal, T13 | 2026-08-31 |
 | T12a | T12 | lousydeal | `234cf0544066` | AGENT | done | agent | journal, T12a | 2026-09-01 |
 | T12b | T12 | lousydeal | `0c6ea7af7367` | AGENT | done | agent | journal, T12b | 2026-09-01 |
-| T14a | T14 | orange | `fb76dadcfabe` | AGENT | open | agent | — | — |
+| T14a | T14 | orange | `fb76dadcfabe` | AGENT | done | agent | journal, T14a | 2026-09-02 |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | open | operator | — | — |
 | T15b | T15b | orange | `4a2ff1e326c2` | JOINT | open | operator | — | — |
 | T16a | T16 | orange | `abf2a5101f88` | JOINT | open | operator | — | — |
@@ -211,6 +211,7 @@ operator override.
 | T13a | 17 files, 1,847 lines | operator, 2026-08-31 |
 | T12a | 5 files, 1,637 lines | operator, 2026-09-01 |
 | T12b | 4 files, 4,130 lines | operator, 2026-09-01 |
+| T14a | 10 files, 1,200 lines | operator, 2026-09-02 |
 
 **T12b is the largest by a wide margin, and the reason is on the record.** Five
 review passes applied 278 mutations and found the same defect five times; the
