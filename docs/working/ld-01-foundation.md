@@ -680,7 +680,7 @@ without a namespace, it goes red and stays red. That is not hypothetical — on
 failed the whole argocd role for *every* consumer at once. Enrolling a consumer
 and creating its namespace are one row because the gate treats them as one fact.
 
-- [ ] Register the `lousydeal-…` and `lousydeal-test-…` sources, their OpenBao
+- [x] Register the `lousydeal-…` and `lousydeal-test-…` sources, their OpenBao
       mounts, their ESO roles and the operator policy paths, following the
       Plepic entries. Verified by the existing template tests passing with the
       new entries.

@@ -2254,3 +2254,105 @@ helper that did not exist. The full output said `Test Files 1 failed`. **Reading
 a filtered view and concluding success is the same error as trusting an
 implementer's self-selected sample** — which this build had already recorded
 twice, about other agents.
+
+## T14a: the fake was more permissive than the server
+
+`orange`, 10 files, 1,200 insertions, under a named operator override. Three
+review passes: **21 / 7 survived, 39 / 16, 26 / 5.** The first two each returned
+a merge blocker, and both blockers had the same cause.
+
+### Two blockers, one root
+
+**Pass 1.** Four of the six registered sources were unconditionally required by
+`openbao-admin validate`. The plan registers *before* it seeds, so those paths
+did not exist — and `orange.yaml` validates OpenBao at task 77, ahead of
+WireGuard, cloudflared, Argo CD and TLS monitoring, with no `ignore_errors`.
+Independently, the argocd role waits for every ExternalSecret to report ready
+with 120 retries; four pointed at empty paths would fail the role **five imports
+before Servitium and Plepic reconcile.**
+
+**Pass 2.** The fix deferred the sources and *also* emptied
+`LOUSYDEAL_POLICY_BASE`. With the shipped defaults that left two ACL policies as
+the empty string — the first this repository has ever had — and OpenBao refuses
+an empty policy body with HTTP 400. `reconcile-access` runs at task 66, **one
+task earlier than the failure it replaced.** Thirty-nine reconciliation steps
+abandoned, including every Kubernetes auth mount and the `eso-plepic` and
+`eso-servitium` roles.
+
+**Neither was caught by 525 passing tests, because the test double stores any
+policy body and accepts a KV write into a namespace with no mount.** The fake is
+more permissive than the server on exactly the two endpoints involved. The
+implementer said so in its own words — *"I could not reproduce the reviewer's
+literal failure text through this harness"* — and the orchestrator read that as a
+harness limitation rather than as the finding.
+
+**A test double that is more permissive than the thing it doubles converts a
+production failure into a green suite.** That is not a gap in coverage; coverage
+was 100% on both paths. It is a gap in fidelity, and no amount of additional
+assertions against the same double would have found either blocker.
+
+The double now refuses an empty policy body as the server does, **and that rule
+has its own test** — the mechanism that closes both blockers should not be
+silently removable. One remaining permissiveness is recorded rather than fixed:
+KV against a namespace with no `secret` mount is still accepted, guarded instead
+by a hand-written call-order assertion.
+
+### The orchestrator verified one half and declared the whole
+
+Pass 1's blocker was closed by a change with two required properties: metadata
+reads unchanged, **and** no empty policy. The brief asked for the first and got
+it — delta 0, independently confirmed — and the second was neither asked for nor
+checked, because the brief's own report contract named `validate` and the failure
+was in `reconcile-access`.
+
+**A report contract that names the wrong command cannot detect the right
+failure.** Worse, the brief had blessed `LOUSYDEAL_POLICY_BASE` as "genuinely
+least-privilege" in its do-not-re-litigate section while directing the
+implementer to check the widening — so pass 2's blocker is downstream of the
+orchestrator's own instruction.
+
+### And read the summary, not the output
+
+Verifying the anti-recurrence measure, the orchestrator ran a mutation and read
+`442 tests, 1 error` as a catch. The suite had not run: a sloppy regex broke the
+module import. The tell was the count — 442 against a baseline of 529. **The
+second instance this build of concluding success from a filtered view**, after
+recording the same error about implementer reports twice.
+
+### What the row got right
+
+The source set is exactly correct in both directions, verified exhaustively by a
+reviewer: ten distinct (Secret, key) pairs per environment exist across
+`deploys/lousydeal/base/`, both overlays and the app source, and precisely those
+are registered. Four Plepic sources with no Lousy Deal equivalent were correctly
+**not** copied. The contract appends two entries and alters none; Plepic and
+Servitium policies are byte-identical.
+
+A pass-3 reviewer built a strict client asserting eight real-server rules the
+double ignores and replayed `reconcile_access`: **zero violations on the branch,
+ten on a control.**
+
+### A hole in the plan, found by the row that needed it
+
+Two comments claimed the Medusa publishable key is *"minted by
+`configure:commerce` at first deploy"*. Nothing mints it.
+`configure-commerce.ts`'s own header says it configures no sales channel, and
+`predeploy-job.yaml` records that the chain never seeds an Admin user — so there
+is not even an identity to call the Admin API with. `storefront.yaml` consumes
+the key **without** `optional: true`.
+
+The decision to defer the source was right; the stated reason was false, and it
+is what made the gap invisible. **The operator has decided a new row will seed an
+initial administrator**, following the reference. `docs/current/provisioning.md`
+records the gap in the meantime.
+
+### Documentation is part of the change
+
+`AGENTS.md:103-104` requires a role change, its contract test and the matching
+`docs/current/` file to move together. The first pass moved two of the three, and
+`grep -rl lousydeal docs/` returned nothing while six sources sat registered with
+no documented way to seed them. Pass 2 then found four false sentences in the
+documentation written to fix that, and pass 3 found five more — including a
+runbook naming the wrong variable, which an operator following it at T15b would
+have discovered as a failed argocd role. **The same error is in the pre-existing
+Plepic paragraph it was copied from**; reported, not edited.
