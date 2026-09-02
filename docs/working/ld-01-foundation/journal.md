@@ -2356,3 +2356,88 @@ documentation written to fix that, and pass 3 found five more — including a
 runbook naming the wrong variable, which an operator following it at T15b would
 have discovered as a failed argocd role. **The same error is in the pre-existing
 Plepic paragraph it was copied from**; reported, not edited.
+
+## T14b: a comment that cited the test it needed
+
+`backend/src/admin/seed-administrator.ts`, its `medusa exec` script, its tests,
+`backend/package.json`, and one sentence in `backend/src/config/runtime.ts`.
+1,010 insertions.
+
+**The code was right on the first pass and the prose was not.** Idempotency was
+genuinely proven — the reviewer enumerated the reachable states rather than
+trusting test names, including a soft-deleted administrator whose auth identity
+survives linked to the dead id, and traced each through the seeding. The port is
+character-identical to the reference where it claims to be. **Four sentences
+asserted things that were false against files in this checkout**, and one of them
+is worth the entry on its own.
+
+### The comment that named its own gap and then closed it with fiction
+
+A docblock reasoned, correctly, that a substring check on the literal password
+cannot catch a leak that puts it behind a hash or a length — and then said *"which
+is why `it("goes red on a leak"` below exists as a second, independent proof."*
+
+**No such test existed.** And the gap was real, measured three ways:
+
+```text
+log the password's LENGTH   -> 24 passed
+log a six-character PREFIX  -> 24 passed
+log a sha256 HASH           -> 24 passed
+log the FULL password       ->  3 failed
+```
+
+The reasoning was sound, the conclusion was right, and the compensating control
+was imaginary. **A correct diagnosis is not a fix**, and a sentence that names a
+test is checkable in one `grep` — which is what the reviewer ran.
+
+The orchestrator had verified this property and missed it, because it tested the
+literal leak the canary catches and not the derived ones the docblock itself
+identified as the harder case. **Verifying the case a file tells you is easy is
+not verification.**
+
+### Enumeration does not converge; pinning does
+
+The fix does not enumerate derivations, because no enumeration can: a leak may
+compute anything. It **pins the call sites** — the script contains exactly these
+three statements that can put text somewhere observable, matched as source text.
+Any added or edited statement fails, whatever it computes.
+
+Measured after: length, prefix, a reversal, a **boolean derived from the
+password**, and even an innocuous extra `logger.info("seeding")` all go red. The
+last one is the point — an allowlist refuses what it does not recognise, and does
+not need to recognise the attack.
+
+**This is the fourth row in this build to arrive at the same answer.** T12a's
+review: *"the `git` side is an allowlist and holds up; the download check was a
+blacklist and survived none of three."* T12b needed five passes to act on it.
+Here it took one.
+
+### Three sentences borrowed from a repository they were true in
+
+- *"`register` refuses a duplicate"* — `@medusajs/auth-emailpass` does the
+  opposite for an orphaned identity: `app_metadata` empty means *claimable*, and
+  that branch succeeds, calling `upsertAuthIdentity("update", …)`, which
+  **rotates the password**. Adoption is still correct; the reason given was the
+  inverse of the truth.
+- *"the same line-break-injection check the mail configuration applies"* — there
+  is no mail configuration in this repository. True in the reference.
+- *"the Job is that Secret's only consumer"* — `postgresql.yaml:92-96` reads
+  `POSTGRES_SUPERUSER_PASSWORD` from it, and the same sentence names that
+  password as one of the Secret's contents. Internally inconsistent, and
+  inherited from a reference where it is equally untrue.
+
+**A ported comment carries its referents with it, and they do not survive the
+journey.** Every one of these was true where it was written.
+
+### What the row leaves load-bearing
+
+`seed:administrator` refuses when its credentials are absent — the repository's
+uniform pattern, and pinned: switching it to skip is caught. Skipping would not
+avoid the failure, only relocate it, since the storefront still has no key and a
+green sync would hide it.
+
+But the Job is an Argo CD `Sync` hook at `sync-wave: "-10"`, so **until T14c and
+T14d land, a promoted image takes the whole sync red** and `configure:commerce`
+and `seed:product` never run. Nothing in CI runs `predeploy`, so nothing catches
+it. **Merge order is now load-bearing**, and the file says so rather than the
+handoff.
