@@ -2441,3 +2441,95 @@ T14d land, a promoted image takes the whole sync red** and `configure:commerce`
 and `seed:product` never run. Nothing in CI runs `predeploy`, so nothing catches
 it. **Merge order is now load-bearing**, and the file says so rather than the
 handoff.
+
+## T14c and T14d: one credential, three repositories
+
+`deploys` (4 files, 126 insertions) and `orange` (7 files, 110). Together with
+T14b they complete the detour a review opened when it found that **nothing in
+this build creates the credential the storefront cannot start without.**
+
+### A row can make its siblings worse before it makes them better
+
+T14b merged first, so `predeploy` ran `seed:administrator`, which refuses on
+absent credentials. That was the right decision — the alternative, skipping,
+would have produced a green sync with no administrator and no key, hiding the
+failure further from its cause.
+
+But it meant T14c landed into a repository where the refusal was already live,
+and **T14c's own review found that landing it alone made the failure worse.**
+Before: a named `ConfigError` in seconds. After: a non-optional `secretKeyRef` to
+a key that did not exist yet, which is a `CreateContainerConfigError` — **the
+container never starts, so it never exits, so it does not count against
+`backoffLimit: 2`** — and the Argo CD hook stalls to `activeDeadlineSeconds: 900`
+and fails as `DeadlineExceeded` fifteen minutes later.
+
+Bounded, and never live, because nothing runs before T15a. **But it is a
+regression in legibility that no test could catch**, and it existed only in the
+window between two rows. It is recorded in the manifest that causes it.
+
+### `env` and `envFrom` are two doors to one room
+
+T14c asserted that no workload but the predeploy Job reads the two variables, and
+proved it against seven mutations — backend, worker, storefront, PostgreSQL,
+Redis, a second Job, and a hardened `initContainer`. The PostgreSQL case is the
+one that earns it: that workload already reads a *different* key of the *same*
+Secret and is still refused, so the check keys on variable names rather than
+Secret ownership.
+
+**It read `container['env']` and nothing else.** A container taking the whole
+Secret through `envFrom` receives every key, including both, and the test passed.
+
+This is not the enumeration failure this build has recorded four times. Nothing
+was blacklisted. **The assertion read one field where Kubernetes offers two paths
+to the same outcome** — and the comment above it enumerated the routes it had
+closed and read as exhaustive, which is what made it convincing. The repository
+uses `envFrom` nowhere, so the guard was free.
+
+The fix also asked whether the shape existed elsewhere. It did: a base variable
+with no overlay entry rendered the **live** Secret name into the test namespace
+and passed. That assertion now covers every rendered `secretKeyRef`, which closes
+the class rather than the instance.
+
+### The premise was in four places, and the brief found two
+
+T14b falsified the sentence *"this repository's predeploy chain never seeds an
+Admin user."* The orchestrator's briefs named two sites. There were **four,
+across three files** — a projection's row header, a second comment beside a
+different projection, `scripts/openbao-admin`, and an independent assertion in a
+runbook narrative that did not cite the others at all.
+
+**A false premise propagates by restatement, not only by citation.** Grepping for
+the sentence finds the copies; it does not find the paraphrases.
+
+### And a row can invert the reference it is copying
+
+T14d wrote that Lousy Deal needs no separate administrator row *"unlike Plepic's
+equivalent one-off `npx medusa user` command."* Plepic's `predeploy` runs
+`seed:administrator`, and its Job reads the same two keys from its own
+`database-admin` Secret. **It is the identical mechanism** — the sentence
+described the reference as the opposite of what it is, in a row whose entire
+method was to copy it.
+
+The usual failure here has been carrying a true sentence into a repository where
+its referent does not exist. This is the inverse: a *new* sentence about a
+reference the author had open.
+
+### What the three rows leave true
+
+The credential exists end to end, and each end names the others correctly:
+
+```text
+deploys   secretKeyRef.key: MEDUSA_ADMIN_EMAIL   from lousydeal{,-test}-database-admin
+orange    target_key: MEDUSA_ADMIN_EMAIL  <-  property: medusaAdminEmail
+lousydeal requireEnv(environment, "MEDUSA_ADMIN_EMAIL")
+```
+
+T14d held both properties that cost T14a three passes — required metadata reads
+unchanged at 50, and no empty policy in a desired set of 37 — **measured
+together**, which is the discipline that row's failure taught. The non-lousydeal
+projection contract hashes identically before and after.
+
+**Still open, and now the only thing between here and a running storefront:** an
+operator must sign in as this administrator once T15 deploys the backend, mint
+the publishable key, and stage it for seeding. No row does that, and
+`docs/current/provisioning.md` says so.

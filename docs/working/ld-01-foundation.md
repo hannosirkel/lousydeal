@@ -711,10 +711,10 @@ credentials the `*-database-admin` Secret carries. Follow it.
       the predeploy chain after the migration and before the commerce
       configuration. Verified by a test asserting the seeding is idempotent and
       that neither the password nor anything derived from it is logged.
-- [ ] Carry `MEDUSA_ADMIN_EMAIL` and `MEDUSA_ADMIN_PASSWORD` into the predeploy
+- [x] Carry `MEDUSA_ADMIN_EMAIL` and `MEDUSA_ADMIN_PASSWORD` into the predeploy
       Job from `lousydeal-database-admin`, and nowhere else. Verified by the
       manifest test asserting no other workload reads them.
-- [ ] Extend the `database-admin` source, its projection and its parser to carry
+- [x] Extend the `database-admin` source, its projection and its parser to carry
       the two administrator fields. Verified by the existing template tests
       passing with the wider source.
 
