@@ -40,12 +40,32 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T12a | T12 | lousydeal | `234cf0544066` | AGENT | done | agent | journal, T12a | 2026-09-01 |
 | T12b | T12 | lousydeal | `0c6ea7af7367` | AGENT | done | agent | journal, T12b | 2026-09-01 |
 | T14a | T14 | orange | `fb76dadcfabe` | AGENT | done | agent | journal, T14a | 2026-09-02 |
+| T14b | T14b | lousydeal | `5b597cbbfad6` | AGENT | open | agent | — | — |
+| T14c | T14b | deploys | `8d000bb603d2` | AGENT | open | agent | — | — |
+| T14d | T14b | orange | `34ed48cbeed6` | AGENT | open | agent | — | — |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | open | operator | — | — |
 | T15b | T15b | orange | `4a2ff1e326c2` | JOINT | open | operator | — | — |
 | T16a | T16 | orange | `abf2a5101f88` | JOINT | open | operator | — | — |
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-09-02 · T14b added; row count 31 to 34.**
+T14a found that **nothing in this build mints the Medusa publishable key**, while
+`storefront.yaml` consumes it without `optional: true` — so the storefront cannot
+start in either environment. Two comments in the row under review claimed
+`configure:commerce` mints it; `configure-commerce.ts`'s own header says it
+configures no sales channel, and the predeploy chain seeds no Admin user, so
+there is no identity for the Admin API either. The operator chose the reference's
+answer: seed an initial administrator, as
+`plepic/backend/src/scripts/seed-administrator.ts` does. Three rows, one per
+repository, all before T15b. **No existing checkbox text changed; all 31 prior
+hashes recomputed, no drift.**
+
+*The identifier is reused.* An earlier `T14b` — T14's second checkbox — was
+re-keyed to `T15b` in the 2026-08-31 amendment below and no longer exists under
+that name. This `T14b` is a different task and shares nothing with it but the
+letter.
 
 **2026-08-30 · global constraint 10 added at T5a; row count unchanged at 28.**
 A claim is bounded, cited, or executed. Added after twenty instances across nine

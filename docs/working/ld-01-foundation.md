@@ -690,6 +690,38 @@ one step. A wrong value is a rotation, not a re-run. Decision `006` fixes the
 names: the registered source is `lousydeal-test-runtime-credentials`, and the
 Stripe values reach it as keys rather than as a source of their own.
 
+## T14b — The initial administrator
+
+**Repositories:** `lousydeal`, then `deploys`, then `orange`.
+**Runs after T14a merges, and before T15b seeds.**
+
+**Nothing in this build mints the Medusa publishable key, and the storefront
+cannot start without it.** `configure-commerce.ts` states in its own header that
+it configures no sales channel; `predeploy-job.yaml` records that the chain never
+seeds an Admin user, so there is not even an identity to call the Admin API with;
+and `deploys/lousydeal/base/storefront.yaml` consumes
+`MEDUSA_PUBLISHABLE_API_KEY` without `optional: true`. T14a found this while
+registering a source whose comment claimed `configure:commerce` minted the key.
+
+The reference solves it at `plepic/backend/src/scripts/seed-administrator.ts`,
+wired into `predeploy` between `db:migrate` and `configure:commerce`, reading
+credentials the `*-database-admin` Secret carries. Follow it.
+
+- [ ] Seed an initial administrator from the `database-admin` credentials, in
+      the predeploy chain after the migration and before the commerce
+      configuration. Verified by a test asserting the seeding is idempotent and
+      that neither the password nor anything derived from it is logged.
+- [ ] Carry `MEDUSA_ADMIN_EMAIL` and `MEDUSA_ADMIN_PASSWORD` into the predeploy
+      Job from `lousydeal-database-admin`, and nowhere else. Verified by the
+      manifest test asserting no other workload reads them.
+- [ ] Extend the `database-admin` source, its projection and its parser to carry
+      the two administrator fields. Verified by the existing template tests
+      passing with the wider source.
+
+**No effect gate.** Nothing runs until T15a, and the credential is not seeded
+until T15b. The operator mints the publishable key by signing in as this
+administrator once the backend is reachable, which is why this row precedes both.
+
 ## T15 — Argo CD
 
 **Repository:** `orange`. **Runs after T14 merges.**
