@@ -2648,3 +2648,50 @@ retries discovering it.
 
 **Knowing where a fact is written down is not the same as recalling it at the
 moment it applies.**
+
+## T19: the first constraint code could not satisfy
+
+```text
+lousydeal        Synced   Healthy
+lousydeal-test   Synced   Healthy
+node cpu  11930m (99%)  ->  10930m (91%)
+```
+
+Ten pods across two environments, all Running, both on freshly built images.
+
+**Everything until now failed because something was wrong. This failed because
+the node was full.** T13 requested 200m per workload in live and 100m in test;
+measured against the running deployment, every pod used **1–19m**. Ten pods
+reserved 1700m for 77m of work, the node reached 99% of twelve allocatable CPUs,
+and live's predeploy Job stopped scheduling — so live could not adopt a new
+digest, which is every future release.
+
+**Nothing in a rendered manifest says whether a number is right.** T13 had two
+review passes and neither questioned `200m`, because there was nothing to
+question: it is a plausible figure, correctly formatted, in a valid manifest. It
+became wrong only when a second application's two environments were added to a
+node that had been sized without them. **The same class as `plepic.yml`'s
+allowlist — correct-looking, and unfalsifiable by reading.**
+
+### Measuring found the opposite problem too
+
+The operator chose to lower the requests. Measuring first was optional and was
+done anyway, which is what caught it: **memory is under-requested, not over.**
+Live's backend uses 298Mi against a 256Mi request; test's uses 260Mi against
+128Mi — the scheduler underestimates test by roughly half.
+
+A blanket "reduce the requests" would have made a real problem worse while
+fixing an imaginary one. **The instruction was to lower usage; the measurement
+said lower CPU and raise memory.** Memory was left alone as outside the row and
+recorded in the README, so the next person to size this does not re-measure.
+
+### And a figure in the row itself was wrong
+
+The plan row this journal closes said T13 set `200m` "for every workload in both
+overlays". It set 200m in live and 100m in test. The orchestrator read live's
+overlay and generalised — the same shape as the reference-describing errors this
+build has recorded repeatedly, committed while writing the row that fixes a
+guess. **Corrected in the row text.**
+
+The assertion is pinned, because the failure mode is silent: a request that
+drifts back up looks like nothing at all until a Job stops scheduling.

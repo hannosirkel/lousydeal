@@ -837,7 +837,7 @@ had nothing to reject. A real run found it in seconds.
 `lousydeal/overlays/test/kustomization.yaml`, `lousydeal/tests/manifests.sh`,
 `lousydeal/README.md`.
 
-T13 set `requests: cpu: 200m` for every workload in both overlays. **Measured
+T13 set `requests: cpu: 200m` in live and `100m` in test. **Measured
 against the running deployment, actual usage is 1–19m per pod** — 38m across
 live's five and 39m across test's five, against 1700m requested. Twenty-two
 times over.
@@ -850,7 +850,7 @@ digest, which is every future release.
 **Memory is not over-requested and does not change.** The backend uses 298Mi
 against a 256Mi request.
 
-- [ ] Size the CPU requests from measurement rather than a guess, in both
+- [x] Size the CPU requests from measurement rather than a guess, in both
       overlays. Verified by the manifest test asserting the value and by the
       predeploy Job scheduling.
 
