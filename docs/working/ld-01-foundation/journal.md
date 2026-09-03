@@ -2695,3 +2695,76 @@ guess. **Corrected in the row text.**
 
 The assertion is pinned, because the failure mode is silent: a request that
 drifts back up looks like nothing at all until a Job stops scheduling.
+
+## T17: the row that checks the assembly
+
+```text
+run cold   Test Files 1 passed (1)  Tests 3 passed (3)  48s
+run warm   Test Files 1 passed (1)  Tests 3 passed (3)  44s
+run dirty  Test Files 1 passed (1)  Tests 3 passed (3)  45s
+
+lousy-deal       calculated_amount=5   with_tax=5   without_tax=4.03
+lousy-deal-plus  calculated_amount=10  with_tax=10  without_tax=8.06
+lousy-deal-pro   calculated_amount=25  with_tax=25  without_tax=20.16
+POST /store/carts -> cart_...  line item total=5
+```
+
+Real PostgreSQL and Redis on the digests the cluster runs, a real migration and
+the whole `predeploy` chain, a real Medusa process, real HTTP. Nothing stubbed,
+because a stubbed smoke check re-creates precisely the failure it exists to
+catch.
+
+### The check is real, and its blind spots are known
+
+Twelve mutations were applied to the production code and the check re-run.
+It caught the `provider_id: null` defect it is named after — the same
+`{"code":"unknown_error"}` 500 the previous build served — a missing tier,
+`automaticTaxes: false`, a wrong region currency, and Redis stopped mid-run.
+
+Four survived: a mispriced tier, a changed VAT rate, a fourth tier, and tax
+regions written for Estonia alone. **Every one is caught by the unit suite**,
+verified by running it rather than assumed. **No mutation escaped the build.**
+
+The loudest survivor is worth naming. Dropping all three Redis modules from
+`medusa-config.ts` leaves this check green: Redis up, healthy, PING-ed by the
+preflight, and entirely unused while Medusa logs its own in-memory fallback.
+**A smoke check asserts what it asks about.** This one asks the Store API
+questions the storefront asks; it does not ask which module answered. Recorded
+rather than fixed — the unit suite holds that line, and widening the row to
+cover it would have made the assembly check an assembly-and-wiring check.
+
+### Refusing rather than skipping is half the row, and it holds
+
+Nine misconfiguration doors were tried: unset, empty, whitespace, absent
+administrator variables, a URL at nothing, a URL at something that is not
+Medusa, `podman` absent, `curl` absent, Redis stopped. **None passed, none
+skipped silently, none hung.** With the URL unset no test is collected at all.
+
+### The defect class did not change in the last row either
+
+Four comments asserted something untrue: a count of four where there are three,
+a claim that the backend is not containerised while all three cluster workloads
+run its image, a "one-line change" that is three lines, and a drift guarantee
+that cannot hold because the two pinned files sit in different repositories with
+no shared check. **The last of these is the interesting one** — the pins being
+in exactly two places is correct and is what the row asked for; what was false
+was the sentence about how drift would be noticed.
+
+Nothing blocking was a defect in the check. **In the row whose whole subject is
+that green tests can lie, every blocking finding was a sentence.**
+
+### An override that could only fail
+
+The script offered two port variables `compose.yaml` never reads. Setting either
+pointed Medusa at a port nothing published — it refused loudly rather than
+passing, but a knob whose only outcome is refusal is worse than no knob. Both
+deleted, with the concurrency claim that justified them: two runs from one
+checkout share a database name and a server port regardless.
+
+### The universal this row was allowed to falsify
+
+`database-url.ts` said "no compose file, no CI job, no deployment manifest sets
+one". This row creates the compose file. The correction names it and states why
+it sets no `DATABASE_URL` at all, and the remaining universals were enumerated
+to check it: three workflows, none mentions `DATABASE_URL`; nine base manifests,
+all projecting the five parts and never a URL.

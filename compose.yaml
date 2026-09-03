@@ -1,0 +1,95 @@
+# PostgreSQL and Redis for `scripts/store-smoke`, on the exact digests
+# `deploys/lousydeal/base/postgresql.yaml` and `redis.yaml` run at the time
+# this file was written -- read from those two files, not retyped from
+# memory. Nothing keeps the two in sync afterwards, and no check in either
+# repository tries: `scripts/images.test.ts` never mentions `compose`, and
+# nothing under `deploys/lousydeal/` mentions `compose.yaml`
+# (`grep -rn compose.yaml deploys/lousydeal/` is empty). The two repositories
+# also take Renovate's digest bumps independently, so a `deploys` upgrade
+# produces no diff in this repository at all -- drift here is caught only by
+# a human re-reading both files, the way this file was written.
+#
+# `scripts/store-smoke` is the only thing this file exists for: it stands up
+# the two data services, and `medusa build`/`predeploy`/`start` run on the
+# host against them, exactly as they run under Node in the cluster today.
+# The backend itself is already containerised -- `ghcr.io/hannosirkel/
+# lousydeal-backend`, built by `backend/Dockerfile` (T11), and every one of
+# the cluster's three workloads (`backend.yaml`, `worker.yaml`,
+# `predeploy-job.yaml`) runs that image. This file declares no backend
+# service anyway, because the defect class this check chases (`scripts/
+# store-smoke`'s own header has it) lives in the data `predeploy` writes, not
+# in how the tree is packaged -- building and running that image here would
+# only duplicate what T11's Dockerfile and the release build already assert.
+#
+# Podman, not Docker: this host has no reachable Docker daemon (the
+# `docker` CLI is installed but `/var/run/docker.sock` refuses this user), so
+# `scripts/store-smoke` drives this file with `podman compose`, which shells
+# out to the same `docker compose` plugin against Podman's own socket.
+# Nothing below is Podman-specific -- either engine reads this file the same
+# way -- so this is a statement about the script, not this file.
+#
+# ## There is no password in this file
+#
+# PostgreSQL is `POSTGRES_HOST_AUTH_METHOD: trust`: no password exists for it
+# to check, the same choice `plepic/compose.yaml` makes and for the same
+# reason -- a committed database password is a committed database password
+# even when it only guards a container bound to 127.0.0.1. Redis has no
+# `trust` equivalent -- `backend/src/config/runtime.ts` requires
+# `REDIS_PASSWORD` unconditionally -- so its `--requirepass` is
+# `${STORE_SMOKE_REDIS_PASSWORD:-store-smoke}`, a value with the same
+# standing as `plepic/compose.yaml`'s own default (`plepic`): a fixed,
+# publicly-known string that authenticates against nothing but a container
+# this file also creates, on loopback only. Overriding the variable does not
+# make the check more real -- it exists only so an operator is never stuck
+# with this file's own public string -- and `scripts/store-smoke` exports the
+# same variable straight through to Medusa's own `REDIS_PASSWORD`, so the two
+# never disagree.
+#
+# What it does not do is let two smoke runs coexist: both would share this
+# one Postgres and Redis, the same database name and the same Medusa port
+# regardless of what either sets, and the second run's `flushall` and `DROP
+# DATABASE` destroy the first run's state outright. `scripts/store-smoke`
+# does not support running twice at once, on this variable or any other.
+#
+# ## Ports do not collide with plepic's own compose stack
+#
+# `plepic/compose.yaml` binds 5432 and 6379 on this same host. Publishing the
+# same ports here would make `podman compose up` here fail outright whenever
+# that stack is running, which is not a coincidence worth designing around --
+# it is two independent projects on one machine. 55432 and 56379 are this
+# file's own, fixed rather than randomised, so `scripts/store-smoke` can name
+# them without discovering them first.
+services:
+  postgresql:
+    image: postgres:17.10-bookworm@sha256:4f736ae292687621d4dbe0d499ffd024a36bd2ee7d8ca6f2ccd4c800f047b394
+    environment:
+      POSTGRES_USER: medusa
+      POSTGRES_DB: medusa
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medusa -d medusa"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  redis:
+    image: redis:7.4.6-bookworm@sha256:a9cc41d6d01da2aa26c219e4f99ecbeead955a7b656c1c499cce8922311b2514
+    command:
+      - redis-server
+      - --requirepass
+      - ${STORE_SMOKE_REDIS_PASSWORD:-store-smoke}
+    ports:
+      - "127.0.0.1:56379:6379"
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - --no-auth-warning
+        - -a
+        - ${STORE_SMOKE_REDIS_PASSWORD:-store-smoke}
+        - ping
+      interval: 2s
+      timeout: 2s
+      retries: 30

@@ -924,7 +924,7 @@ runs — inlining `docker run` here would put the same pins in a third place.
 `database-url.ts` is here because this row declares `compose.yaml`, the
 artefact that can falsify that file's "no compose file" universal.
 
-- [ ] Stand up PostgreSQL, Redis and a migrated Medusa, then assert the store
+- [x] Stand up PostgreSQL, Redis and a migrated Medusa, then assert the store
       API answers with the three tiers and that a cart can be created. Verified
       by `bash scripts/store-smoke` passing, and by it refusing rather than
       skipping when the backend URL is unset.

@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+#
+# One request against a running Medusa, before merge.
+#
+# ## What this is for
+#
+# Every row up to this one verified its own layer against the layer beneath
+# it -- a workflow input against a stubbed container, a migration's SQL
+# against a model of the schema. Nothing verified the assembly. That is
+# exactly the shape of failure this plan's own record names: a previous
+# build ran 2,959 green tests while the live backend answered every
+# catalogue load with HTTP 500, from a defect (`configure:commerce` writing
+# a tax region with no provider) that only a real Medusa runtime could
+# produce or catch. `backend/tests/smoke/store-api.test.ts` has the
+# mechanism and why this shop can reach the same class of defect.
+#
+# So this stands up the real thing: the PostgreSQL and Redis `compose.yaml`
+# pins -- on the digests `deploys/lousydeal/base/postgresql.yaml` and
+# `redis.yaml` run -- the server `medusa build` produces, the predeploy
+# chain in its real order, and then `backend/tests/smoke/store-api.test.ts`
+# asking the Store API the question the storefront asks it and creating a
+# cart the way it creates one.
+#
+# ## Podman, not Docker
+#
+# This host's `docker` CLI cannot reach a daemon (`/var/run/docker.sock`
+# refuses this user); `podman` can, rootless, with its own socket. Nothing in
+# `compose.yaml` is Podman-specific -- this script is the one place that
+# commits to `podman compose`, invoked at exactly three call sites below (the
+# data-services `up`, the Redis `flushall`, and the database recreate's
+# `psql`; `grep -cE '^(podman compose (up|exec))' scripts/store-smoke` is 3),
+# so a host where `docker compose` works instead is a three-line change here
+# and nowhere else.
+#
+# ## Refuses rather than skips
+#
+# `backend/tests/smoke/store-api.test.ts` reads `STORE_SMOKE_BACKEND_URL` at
+# module load and throws if it is unset, rather than marking itself skipped --
+# a suite that skips silently when misconfigured reports success while
+# testing nothing, which is the 2,959-green-tests failure in miniature. This
+# script always sets the variable before invoking `test:smoke`, so exercising
+# that refusal directly means running `npm run test:smoke --workspace backend`
+# on its own with the variable unset -- see the report this script's own row
+# was verified with, not a flag on this script.
+#
+# ## What it deliberately does not do
+#
+# It does not build a container image -- `backend/Dockerfile` is T11's, and
+# the defect class this exists for lives in the data `predeploy` writes, not
+# in how the tree is packaged. It does not reach Stripe: the backend is given
+# a synthetic key that boots the payment module without ever calling out.
+# It touches nothing outside 127.0.0.1.
+#
+# ## Running it locally
+#
+# `bash scripts/store-smoke`, with `podman` available. It uses its own
+# database (`lousydeal_store_smoke`) and its own ports (`compose.yaml`'s
+# 55432/56379, Medusa's own 9010), so nothing here collides with a `plepic`
+# checkout's compose stack running on the same host, or with a Medusa a
+# developer already has on 9000.
+
+set -euo pipefail
+
+repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${repository_root}"
+
+if ! command -v podman >/dev/null 2>&1; then
+  echo "store-smoke: refused -- podman is required and was not found on PATH." >&2
+  echo "  This host has no Docker daemon this user can reach; podman is what stands up" >&2
+  echo "  compose.yaml's PostgreSQL and Redis instead. Install podman, or edit this" >&2
+  echo "  script's 'podman compose' calls if a working Docker is available." >&2
+  exit 1
+fi
+
+# Without this, "server slow" and "curl missing" look identical: the
+# readiness loop below polls with curl and only reports back after 120
+# silent seconds either way. Refusing here, in the same idiom as the podman
+# check above, is what tells the two apart immediately instead.
+if ! command -v curl >/dev/null 2>&1; then
+  echo "store-smoke: refused -- curl is required and was not found on PATH." >&2
+  echo "  It is what polls the Medusa server for readiness after 'npm run start'." >&2
+  exit 1
+fi
+
+port="${STORE_SMOKE_PORT:-9010}"
+database="${STORE_SMOKE_DATABASE:-lousydeal_store_smoke}"
+# Fixed, not a knob: compose.yaml's `ports:` keys hardcode these same two
+# numbers literally rather than reading a variable, so an override here
+# would only ever produce the mismatch a review pass reproduced -- Medusa
+# pointed at a port nothing is listening on, `Redis preflight failed: no
+# Redis answered.` Move a port by editing both this line and compose.yaml's
+# two `ports:` entries together.
+postgres_port=55432
+redis_port=56379
+# The same default compose.yaml gives its Redis container, spelled the same
+# way. Overriding it does not make the check more real -- it exists only so
+# an operator is never stuck with this file's own public string -- and it is
+# the one override that is actually wired through: compose.yaml reads the
+# same variable name for `--requirepass`.
+redis_password="${STORE_SMOKE_REDIS_PASSWORD:-store-smoke}"
+
+server_directory="${repository_root}/backend/.medusa/server"
+work_directory="$(mktemp -d "${TMPDIR:-/tmp}/lousydeal-store-smoke.XXXXXX")"
+server_log="${work_directory}/medusa.log"
+server_pid=""
+
+cleanup() {
+  local status=$?
+  # The **process group**, not the process: `npm run start` is a shell
+  # running `npm run redis:preflight && medusa start`, so the node process
+  # holding the port and the database connections is npm's grandchild.
+  # `start_server` puts the job in its own process group so there is a group
+  # to name here.
+  if [ -n "${server_pid}" ] && kill -0 "${server_pid}" 2>/dev/null; then
+    kill -TERM -- "-${server_pid}" 2>/dev/null || kill -TERM "${server_pid}" 2>/dev/null || true
+    wait "${server_pid}" 2>/dev/null || true
+  fi
+  if [ "${status}" -ne 0 ] && [ -s "${server_log}" ]; then
+    echo "--- last 80 lines of the Medusa server log ---" >&2
+    tail -n 80 "${server_log}" >&2
+    echo "--- end of the Medusa server log ---" >&2
+  fi
+  rm -rf -- "${work_directory}"
+  # The data services are left running. Stopping a developer's own stack from
+  # under them would be a surprise, and a CI runner is discarded regardless.
+  exit "${status}"
+}
+trap cleanup EXIT
+
+# Every value below is synthetic and none of it is read by anything deployed.
+# JWT_SECRET/COOKIE_SECRET/STRIPE_* satisfy runtime.ts's required-value checks
+# without booting anything that calls out; MEDUSA_ADMIN_EMAIL/PASSWORD are the
+# two variables seed:administrator refuses to run without, and the smoke
+# suite signs in with the same pair to mint the Store key it needs.
+export NODE_ENV=production
+export DATABASE_URL="postgres://medusa@127.0.0.1:${postgres_port}/${database}"
+export REDIS_HOST=127.0.0.1
+export REDIS_PORT="${redis_port}"
+export REDIS_PASSWORD="${redis_password}"
+export JWT_SECRET=store-smoke-jwt-secret
+export COOKIE_SECRET=store-smoke-cookie-secret
+export STRIPE_SECRET_KEY=sk_test_store_smoke
+export STRIPE_WEBHOOK_SECRET=whsec_store_smoke
+export MEDUSA_ADMIN_EMAIL=store-smoke@example.test
+export MEDUSA_ADMIN_PASSWORD=store-smoke-administrator-password
+export MEDUSA_DISABLE_TELEMETRY=true
+export STORE_SMOKE_BACKEND_URL="http://127.0.0.1:${port}"
+# Read by compose.yaml's `--requirepass`; exported once here rather than
+# passed on each `podman compose` invocation below, so every one of them
+# agrees with the value `REDIS_PASSWORD` above already committed Medusa to.
+export STORE_SMOKE_REDIS_PASSWORD="${redis_password}"
+
+step() {
+  echo
+  echo "==> $*"
+}
+
+step "PostgreSQL and Redis from compose.yaml"
+podman compose up --detach --wait postgresql redis
+
+# Redis carries Medusa's event bus, workflow engine and locking provider --
+# never a restorable source of business data, so clearing it is how this run
+# starts from a known state rather than from whatever a previous run left.
+step "Clearing Redis"
+podman compose exec -T redis redis-cli --no-auth-warning -a "${redis_password}" flushall
+
+# A database of this run's own, dropped and recreated, so predeploy is asked
+# what it does to an *empty* database on every run -- a developer's own
+# database, if one exists beside it, is untouched.
+step "Recreating the ${database} database"
+podman compose exec -T postgresql psql -U medusa -d medusa -v ON_ERROR_STOP=1 \
+  -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${database}'" \
+  -c "DROP DATABASE IF EXISTS ${database}" \
+  -c "CREATE DATABASE ${database} OWNER medusa"
+
+step "Building the backend"
+npm run build --workspace backend
+
+# From the built server, not the source tree: the three `medusa exec`
+# scripts (configure:commerce, seed:administrator, seed:product; see
+# backend/package.json) each prefer a compiled `.js` beside them and fall
+# back to the `.ts`. `redis:preflight` follows the identical fallback but
+# through `node`, not `medusa exec` -- four scripts share the pattern, three
+# of them are `medusa exec`. The cluster only ever takes the compiled
+# branch; running the branch nobody deploys would be a fourth environment.
+step "Running the predeploy chain"
+(cd "${server_directory}" && npm run predeploy)
+
+start_server() {
+  # `set -m` for the length of the launch, so bash gives this job a process
+  # group of its own and `cleanup` has something to kill that includes the
+  # `medusa start` under `npm run start`. Restored immediately: job control is
+  # not wanted for anything else here.
+  set -m
+  (cd "${server_directory}" && exec npm run start -- --port "${port}") >"${server_log}" 2>&1 &
+  server_pid=$!
+  set +m
+  local waited=0
+  until curl --silent --fail --output /dev/null "${STORE_SMOKE_BACKEND_URL}/health"; do
+    if ! kill -0 "${server_pid}" 2>/dev/null; then
+      echo "the Medusa server exited before it became ready" >&2
+      return 1
+    fi
+    if [ "${waited}" -ge 120 ]; then
+      echo "the Medusa server was not ready after ${waited}s" >&2
+      return 1
+    fi
+    sleep 2
+    waited=$((waited + 2))
+  done
+  echo "ready after ${waited}s"
+}
+
+step "Starting Medusa on port ${port}"
+start_server
+
+step "Asking the Store API"
+npm run test:smoke --workspace backend
+
+echo
+echo "store smoke: the catalogue answers correctly on a live Medusa, and a cart can be created"
