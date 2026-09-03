@@ -830,6 +830,32 @@ had nothing to reject. A real run found it in seconds.
 
 **No effect gate.** It restores a run that currently fails closed.
 
+## T19 — CPU requests sized by measurement
+
+**Repository:** `deploys`. **Runs before live can adopt a new digest.**
+**Files:** `lousydeal/overlays/live/kustomization.yaml`,
+`lousydeal/overlays/test/kustomization.yaml`, `lousydeal/tests/manifests.sh`,
+`lousydeal/README.md`.
+
+T13 set `requests: cpu: 200m` for every workload in both overlays. **Measured
+against the running deployment, actual usage is 1–19m per pod** — 38m across
+live's five and 39m across test's five, against 1700m requested. Twenty-two
+times over.
+
+The node has 12 CPUs allocatable and requests now total **99%**, so live's
+predeploy Job cannot schedule: `0/1 nodes are available: 1 Insufficient cpu`.
+Live is `Healthy` on its previous images; what is blocked is adopting a new
+digest, which is every future release.
+
+**Memory is not over-requested and does not change.** The backend uses 298Mi
+against a 256Mi request.
+
+- [ ] Size the CPU requests from measurement rather than a guess, in both
+      overlays. Verified by the manifest test asserting the value and by the
+      predeploy Job scheduling.
+
+**No effect gate.** It restores a deployment path that is currently blocked.
+
 ## T16 — The test hostname
 
 **Repository:** `orange`, plus operator action. **Runs after T15b merges.**
