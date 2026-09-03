@@ -44,7 +44,8 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T14c | T14b | deploys | `8d000bb603d2` | AGENT | done | agent | journal, T14b | 2026-09-02 |
 | T14d | T14b | orange | `34ed48cbeed6` | AGENT | done | agent | journal, T14b | 2026-09-02 |
 | T15c | T15c | orange | `90c360e0352d` | AGENT | open | agent | — | — |
-| T15b | T15b | orange | `4a2ff1e326c2` | JOINT | open | operator | — | — |
+| T15b | T15b | orange | `4a2ff1e326c2` | JOINT | done | operator | journal, T15b | 2026-09-03 |
+| T15d | T15d | orange | `f81af780ac52` | AGENT | open | agent | — | — |
 | T18a | T18 | lousydeal | `082a19d0a94c` | AGENT | open | agent | — | — |
 | T18b | T18 | orange | `d1efa3329d35` | JOINT | open | operator | — | — |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | open | operator | — | — |
@@ -52,6 +53,22 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-09-03 · T15d added; row count 37 to 38.**
+`roles/argocd/tasks/plepic.yml:45-47` asserts every entry of the **global**
+enabled-optional-sources list is one of **Plepic's** optional sources. Correct
+while Plepic was the only consumer with any; T14a gave Lousy Deal six, and
+`plepic.yml` imports before `lousydeal.yml`, so enabling one takes the whole
+`argocd` role down for every tenant.
+
+**Six review passes across T14a and T15 missed it, and none could have caught
+it.** Both enable lists were empty until an operator enabled something, so the
+assert had nothing to reject. **A real run found it in seconds**, failing closed
+before any Application was created.
+
+The allowlist is derived from the projection contract instead, covering every
+consumer. **No existing checkbox text changed; all 37 prior hashes recomputed,
+no drift.**
 
 **2026-09-03 · T15c and T18 added; row count 34 to 37.**
 Two gaps surfaced while preparing T15b's seed, both found by looking rather than
@@ -245,8 +262,8 @@ expires.
 | E1 | First publish to GHCR | T12b | **approved 2026-09-01**, operator, merging PR #40 |
 | E2 | Merging T12 — `Release` fires on the merge that introduces it | T12b | **approved 2026-09-01**, operator, merging PR #40 |
 | E3 | First write to `deploys/lousydeal/overlays/*` | T13a, then T12b | **approved 2026-09-01** for T12b's live write, operator |
-| E4 | Seeding OpenBao, test sources | T15b | not requested |
-| E5 | Creating namespaces (T14a) and starting workloads (T15a) | T14a, T15a | not requested |
+| E4 | Seeding OpenBao, test sources | T15b | **executed 2026-09-03**, operator; live sources seeded separately the same day |
+| E5 | Creating namespaces (T14a) and starting workloads (T15a) | T14a, T15a | **approved 2026-09-03**, operator; namespaces, AppProject and ExternalSecrets executed, workloads blocked by T15d |
 | E6 | Publishing DNS for `test.lousydeal.com` | T16a | not requested |
 | E7 | Applying the Cloudflare Access policy | T16a | not requested |
 
