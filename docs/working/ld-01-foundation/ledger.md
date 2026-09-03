@@ -43,12 +43,40 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T14b | T14b | lousydeal | `5b597cbbfad6` | AGENT | done | agent | journal, T14b | 2026-09-02 |
 | T14c | T14b | deploys | `8d000bb603d2` | AGENT | done | agent | journal, T14b | 2026-09-02 |
 | T14d | T14b | orange | `34ed48cbeed6` | AGENT | done | agent | journal, T14b | 2026-09-02 |
+| T15c | T15c | orange | `90c360e0352d` | AGENT | open | agent | — | — |
 | T15b | T15b | orange | `4a2ff1e326c2` | JOINT | open | operator | — | — |
+| T18a | T18 | lousydeal | `082a19d0a94c` | AGENT | open | agent | — | — |
+| T18b | T18 | orange | `d1efa3329d35` | JOINT | open | operator | — | — |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | open | operator | — | — |
 | T16a | T16 | orange | `abf2a5101f88` | JOINT | open | operator | — | — |
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-09-03 · T15c and T18 added; row count 34 to 37.**
+Two gaps surfaced while preparing T15b's seed, both found by looking rather than
+by a review.
+
+**Lousy Deal sends email and nothing carried the credential.** The operator
+supplied `lousydeal-mail-keys`, one pair per environment. The reference carries
+the equivalent inside `plepic-runtime-credentials` as `smtpUsername`/
+`smtpPassword`; T14a's field list omitted them correctly, because it was derived
+from what the manifests consume and nothing consumed SMTP. **T15c widens the
+source before T15b seeds it**, because seeding at the wrong width is a rotation,
+not a re-run. Sending itself — a notification provider, SMTP environment, a
+submission egress policy — is **not in LD-01**.
+
+**Stripe cannot deliver to this application.** The storefront proxy admits the
+`store` namespace alone, so `hooks/payment/…` is refused; the reference admits it
+and T10 narrowed ours deliberately. And T16 gates the hostname on Google
+identity, which a webhook cannot satisfy. `STRIPE_WEBHOOK_SECRET` is therefore
+consumed by a backend nothing can reach. **T18 fixes both**, after T16 exists to
+be amended. Its second row is an effect gate: a bypass is a hole in an Access
+policy, and its scope is one path.
+
+**Neither was found by a review.** Both surfaced from reading what a credential
+is for before writing it down — the same question that found the publishable-key
+gap at T14a. **All 34 prior hashes recomputed, no drift.**
 
 **2026-09-03 · T15b runs before T15. Row count unchanged at 34.**
 T15's own verification waits for its Applications to become Healthy. **Neither
