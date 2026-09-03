@@ -104,14 +104,15 @@ this table: a row that falsifies a line here refreshes it.**
 | Surface | Reachable by | Gate |
 | --- | --- | --- |
 | `test.lousydeal.com` | Cloudflare Access, Google identity, short session | T16 |
-| `lousydeal.com` | nobody in this slice | publication gate, not LD-01 |
-| Medusa Admin | no public hostname, in any encoding | never in LD-01 |
+| `lousydeal.com`, `www` | Cloudflare Access, Google identity | T20b, per decision `010` |
+| Medusa Admin (`admin`, `test-admin`) | Cloudflare Access, one Google identity | T20b, per decision `010` |
 | GHCR packages | public read | T12 |
 | Stripe | test mode only; a live key never reaches test | T14 |
 
-**No live Stripe key, no public DNS for the apex, and no real customer
-transaction in this slice.** The legal gate precedes publication and is not part
-of this build.
+**No live Stripe key and no real customer transaction in this slice.** Decision
+`010` reversed the apex and Admin lines above: both now resolve, and neither is
+reachable without authenticating. **Resolving is not publishing** — the legal
+gate still precedes publication and is not part of this build.
 
 ## Completion criteria
 
@@ -879,6 +880,34 @@ would be a separate decision this row does not take.
 **Effect gate, and DNS publication is its own approval.** Not application auth,
 not a robots directive. A short session, not the 24-hour default the previous
 build left on two applications.
+
+## T20 — The Admin, reachable and gated
+
+**Repositories:** `deploys`, then `orange` plus operator action.
+**Runs after T16 publishes.** Implements decision `010`.
+
+**The backend has no route to reach.** `base/service.yaml:24` gives it no
+`externalIPs`, and `base/networkpolicy.yaml:30-31` says *"even a
+WireGuard-attached administrator has no ingress path to this pod at all in this
+plan"*. Both are falsified by decision `010` and are corrected here.
+
+**T13a recorded the trap this row must not spring.** Orange's Application
+template patches `replace /spec/ingress/0/from`, and this policy's index 0 is
+the storefront's pod selector, not the reference's CIDR. A rule added at index 0,
+or that patch rendered against `allow-backend-ingress`, deletes the storefront's
+only ingress path and hands a CIDR a route to `backend:9000`.
+
+- [ ] Give the backend an ingress path on its own port, admitted by a rule added
+      after the existing one. Verified by the manifest test asserting the
+      storefront's rule is still at index 0 and that no other workload gains a
+      route.
+- [ ] Route the apex, `www`, `admin` and `test-admin` through Cloudflare Access
+      on one Google identity, with the same short session T16 established.
+      Verified by an unauthenticated request to each being refused and an
+      authenticated one reaching the intended service.
+
+**Effect gate.** Each hostname is its own publication, and the Admin's is the
+one that matters: it is a commerce Admin one Access policy deep.
 
 ## T17 — One real-dependency smoke check
 
