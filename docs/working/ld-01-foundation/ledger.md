@@ -43,12 +43,33 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T14b | T14b | lousydeal | `5b597cbbfad6` | AGENT | done | agent | journal, T14b | 2026-09-02 |
 | T14c | T14b | deploys | `8d000bb603d2` | AGENT | done | agent | journal, T14b | 2026-09-02 |
 | T14d | T14b | orange | `34ed48cbeed6` | AGENT | done | agent | journal, T14b | 2026-09-02 |
-| T15a | T15 | orange | `d0eaff8881f5` | JOINT | open | operator | — | — |
 | T15b | T15b | orange | `4a2ff1e326c2` | JOINT | open | operator | — | — |
+| T15a | T15 | orange | `d0eaff8881f5` | JOINT | open | operator | — | — |
 | T16a | T16 | orange | `abf2a5101f88` | JOINT | open | operator | — | — |
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-09-03 · T15b runs before T15. Row count unchanged at 34.**
+T15's own verification waits for its Applications to become Healthy. **Neither
+can**, in either environment: `deploys/lousydeal/base/postgresql.yaml`'s
+wave `-20` StatefulSet reads `lousydeal-database-admin` and
+`lousydeal-runtime-credentials`, and all six `lousydeal{,-test}` projections
+carry `optional_source` against an `argocd_openbao_enabled_optional_sources`
+that is empty. Those Secrets exist only once T15b enables and seeds the sources.
+
+**And T15b never needed T15.** The ExternalSecrets are rendered by
+`roles/argocd/tasks/openbao-consumers.yml`, import 18, on `orange` `main` since
+T14a; `applications.yml` is import 30. The reason recorded for the original
+order — *"the SecretStores that render into them are reconciled at T15"* — is
+false, and was false when written.
+
+So the rows swap. Neither row's text, files or hash changes; **all 34 hashes
+recomputed, no drift.** E4 now fires before E5.
+
+**This was found by a review of T15, not by the amendment that created T15b.**
+A row's ordering premise is a claim like any other, and this one was carried
+through three amendments without being opened.
 
 **2026-09-02 · T14b added; row count 31 to 34.**
 T14a found that **nothing in this build mints the Medusa publishable key**, while
