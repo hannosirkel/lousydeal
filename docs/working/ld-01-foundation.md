@@ -729,7 +729,7 @@ administrator once the backend is reachable, which is why this row precedes both
 `roles/argocd/tasks/lousydeal.yml`, `roles/argocd/tasks/platform-verify.yml`,
 `tests/lousydeal_argocd_templates.yml`.
 
-- [ ] Render two Argo CD `Application` objects reading the two overlays, with
+- [x] Render two Argo CD `Application` objects reading the two overlays, with
       the private NetworkPolicy and runtime patches injected, refusing a gated
       sync unless both overlays at one resolved revision carry real immutable
       digests. Verified by the template tests and by a check-mode run.

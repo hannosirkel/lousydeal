@@ -2593,3 +2593,58 @@ application's task file.
 
 **A shared variable validated against one consumer's expectations is a
 constraint on every other consumer that none of them can see.**
+
+## T15a: what a green run proved that no review could
+
+`lousydeal` **Synced/Healthy**, all five workloads Running, 136 tasks, zero
+failed — the whole platform reconcile green, Plepic and Servitium included.
+
+**The value of E5 was not the deployment. It was the evidence.** Most of this
+build had been asserted rather than executed, and one run settled all of it at
+once: T11's images pull from GHCR; T4's migrations run against a real
+PostgreSQL; T5's Redis preflight passes; T7's seeding runs; T13's manifests
+render, schedule and satisfy Pod Security; and **T14b's `seed:administrator`
+created an identity that actually works — the orchestrator authenticated as it
+to mint the publishable key.** A credential chain spanning three repositories,
+end to end, on the first attempt that got that far.
+
+**And `lousydeal-test` sitting at `OutOfSync` is the gate working.** Its overlay
+still carries the all-zero sentinel because `Deploy Test` has never run. Three
+review passes went into making that refusal correct rather than incidental, and
+it refused.
+
+### Four failed runs, and none of them were the code
+
+E5 took five attempts. What stopped each is worth recording, because none was a
+defect in the row being deployed:
+
+1. **`plepic.yml`'s allowlist** — a global variable validated against one
+   application's list. T15d. Six review passes could not have found it; a run
+   found it in three minutes.
+2. **`argocd_lousydeal_environments` unset** — the role default is the sanitised
+   example, `example-owner` and RFC 5737 addresses, and the assert requires the
+   URL to derive from the real repository. Missing inventory, not missing code.
+3. **The publishable key** — the gap recorded at T14a, arriving exactly where
+   predicted: `CreateContainerConfigError`, `secret "lousydeal-publishable-key"
+   not found`. **The row that closed it was the row that had created the
+   identity able to close it.**
+4. **The ACL policy not yet widened** — the orchestrator enabled the source and
+   ran `argocd.yml`, when `reconcile-access` — which writes the widened policy —
+   lives in `playbooks/openbao.yml`. T14a's own runbook says so, in the sentence
+   T14c corrected for exactly this reason. **Read and then not applied.**
+
+**Three of the four were configuration the code correctly refused to proceed
+without.** Every one failed closed, named its cause, and cost a re-run rather
+than a rollback. That is what the assertions were for.
+
+### The one that was the orchestrator's
+
+Number four. The runbook sentence was corrected two rows earlier *because* it
+named the wrong variable, and the corrected version says plainly that
+`openbao_required_optional_sources` "is what `validate` and `reconcile-access`
+actually read". Having commissioned that correction, the orchestrator then
+enabled the source and ran the wrong playbook — and spent 120 ExternalSecret
+retries discovering it.
+
+**Knowing where a fact is written down is not the same as recalling it at the
+moment it applies.**

@@ -48,7 +48,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T15d | T15d | orange | `f81af780ac52` | AGENT | open | agent | — | — |
 | T18a | T18 | lousydeal | `082a19d0a94c` | AGENT | open | agent | — | — |
 | T18b | T18 | orange | `d1efa3329d35` | JOINT | open | operator | — | — |
-| T15a | T15 | orange | `d0eaff8881f5` | JOINT | open | operator | — | — |
+| T15a | T15 | orange | `d0eaff8881f5` | JOINT | done | operator | journal, T15a | 2026-09-03 |
 | T16a | T16 | orange | `abf2a5101f88` | JOINT | open | operator | — | — |
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
@@ -263,7 +263,7 @@ expires.
 | E2 | Merging T12 — `Release` fires on the merge that introduces it | T12b | **approved 2026-09-01**, operator, merging PR #40 |
 | E3 | First write to `deploys/lousydeal/overlays/*` | T13a, then T12b | **approved 2026-09-01** for T12b's live write, operator |
 | E4 | Seeding OpenBao, test sources | T15b | **executed 2026-09-03**, operator; live sources seeded separately the same day |
-| E5 | Creating namespaces (T14a) and starting workloads (T15a) | T14a, T15a | **approved 2026-09-03**, operator; namespaces, AppProject and ExternalSecrets executed, workloads blocked by T15d |
+| E5 | Creating namespaces (T14a) and starting workloads (T15a) | T14a, T15a | **executed 2026-09-03**, operator; all five live workloads Running, `lousydeal` Synced/Healthy |
 | E6 | Publishing DNS for `test.lousydeal.com` | T16a | not requested |
 | E7 | Applying the Cloudflare Access policy | T16a | not requested |
 
