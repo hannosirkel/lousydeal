@@ -743,7 +743,7 @@ without its namespace breaks a gate for every other consumer.
 **Repository:** `orange`, plus operator action. **Runs after T15 merges.**
 **Files:** `scripts/openbao-admin`.
 
-- [ ] Seed the test environment's sources into OpenBao and confirm External
+- [x] Seed the test environment's sources into OpenBao and confirm External
       Secrets renders them into the namespace. Verified by the Secret existing
       with the expected keys and no value appearing in any log or tracked file.
 
@@ -804,6 +804,31 @@ deliveries fail until both are fixed.
 
 **Effect gate.** The bypass is a hole in an Access policy. It is approved on its
 own, and its scope is one path.
+
+## T15d — One application's allowlist, applied to every application
+
+**Repository:** `orange`. **Runs before E5 can complete.**
+**Files:** `roles/argocd/tasks/plepic.yml`,
+`roles/argocd/tasks/openbao-consumer-contract.yml`,
+`tests/plepic_argocd_templates.yml`, `tests/lousydeal_argocd_templates.yml`.
+
+`roles/argocd/tasks/plepic.yml:45-47` asserts that every entry of the **global**
+`argocd_openbao_enabled_optional_sources` is one of **Plepic's** optional
+sources. That was correct while Plepic was the only consumer with any. T14a gave
+Lousy Deal six, and `plepic.yml` is imported before `lousydeal.yml`, so enabling
+a Lousy Deal source fails Plepic's assert and takes the whole `argocd` role down
+for every tenant.
+
+**Six review passes across T14a and T15 did not catch it, and could not have.**
+Both enable lists were empty until an operator enabled something, so the assert
+had nothing to reject. A real run found it in seconds.
+
+- [ ] Derive the enabled-source allowlist from every `optional_source` the
+      projection contract declares, so it covers each consumer rather than one.
+      Verified by an unknown name still failing, every enabled Lousy Deal source
+      passing, and Plepic's own four unchanged.
+
+**No effect gate.** It restores a run that currently fails closed.
 
 ## T16 — The test hostname
 

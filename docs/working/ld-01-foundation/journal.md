@@ -2533,3 +2533,63 @@ projection contract hashes identically before and after.
 operator must sign in as this administrator once T15 deploys the backend, mint
 the publishable key, and stage it for seeding. No row does that, and
 `docs/current/provisioning.md` says so.
+
+## T15b: the assert that only a real run could fail
+
+E4 executed twice — test, then live, as separate actions the seed guard
+enforces. All four sources landed at **version 1**: first writes, no rotations.
+Widening the source for SMTP beforehand is what bought that; seeding eight
+fields and needing ten would have been a rotation of a live credential.
+
+The Secrets render with exactly the expected keys, and the eight-key runtime
+Secret is the point: `smtpUsername` and `smtpPassword` are **in OpenBao and
+deliberately not projected**, because nothing in `deploys/lousydeal` consumes
+SMTP yet. A credential seeded once, waiting for a consumer, rather than a live
+value sitting in a pod's environment for no reason.
+
+### What six review passes could not have found
+
+`roles/argocd/tasks/plepic.yml:45-47` asserts that every entry of the **global**
+`argocd_openbao_enabled_optional_sources` is one of **Plepic's** optional
+sources. T14a gave Lousy Deal six optional sources; `plepic.yml` imports before
+`lousydeal.yml`. So the first time anyone enabled a Lousy Deal source, Plepic's
+assert failed and took the entire `argocd` role down for every tenant.
+
+**T14a had three review passes and T15 had three. None caught it. None could
+have.** Both enable lists were empty for the whole of that work, so the assert
+had nothing to reject — it was correct on every input it had ever seen. **The
+defect existed only in a state no test constructed and no reviewer could reach
+by reading.**
+
+A single real run found it in under three minutes.
+
+**This is the argument for effect gates, made by the mechanism rather than about
+it.** The gate exists because some facts are only available by doing the thing.
+Six passes of adversarial review over two rows in the same role, and the fault
+was one import-order-plus-scope interaction that no amount of reading the diff
+would surface.
+
+### It failed in the right direction
+
+The run stopped at an `assert`, before `applications.yml`. Namespaces, Pod
+Security labels, the `lousydeal` AppProject and both environments'
+ExternalSecrets were created; **no Application was created and no workload
+started.** Nothing is half-deployed, and the state it left is exactly the state
+T15b needed to verify itself.
+
+**A guard that fails closed converts a design error into a diagnosis.** Had that
+assert been advisory, the role would have continued into `lousydeal.yml` and the
+first symptom would have been a sync waiting out its retry budget — the failure
+mode T15's own review spent three passes eliminating, arrived at through a
+different door.
+
+### And the scope error is worth naming precisely
+
+The comment above the allowlist says it exists so *"an inventory typo fails this
+assertion instead of silently rendering no ExternalSecret"*. That intent is
+right and applies to every consumer. What was wrong was the **scope**: a check on
+a global variable, derived from one application's namespaces, living in that
+application's task file.
+
+**A shared variable validated against one consumer's expectations is a
+constraint on every other consumer that none of them can see.**
