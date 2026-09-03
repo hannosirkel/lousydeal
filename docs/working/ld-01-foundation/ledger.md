@@ -253,8 +253,9 @@ operator override.
 | T12a | 5 files, 1,637 lines | operator, 2026-09-01 |
 | T12b | 4 files, 4,130 lines | operator, 2026-09-01 |
 | T14a | 10 files, 1,200 lines | operator, 2026-09-02 |
+| T15 | 8 files, 3,587 lines | operator, 2026-09-03 |
 
-**T12b is the largest by a wide margin, and the reason is on the record.** Five
+**T12b remains the largest, with T15 second, and both reasons are on the record.** Five
 review passes applied 278 mutations and found the same defect five times; the
 assertion mechanism that finally closed it — pinning four jobs to their exact
 step content, and closing the job, root and file-set key sets — is most of the
