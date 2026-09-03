@@ -47,6 +47,8 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T15b | T15b | orange | `4a2ff1e326c2` | JOINT | done | operator | journal, T15b | 2026-09-03 |
 | T15d | T15d | orange | `f81af780ac52` | AGENT | done | agent | journal, T15a | 2026-09-03 |
 | T19a | T19 | deploys | `d7d3ca6dd22c` | AGENT | done | agent | journal, T19 | 2026-09-03 |
+| T20a | T20 | deploys | `a0073b7ba64f` | AGENT | open | agent | — | — |
+| T20b | T20 | orange | `2752980ec3a8` | JOINT | open | operator | — | — |
 | T18a | T18 | lousydeal | `082a19d0a94c` | AGENT | open | agent | — | — |
 | T18b | T18 | orange | `d1efa3329d35` | JOINT | open | operator | — | — |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | done | operator | journal, T15a | 2026-09-03 |
@@ -54,6 +56,28 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-09-03 · T20 added; row count 39 to 41. Decision `010`.**
+**The operator reversed two Target exposure lines.** `lousydeal.com` was
+"nobody in this slice" and the Medusa Admin was "no public hostname, in any
+encoding, never in LD-01". Both now resolve, gated behind Cloudflare Access on
+one Google identity, matching the posture the reference already runs.
+
+**This is not a DNS change.** `deploys/lousydeal/base/service.yaml:24` gives the
+backend no `externalIPs` and `networkpolicy.yaml:30-31` states no ingress path
+to that pod exists — deliberately, across three rows. Making the Admin reachable
+needs a port, an `externalIPs` entry and a NetworkPolicy rule before any tunnel
+route can point anywhere, and **T13a's recorded trap constrains where that rule
+may go**: index 0 is the storefront's pod selector, and anything that replaces
+it hands a CIDR a route to `backend:9000`.
+
+Recorded as a decision rather than an edit **because it enlarges the blast
+radius**: an authenticated commerce Admin, one Access policy deep. The deferral
+it reverses had already cost real work — the publishable key could only be
+minted by port-forwarding from the cluster host, because nothing else could
+reach the Admin API.
+
+**All 39 prior hashes recomputed, no drift.**
 
 **2026-09-03 · T19 added; row count 38 to 39.**
 The first constraint in this build that no amount of correct code could satisfy:
