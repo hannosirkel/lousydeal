@@ -756,6 +756,55 @@ keeps its hash and changes only its task.
 **Effect gate, one credential at a time.** Test and live are never written in one
 step. A wrong value is a rotation, not a re-run.
 
+## T15c — The mail credentials, carried before they are used
+
+**Repository:** `orange`. **Runs before T15b seeds.**
+**Files:** `scripts/openbao-admin`, `tests/test_openbao_admin.py`,
+`tests/external_secrets_templates.yml`, `docs/current/provisioning.md`.
+
+Lousy Deal sends order confirmations, and the operator supplied SMTP credentials
+as the provider staging file `lousydeal-mail-keys` — one pair per environment,
+`lousydeal_test` and `lousydeal_shop`. The reference carries the equivalent
+inside `plepic-runtime-credentials` as `smtpUsername` and `smtpPassword`; Lousy
+Deal's source has neither, because T14a derived its field list from what the
+manifests actually consume and nothing consumed SMTP.
+
+**The source is widened before the seed, not after.** T15b's own gate says a
+wrong value is a rotation rather than a re-run, and that applies equally to a
+source seeded at the wrong width.
+
+- [ ] Carry `smtpUsername` and `smtpPassword` in both runtime sources,
+      following the Plepic entry. Verified by the existing template tests
+      passing with the wider source, and by the seed accepting a ten-field file.
+
+**Sending is not in this row.** The backend has no notification provider, the
+manifests carry no SMTP environment and no submission egress policy, and none of
+that is in LD-01. This row only ensures the credential is seeded once.
+
+## T18 — The webhook Stripe can reach
+
+**Repositories:** `lousydeal`, then `orange`. **Runs after T16 merges.**
+
+**Stripe cannot deliver to this application, for two independent reasons.**
+`storefront/src/app/api/store/[...path]/route.ts` admits the `store` namespace
+alone, so `hooks/payment/…` is refused — the reference's proxy admits it under
+`/store-api`, and T10 narrowed ours deliberately. And T16 gates the hostname on
+Google identity, which a webhook cannot satisfy.
+
+So `STRIPE_WEBHOOK_SECRET` is consumed by a backend nothing can reach. The
+endpoint exists in Stripe test mode, created at T15b's preparation, and its
+deliveries fail until both are fixed.
+
+- [ ] Admit the payment webhook path through the storefront proxy, and no other
+      namespace. Verified by a test asserting the webhook path resolves and that
+      every other new namespace is still refused.
+- [ ] Add a Cloudflare Access bypass for exactly that path, and nothing else.
+      Verified by an unauthenticated request to the webhook path reaching the
+      storefront while every other path still refuses.
+
+**Effect gate.** The bypass is a hole in an Access policy. It is approved on its
+own, and its scope is one path.
+
 ## T16 — The test hostname
 
 **Repository:** `orange`, plus operator action. **Runs after T15b merges.**
