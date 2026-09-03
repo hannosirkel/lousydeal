@@ -45,7 +45,8 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T14d | T14b | orange | `34ed48cbeed6` | AGENT | done | agent | journal, T14b | 2026-09-02 |
 | T15c | T15c | orange | `90c360e0352d` | AGENT | open | agent | — | — |
 | T15b | T15b | orange | `4a2ff1e326c2` | JOINT | done | operator | journal, T15b | 2026-09-03 |
-| T15d | T15d | orange | `f81af780ac52` | AGENT | open | agent | — | — |
+| T15d | T15d | orange | `f81af780ac52` | AGENT | done | agent | journal, T15a | 2026-09-03 |
+| T19a | T19 | deploys | `d7d3ca6dd22c` | AGENT | open | agent | — | — |
 | T18a | T18 | lousydeal | `082a19d0a94c` | AGENT | open | agent | — | — |
 | T18b | T18 | orange | `d1efa3329d35` | JOINT | open | operator | — | — |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | done | operator | journal, T15a | 2026-09-03 |
@@ -53,6 +54,19 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-09-03 · T19 added; row count 38 to 39.**
+The first constraint in this build that no amount of correct code could satisfy:
+**the node ran out of CPU.** T13 set `requests: cpu: 200m` for every Lousy Deal
+workload in both overlays; measured against the running deployment, actual usage
+is **1–19m per pod**, 77m across all ten against 1700m requested. Requests now
+total 99% of 12 allocatable CPUs and live's predeploy Job cannot schedule.
+
+Live is `Healthy` on its previous images — what is blocked is adopting a new
+digest, which is every future release.
+
+**Memory is not over-requested**: the backend uses 298Mi against a 256Mi
+request, so only CPU changes. **All 38 prior hashes recomputed, no drift.**
 
 **2026-09-03 · T15d added; row count 37 to 38.**
 `roles/argocd/tasks/plepic.yml:45-47` asserts every entry of the **global**
