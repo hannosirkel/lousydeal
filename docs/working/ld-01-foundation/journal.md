@@ -2854,6 +2854,21 @@ orange-web: 13 ingress rules (Plepic's five and the campaign zone's two intact)
 **The trap is avoided in the cluster, not only in the render.** Index 0 is still
 the storefront's pod selector.
 
+Both halves of the second checkbox, measured from outside the WireGuard mesh
+once DNS had propagated:
+
+```text
+lousydeal.com             HTTP 302  cdn-cgi/access/login/lousydeal.com
+www.lousydeal.com         HTTP 302  cdn-cgi/access/login/www.lousydeal.com
+admin.lousydeal.com       HTTP 302  cdn-cgi/access/login/admin.lousydeal.com
+test-admin.lousydeal.com  HTTP 302  cdn-cgi/access/login/test-admin.lousydeal.com
+test.lousydeal.com        HTTP 302  cdn-cgi/access/login/test.lousydeal.com
+```
+
+**Five hostnames, five refusals, no content served.** The authenticated
+direction is the operator's, for the same reason it was at T16: no agent holds a
+Google identity.
+
 ### Copying the reference's file was not the same as copying the reference
 
 The base carried `192.168.0.0/16`, taken from `plepic/base/networkpolicy.yaml`.
