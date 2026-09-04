@@ -11,7 +11,8 @@
     "seed:product": "medusa exec \"$(if [ -f ./src/scripts/seed-product.js ]; then echo ./src/scripts/seed-product.js; else echo ./src/scripts/seed-product.ts; fi)\"",
     "predeploy": "npm run redis:preflight && medusa db:migrate --execute-safe-links && npm run seed:administrator && npm run configure:commerce && npm run seed:product",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "test:smoke": "vitest run --config vitest.smoke.config.mts"
   },
   "dependencies": {
     "@medusajs/admin-sdk": "2.18.0",

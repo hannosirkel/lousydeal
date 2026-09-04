@@ -82,12 +82,15 @@
  * pre-pass (triggered by a space or a malformed `%` anywhere in the string)
  * to match its normalisation exactly.
  *
- * Nothing this backend runs needs a `DATABASE_URL` with a query component —
- * no compose file, no CI job, no deployment manifest sets one — so
- * {@link resolveDatabaseUrl} refuses any `DATABASE_URL` containing a `?` at
- * all, outright, rather than leaving any part of this class reachable behind
- * an operator instruction not to trigger it or behind a list of key names
- * this file has to keep current with `pg`'s.
+ * Nothing this backend runs needs a `DATABASE_URL` with a query component.
+ * `compose.yaml` (T17) configures no backend service and so sets no
+ * `DATABASE_URL` at all -- `scripts/store-smoke` exports a plain one, with
+ * no `?`, to the process it starts directly. No CI job and no deployment
+ * manifest sets one either. So {@link resolveDatabaseUrl} refuses any
+ * `DATABASE_URL` containing a `?` at all, outright, rather than leaving any
+ * part of this class reachable behind an operator instruction not to
+ * trigger it or behind a list of key names this file has to keep current
+ * with `pg`'s.
  *
  * ## The environment contract
  *
