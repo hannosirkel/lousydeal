@@ -872,7 +872,7 @@ build left on two applications — cannot be expressed in a defaults file.
 the existing `web` tunnel and has no instance entry of its own. A dedicated tunnel
 would be a separate decision this row does not take.
 
-- [ ] Publish DNS for `test.lousydeal.com` and apply a Cloudflare Access policy
+- [x] Publish DNS for `test.lousydeal.com` and apply a Cloudflare Access policy
       with a short session, gating it at the edge on Google identity. Verified
       by an unauthenticated request being refused and an authenticated one
       reaching the storefront.
