@@ -2974,3 +2974,75 @@ before this build began, carrying **no `ownerReferences`** and named nowhere in
 `orange`. A hand-applied leftover, correctly refusing to let the platform check
 call the cluster clean. The operator deleted it; the run then completed at
 `ok=102`.
+
+## T18a: the webhook path, and the header nobody was carrying
+
+```text
+resolveStoreApiPath("/api/store/hooks/payment/stripe_stripe")
+  -> "/hooks/payment/stripe_stripe"
+headers Medusa sees  ["content-type","accept","stripe-signature","x-publishable-api-key"]
+raw body             byte-identical
+```
+
+### The row admitted the path and still could not have worked
+
+The proxy forwarded exactly two request headers. Stripe's verification reads a
+third — `stripe-base.js:511` takes `data.headers["stripe-signature"]` and hands
+it to `constructEvent`, which throws on `undefined`. **And
+`hooks/payment/[provider]/route.js` answers Stripe `200` before that ever
+runs**, so every delivery would have failed silently, with no retry and no
+Stripe-side alert.
+
+The reference does not have this because its forwarder is a **denylist** —
+delete `host`, `content-length`, hop-by-hop, keep the rest. T10 replaced that
+with a two-name allowlist for good reasons, and **an allowlist is a list of
+things someone thought of.** The one nobody thought of was the only header the
+row existed to carry.
+
+**A row can admit a path, forward the body byte-for-byte, and still not
+deliver.**
+
+### The defence this row leaned on had no test
+
+Deleting the proxy's fifth defence — the post-normalization re-check — passed
+**all 484 tests** while opening seven working Admin-API bypasses **through the
+namespace this row admits**:
+
+```text
+"/api/store/hooks/.\t./admin/users"        -> "/admin/users"
+"/api/store/hooks/%2\te%2\te/admin/users"  -> "/admin/users"
+```
+
+The WHATWG parser strips U+0009/000A/000D before parsing, so the per-segment
+check never sees a dot segment. **That family defeats defences 1–4 and is
+stopped only by the fifth.**
+
+The test file already knew: its comment said the escapes above it "already
+return null from the per-segment check first" and pointed at *"the 'fails
+closed' evidence in the row's report"*. **The evidence went into a report and
+the suite got an assertion that passes whether or not the line exists.** Every
+traversal test in the file was written against `store`; not one against `hooks`.
+
+### The posture itself held
+
+483,120 crafted paths and 200,000 fuzzed ones — traversal in six encodings, five
+layers of double-encoding, tab splicing, unicode homoglyphs, overlong UTF-8,
+null bytes, `..;`, case variants. **No bypass.** Admitting `hooks` widens the
+namespace allowlist and touches none of the other four defences, as claimed.
+
+### And the pin that was not one
+
+Both `pp_` → `px_` and `pp_stripe_stripe` → `pp_stripe_wrong` passed the entire
+suite. The test derived the segment from `STRIPE_PROVIDER_ID` to avoid "carrying
+its own copy that could drift" — but **that constant is itself a hand-written
+literal**, so the spelling was unpinned end to end. The same limit the
+implementer correctly identified for `ALLOWED_NAMESPACES` and closed with a
+literal, unclosed one function away.
+
+### Recorded for T18b
+
+`hooks/payment/[provider]/route.js:11-23` emits to the event bus with
+`delay: 5000, attempts: 3` **before any verification**, carrying the caller's
+body. After this row any anonymous `POST /api/store/hooks/payment/<anything>`
+enqueues that work — **and T18b is what removes the Access gate in front of
+it.**

@@ -7,12 +7,22 @@
  * at this same public hostname.
  *
  * Ported from `plepic/storefront/src/lib/store-api-transport.ts`, narrowed to
- * one namespace: this repository allows only `store`, never `hooks` or
- * `static` -- no row in LD-01 creates a webhook route (T6b), and there is no
- * media surface to serve. Plepic also mounts this at `/store-api/*`; here it
- * is `/api/store/*`, so `/api/store/store/products` is the shape a legitimate
- * request takes -- the first `store` is this route's own mount point, the
- * second is the Medusa namespace being forwarded.
+ * two namespaces: this repository allows `store` and `hooks`, never `static`.
+ * `POST /hooks/payment/:provider` (`node_modules/@medusajs/medusa/dist/api/hooks/payment/[provider]/route.js`,
+ * matched by `node_modules/@medusajs/medusa/dist/api/hooks/middlewares.js`)
+ * is mounted unconditionally -- `dist/loaders/api.js:40-53` loads the whole
+ * `../api` tree with no payment-provider condition -- so it was already live
+ * before T6b, answering `system_default`
+ * (`@medusajs/payment/dist/loaders/providers.js:53-56` registers
+ * `SystemPaymentProvider` unconditionally too). T6b does not mount the route;
+ * it registers the Stripe provider under `pp_stripe_stripe`, which is what
+ * makes this route resolve *that* provider's webhook rather than only the
+ * system one -- and only once this row also lets a request reach it. There is
+ * still no media surface to serve, so `static` stays excluded. Plepic also
+ * mounts this at `/store-api/*`; here it is `/api/store/*`, so
+ * `/api/store/store/products` is the shape a legitimate request takes -- the
+ * first `store` is this route's own mount point, the second is the Medusa
+ * namespace being forwarded.
  *
  * Unlike Plepic, the publishable key is attached **here**, server-side, from
  * `getRuntimeConfig()`, not carried by the browser. Nothing in
@@ -24,8 +34,8 @@
  * **The origin promise holds on the request path and the response path, not
  * just the first.** `resolveStoreApiPath` and its five defences (below) are
  * what stop a browser from ever making this proxy *ask* the backend for
- * something outside `/store/`. Two further, independent things stop the
- * backend's own *answer* from telling the browser where it came from:
+ * something outside `/store/` or `/hooks/`. Two further, independent things
+ * stop the backend's own *answer* from telling the browser where it came from:
  * {@link forwardedRequestHeaders} forwards an allowlist, not everything the
  * browser sent, so a browser `Cookie`, `Authorization` or a spoofed
  * `x-forwarded-host` never reaches Medusa in the first place; and
@@ -43,13 +53,27 @@ import { STORE_PUBLISHABLE_KEY_HEADER } from "../../../../lib/medusa-client";
 const MOUNT_PREFIX = "/api/store/";
 
 /**
- * The only Medusa namespace this route will forward to. Plepic's equivalent
- * also allows `hooks` (webhooks) and `static` (product media); neither exists
- * in this repository -- T6b creates no webhook route, and no row serves media
- * -- so admitting either name here would be an allowlist entry for a backend
- * surface this proxy has no legitimate request for.
+ * The only Medusa namespaces this route will forward to.
+ *
+ * `store` is the Store API T9 built this proxy for. `hooks` is added at T18:
+ * `POST /hooks/payment/:provider` is already mounted unconditionally (see the
+ * module comment above), and T6b's Stripe payment provider is what makes it
+ * resolve `stripe_stripe`'s webhook rather than only the system default --
+ * this row is what lets a request reach it at all, which is why the
+ * namespace was refused before and is a legitimate one to admit now.
+ *
+ * `static` (Plepic's product-media namespace) is deliberately still absent:
+ * no row in this repository serves media, so admitting it would be an
+ * allowlist entry for a backend surface nothing here requests.
+ *
+ * `ReadonlySet`, not `Set`: this is a security allowlist, and the module
+ * exports it only so its own test suite can assert its declared membership
+ * and drive a namespace-property test from it -- `readonly` is what stops a
+ * caller from doing so by mutating this Set in place (`.add`, `.delete`)
+ * rather than by editing this literal, so `tsc` catches an attempt at the
+ * former.
  */
-const ALLOWED_NAMESPACES = new Set(["store"]);
+export const ALLOWED_NAMESPACES: ReadonlySet<string> = new Set(["store", "hooks"]);
 
 /**
  * The origin dot segments are resolved against when {@link resolveStoreApiPath}
@@ -145,7 +169,7 @@ function isRefusedSegment(segment: string): boolean {
  * it. No network operation happens in this function or before the caller
  * observes that result.
  *
- * Four defences, in order: a fixed prefix, a one-name namespace allowlist, a
+ * Four defences, in order: a fixed prefix, a namespace allowlist, a
  * minimum segment count (a bare namespace with nothing after it forwards
  * nowhere legitimate), and a per-segment refusal on the *decoded* form of
  * every segment. The last line is a fifth, independent of the first four: the
@@ -216,6 +240,18 @@ export function resolveStoreApiTarget(upstreamPath: string, search: string, back
  * own content negotiation see what the browser asked for; nothing in this
  * row's flow depends on it.
  *
+ * `stripe-signature` is not optional for the `hooks` namespace this row
+ * admits: `node_modules/@medusajs/payment-stripe/dist/core/stripe-base.js:511-513`
+ * reads `data.headers["stripe-signature"]` and passes it to
+ * `stripe.webhooks.constructEvent(rawData, signature, webhookSecret)`, which
+ * throws on `undefined`. `hooks/payment/[provider]/route.js` has already
+ * answered Stripe `200` before that verification ever runs (it only enqueues
+ * the event), so an omitted header does not surface as an error to Stripe or
+ * this proxy -- it fails a delivery silently, with no retry and no alert.
+ * Forwarding the header does not weaken the allowlist's own guarantee: it is
+ * one more name Medusa is allowed to see, not a change to what it is allowed
+ * to do with what it sees.
+ *
  * Deliberately **not** an allowlist of everything a legitimate request
  * happens to carry: a browser `Cookie` or `Authorization` header, or a
  * client-supplied `x-forwarded-host`, has no purpose reaching Medusa in a
@@ -223,7 +259,7 @@ export function resolveStoreApiTarget(upstreamPath: string, search: string, back
  * because a denylist did not name them, is exactly the defect this allowlist
  * replaces. See `tests/store-checkout.test.ts` for the header proven absent.
  */
-const FORWARDED_REQUEST_HEADERS = ["content-type", "accept"] as const;
+const FORWARDED_REQUEST_HEADERS = ["content-type", "accept", "stripe-signature"] as const;
 
 /** Forwards only {@link FORWARDED_REQUEST_HEADERS}, then sets the one credential the browser never carries. */
 function forwardedRequestHeaders(request: Request, publishableKey: string): Headers {

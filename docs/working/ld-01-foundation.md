@@ -786,17 +786,24 @@ that is in LD-01. This row only ensures the credential is seeded once.
 
 **Repositories:** `lousydeal`, then `orange`. **Runs after T16 merges.**
 
-**Stripe cannot deliver to this application, for two independent reasons.**
-`storefront/src/app/api/store/[...path]/route.ts` admits the `store` namespace
-alone, so `hooks/payment/…` is refused — the reference's proxy admits it under
-`/store-api`, and T10 narrowed ours deliberately. And T16 gates the hostname on
-Google identity, which a webhook cannot satisfy.
+**Stripe cannot deliver to this application, for three independent reasons —
+T18a's own review pass found the third.** `storefront/src/app/api/store/[...path]/route.ts`
+admitted the `store` namespace alone, so `hooks/payment/…` was refused — the
+reference's proxy admits it under `/store-api`, and T10 narrowed ours
+deliberately. Even once admitted, the forwarder's request-header allowlist did
+not carry `stripe-signature`, so a delivery that reached Medusa still failed
+Stripe's own signature verification, silently and with no retry
+(`node_modules/@medusajs/payment-stripe/dist/core/stripe-base.js:511-513`
+reads that header; `hooks/payment/[provider]/route.js` answers Stripe `200`
+before verification ever runs). **T18a fixes both of these.** The third does
+not: T16 gates the hostname on Google identity, which a webhook cannot
+satisfy, and only T18b's Cloudflare Access bypass addresses that.
 
 So `STRIPE_WEBHOOK_SECRET` is consumed by a backend nothing can reach. The
 endpoint exists in Stripe test mode, created at T15b's preparation, and its
-deliveries fail until both are fixed.
+deliveries fail until all three are fixed.
 
-- [ ] Admit the payment webhook path through the storefront proxy, and no other
+- [x] Admit the payment webhook path through the storefront proxy, and no other
       namespace. Verified by a test asserting the webhook path resolves and that
       every other new namespace is still refused.
 - [ ] Add a Cloudflare Access bypass for exactly that path, and nothing else.
