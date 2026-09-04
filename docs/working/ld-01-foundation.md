@@ -925,7 +925,7 @@ conjoined into readiness, so a namespace that does not exist can never be called
 ready. **The requirement was right; two keys in one task was the wrong way to
 meet it.** The conjunction survives this row.
 
-- [ ] Resolve each fact before the fact that uses it, keeping the existence
+- [x] Resolve each fact before the fact that uses it, keeping the existence
       conjunction. Verified by `playbooks/platform-verify.yml` reaching its
       final task, and by a test that goes red against the single-task shape.
 
