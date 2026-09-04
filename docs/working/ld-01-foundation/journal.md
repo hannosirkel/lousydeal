@@ -2917,3 +2917,60 @@ It has one now, for Lousy Deal; Plepic's gap is pre-existing and was left alone.
 backwards.** Its own comment says the declared pair is the side that is *not*
 already sorted; the guard asserted the sort on the other side. It passed only
 because `[8121, 8122]` happens to be ascending.
+
+## T21: the fact that referenced itself
+
+```text
+before  orange-host : ok=13   failed=1   (aborted at task 14)
+after   orange-host : ok=102  failed=0   exit=0
+```
+
+`set_fact` templates **every** key of one call before writing **any** of them
+back to host facts, so a second key cannot see the first. Split into two tasks.
+The requirement it was implementing — an environment is ready only if it also
+exists, T15's MAJOR C4 — is untouched.
+
+### Four checks proved the expression and none could see the defect
+
+This suite already proved four expressions by extraction-and-render. But each
+calls `lookup('template', …)` on an isolated Jinja **expression**, against facts
+the play has already set — and **every MAJOR C1–C4 fixture pre-seeds
+`argocd_lousydeal_existing_namespaces` itself** before rendering the readiness
+expression. That pre-seeding sidesteps the exact failure.
+
+**The tests were not weak. They were testing the expression, and the defect was
+in the task.**
+
+The new one writes the real extracted task text to a file and runs it through
+the real `set_fact` action with only upstream fixtures, never pre-seeding either
+output. It keys on a literal that predates the fix and survives it — not a task
+count or a task name, which is what the fix changes.
+
+```text
+re-merge the two keys into one task    caught  (byte-identical to the real error)
+drop the existence conjunction         caught
+swap the two tasks                     caught
+```
+
+The third is new risk this row created: splitting a task makes ordering
+load-bearing where it was not.
+
+### What it cost to find
+
+**Nothing that ran between T15 and now could have caught it.** The 42 contract
+playbooks, every render diff, T20b's whole suite — all render task text and
+resolve no runtime fact. `platform-verify.yml` is operator-invoked and had not
+run since T15 merged, eight rows earlier.
+
+**The same shape as `plepic.yml`'s allowlist at T15d**: correct-looking,
+unfalsifiable by reading, found in seconds by a real run. That is twice in this
+build that the only adequate test was execution.
+
+### And the run surfaced something older
+
+With the fix in, the play reached task 96 and stopped on a pod named
+`oom-probe-default` in the `n8n` namespace — created 2026-08-24, five days
+before this build began, carrying **no `ownerReferences`** and named nowhere in
+`orange`. A hand-applied leftover, correctly refusing to let the platform check
+call the cluster clean. The operator deleted it; the run then completed at
+`ok=102`.
