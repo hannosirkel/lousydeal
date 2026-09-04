@@ -897,17 +897,43 @@ the storefront's pod selector, not the reference's CIDR. A rule added at index 0
 or that patch rendered against `allow-backend-ingress`, deletes the storefront's
 only ingress path and hands a CIDR a route to `backend:9000`.
 
-- [ ] Give the backend an ingress path on its own port, admitted by a rule added
+- [x] Give the backend an ingress path on its own port, admitted by a rule added
       after the existing one. Verified by the manifest test asserting the
       storefront's rule is still at index 0 and that no other workload gains a
       route.
-- [ ] Route the apex, `www`, `admin` and `test-admin` through Cloudflare Access
+- [x] Route the apex, `www`, `admin` and `test-admin` through Cloudflare Access
       on one Google identity, with the same short session T16 established.
       Verified by an unauthenticated request to each being refused and an
       authenticated one reaching the intended service.
 
 **Effect gate.** Each hostname is its own publication, and the Admin's is the
 one that matters: it is a commerce Admin one Access policy deep.
+
+## T21 — The fact that references itself
+
+**Repository:** `orange`.
+**Files:** `roles/argocd/tasks/platform-verify.yml`,
+`tests/lousydeal_argocd_templates.yml`.
+
+`playbooks/platform-verify.yml` aborts at its fourteenth task, for every tenant.
+One `set_fact` defines `argocd_lousydeal_existing_namespaces` and
+`argocd_lousydeal_ready_namespaces`, and the second references the first;
+Ansible resolves keys within one `set_fact` in no guaranteed order.
+
+Introduced by `fc08f33` (T15), meeting that review's MAJOR C4 — existence
+conjoined into readiness, so a namespace that does not exist can never be called
+ready. **The requirement was right; two keys in one task was the wrong way to
+meet it.** The conjunction survives this row.
+
+- [ ] Resolve each fact before the fact that uses it, keeping the existence
+      conjunction. Verified by `playbooks/platform-verify.yml` reaching its
+      final task, and by a test that goes red against the single-task shape.
+
+**Nothing that has run since T15 could have caught it.** The 42 contract
+playbooks, the render diffs and T20b's own suite all render task text and
+resolve no runtime fact. `platform-verify.yml` is operator-invoked and had not
+run since. **The same shape as `plepic.yml`'s allowlist at T15d: correct-looking,
+unfalsifiable by reading, found in seconds by a real run.**
 
 ## T17 — One real-dependency smoke check
 

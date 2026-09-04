@@ -47,15 +47,36 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T15b | T15b | orange | `4a2ff1e326c2` | JOINT | done | operator | journal, T15b | 2026-09-03 |
 | T15d | T15d | orange | `f81af780ac52` | AGENT | done | agent | journal, T15a | 2026-09-03 |
 | T19a | T19 | deploys | `d7d3ca6dd22c` | AGENT | done | agent | journal, T19 | 2026-09-03 |
-| T20a | T20 | deploys | `a0073b7ba64f` | AGENT | open | agent | — | — |
-| T20b | T20 | orange | `2752980ec3a8` | JOINT | open | operator | — | — |
+| T20a | T20 | deploys | `a0073b7ba64f` | AGENT | done | agent | journal, T20 | 2026-09-04 |
+| T20b | T20 | orange | `2752980ec3a8` | JOINT | done | operator | journal, T20 | 2026-09-04 |
 | T18a | T18 | lousydeal | `082a19d0a94c` | AGENT | open | agent | — | — |
 | T18b | T18 | orange | `d1efa3329d35` | JOINT | open | operator | — | — |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | done | operator | journal, T15a | 2026-09-03 |
 | T16a | T16 | orange | `abf2a5101f88` | JOINT | done | operator | journal, T16 | 2026-09-04 |
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | done | agent | journal, T17 | 2026-09-03 |
+| T21a | T21 | orange | `aa31b8133cdc` | AGENT | open | agent | — | — |
 
 ## Amendments
+
+**2026-09-04 · T21 added; row count 41 to 42.**
+**`playbooks/platform-verify.yml` aborts at task 14, for every tenant**, on
+`main`. One `set_fact` defines two keys and the second references the first;
+Ansible resolves keys within one task in no guaranteed order.
+
+Introduced by `fc08f33` (T15), implementing that review's **MAJOR C4** —
+existence conjoined into readiness. The requirement was right and survives; the
+implementation was not.
+
+**Nothing that has run since could have caught it.** The 42 contract playbooks,
+every render diff and T20b's own suite render task text and resolve no runtime
+fact; `platform-verify.yml` is operator-invoked and had not run since T15
+merged. **The same shape as `plepic.yml`'s allowlist at T15d** — correct-looking,
+unfalsifiable by reading, found in seconds by a real run.
+
+Recorded as a row rather than a maintenance fix: this is broken behaviour, not a
+false claim, so constraint 11 does not reach it.
+
+**All 41 prior hashes recomputed, no drift.**
 
 **2026-09-03 · T20 added; row count 39 to 41. Decision `010`.**
 **The operator reversed two Target exposure lines.** `lousydeal.com` was
