@@ -2830,3 +2830,75 @@ the same credential to the same provider ID, so the `allowed_idps` references in
 Plepic's and Servitium's applications stay valid. **Expected, inherited, and
 worth naming**: a row that publishes one hostname also rewrites a credential
 three other applications authenticate against.
+
+## T20: the Admin, reachable and gated
+
+```text
+live   lousydeal-backend         8122   [192.168.21.2]
+       lousydeal-storefront      8121   [192.168.21.2]
+test   lousydeal-backend-test    8132   [192.168.21.2]
+       lousydeal-storefront-test 8131   [192.168.21.2]
+
+allow-backend-ingress (live), read from the running cluster:
+  [0] podSelector component=storefront   port 9000
+  [1] ipBlock 192.168.21.2/32            port 9000
+
+lousydeal  Synced Healthy    lousydeal-test  Synced Healthy
+
+Access applications, all session=1h, all 'Named Google accounts' allow:
+  lousydeal.com   www.lousydeal.com   admin.lousydeal.com
+  test-admin.lousydeal.com   test.lousydeal.com
+orange-web: 13 ingress rules (Plepic's five and the campaign zone's two intact)
+```
+
+**The trap is avoided in the cluster, not only in the render.** Index 0 is still
+the storefront's pod selector.
+
+### Copying the reference's file was not the same as copying the reference
+
+The base carried `192.168.0.0/16`, taken from `plepic/base/networkpolicy.yaml`.
+But that `/16` is a **placeholder each environment's Orange patch replaces**, and
+Lousy Deal's template patches only `allow-storefront-ingress`. So Plepic's Admin
+admits **one address** and this row as written would have admitted **65,536**.
+
+The path was real: `192.168.1.0/24` is inside `wireguard_peer_allowed_ips`, `wg0`
+is a trusted interface, and the forward chain's policy is `accept`. Any host on
+the operator's home LAN could have opened the Medusa Admin **without Cloudflare
+in the path at all** — making decision `010`'s *"reachable only through
+Cloudflare Access"* false for that route.
+
+**Narrowed to `192.168.21.2/32`**, the address the tunnel connects from, which
+makes the decision true on merge rather than conditional on a row that does not
+exist.
+
+### Replacing the port, not adding one
+
+`externalIPs` applies to **every** port on a Service, so a second port would
+publish the raw container port `9000` on the shared address. The Service's port
+becomes `8122`/`8132`, matching the reference exactly. Every consumer was
+enumerated across both repositories: nothing still addresses `9000` through the
+Service, and the NetworkPolicy's `9000` stays correct because policy ports are
+container ports.
+
+**The coupling that created was asserted nowhere**, and nine of twelve surviving
+mutations sat on it. A drift between the Service port and `MEDUSA_BACKEND_URL`
+ships a storefront that cannot reach its own backend, and no manifest test
+would have said so.
+
+### Four distinct numbers assert nothing about which four
+
+`orange`'s registry gained `backend_port`, and `unique | length == 4` **survived
+changing 8122/8132 to 9122/9132.** The reference does not leave this open —
+`plepic.yml:77` pins its four literally. Lousy Deal now does too.
+
+### And the assertion being widened was protecting two properties
+
+`platform-verify`'s check asserts the port set **and** that every `externalIPs`
+entry is the management address alone. The row had authority over the first
+only. It survived byte-identical — **and had no test in either application**.
+It has one now, for Lousy Deal; Plepic's gap is pre-existing and was left alone.
+
+**The sharpest finding was one the implementer argued correctly and then guarded
+backwards.** Its own comment says the declared pair is the side that is *not*
+already sorted; the guard asserted the sort on the other side. It passed only
+because `[8121, 8122]` happens to be ascending.
