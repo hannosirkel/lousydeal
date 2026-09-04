@@ -813,6 +813,37 @@ deliveries fail until all three are fixed.
 **Effect gate.** The bypass is a hole in an Access policy. It is approved on its
 own, and its scope is one path.
 
+## T22 — The webhook path, and only it
+
+**Repositories:** `plepic`, then `lousydeal`. **Plepic first: its exposure is
+unconditional and live.**
+
+`hooks/payment/[provider]/route.js:11-23` emits to the event bus with
+`delay: 5000, attempts: 3` **before any verification**, carrying the caller's
+body, and never checks `req.params.provider` against a registered provider. Both
+storefront proxies admit the `hooks` namespace and constrain nothing after
+`payment/`.
+
+**Plepic's apex runs `access=public` — a `bypass` policy including everyone — so
+there is no Access gate in front of it at all.** Lousy Deal's is gated except for
+T18b's one path, and widens only as far as an ambiguous Cloudflare bare-path may
+reach; two Cloudflare documentation pages contradict each other on that, and
+T18b cites both rather than assuming either.
+
+**An exact-path refusal in the proxy makes the ambiguity moot**, because a wider
+bypass would then reach nothing.
+
+- [ ] Admit exactly the registered webhook path under `hooks` and refuse every
+      other path in that namespace, in `plepic`. Verified by a test asserting the
+      real path resolves, that a same-depth sibling and a nested path are
+      refused, and that the other namespaces are unchanged.
+- [ ] The same in `lousydeal`, deriving the path rather than spelling it.
+      Verified the same way, and by the exact-delivery probe still passing.
+
+**Found by T18b's review, not by a row that set out to look for it.** The
+question was whether one Access bypass was narrow enough; the answer was that
+the proxy behind it was not.
+
 ## T15d — One application's allowlist, applied to every application
 
 **Repository:** `orange`. **Runs before E5 can complete.**
