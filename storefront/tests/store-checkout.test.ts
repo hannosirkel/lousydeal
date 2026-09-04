@@ -11,9 +11,14 @@
  * path that must still pass.
  */
 
+import { createRequire } from "node:module";
+import { readdirSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
+  ALLOWED_NAMESPACES,
   forwardStoreApiRequest,
   resolveStoreApiPath,
   resolveStoreApiTarget,
@@ -61,6 +66,21 @@ describe("resolveStoreApiPath refuses every attack in the row's brief", () => {
   it("still resolves the one legitimate two-segment store path", () => {
     expect(resolveStoreApiPath("/api/store/store/products")).toBe("/store/products");
   });
+
+  // Review pass 1, Major 2: every case above is written against `store`; this
+  // row's whole subject is admitting `hooks`, so the same two representative
+  // attacks (a literal `..` and its percent-encoded form) are repeated here
+  // against the namespace this row actually widened. Neither is new
+  // *mechanism* -- defence 4 (the per-segment refusal) does not know which
+  // namespace admitted a segment -- but nothing before this review exercised
+  // it under `hooks` at all.
+  it("refuses a literal .. under the hooks namespace this row admits", () => {
+    expect(resolveStoreApiPath("/api/store/hooks/../admin/users")).toBeNull();
+  });
+
+  it("refuses a percent-encoded .. segment under the hooks namespace", () => {
+    expect(resolveStoreApiPath("/api/store/hooks/%2e%2e/admin/users")).toBeNull();
+  });
 });
 
 describe("resolveStoreApiPath's normalization re-check", () => {
@@ -68,12 +88,138 @@ describe("resolveStoreApiPath's normalization re-check", () => {
   // parser's own output still sits under the namespace that admitted it.
   // Every escape above already returns null from the per-segment check first,
   // so this asserts the *contract* the re-check exists to hold, not a path
-  // that reaches it uncaught -- see the "fails closed" evidence in the row's
-  // report for a case that does reach it.
+  // that reaches it uncaught.
   it("never returns a path outside its own namespace for any input it accepts", () => {
     const accepted = resolveStoreApiPath("/api/store/store/products");
     expect(accepted).not.toBeNull();
     expect(accepted?.startsWith("/store/")).toBe(true);
+  });
+
+  /**
+   * Review pass 1, Major 2's own case: this one *does* reach the re-check
+   * uncaught, unlike every escape above. `decodeSegmentFully` only runs
+   * `decodeURIComponent`, which does not touch a literal tab/CR/LF, so the
+   * segment `".\t."` decodes to itself -- neither `"."` nor `".."` by a literal
+   * comparison, so {@link isRefusedSegment} lets it through. The WHATWG URL
+   * parser `resolveStoreApiTarget` (and this function's own re-check) runs the
+   * path through then strips ASCII tab/newline/CR before parsing (the
+   * `remove all ASCII tab or newline` step in the URL spec's basic parser),
+   * turning `.\t.` into a real `..` and collapsing `/hooks/.\t./admin/users`
+   * to `/admin/users` -- outside the `hooks` namespace that admitted the
+   * request. Only the re-check's `startsWith` catches this; defences 1-4 all
+   * pass it. Measured directly: `new URL("/hooks/.\t./admin/users",
+   * "http://store-api-proxy.invalid").pathname === "/admin/users"`.
+   */
+  it("refuses a tab-spliced dot segment that defences 1-4 all pass, and only the re-check catches", () => {
+    expect(resolveStoreApiPath("/api/store/hooks/.\t./admin/users")).toBeNull();
+  });
+
+  it("refuses the same tab-splice family with a leading real segment before it", () => {
+    expect(resolveStoreApiPath("/api/store/hooks/x/.\t./.\t./admin/users")).toBeNull();
+  });
+});
+
+describe("resolveStoreApiPath admits the payment webhook path (T18)", () => {
+  // Review pass 1, Major 3: pinned literally, not derived. `STRIPE_PROVIDER_ID`
+  // is itself a hand-written literal -- `store-payment.ts:41`'s own JSDoc says
+  // so, and it is not derived from `backend/src/config/payment.ts` -- so a
+  // test that derives its expectation from `STRIPE_PROVIDER_ID` as well never
+  // checks that literal against anything: a corrupted `STRIPE_PROVIDER_ID` and
+  // a derivation that correctly follows it agree with each other and the test
+  // still passes. Confirmed both ways before this line existed: mutating the
+  // "pp_" prefix to "px_", and mutating the instance half to "wrong", each
+  // left the full 484-test suite green. This is the same limit
+  // `ALLOWED_NAMESPACES`'s own declared-set test (above) closed with a
+  // literal, applied here to the other spelling this row introduces.
+  it("STRIPE_PROVIDER_ID is exactly pp_stripe_stripe", () => {
+    expect(STRIPE_PROVIDER_ID).toBe("pp_stripe_stripe");
+  });
+
+  // The segment itself is derived, not spelled a second time:
+  // `getWebhookActionAndData`
+  // (`node_modules/@medusajs/payment/dist/services/payment-module.js:696`)
+  // resolves the `:provider` URL param back to a registration key by
+  // computing `pp_${provider}` -- i.e. the URL segment is the registration
+  // key *without* its `pp_` prefix -- and `STRIPE_PROVIDER_ID`, pinned above,
+  // is that same registration key. Safe to derive from now that the thing
+  // being derived from is itself pinned rather than a second free-floating
+  // guess.
+  const webhookProviderSegment = STRIPE_PROVIDER_ID.slice("pp_".length);
+
+  it("resolves /api/store/hooks/payment/<provider> to the real Medusa webhook route", () => {
+    expect(resolveStoreApiPath(`/api/store/hooks/payment/${webhookProviderSegment}`)).toBe(
+      `/hooks/payment/${webhookProviderSegment}`,
+    );
+  });
+
+  // The end-to-end literal plepic's own webhook test pins twice
+  // (`plepic/backend/tests/stripe-webhook-endpoint.test.ts:61`) -- independent
+  // of both constants above, so it stays a true statement about the real
+  // route even if some future change breaks the derivation between them.
+  it("resolves the exact, literal route Stripe delivers to", () => {
+    expect(resolveStoreApiPath("/api/store/hooks/payment/stripe_stripe")).toBe("/hooks/payment/stripe_stripe");
+  });
+});
+
+/**
+ * The top-level directory names under the installed `@medusajs/medusa`
+ * package's own `dist/api` source tree -- read from disk rather than a
+ * hand-typed guess, so this list cannot go stale relative to what this proxy
+ * might one day be asked to forward to.
+ *
+ * Not itself a URL prefix, and not every entry holds a live route: `dist/api`
+ * is Medusa's *source layout*, and `ApiLoader` (`@medusajs/framework/dist/http/router.js`)
+ * mounts each `route.js` it finds at the application root using a matcher
+ * derived from that file's own path -- `hooks/payment/[provider]/route.js`
+ * becomes `/hooks/payment/:provider`, not `/api/hooks/payment/:provider`.
+ * `utils` (measured: zero `route.js` files under it, only validators and
+ * middleware) is exactly the case that distinction matters for: it is a real
+ * top-level name in this source tree and a real candidate this measurement
+ * produces, but not a route this proxy could ever legitimately be asked to
+ * reach -- which the property below still gets right, because
+ * `resolveStoreApiPath` never resolves anything not in `ALLOWED_NAMESPACES`,
+ * live route or not.
+ *
+ * `static` is not among these directories at all: Medusa serves product media
+ * from a static file server mounted directly on `app`
+ * (`@medusajs/framework/dist/http/express-loader.js:159`,
+ * `app.use("/static", express.static(...))`), not from anything under
+ * `dist/api` -- so it is not a candidate this measurement can ever produce,
+ * and its exclusion is asserted directly below instead.
+ */
+function medusaApiNamespaces(): readonly string[] {
+  const apiDir = join(dirname(createRequire(import.meta.url).resolve("@medusajs/medusa/package.json")), "dist/api");
+  return readdirSync(apiDir).filter((name) => statSync(join(apiDir, name)).isDirectory());
+}
+
+describe("the store-api namespace allowlist admits exactly what it declares", () => {
+  // This is the one place the two names are written out. Everything else in
+  // this file asserts a property computed from `ALLOWED_NAMESPACES` itself;
+  // only this assertion notices if that declaration's *membership* ever
+  // changes. Concretely: adding a third name here (say, "admin") makes this
+  // assertion fail, while the property test below -- which derives its own
+  // expectation from `ALLOWED_NAMESPACES.has(...)` -- passes regardless,
+  // because it checks that the mechanism matches the declaration, not that
+  // the declaration itself is the intended one.
+  it("declares exactly store and hooks, and nothing else", () => {
+    expect([...ALLOWED_NAMESPACES].sort()).toEqual(["hooks", "store"]);
+  });
+
+  it("resolves or refuses every namespace Medusa actually mounts, exactly as ALLOWED_NAMESPACES says it should", () => {
+    const namespaces = medusaApiNamespaces();
+    // Not vacuous: the measured universe really does contain both the
+    // namespace this row admits and at least one this row must keep refusing.
+    expect(namespaces).toContain("hooks");
+    expect(namespaces).toContain("admin");
+
+    for (const namespace of namespaces) {
+      const resolved = resolveStoreApiPath(`/api/store/${namespace}/probe`);
+      expect(resolved).toBe(ALLOWED_NAMESPACES.has(namespace) ? `/${namespace}/probe` : null);
+    }
+  });
+
+  it("static has no consumer and stays refused", () => {
+    expect(resolveStoreApiPath("/api/store/static/product.jpg")).toBeNull();
   });
 });
 
@@ -85,7 +231,7 @@ describe("resolveStoreApiTarget", () => {
 });
 
 describe("forwardStoreApiRequest header hygiene", () => {
-  it("forwards only the allowlist (content-type, accept), and attaches the publishable key server-side", async () => {
+  it("forwards only the allowlist (content-type, accept, stripe-signature), and attaches the publishable key server-side", async () => {
     let seenInit: RequestInit | undefined;
     const fetchImpl: StoreApiFetch = async (_target, init) => {
       seenInit = init;
@@ -99,6 +245,7 @@ describe("forwardStoreApiRequest header hygiene", () => {
         connection: "keep-alive",
         "content-type": "application/json",
         accept: "application/json",
+        "stripe-signature": "t=1,v1=deadbeef",
         [STORE_PUBLISHABLE_KEY_HEADER]: "pk_spoofed_by_the_browser",
         cookie: "session=browser-cookie-that-must-not-reach-medusa",
         authorization: "Bearer browser-supplied-token",
@@ -113,9 +260,15 @@ describe("forwardStoreApiRequest header hygiene", () => {
     await forwardStoreApiRequest(request, new URL("https://backend.invalid/store/products"), "pk_real", fetchImpl);
 
     const headers = new Headers(seenInit?.headers);
-    // The two the flow needs.
+    // The three the flow needs.
     expect(headers.get("content-type")).toBe("application/json");
     expect(headers.get("accept")).toBe("application/json");
+    // Review pass 1, Major 1: without this, `stripe-base.js`'s
+    // `constructWebhookEvent` sees `signature === null` and
+    // `constructEvent` throws -- after Medusa has already answered Stripe
+    // `200` (`hooks/payment/[provider]/route.js` enqueues before verifying).
+    // Proven present here, and exercised end to end below.
+    expect(headers.get("stripe-signature")).toBe("t=1,v1=deadbeef");
     expect(headers.get(STORE_PUBLISHABLE_KEY_HEADER)).toBe("pk_real");
 
     // Everything else the browser sent -- the hop-by-hop set this route used
@@ -134,7 +287,47 @@ describe("forwardStoreApiRequest header hygiene", () => {
 
     // The full set Medusa receives is exactly the allowlist plus the key --
     // nothing extra rode along.
-    expect([...headers.keys()].sort()).toEqual(["accept", "content-type", STORE_PUBLISHABLE_KEY_HEADER].sort());
+    expect([...headers.keys()].sort()).toEqual(
+      ["accept", "content-type", "stripe-signature", STORE_PUBLISHABLE_KEY_HEADER].sort(),
+    );
+  });
+
+  /**
+   * Review pass 1, Major 1's exact-delivery probe: the real webhook path
+   * (`resolveStoreApiPath`, not a hand-typed one), a raw, non-JSON body (a
+   * Stripe event payload is signed over its exact bytes, so this is not
+   * `JSON.stringify`'d and reparsed), and the header Stripe's SDK signs
+   * requests with -- through the same `forwardStoreApiRequest` production
+   * traffic uses, asserting what the simulated Medusa side actually receives.
+   */
+  it("carries stripe-signature and the byte-identical raw body through an exact webhook delivery", async () => {
+    const requestPath = `/api/store/hooks/payment/${STRIPE_PROVIDER_ID.slice("pp_".length)}`;
+    const upstreamPath = resolveStoreApiPath(requestPath);
+    expect(upstreamPath).toBe(`/hooks/payment/${STRIPE_PROVIDER_ID.slice("pp_".length)}`);
+    if (upstreamPath === null) throw new Error("unreachable: asserted above");
+
+    const rawBody = '{"id":"evt_1","object":"event","data":{"object":{"id":"pi_1"}}}';
+    let seenHeaders: Headers | undefined;
+    let seenBody: string | undefined;
+    const fetchImpl: StoreApiFetch = async (_target, init) => {
+      seenHeaders = new Headers(init.headers);
+      seenBody = new TextDecoder().decode(init.body as ArrayBuffer);
+      return new Response(null, { status: 200 });
+    };
+
+    const request = new Request(`https://storefront.example${requestPath}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "stripe-signature": "t=1700000000,v1=exact-delivery-signature",
+      },
+      body: rawBody,
+    });
+
+    await forwardStoreApiRequest(request, new URL(`https://backend.invalid${upstreamPath}`), "pk_real", fetchImpl);
+
+    expect(seenHeaders?.get("stripe-signature")).toBe("t=1700000000,v1=exact-delivery-signature");
+    expect(seenBody).toBe(rawBody);
   });
 
   it("strips content-encoding and content-length from the response, but keeps other upstream headers", async () => {

@@ -49,7 +49,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T19a | T19 | deploys | `d7d3ca6dd22c` | AGENT | done | agent | journal, T19 | 2026-09-03 |
 | T20a | T20 | deploys | `a0073b7ba64f` | AGENT | done | agent | journal, T20 | 2026-09-04 |
 | T20b | T20 | orange | `2752980ec3a8` | JOINT | done | operator | journal, T20 | 2026-09-04 |
-| T18a | T18 | lousydeal | `082a19d0a94c` | AGENT | open | agent | — | — |
+| T18a | T18 | lousydeal | `082a19d0a94c` | AGENT | done | agent | journal, T18a | 2026-09-04 |
 | T18b | T18 | orange | `d1efa3329d35` | JOINT | open | operator | — | — |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | done | operator | journal, T15a | 2026-09-03 |
 | T16a | T16 | orange | `abf2a5101f88` | JOINT | done | operator | journal, T16 | 2026-09-04 |
@@ -142,13 +142,16 @@ source before T15b seeds it**, because seeding at the wrong width is a rotation,
 not a re-run. Sending itself — a notification provider, SMTP environment, a
 submission egress policy — is **not in LD-01**.
 
-**Stripe cannot deliver to this application.** The storefront proxy admits the
-`store` namespace alone, so `hooks/payment/…` is refused; the reference admits it
-and T10 narrowed ours deliberately. And T16 gates the hostname on Google
-identity, which a webhook cannot satisfy. `STRIPE_WEBHOOK_SECRET` is therefore
-consumed by a backend nothing can reach. **T18 fixes both**, after T16 exists to
-be amended. Its second row is an effect gate: a bypass is a hole in an Access
-policy, and its scope is one path.
+**Stripe cannot deliver to this application, for three reasons, not two —
+T18a's own review pass found the third.** The storefront proxy admitted the
+`store` namespace alone, so `hooks/payment/…` was refused; the reference
+admits it and T10 narrowed ours deliberately. Its request-header allowlist
+also omitted `stripe-signature`, so an admitted delivery still failed Stripe's
+signature verification silently. T18a fixes both. T16 separately gates the
+hostname on Google identity, which a webhook cannot satisfy;
+`STRIPE_WEBHOOK_SECRET` is consumed by a backend nothing can reach until T18b's
+Cloudflare Access bypass also lands. Its row is an effect gate: a bypass is a
+hole in an Access policy, and its scope is one path.
 
 **Neither was found by a review.** Both surfaced from reading what a credential
 is for before writing it down — the same question that found the publishable-key
