@@ -146,12 +146,12 @@ additionally runs `npm run typecheck` per workspace: the root `tsc --noEmit` doe
 not recurse into `backend` or `storefront`, so without that fanout the gate
 reports pass while the whole application sits outside it.
 
-- [ ] Add the root workspace: `package.json` declaring workspaces `backend` and
+- [x] Add the root workspace: `package.json` declaring workspaces `backend` and
       `storefront`, Node `>=24.18.0`, and the `lint`, `typecheck` and
       `test:unit` scripts; plus `tsconfig.json`, `eslint.config.js` and
       `vitest.config.ts`. Verified by `npm ci` succeeding and `npm run lint`
       exiting zero on an empty tree.
-- [ ] Extend `scripts/validate` to run `npm run lint`, `npm run typecheck` and
+- [x] Extend `scripts/validate` to run `npm run lint`, `npm run typecheck` and
       `npm run test:unit` after the existing shell, markdown, link and secret
       checks, and add the matching job to `.github/workflows/validate.yml` so
       the command and CI cannot diverge. Verified by `bash scripts/validate`
@@ -162,7 +162,7 @@ reports pass while the whole application sits outside it.
 **Repository:** `architecture`. **Runs immediately after T1 merges.**
 **Files:** `universe/repositories.yaml`.
 
-- [ ] Set `languages: [shell, typescript]` and `npm_project: true` for
+- [x] Set `languages: [shell, typescript]` and `npm_project: true` for
       `lousydeal`, and drop `lifecycle: registered-not-implemented`. Verified by
       `tooling/universe audit lousydeal` reporting clean.
 
@@ -174,7 +174,7 @@ behind it is a check that was skipped. T1 and T2 are adjacent for that reason.
 **Repository:** `lousydeal`. **Runs after T2 merges, and only after.**
 **Files:** `AGENTS.md`, `.habit-hooks/config.toml`.
 
-- [ ] Commit the output of `tooling/universe sync-baseline lousydeal`, run from
+- [x] Commit the output of `tooling/universe sync-baseline lousydeal`, run from
       an `architecture` checkout that already carries T2's catalogue change.
       Verified by `tooling/universe audit lousydeal` reporting clean, and by the
       committed files being byte-identical to what the generator produces.
@@ -209,7 +209,7 @@ both.
 records `languages: [shell]` and `npm_project: false`, which T2a falsified, and
 no other open row could reach it.
 
-- [ ] Refuse when `node_modules` is absent rather than inferring it from a tool
+- [x] Refuse when `node_modules` is absent rather than inferring it from a tool
       that may also be installed globally, and run the pinned binaries from the
       lockfile rather than whatever `PATH` resolves. Verified by a checkout with
       no `node_modules` refusing and naming `npm ci`, on a machine that has
@@ -256,11 +256,11 @@ are here under global constraint 9: both state that `backend/` does not exist
 yet, which this task makes untrue. Both belong to the first row of the task, not
 the second.
 
-- [ ] Add `backend/src/config/env.ts` as the only module that reads
+- [x] Add `backend/src/config/env.ts` as the only module that reads
       `process.env`, exposing trimmed required and optional readers and a
       `ConfigError`. Verified by a test that passes a plain object rather than
       the process environment.
-- [ ] Add `backend/src/config/runtime.ts` assembling the backend's
+- [x] Add `backend/src/config/runtime.ts` assembling the backend's
       configuration and **failing closed**: a required value that is absent
       throws at load rather than defaulting. Verified by a test asserting the
       refusal names the missing variable.
@@ -303,7 +303,7 @@ assembler so far" — which T4, T5, T6 and T7 each falsify in turn. Rewrite the
 sentence so it describes the backend at a level that stays true as modules are
 added, and no later row has to touch either file for this reason again.
 
-- [ ] Resolve the database URL and driver options so the migration path and the
+- [x] Resolve the database URL and driver options so the migration path and the
       runtime path choose SSL identically, and so `verify-full` is expressible.
       Verified by a test running Medusa's own resolver against the produced
       object and against the URL spellings that are stripped before either path
@@ -331,11 +331,11 @@ just a module; the test spawns that script, so it has to exist. The Redis client
 is a dependency, and the host, port and password shape lives in the assembler —
 the password reaches the client options and never the connection string.
 
-- [ ] Add a preflight that authenticates and sends a `PING` before Medusa
+- [x] Add a preflight that authenticates and sends a `PING` before Medusa
       loads, and refuses the workload when Redis is unreachable. Verified by a
       test asserting refusal against a closed port, and by the password
       appearing in the client options and never in the connection string.
-- [ ] Declare the event bus, workflow engine and locking modules as three
+- [x] Declare the event bus, workflow engine and locking modules as three
       separate Redis wirings with their differing option shapes. Verified by a
       test running each loader against these exact objects and reading the
       connection it built.
@@ -364,11 +364,11 @@ the Stripe payment module and three Redis modules, which means adding Medusa
 dependencies — and npm workspaces share one lockfile. Without them the row could
 declare modules it cannot install.
 
-- [ ] Assemble `medusa-config.ts` from the runtime configuration, registering
+- [x] Assemble `medusa-config.ts` from the runtime configuration, registering
       the Stripe payment module and the three Redis modules. Verified by a test
       loading the config with a synthetic environment and asserting the module
       list.
-- [ ] Wire `@medusajs/payment-stripe` from runtime configuration, in test mode.
+- [x] Wire `@medusajs/payment-stripe` from runtime configuration, in test mode.
       Verified by a test asserting the provider id and that no key is a literal.
 
 ## T7 — The three deal tiers
@@ -395,19 +395,19 @@ route filters by `region_id`, so the Region link — not the module
 registration — is what a storefront can see. Registering the Stripe package
 registers eight provider services and offers none of them until this row runs.
 
-- [ ] Declare the three tiers — Lousy Deal $5, Lousy Deal Plus $10, Lousy Deal
+- [x] Declare the three tiers — Lousy Deal $5, Lousy Deal Plus $10, Lousy Deal
       Pro $25 — in one module that is the single source for price and handle.
       Verified by a test asserting the amounts and that no price literal exists
       elsewhere.
-- [ ] Seed the tiers and configure the region, sales channel and currency
+- [x] Seed the tiers and configure the region, sales channel and currency
       idempotently, so a re-run neither duplicates nor errors. Verified by a
       test running the seed twice against a stubbed Medusa and asserting one
       set of products.
-- [ ] Bind the region's payment providers to the id
+- [x] Bind the region's payment providers to the id
       `src/config/payment.ts` derives, as a field on the region record
       rather than a separate step. Verified by a test asserting the region
       carries exactly that provider id.
-- [ ] Make the store support the currency the tiers price in, rather than
+- [x] Make the store support the currency the tiers price in, rather than
       refusing when it does not. Verified by `npm run predeploy` reaching a
       paid-order-ready state twice in a row against a real PostgreSQL, Redis and
       the built image.
@@ -471,12 +471,12 @@ explicitly and declares no `resolve.alias` — the `@/*` alias exists only in it
 `storefront/tsconfig.json`, for application code, and no test there imports
 through it. The raised timeout is the real hazard to watch when copying.
 
-- [ ] Add the storefront workspace and the runtime-configuration seam: one
+- [x] Add the storefront workspace and the runtime-configuration seam: one
       module reading `process.env`, one object assembled per request inside a
       dynamically rendered layout, handed to the browser as a single serialized
       blob. Verified by a test asserting the object is built from a passed
       record rather than the process environment.
-- [ ] Add the `no-next-public-env` guard test, failing the build if any
+- [x] Add the `no-next-public-env` guard test, failing the build if any
       per-environment value is read as a `NEXT_PUBLIC_*` variable. Verified by
       the test failing against a deliberately added violation and passing once
       it is removed.
@@ -500,7 +500,7 @@ two directories its coverage assertion did not previously name
 merits — otherwise its own name, "scans every file this guard exists to
 cover," would be false while the test stayed green.
 
-- [ ] Render the three tiers from the store API and let one be added to a cart.
+- [x] Render the three tiers from the store API and let one be added to a cart.
       Verified by a test against a stubbed store API asserting the three tiers
       and the resulting cart line.
 
@@ -518,11 +518,11 @@ here.
 `storefront/tests/store-checkout.test.ts`, `storefront/src/app/cart/page.tsx`,
 `storefront/package.json`, `package-lock.json`.
 
-- [ ] Proxy the store API server-side so the browser never learns the backend
+- [x] Proxy the store API server-side so the browser never learns the backend
       origin, and complete a cart through Stripe test mode to a paid order.
       Verified by a test against a stubbed backend, and by the smoke check in
       T17 against a real one.
-- [ ] Collect the customer's country at checkout and set it on the cart, so
+- [x] Collect the customer's country at checkout and set it on the cart, so
       Medusa resolves a tax region and records the VAT the merchant absorbs.
       Verified by a test asserting tax lines for an EU country and none for a
       non-EU one.
@@ -583,7 +583,7 @@ The reference declares it at `2.18.0` alongside six further admin-side
 packages, so this row proves the build completes rather than assuming one
 dependency is enough — and the root lockfile is here for that.
 
-- [ ] Build both images from the repository root, each stage on one
+- [x] Build both images from the repository root, each stage on one
       digest-pinned base, running as a non-root UID, declaring **no build
       argument at all**, and clearing the base `ENTRYPOINT` so Kubernetes `args`
       chooses the command. Verified by both images building locally and a test
@@ -651,11 +651,11 @@ person's terminal. `README.md` and `AGENTS.md` in that repository both enumerate
 its application roots, which this row falsifies; global constraint 9 applies
 there too.
 
-- [ ] Add the base manifests — PostgreSQL, Redis, backend, worker, storefront,
+- [x] Add the base manifests — PostgreSQL, Redis, backend, worker, storefront,
       Service, NetworkPolicy, predeploy Job, RBAC — and both overlays carrying
       digest placeholders. Verified by
       `kubectl kustomize <overlay> | kubeconform -strict -summary` for both.
-- [ ] Give the worker a readiness and a liveness probe. Verified by
+- [x] Give the worker a readiness and a liveness probe. Verified by
       `grep -c Probe lousydeal/base/worker.yaml` returning a non-zero count.
 
 Plepic's worker declares none, so "healthy" there means "running". Decision
@@ -774,7 +774,7 @@ manifests actually consume and nothing consumed SMTP.
 wrong value is a rotation rather than a re-run, and that applies equally to a
 source seeded at the wrong width.
 
-- [ ] Carry `smtpUsername` and `smtpPassword` in both runtime sources,
+- [x] Carry `smtpUsername` and `smtpPassword` in both runtime sources,
       following the Plepic entry. Verified by the existing template tests
       passing with the wider source, and by the seed accepting a ten-field file.
 
@@ -831,7 +831,7 @@ for every tenant.
 Both enable lists were empty until an operator enabled something, so the assert
 had nothing to reject. A real run found it in seconds.
 
-- [ ] Derive the enabled-source allowlist from every `optional_source` the
+- [x] Derive the enabled-source allowlist from every `optional_source` the
       projection contract declares, so it covers each consumer rather than one.
       Verified by an unknown name still failing, every enabled Lousy Deal source
       passing, and Plepic's own four unchanged.

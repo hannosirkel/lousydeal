@@ -3046,3 +3046,48 @@ literal, unclosed one function away.
 body. After this row any anonymous `POST /api/store/hooks/payment/<anything>`
 enqueues that work — **and T18b is what removes the Access gate in front of
 it.**
+
+## Reconciling the record with itself
+
+Two defects in the record, neither in the delivered work. Both are the
+orchestrator's.
+
+### T15c was done for a day and the ledger said `open`
+
+The row merged into `orange` on 2026-09-03 as PR #50 (`5d85098`).
+`scripts/openbao-admin:1038-1039` carries `smtpUsername` and `smtpPassword`,
+both runtime sources take ten fields, and
+`tests/external_secrets_templates.yml` passes at `ok=30, failed=0`. **The PR was
+merged and the row was never closed.**
+
+Its evidence was already written down — under **T15b's** heading, which is where
+the seed ran:
+
+> Widening the source for SMTP beforehand is what bought that; seeding eight
+> fields and needing ten would have been a rotation of a live credential.
+
+That is both halves of T15c's checkbox, recorded a day before the row it belongs
+to was closed. The ledger's `evidence-ref` now points there.
+
+**The mechanism's rule caught this and I did not**: *a row without an
+evidence-ref is not done, whatever it claims.* T15c had none, and for a full day
+I reported three rows remaining when there were two.
+
+### Twenty-five ticks that were never made
+
+The plan showed **14 boxes ticked against 39 rows done**. Ticking began at T12a
+(`791e853`); every row before it — T1 through T11, T13 — was completed and never
+marked, and T15d joined them later.
+
+**No drift resulted**, because row identity is a hash of the checkbox text with
+the `- [ ]`/`- [x]` marker stripped, so ticking cannot move a hash. The ledger
+was correct throughout. But the plan is the human-readable artefact, and it said
+28 rows were open when two were.
+
+Reconciled by deriving each mark from the ledger's own `status` rather than
+ticking in bulk — **so the reconciliation cannot silently tick a row that is
+genuinely open.** It ticked exactly 25 and left the rest alone.
+
+**The record is the deliverable too.** A build whose whole method is that a
+claim must be bounded, cited or executed spent a day claiming a row was open
+because nobody executed the check on the checker.
