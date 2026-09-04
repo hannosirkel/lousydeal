@@ -2768,3 +2768,65 @@ one". This row creates the compose file. The correction names it and states why
 it sets no `DATABASE_URL` at all, and the remaining universals were enumerated
 to check it: three workflows, none mentions `DATABASE_URL`; nine base manifests,
 all projecting the five parts and never a URL.
+
+## T16: the first hostname, and the first thing an outsider can touch
+
+```text
+lousydeal.com NS via dns.google  ->  walk.ns.cloudflare.com. / nick.ns.cloudflare.com.
+test.lousydeal.com A             ->  188.114.96.1, 188.114.97.1   (proxied)
+
+unauthenticated GET https://test.lousydeal.com/  ->  302
+  -> servitium-future-ee.cloudflareaccess.com/cdn-cgi/access/login/test.lousydeal.com
+     meta token carries "auth_status":"NONE"
+authenticated                                    ->  the storefront   (operator, browser)
+```
+
+Both halves of the checkbox, and the second one is the operator's because no
+agent can hold a Google identity.
+
+### The session length was two knobs wearing one name
+
+`session_duration: "24h"` appeared twice in `scripts/cloudflare-add-web`, and
+only one belonged to this row. The other is the **Cloudflare Access
+organisation default**, shared with Plepic, Servitium and every application on
+the account. **Lowering it would have shortened every one of those sessions, and
+no test in that repository would have caught it** — `organization_body` takes no
+route and is structurally unreachable from one.
+
+The application's value moved onto the `Route` dataclass instead, defaulting to
+`24h` so every existing route renders byte-identically, and the new route
+carries `1h`. Verified by rendering before and after and diffing, and by
+reverting the body to a literal `24h` and watching a test go red.
+
+### The run had to carry seven routes it was not about
+
+`ensure_tunnel_configuration` PUTs the whole ingress array built from `--route`
+alone. **A Lousy Deal-only invocation would have deleted Plepic's five routes
+and the campaign zone's two**, taking those sites down — the helper does not
+merge, it replaces.
+
+So the live values were read back from the Cloudflare API rather than taken from
+the sanitised example in `networking.md`: tunnel `orange-web`, organisation
+`servitium-future-ee`, and one named address on all three existing gated
+policies, which is what let a single `--access-email` reproduce current state
+exactly instead of narrowing somebody else's. The dry run then reported 21
+resources `unchanged` and three to create, which is the assertion that the
+reproduction was faithful.
+
+### Two arguments the script refuses before it dials
+
+`--zone-name lousydeal.com` and `--access-email` are both mandatory here, and
+neither is obvious from the row: a route hostname outside every declared zone is
+refused during argument validation, and a gated route with no named address is
+refused there too. **Both fail before Cloudflare is contacted**, which is the
+right direction — but the pull-request body named neither, and the first run
+died on the first of them.
+
+### An unconditional write to shared infrastructure
+
+Every run of this helper `PUT`s the Google identity provider, because Cloudflare
+never returns a client secret and the script therefore cannot compare. It writes
+the same credential to the same provider ID, so the `allowed_idps` references in
+Plepic's and Servitium's applications stay valid. **Expected, inherited, and
+worth naming**: a row that publishes one hostname also rewrites a credential
+three other applications authenticate against.

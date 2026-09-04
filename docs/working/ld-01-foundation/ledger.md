@@ -52,7 +52,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T18a | T18 | lousydeal | `082a19d0a94c` | AGENT | open | agent | — | — |
 | T18b | T18 | orange | `d1efa3329d35` | JOINT | open | operator | — | — |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | done | operator | journal, T15a | 2026-09-03 |
-| T16a | T16 | orange | `abf2a5101f88` | JOINT | open | operator | — | — |
+| T16a | T16 | orange | `abf2a5101f88` | JOINT | done | operator | journal, T16 | 2026-09-04 |
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | done | agent | journal, T17 | 2026-09-03 |
 
 ## Amendments
