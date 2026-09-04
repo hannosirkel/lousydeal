@@ -51,12 +51,32 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T20b | T20 | orange | `2752980ec3a8` | JOINT | done | operator | journal, T20 | 2026-09-04 |
 | T18a | T18 | lousydeal | `082a19d0a94c` | AGENT | done | agent | journal, T18a | 2026-09-04 |
 | T18b | T18 | orange | `d1efa3329d35` | JOINT | open | operator | — | — |
+| T22a | T22 | plepic | `f7d3f51bf9ab` | AGENT | open | agent | — | — |
+| T22b | T22 | lousydeal | `585965d1fdce` | AGENT | open | agent | — | — |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | done | operator | journal, T15a | 2026-09-03 |
 | T16a | T16 | orange | `abf2a5101f88` | JOINT | done | operator | journal, T16 | 2026-09-04 |
 | T17a | T17 | lousydeal | `68930b0016e5` | AGENT | done | agent | journal, T17 | 2026-09-03 |
 | T21a | T21 | orange | `aa31b8133cdc` | AGENT | done | agent | journal, T21 | 2026-09-04 |
 
 ## Amendments
+
+**2026-09-04 · T22 added; row count 42 to 44. Operator-directed.**
+**T18b's review asked whether one Access bypass was narrow enough. The answer
+was that the proxy behind it is not.**
+
+`hooks/payment/[provider]/route.js:11-23` enqueues with `attempts: 3` **before
+any verification** and never validates `req.params.provider`. Both storefront
+proxies admit the `hooks` namespace and constrain nothing after `payment/`, so
+a same-depth sibling — `stripe_stripeEVIL` — reaches it.
+
+**Plepic's apex runs `access=public`, so nothing gates it at all.** The
+operator directed that plepic be checked and both be fixed. Plepic runs first:
+its exposure is unconditional and live, where Lousy Deal's depends on an
+ambiguity two Cloudflare documentation pages disagree about.
+
+Two rows because constraint 6 forbids one row spanning repositories.
+
+**All 42 prior hashes recomputed, no drift.**
 
 **2026-09-04 · T21 added; row count 41 to 42.**
 **`playbooks/platform-verify.yml` aborts at task 14, for every tenant**, on
