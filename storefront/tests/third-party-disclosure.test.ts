@@ -76,6 +76,31 @@ describe("what the pages load", () => {
     expect(offending).toEqual([]);
   });
 
+  it("loads no script or stylesheet from anywhere, however the host is spelled", () => {
+    // A full URL is the shape the scan above catches. Gate D reached for two it
+    // did not: a protocol-relative `//fonts.googleapis.com/...`, which has no
+    // `https:` to match, and `src={process.env.ANALYTICS_SCRIPT_URL}`, where
+    // the host is not in the source at all. Both were placed in `layout.tsx` --
+    // every page, including the legal ones -- and both passed.
+    //
+    // So the shape of the *tag* is checked rather than the spelling of the
+    // host. The layout's one inline `<script>` carries the Stripe publishable
+    // key through `dangerouslySetInnerHTML` and has no `src`, which is why the
+    // rule is about `src` and not about `<script`.
+    const offending = sources.flatMap(({ file, text }) => {
+      const code = withoutComments(text);
+      return [
+        ["protocol-relative asset", /(?:src|href)=["']\/\//],
+        ["external script", /<script[^>]*\bsrc\s*=/],
+        ["external stylesheet", /<link[^>]*\brel=["']stylesheet/],
+        ["host from the environment", /(?:src|href)=\{[^}]*process\.env/],
+      ]
+        .filter(([, pattern]) => (pattern as RegExp).test(code))
+        .map(([what]) => `${file}: ${String(what)}`);
+    });
+    expect(offending).toEqual([]);
+  });
+
   it("takes on no dependency that could become one", () => {
     // A tracker arrives here before it appears in a page. The list is short
     // enough to state, and stating it is what makes an addition deliberate.
@@ -94,13 +119,28 @@ describe("what the pages load", () => {
 
 describe("the document that relies on all of it", () => {
   it("names every third party the code can reach, and claims no more", () => {
-    for (const party of ["Stripe", "Cloudflare", "Backblaze"]) {
+    // Backblaze was here and held nothing: the platform's backup jobs are nine
+    // and none is this shop. A guard that *requires* a false name is worse than
+    // no guard -- removing the falsehood would have failed the suite.
+    for (const party of ["Stripe", "Cloudflare"]) {
       expect(privacyProse).toContain(party);
     }
     // §5 says "this is all of them". Nothing that is not in the code may be
     // named either -- describing processing that does not happen is the same
     // defect as omitting processing that does.
-    for (const absent of ["Google", "Meta", "Facebook", "Brevo", "Sentry", "Mailchimp", "Hotjar"]) {
+    // "Google" alone cannot be banned any more: §3 names Google Pay, which is
+    // a wallet `<PaymentElement>` genuinely offers. The entries are the
+    // products, not the companies.
+    for (const absent of [
+      "Google Analytics",
+      "Meta",
+      "Facebook",
+      "Brevo",
+      "Sentry",
+      "Mailchimp",
+      "Hotjar",
+      "Backblaze",
+    ]) {
       expect(`${absent}: ${String(privacyProse.includes(absent))}`).toBe(`${absent}: false`);
     }
   });

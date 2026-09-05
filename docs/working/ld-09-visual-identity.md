@@ -716,7 +716,9 @@ because V10 closed it; the numbering is kept so earlier references resolve.
 | 13 | The checkout requires the buyer to affirm "I acknowledge that I will lose my right of withdrawal" — an acknowledgement of something that, on this analysis, will not happen for any order placed today. § 53(4) p 7¹ requires that wording, so it is not a defect; but it sits beside item 8 and the reader should see the two together. | V10a |
 | 14 | **`fresh-build.md` §23 says not to write terms, refund policy or consumer disclosures as part of any LD slice**, and rows V8–V11 do exactly that. `brand.md` §5 records it as being at the operator's instruction. If that instruction exists it belongs in `docs/decisions/`, because §23 is the document the qualified reader will be handed. | V10a |
 | 15 | **No deletion job exists** for the seven-year accounting record the Privacy Policy states. Nothing in either repository deletes or ages out anything. The obligation is real and nothing has reached it, so the document is not yet false — but it will be, on a fixed date. | V11 |
-| 16 | **The request log has no configured retention.** Medusa's morgan writes an IP address, user agent, referrer and path for every request; `LOG_LEVEL` is unset so it defaults to `http`. §7 gives a criterion rather than a period, which Article 13(2)(a) permits, because the platform's log handling is outside these repositories. Setting `LOG_LEVEL=info` in the deploys overlays would suppress it entirely — V14's repository. | V11 |
+| 16 | ~~The request log has no configured retention.~~ **Corrected by V11a.** Medusa's log line carries the storefront pod's address, not the visitor's, because the proxy forwards no `x-forwarded-for`. The platform's Loki keeps 720 hours and its redaction stage drops secrets rather than addresses, so §7 states 30 days. What remains for the reader: the visitor's own address *is* processed by Cloudflare, and the notice relies on Cloudflare's own retention, which is outside all three repositories. | V11, corrected V11a |
+| 17 | **Stripe's `__stripe_mid` is a 365-day device identifier set under this site's own domain**, for fingerprinting. §2 takes the view that it is part of accepting a card payment safely and asks for no consent. ePrivacy Art 5(3) governs any storage on terminal equipment and its exemption is narrow; whether fraud fingerprinting reaches it is contested. The notice states the position and the reason; it does not resolve the question. | V11a |
+| 18 | **Stripe is an independent controller for fraud and regulatory checks**, and a processor for the payment. §5 now says both. Whether joint-controller arrangements under Art 26 are required for the first half is the reader's. | V11a |
 
 ### V10a — What the second Gate D found
 
@@ -858,6 +860,77 @@ states and what runs: **no deletion job exists** for the seven-year accounting
 record, and **the request log has no configured retention**. Setting
 `LOG_LEVEL=info` in the deploys overlays would suppress the log entirely; that
 is V14's repository, not this one.
+
+#### What V11's Gate D found
+
+**The document's most checkable sentence was false.** "This site sets one
+cookie" is wrong on the payment page: Stripe.js writes `__stripe_mid` and
+`__stripe_sid` under this site's own hostname. Read from `js.stripe.com/v3` —
+the writer defaults `expiresIn` to `31536e6` ms and the caller passes
+`domain: "." + document.location.hostname`, so `__stripe_mid` is a **365-day**
+device identifier and `__stripe_sid` lasts 30 minutes.
+
+**The row had the fact and dropped it.** The plan's own V11 line said "the cart
+id **and Stripe's own**", and the draft deleted the second half. Everything
+downstream followed: "it ends when you close your browser" was false of the
+year-long one, and "there is nothing to consent to" was a conclusion drawn from
+an inventory of one. §2 now describes three cookies and gives the reason no
+consent is asked for rather than asserting there is nothing to ask about.
+
+**Three more claims did not survive checking:**
+
+1. **§3 said "there is nowhere on this site to type" a name or an email**, and
+   contradicted §4 two paragraphs later. `<PaymentElement>` overrides only
+   `wallets`, so Stripe's default billing-details fields render inside an
+   element this site mounts on its own checkout page.
+2. **§2 described a request log this deployment does not produce.** morgan is
+   installed and `LOG_LEVEL` is unset, both true — but the store API is reached
+   only through this site's own server, whose proxy forwards `content-type`,
+   `accept` and `stripe-signature`. With no `x-forwarded-for`, `req.ip` is the
+   storefront pod's address. The over-disclosure was harmless and the false
+   statement was not.
+3. **Backblaze was named as a current processor and holds nothing.** The
+   platform repository's backup jobs are nine and none is this shop — the
+   Printful test applied inconsistently. Worse, `third-party-disclosure.test.ts`
+   *required* the name, so removing the falsehood would have failed the suite.
+
+**Every semantic claim in `legal-privacy.test.ts` survived inversion — eight of
+eight.** Each `it()` named a meaning and each assertion matched a fragment that
+negation leaves intact. The tests locate a claim's paragraph and throw when it
+is absent, so a deletion and an inversion now fail through the same call; the
+three lawful bases are bound to their purposes in one string each, because they
+share a paragraph and swapping them left it unchanged. All eight verified
+failing.
+
+**Two guard bypasses, both closed and both verified.** A cookie written as
+`res.cookies.set({ name, value, maxAge })` presents no string to the name scan
+and imports nothing from `next/headers`; the same write from a `middleware.ts`
+was scanned by nothing at all. And the third-party scan looked for `https?://`,
+so a protocol-relative `//fonts.googleapis.com/...` and a
+`src={process.env.ANALYTICS_SCRIPT_URL}` both went into `layout.tsx` — every
+page, including the legal ones — and passed. The guard checks the shape of the
+tag now rather than the spelling of the host.
+
+**The store proxy is declared as a cookie path.** It forwards whatever the
+backend sends and strips the `Domain` attribute, which is a route to a browser
+that appears nowhere else in the tree. A test pins it to forwarding only, so
+§2's count of three stays true.
+
+**Three Article 13 elements were missing** and are now present: 13(2)(e), the
+consequence of not providing the data; 13(2)(f), the automated decision Stripe's
+fraud check makes, which is live because it can decline a payment with no person
+involved; and 13(1)(f)'s means of obtaining a copy of the transfer safeguards.
+§5 also stops calling Stripe a pure processor: it acts for itself on fraud and
+regulatory checks, which is the same processing §3 already called "Stripe's
+own".
+
+**Gate item 16 was wrong about its own premise** and is corrected below: the
+platform's log retention is not unknowable. Alloy collects this namespace, Loki
+keeps 720 hours, and the redaction stage drops secrets rather than addresses.
+§7 states 30 days instead of a criterion.
+
+The header cited two different measurement commits. It is `de0fb6a` now, and
+the document title follows `brand.md` §5.
 
 ### V12 — Footer links and the legal index
 
