@@ -397,15 +397,43 @@ small {
   color: var(--ink);
 }
 
+/* A control that cannot be used yet says so in ink weight, not in colour:
+   --stamp is this identity's error state and a not-yet is not an error. */
+.button:disabled {
+  border-color: var(--ink-soft);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+
 /* Hover inverts ground and text. No scale, no shadow, no lift. */
-.button.is-primary:hover {
+.button.is-primary:hover:enabled,
+a.button.is-primary:hover {
   background: var(--paper);
   color: var(--stamp);
 }
 
-.button.is-secondary:hover {
+.button.is-secondary:hover:enabled,
+a.button.is-secondary:hover {
   background: var(--ink);
   color: var(--paper);
+}
+
+/* The country control and the consent box. A checkbox and its label read as
+   one thing, so they sit on one baseline with the label free to wrap. */
+.field,
+.consent {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.consent label {
+  font-size: var(--size-small);
+}
+
+.payment-error {
+  color: var(--stamp);
 }
 
 /* Visually hidden, still read. Not `display: none`, which removes it from the

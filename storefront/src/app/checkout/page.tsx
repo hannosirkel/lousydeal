@@ -1,7 +1,7 @@
 /**
- * The checkout page: the cart's explicit total, then the Stripe Payment
- * Element. Scaffolding (Global Constraint 7) -- no colour, no font, the API's
- * own total carried through as-is.
+ * The checkout, as a payment authorisation -- `docs/current/brand.md` §4: the
+ * total explicit as a ledger row before anything else, then the price notice,
+ * then the consent checkbox, then the payment element.
  *
  * A Server Component, like `src/app/cart/page.tsx` -- it reads `CART_ID_COOKIE`
  * and fetches the cart directly against the backend (T9's established
@@ -32,10 +32,15 @@
 import { cookies } from "next/headers";
 import { connection } from "next/server";
 
+import { DocumentFrame } from "../../components/document/DocumentFrame";
+import { FinePrint } from "../../components/document/FinePrint";
+import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
 import { getRuntimeConfig } from "../../config/runtime-config";
+import { CART_DOCUMENT, CART_EMPTY_NOTICE, CART_LABELS, CHECKOUT_DOCUMENT, PRICE_NOTICE } from "../../content/checkout";
 import { createStoreFetchJson, getDefaultRegion } from "../../lib/medusa-client";
+import { formatMoney } from "../../lib/money";
 import { getCheckoutCart } from "../../lib/store-checkout";
-import { CART_ID_COOKIE } from "../../lib/store-session";
+import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-session";
 import { PaymentForm } from "./PaymentForm";
 
 export default async function CheckoutPage() {
@@ -46,30 +51,38 @@ export default async function CheckoutPage() {
   if (cartId === undefined) {
     return (
       <main>
-        <p>Cart is empty.</p>
+        <DocumentFrame title={CART_DOCUMENT.title} form={CART_DOCUMENT.form} revision={CART_DOCUMENT.revision}>
+          <p>{CART_EMPTY_NOTICE}</p>
+        </DocumentFrame>
       </main>
     );
   }
 
-  const { medusa, stripe } = getRuntimeConfig();
-  if (medusa.backendUrl === null || medusa.publishableKey === null) {
-    throw new Error("MEDUSA_BACKEND_URL and MEDUSA_PUBLISHABLE_API_KEY must both be set to render checkout");
-  }
+  const { stripe } = getRuntimeConfig();
   if (stripe.publishableKey === null) {
     throw new Error("STRIPE_PUBLISHABLE_KEY must be set to render checkout");
   }
 
-  const fetchJson = createStoreFetchJson({ backendUrl: medusa.backendUrl, publishableKey: medusa.publishableKey });
+  const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const cart = await getCheckoutCart(fetchJson, cartId);
   const region = await getDefaultRegion(fetchJson);
 
   return (
     <main>
-      {/* The final price, explicit before the pay control -- the cart's own total, not recomputed. */}
-      <p>
-        Total: {cart.total} {cart.currencyCode}
-      </p>
-      <PaymentForm cartId={cart.id} stripePublishableKey={stripe.publishableKey} countries={region.countries ?? []} />
+      <DocumentFrame
+        title={CHECKOUT_DOCUMENT.title}
+        form={CHECKOUT_DOCUMENT.form}
+        revision={CHECKOUT_DOCUMENT.revision}
+      >
+        {/* The final price, explicit before the pay control -- the cart's own
+            total, not recomputed. §23 requires this; the notice under it says
+            the figure is also final. */}
+        <Ledger>
+          <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currencyCode)} />
+        </Ledger>
+        <FinePrint>{PRICE_NOTICE}</FinePrint>
+        <PaymentForm cartId={cart.id} stripePublishableKey={stripe.publishableKey} countries={region.countries ?? []} />
+      </DocumentFrame>
     </main>
   );
 }

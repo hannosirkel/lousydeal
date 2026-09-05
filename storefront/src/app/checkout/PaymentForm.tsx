@@ -49,6 +49,16 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { loadStripe } from "@stripe/stripe-js";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
+import { Button } from "../../components/document/Button";
+import { FinePrint } from "../../components/document/FinePrint";
+import {
+  CONSENT_LABEL,
+  CONSENT_REQUIRED_NOTICE,
+  COUNTRY_LABEL,
+  PAY_LABEL,
+  PAYING_LABEL,
+  PREPARING_PAYMENT_LABEL,
+} from "../../content/checkout";
 import type { FetchJson, StoreFetchInit, StoreRegionCountry } from "../../lib/medusa-client";
 import { setCartCountry } from "../../lib/store-checkout";
 import { completeCheckoutCart, createPaymentCollection, initiateStripePaymentSession } from "../../lib/store-payment";
@@ -119,10 +129,18 @@ export function PaymentForm({ cartId, stripePublishableKey, countries }: Payment
   }, [cartId, fetchJson]);
 
   if (error !== null) {
-    return <p>{error}</p>;
+    return <p className="payment-error">{error}</p>;
   }
   if (clientSecret === null) {
-    return <p>Preparing payment…</p>;
+    // The one place `brand.md` §4's blinking cursor belongs: a state inside a
+    // rendered page. As a route-level `loading.tsx` it made every page serve
+    // nothing without JavaScript -- see V5c.
+    return (
+      <p role="status">
+        <span className="cursor" aria-hidden="true" />
+        <span className="visually-hidden">{PREPARING_PAYMENT_LABEL}</span>
+      </p>
+    );
   }
 
   return (
@@ -145,6 +163,17 @@ function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
+  /**
+   * The express consent VÕS § 53(4) p 7¹ requires. Unticked by default and
+   * never defaulted true: consent the trader supplies is not consent. The pay
+   * control is disabled behind it, so the only way to pay is to have ticked
+   * it.
+   *
+   * It is necessary and not sufficient. The same clause needs the trader's
+   * § 55(1)-(2) confirmation on a durable medium as well -- the order email,
+   * which is LD-02 -- so nothing here tells a buyer the right is already gone.
+   */
+  const [consented, setConsented] = useState(false);
   // Defaults to the region's first country rather than an empty selection --
   // `backend/src/scripts/configure-commerce.ts:90-92`'s `WORLDWIDE_COUNTRY_CODES`
   // is every `defaultCountries` alpha-2 code, so this list is never empty on
@@ -203,31 +232,47 @@ function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
 
   return (
     <form onSubmit={(event) => void handleSubmit(event)}>
-      {/* Unstyled label/select -- Global Constraint 7's register, the same as
-          the `<p>Total: …</p>` and `<button>Pay</button>` already on this
-          page. Collects the one field the row's checkbox asks for ("collect
-          the customer's country"), sourced from `countries` -- the region's
-          own list, not free text -- and is what `setCartCountry` reads on
-          submit (T10: a certificate ships nowhere, so this stands in for a
-          shipping address without being one). */}
-      <label htmlFor="checkout-country">Country</label>
-      <select
-        id="checkout-country"
-        value={countryCode}
-        onChange={(event) => setCountryCode(event.target.value)}
-        required
-      >
-        {countries.map((country) => (
-          <option key={country.iso_2} value={country.iso_2}>
-            {country.display_name}
-          </option>
-        ))}
-      </select>
+      {/* Collects the one field the row asks for, sourced from `countries` --
+          the region's own list, not free text -- and read by `setCartCountry`
+          on submit. A certificate ships nowhere, so this stands in for a
+          shipping address without being one (T10). */}
+      <p className="field">
+        <label htmlFor="checkout-country">{COUNTRY_LABEL}</label>
+        <select
+          id="checkout-country"
+          value={countryCode}
+          onChange={(event) => setCountryCode(event.target.value)}
+          required
+        >
+          {countries.map((country) => (
+            <option key={country.iso_2} value={country.iso_2}>
+              {country.display_name}
+            </option>
+          ))}
+        </select>
+      </p>
+
+      <p className="consent">
+        <input
+          id="checkout-consent"
+          type="checkbox"
+          checked={consented}
+          onChange={(event) => setConsented(event.target.checked)}
+        />
+        <label htmlFor="checkout-consent">{CONSENT_LABEL}</label>
+      </p>
+
       <PaymentElement options={{ wallets: { applePay: "auto", googlePay: "auto", link: "auto" } }} />
-      {error !== null && <p>{error}</p>}
-      <button type="submit" disabled={stripe === null || submitting}>
-        {submitting ? "Paying…" : "Pay"}
-      </button>
+      {error !== null && <p className="payment-error">{error}</p>}
+      {/* Disabled until consent. `brand.md` §4 puts the pay control behind the
+          box; this is the visible half of that. It is not the enforcing half
+          -- a disabled button is a client-side fact -- and no row here claims
+          otherwise; the order is created by Medusa from a cart this storefront
+          does not gate. */}
+      <Button type="submit" disabled={stripe === null || submitting || !consented}>
+        {submitting ? PAYING_LABEL : PAY_LABEL}
+      </Button>
+      {consented ? null : <FinePrint>{CONSENT_REQUIRED_NOTICE}</FinePrint>}
     </form>
   );
 }

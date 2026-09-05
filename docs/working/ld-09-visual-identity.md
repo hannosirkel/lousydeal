@@ -429,7 +429,9 @@ rather than in it.
 **Files:** `storefront/src/app/cart/page.tsx`,
 `storefront/src/app/checkout/page.tsx`,
 `storefront/src/app/checkout/PaymentForm.tsx`,
-`storefront/src/content/checkout.ts`, `storefront/src/app/globals.css`,
+`storefront/src/content/checkout.ts`,
+`storefront/src/components/document/Button.tsx`,
+`storefront/src/lib/store-cart.ts`, `storefront/src/app/globals.css`,
 `storefront/tests/checkout-consent.test.ts`, `docs/current/brand.md`.
 
 - [ ] Render the cart as `ORDER SUMMARY` and the checkout as `PAYMENT
@@ -449,6 +451,13 @@ matters legally, because a disabled button is a client-side fact. This row does
 not claim otherwise, and no server-side enforcement is added here — the order is
 created by Medusa from a cart this storefront does not gate. That is recorded,
 not fixed, and it belongs to whichever row wires consent into the order record.
+
+`Button` gains a `disabled` prop, on the button branch only: a disabled link is
+not a thing HTML has, and `<a aria-disabled>` is still focusable and still
+followed. `store-cart.ts` gains the cart's own `total`, optional for the same
+reason `StoreRegion.countries` is — the live endpoint answers with it and the
+suite's fixtures do not — because summing the lines here would be a second
+computation of a figure the API already gives.
 
 ### V7 — Certificate, and its specimen
 

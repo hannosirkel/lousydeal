@@ -1,36 +1,44 @@
 /**
- * Renders the cart the home page's "add to cart" action created, looked up
- * by the id it left in `CART_ID_COOKIE`. Scaffolding (Global Constraint 7):
- * no colour, no font, no formatted price -- the API's own numbers, carried
- * through as-is.
+ * The cart, as an order summary — `docs/current/brand.md` §4.
+ *
+ * Looked up by the id the shared `addToCart` action left in `CART_ID_COOKIE`.
+ *
+ * **The total is the cart's own.** Medusa returns one; summing the lines here
+ * would be a second computation of a figure the API already answers with, and
+ * the two would differ the day anything is discounted or taxed differently
+ * from what this file assumes.
  */
 
 import { cookies } from "next/headers";
 import { connection } from "next/server";
 
-import { getRuntimeConfig } from "../../config/runtime-config";
+import { Button } from "../../components/document/Button";
+import { DocumentFrame } from "../../components/document/DocumentFrame";
+import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
+import { CART_DOCUMENT, CART_EMPTY_NOTICE, CART_LABELS, CHECKOUT_LABEL } from "../../content/checkout";
 import { createStoreFetchJson, StoreApiError } from "../../lib/medusa-client";
+import { formatMoney } from "../../lib/money";
 import { getCart } from "../../lib/store-cart";
-import { CART_ID_COOKIE } from "../../lib/store-session";
+import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-session";
+
+function EmptyCart() {
+  return (
+    <main>
+      <DocumentFrame title={CART_DOCUMENT.title} form={CART_DOCUMENT.form} revision={CART_DOCUMENT.revision}>
+        <p>{CART_EMPTY_NOTICE}</p>
+      </DocumentFrame>
+    </main>
+  );
+}
 
 export default async function CartPage() {
   await connection();
   const cookieStore = await cookies();
   const cartId = cookieStore.get(CART_ID_COOKIE)?.value;
 
-  if (cartId === undefined) {
-    return (
-      <main>
-        <p>Cart is empty.</p>
-      </main>
-    );
-  }
+  if (cartId === undefined) return <EmptyCart />;
 
-  const { medusa } = getRuntimeConfig();
-  if (medusa.backendUrl === null || medusa.publishableKey === null) {
-    throw new Error("MEDUSA_BACKEND_URL and MEDUSA_PUBLISHABLE_API_KEY must both be set to render the cart");
-  }
-  const fetchJson = createStoreFetchJson({ backendUrl: medusa.backendUrl, publishableKey: medusa.publishableKey });
+  const fetchJson = createStoreFetchJson(requireStoreClientConfig());
 
   // A cookie naming a cart the backend no longer has (expired, or from a
   // reset backend) is not a transient error: it is the same "no cart" state
@@ -43,26 +51,36 @@ export default async function CartPage() {
   } catch (error) {
     if (error instanceof StoreApiError && error.status === 404) {
       cookieStore.delete(CART_ID_COOKIE);
-      return (
-        <main>
-          <p>Cart is empty.</p>
-        </main>
-      );
+      return <EmptyCart />;
     }
     throw error;
   }
 
+  const items = cart.items ?? [];
+  if (items.length === 0) return <EmptyCart />;
+
   return (
     <main>
-      <ul>
-        {(cart.items ?? []).map((item) => (
-          <li key={item.id}>
-            {item.title ?? item.variant_id} × {item.quantity} ({item.unit_price} {cart.currency_code})
-          </li>
-        ))}
-      </ul>
-      {/* The only route to `/checkout` from anywhere a shopper can reach by clicking -- see T10's report (Minor 10). */}
-      <a href="/checkout">Checkout</a>
+      <DocumentFrame title={CART_DOCUMENT.title} form={CART_DOCUMENT.form} revision={CART_DOCUMENT.revision}>
+        <Ledger>
+          {items.map((item) => (
+            <LedgerRow
+              key={item.id}
+              label={item.title ?? item.variant_id}
+              value={formatMoney(item.unit_price * item.quantity, cart.currency_code)}
+            />
+          ))}
+          {/* Rendered only when the API answered with one. Medusa's default
+              store-cart fields include `total`, so this is present in
+              practice; the branch exists because the type says it may not be
+              and a missing figure must not become a computed one. */}
+          {typeof cart.total === "number" ? (
+            <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currency_code)} />
+          ) : null}
+        </Ledger>
+        {/* The only route to `/checkout` a shopper reaches by clicking. */}
+        <Button href="/checkout">{CHECKOUT_LABEL}</Button>
+      </DocumentFrame>
     </main>
   );
 }

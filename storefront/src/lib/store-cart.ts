@@ -32,6 +32,17 @@ export interface StoreCartResponse {
   readonly id: string;
   readonly currency_code: string;
   readonly items?: readonly StoreCartLineItemResponse[];
+  /**
+   * The cart's own total. Optional for the same reason `StoreRegion.countries`
+   * is (`medusa-client.ts`): `defaultStoreCartFields` includes `total`, so the
+   * live endpoint answers with it, but `tests/store-cart.test.ts` builds
+   * fixtures without it and those fixtures are faithful to what they stub.
+   *
+   * Read, never recomputed. Summing the lines would be a second computation of
+   * a figure the API already answers with, and the two would differ the day
+   * anything is discounted or taxed differently from what a caller assumes.
+   */
+  readonly total?: number;
 }
 
 /** The line this row's verification checks: the API's own line, carried through, not recomputed. */
