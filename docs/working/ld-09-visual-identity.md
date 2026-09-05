@@ -150,9 +150,9 @@ failure constraint 9 exists for.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/globals.css`,
 `storefront/src/fonts/plex-mono.ts`,
-`storefront/src/fonts/IBMPlexMono-Regular.woff2`,
-`storefront/src/fonts/IBMPlexMono-Italic.woff2`,
-`storefront/src/fonts/IBMPlexMono-Bold.woff2`, `storefront/src/fonts/OFL.txt`,
+`storefront/src/fonts/LDMono-Regular.woff2`,
+`storefront/src/fonts/LDMono-Italic.woff2`,
+`storefront/src/fonts/LDMono-Bold.woff2`, `storefront/src/fonts/OFL.txt`,
 `storefront/src/app/layout.tsx`, `storefront/tests/tokens.test.ts`.
 
 - [ ] Serve IBM Plex Mono from committed OFL files through `next/font/local`,
@@ -174,7 +174,11 @@ Three cuts, not four: 400, 400 italic and 700. The 500 the prompt asked for
 earns nothing in an identity whose emphasis is caps and letter-spacing.
 
 `OFL.txt` ships beside the files because the licence requires the notice to
-travel with them.
+travel with them. **The family is renamed to `LD Mono` and the files with it**:
+subsetting makes them Modified Versions, and OFL 1.1 clause 3 forbids a
+Modified Version bearing the Reserved Font Name. `next/font/local` emits its
+own `@font-face` family and never reads the internal one, so this costs
+nothing.
 
 **The TTFs the image renderer needs are V13's, not this row's.** Satori, which
 backs `next/og`, reads TTF, OTF and WOFF and **not** WOFF2, so the web files
@@ -211,7 +215,8 @@ This row falsifies `runtime-config.ts`'s own header, which states there is no
 ### V3 — Document components
 
 **Repository:** `lousydeal`.
-**Files:** `storefront/src/components/document/DocumentFrame.tsx`,
+**Files:** `storefront/src/app/globals.css`,
+`storefront/src/components/document/DocumentFrame.tsx`,
 `storefront/src/components/document/LedgerRow.tsx`,
 `storefront/src/components/document/Rule.tsx`,
 `storefront/src/components/document/FinePrint.tsx`,
@@ -226,15 +231,25 @@ This row falsifies `runtime-config.ts`'s own header, which states there is no
       component with `renderToStaticMarkup` and asserting the semantics rather
       than the classes: `LedgerRow` emits `dl`/`dt`/`dd`, `StampMark` carries an
       accessible name, `Button` renders a real `button` or `a`, and the
-      formatter turns minor units into `$5.00` without floating-point drift.
+      formatter turns the Store API's own amount into a currency string
+      without floating-point drift.
 
 The ledger is the signature component and the accessibility risk: a dotted
 leader is decoration, so it is drawn by a border on a pseudo-element and never
 by characters a screen reader would read aloud.
 
-`money.ts` exists because three surfaces format the same cents and the API
-returns a number whose units this codebase has already had to reason about
-twice.
+`money.ts` exists because three surfaces format the same amount, and its units
+are not what they look like. **They are major units, not cents.** Medusa is
+seeded with `amountMinor / 100` (`backend/src/scripts/seed-product.ts:122`), so
+a five-dollar tier is stored as `5`; the read path does not rescale it either
+(`node_modules/@medusajs/pricing/dist/services/pricing-module.js:238-240` sets
+`calculated_amount` to `parseFloat(calculatedPrice.amount)`). This row's text
+said "minor units" and "cents" until V3 was implemented and disproved it.
+
+The row edits `globals.css` because the six motifs need styles and this
+repository has one stylesheet by decision — no Tailwind, no CSS modules. That
+file is declared by V1 as well; both rows write to it, and neither is the sole
+author.
 
 ### V4 — Home
 

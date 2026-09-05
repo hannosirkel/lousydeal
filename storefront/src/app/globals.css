@@ -54,6 +54,11 @@
   --rule-width: 1px;
   --rule-gap: 3px;
 
+  /* The stamp is the one drawn mark, and its size is off the spacing scale
+     because it is artwork rather than layout. Named here so it is not a
+     number in two places. */
+  --stamp-size: 120px;
+
   /* The one motion budget. Colour only, and only this long. */
   --transition: 120ms;
 }
@@ -240,6 +245,153 @@ small {
 .gap {
   color: var(--stamp);
   font-style: normal;
+}
+
+/* ---- Document motifs ------------------------------------------------- */
+
+/* Two 1px lines, --rule-gap apart. content-box so the gap is the gap and not
+   the gap minus the two borders, which is what the global border-box would
+   otherwise give. */
+.double-rule {
+  box-sizing: content-box;
+  height: var(--rule-gap);
+  margin: var(--space-5) 0;
+  border: 0;
+  border-top: var(--rule-width) solid var(--ink);
+  border-bottom: var(--rule-width) solid var(--ink);
+}
+
+.document-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.document-reference {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--size-fine);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ledger {
+  margin: 0 0 var(--space-5);
+}
+
+.ledger-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+
+/* The dt is itself a flex container so its ::after can grow into the space
+   between label and value. That pseudo-element is the dotted leader -- drawn,
+   never typed, so nothing reads a run of full stops aloud. */
+/* `min-content`, not zero and not a guessed rem. Zero lets the label collapse
+   and render its text outside its own box, over the value; a fixed floor is
+   right until a label is longer than it. min-content is the label's own
+   longest word, which is the smallest width at which it cannot spill.
+   Measured in Chromium at 375px: with `0` a 35px label overlapped the value by
+   27px, with `4rem` an eleven-character label still overlapped by 22px, with
+   this it does not overlap at all. */
+.ledger-label {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--space-2);
+  align-items: baseline;
+  min-width: min-content;
+  font-size: var(--size-small);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.ledger-label::after {
+  content: "";
+  flex: 1 1 auto;
+  transform: translateY(-0.3em);
+  border-bottom: var(--rule-width) dotted var(--ink-soft);
+}
+
+/* `0 1 auto`, not `0 0 auto`. A value that cannot shrink takes its max-content
+   width, and a long one -- a tier description in the stacked layout below
+   640px, or a buyer's inscription on a certificate -- pushed 48px past a 390px
+   viewport and gave the whole page horizontal scroll. `overflow-wrap` is what
+   lets it break rather than merely permitting it to. */
+.ledger-value {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.ledger-value.is-stamp {
+  color: var(--stamp);
+}
+
+.ledger-value.is-display {
+  font-size: var(--size-display);
+  line-height: var(--leading-heading);
+}
+
+.stamp-mark {
+  display: block;
+  width: var(--stamp-size);
+  height: var(--stamp-size);
+  fill: none;
+  stroke: var(--stamp);
+  stroke-width: 1.5;
+}
+
+.stamp-mark text {
+  fill: var(--stamp);
+  stroke: none;
+  font-size: var(--size-fine);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.button {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  border: var(--rule-width) solid var(--ink);
+  font-size: var(--size-small);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background-color var(--transition) linear,
+    color var(--transition) linear;
+}
+
+.button.is-primary {
+  border-color: var(--stamp);
+  background: var(--stamp);
+  color: var(--paper);
+}
+
+.button.is-secondary {
+  background: transparent;
+  color: var(--ink);
+}
+
+/* Hover inverts ground and text. No scale, no shadow, no lift. */
+.button.is-primary:hover {
+  background: var(--paper);
+  color: var(--stamp);
+}
+
+.button.is-secondary:hover {
+  background: var(--ink);
+  color: var(--paper);
 }
 
 /* There is almost no motion here to reduce -- one colour fade and one blinking

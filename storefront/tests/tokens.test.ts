@@ -52,6 +52,7 @@ const TOKENS = [
   "--measure-narrow",
   "--rule-width",
   "--rule-gap",
+  "--stamp-size",
   "--transition",
 ] as const;
 
