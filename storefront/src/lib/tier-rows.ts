@@ -20,6 +20,11 @@ import { formatMoney } from "./money";
  */
 export const NO_VALUE = 0;
 
+/** The path a tier's own quotation is served at. One place builds it. */
+export function tierPath(handle: string): string {
+  return `/deal/${handle}`;
+}
+
 /** The row fields that come from data. The action is the page's to supply. */
 export interface TierRowData {
   readonly id: string;
@@ -28,6 +33,7 @@ export interface TierRowData {
   readonly value: string;
   readonly price: string;
   readonly variantId: string;
+  readonly href: string;
 }
 
 export function tierRowData(tier: Tier): TierRowData {
@@ -42,6 +48,7 @@ export function tierRowData(tier: Tier): TierRowData {
     value: formatMoney(NO_VALUE, tier.currencyCode),
     price: formatMoney(tier.amount, tier.currencyCode),
     variantId: tier.variantId,
+    href: tierPath(tier.handle),
   };
 }
 
@@ -55,4 +62,20 @@ export function cheapest(tiers: readonly Tier[]): Tier | undefined {
     (lowest, tier) => (lowest === undefined || tier.amount < lowest.amount ? tier : lowest),
     undefined,
   );
+}
+
+/** The one tier a handle names, or undefined. The page 404s on undefined. */
+export function tierByHandle(tiers: readonly Tier[], handle: string): Tier | undefined {
+  return tiers.find((tier) => tier.handle === handle);
+}
+
+/**
+ * The tiers that cost more than this one, cheapest first.
+ *
+ * Strictly more: a tier priced the same is not an upgrade, and listing it
+ * would invite a buyer to pay the same amount for the same nothing, which is a
+ * joke the site does not make. Sorted so the list reads as a climb.
+ */
+export function upgrades(tiers: readonly Tier[], current: Tier): Tier[] {
+  return tiers.filter((tier) => tier.amount > current.amount).sort((a, b) => a.amount - b.amount);
 }

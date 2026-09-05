@@ -292,9 +292,10 @@ same deferral the footer's legal column already carries.
 
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/deal/[handle]/page.tsx`,
-`storefront/src/lib/medusa-client.ts`,
+`storefront/src/content/deal.ts`, `storefront/src/lib/tier-rows.ts`,
 `storefront/src/components/document/TierTable.tsx`,
-`storefront/tests/tier-page.test.ts`.
+`storefront/tests/tier-page.test.ts`, `storefront/tests/home-page.test.ts`,
+`docs/current/brand.md`.
 
 - [ ] Render `/deal/[handle]` as a quotation, with the tier's ledger, the
       more expensive tiers under `UPGRADES AVAILABLE`, the acquire button, and
@@ -303,8 +304,15 @@ same deferral the footer's legal column already carries.
       tier holds the other two and for the most expensive holds none, and that
       an unknown handle raises the not-found path.
 
-`medusa-client.ts` gains a lookup by handle over the tiers it already lists;
-nothing about the transport changes.
+The lookup by handle, the upgrade list and the tier's path go in
+`src/lib/tier-rows.ts` beside V4's mapping rather than in `medusa-client.ts`:
+they are decisions about what the page shows, not about the transport, and the
+page cannot be rendered outside a request so they have to be callable on their
+own to be tested at all.
+
+`TierTable.tsx` is here because the tier name in the home page's table becomes
+the link to this route — the `handle` field V4's review found dead now has the
+purpose it was waiting for.
 
 ### V6 — Cart, checkout, and the express-consent checkbox
 
