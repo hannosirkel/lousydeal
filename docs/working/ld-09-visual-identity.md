@@ -256,7 +256,10 @@ author.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/page.tsx`,
 `storefront/src/components/document/TierTable.tsx`,
-`storefront/tests/home-page.test.ts`.
+`storefront/src/components/document/OrderForm.tsx`,
+`storefront/src/lib/tier-rows.ts`, `storefront/src/content/home.ts`,
+`storefront/src/app/globals.css`, `storefront/tests/home-page.test.ts`,
+`docs/current/brand.md`.
 
 - [ ] Render the home page as `FORM LD-1` per [`brand.md`](../current/brand.md)
       §4: masthead, offer ledger, tier table, terms-of-offer fine print. Keep
@@ -268,6 +271,22 @@ author.
 The tier table is a real `<table>`, and below 640px each row becomes a stacked
 ledger block through CSS alone — no second markup tree, no JavaScript, no
 duplicated content for a screen reader to read twice.
+
+The page's mapping lives in `src/lib/tier-rows.ts` and its purchase control in
+`OrderForm`, both because the page itself cannot be rendered outside a request
+— it awaits `connection()` and `cookies()`. A test that rebuilds the mapping
+and then asserts a renderer echoed it is asserting a copy, and passes while the
+page swaps two columns.
+
+Its copy is in `src/content/home.ts` for the reason `004` gives about the
+trader line: copy the operator will want to change should be changeable by
+editing content. **No price is written there** — every figure on the page is
+formatted from what the Store API returned, so there is no second copy to
+drift, and `tests/store-cart.test.ts` forbids one anyway.
+
+The terms-of-offer block ships without the links [`brand.md`](../current/brand.md)
+§4 gives it. Those four routes arrive with V8–V11 and V12 adds the links, the
+same deferral the footer's legal column already carries.
 
 ### V5 — Tier page
 

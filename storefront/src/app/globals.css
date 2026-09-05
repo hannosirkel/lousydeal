@@ -120,6 +120,7 @@ h1 {
 }
 
 h2 {
+  margin-bottom: var(--space-3);
   font-size: var(--size-section);
 }
 
@@ -289,10 +290,39 @@ small {
   padding: var(--space-1) 0;
 }
 
-/* The dt is itself a flex container so its ::after can grow into the space
-   between label and value. That pseudo-element is the dotted leader -- drawn,
-   never typed, so nothing reads a run of full stops aloud. */
-/* `min-content`, not zero and not a guessed rem. Zero lets the label collapse
+/* The dotted leader, in one place. `LedgerRow` reaches it through
+   `.ledger-label`; the tier table's collapsed rows reach it through
+   `[data-label]`, because that layout cannot reuse the component without a
+   second markup tree. Drawn, never typed, so nothing reads a run of full stops
+   aloud. */
+.ledger-label::after,
+.tier-table [data-label]::after {
+  content: "";
+  flex: 1 1 auto;
+  transform: translateY(-0.3em);
+  border-bottom: var(--rule-width) dotted var(--ink-soft);
+}
+
+/* What sits at the end of a leader: shrinkable, wrappable, right-aligned.
+   Shared for the same reason.
+
+   `0 1 auto`, not `0 0 auto`. A value that cannot shrink takes its max-content
+   width, and a long one -- a tier description in the stacked layout, or a
+   buyer's inscription on a certificate -- pushed 48px past a 390px viewport
+   and gave the whole page horizontal scroll. `overflow-wrap` is what lets it
+   break rather than merely permitting it to. */
+.ledger-value,
+.tier-table .cell-value {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+/* The dt is itself a flex container so the leader can grow into the space
+   between label and value.
+
+   `min-content`, not zero and not a guessed rem. Zero lets the label collapse
    and render its text outside its own box, over the value; a fixed floor is
    right until a label is longer than it. min-content is the label's own
    longest word, which is the smallest width at which it cannot spill.
@@ -310,24 +340,8 @@ small {
   text-transform: uppercase;
 }
 
-.ledger-label::after {
-  content: "";
-  flex: 1 1 auto;
-  transform: translateY(-0.3em);
-  border-bottom: var(--rule-width) dotted var(--ink-soft);
-}
-
-/* `0 1 auto`, not `0 0 auto`. A value that cannot shrink takes its max-content
-   width, and a long one -- a tier description in the stacked layout below
-   640px, or a buyer's inscription on a certificate -- pushed 48px past a 390px
-   viewport and gave the whole page horizontal scroll. `overflow-wrap` is what
-   lets it break rather than merely permitting it to. */
 .ledger-value {
-  flex: 0 1 auto;
-  min-width: 0;
   margin: 0;
-  overflow-wrap: anywhere;
-  text-align: right;
 }
 
 .ledger-value.is-stamp {
@@ -392,6 +406,143 @@ small {
 .button.is-secondary:hover {
   background: var(--ink);
   color: var(--paper);
+}
+
+/* Visually hidden, still read. Not `display: none`, which removes it from the
+   accessibility tree as well as the page. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---- The tier table, and its second layout --------------------------- */
+
+.tier-table {
+  margin: 0 0 var(--space-5);
+}
+
+.tier-table th,
+.tier-table td {
+  padding: var(--space-3) var(--space-2);
+  border-bottom: var(--rule-width) solid var(--ink-soft);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.tier-table thead th {
+  border-bottom: var(--rule-width) solid var(--ink);
+  background: var(--paper-shade);
+}
+
+/* The tier name is short and is the row's subject; wrapping it mid-name reads
+   as two items. It shrinks with the table until the layout collapses. */
+.tier-table tbody th {
+  font-size: var(--size-body);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.tier-table tbody tr:hover {
+  background: var(--paper-shade);
+}
+
+.tier-table th:first-child,
+.tier-table td:first-child {
+  padding-left: 0;
+}
+
+/* Figures align as figures and never wrap. Keyed on `data-align`, set in the
+   markup, rather than on the heading text -- that text lives in a content file
+   so it can be edited, and a selector reading it would un-align the column the
+   day it changed. */
+.tier-table [data-align="figure"] {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tier-table td:last-child {
+  padding-right: 0;
+  text-align: right;
+}
+
+.tier-table .tier-action .button {
+  white-space: nowrap;
+}
+
+/* Below the narrow measure the table becomes stacked ledger blocks -- one
+   markup tree, per `brand.md` §4. The header row goes entirely, from sight and
+   from the accessibility tree alike, because each cell then carries its own
+   label; `TierTable.tsx` records what that was measured to do.
+
+   `width < 640px` rather than `max-width: 640px`, which includes 640 itself.
+   The number is `--measure-narrow`, which a media query cannot read. */
+@media (width < 640px) {
+  .tier-table,
+  .tier-table tbody,
+  .tier-table tr,
+  .tier-table th,
+  .tier-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .tier-table thead {
+    display: none;
+  }
+
+  .tier-table tbody tr {
+    padding: var(--space-3) 0;
+    border-bottom: var(--rule-width) solid var(--ink);
+  }
+
+  .tier-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .tier-table tbody th,
+  .tier-table td {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding: var(--space-1) 0;
+    border-bottom: 0;
+    /* The nowrap that keeps a tier name on one line in the table is wrong once
+       the row is a stacked block: here the name is the value and may wrap. */
+    white-space: normal;
+  }
+
+  /* Label, leader, value -- the ledger row's shape, built from one cell.
+     `order` is what puts the value after the leader: `::after` can be a flex
+     item but an anonymous text run cannot take an `order`, which is why the
+     value is wrapped in a span. */
+  .tier-table [data-label]::before {
+    order: -1;
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: var(--size-small);
+    font-weight: 400;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+
+  .tier-table [data-label]::after {
+    order: 0;
+  }
+
+  .tier-table .cell-value {
+    order: 1;
+  }
+
+  .tier-table .tier-action {
+    padding-top: var(--space-3);
+    text-align: left;
+  }
 }
 
 /* There is almost no motion here to reduce -- one colour fade and one blinking

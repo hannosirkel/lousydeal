@@ -50,8 +50,10 @@ describe("LedgerRow", () => {
   });
 
   it("draws the leader in CSS rather than emitting it", () => {
-    expect(css).toMatch(/\.ledger-label::after\s*\{[^}]*border-bottom:[^;]*dotted/);
-    expect(css).toMatch(/\.ledger-label::after\s*\{[^}]*content:\s*""/);
+    // One selector list serves the ledger and the tier table's collapsed rows.
+    const leader = /\.ledger-label::after,[^{]*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(leader).toMatch(/border-bottom:[^;]*dotted/);
+    expect(leader).toMatch(/content:\s*""/);
   });
 
   // Measured in Chromium at a 390px viewport before this was fixed: a value
@@ -60,7 +62,7 @@ describe("LedgerRow", () => {
   // zero and rendered its text over the value. Both halves are asserted,
   // because either one alone leaves the row broken.
   it("lets a long value wrap instead of overflowing a narrow screen", () => {
-    const value = /\.ledger-value\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    const value = /\.ledger-value,[^{]*\{([^}]*)\}/.exec(css)?.[1] ?? "";
     expect(value).toContain("flex: 0 1 auto");
     expect(value).toContain("overflow-wrap: anywhere");
     expect(value).toContain("min-width: 0");
