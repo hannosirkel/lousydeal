@@ -9,10 +9,15 @@
  * page rendered from a real order shows a real serial, and this component
  * cannot produce one.
  *
- * `aria-label` rather than `aria-labelledby`: labelling by id needs a unique
- * one, `useId` is a hook and this is a Server Component, and a hand-passed id
- * is a prop every caller could get wrong. The title is already the string the
- * label would resolve to.
+ * The `<section>` is unnamed on purpose. Naming it makes it a `region`
+ * landmark, and a landmark named the same as the `<h1>` it contains has
+ * assistive tech announce the title twice -- once as a region, once as the
+ * heading. The heading already names this content, and a page carries one
+ * document.
+ *
+ * **All three strings are written naturally and capitalised in CSS**, as
+ * `brand.md` §4 requires of every other capitalised surface here: a screen
+ * reader and a copy-paste both get words rather than letters.
  */
 
 import type { ReactNode } from "react";
@@ -20,18 +25,18 @@ import type { ReactNode } from "react";
 import { DoubleRule, Rule } from "./Rule";
 
 export interface DocumentFrameProps {
-  /** All-caps in the rendered output; written sentence case here reads better aloud. */
+  /** Written sentence case; the rendered heading is capitalised by CSS. */
   readonly title: string;
-  /** The form's own number, e.g. `FORM LD-1`. */
+  /** The form's own number, e.g. `Form LD-1`. */
   readonly form: string;
-  /** Its revision, e.g. `REV. 2026-09`. */
+  /** Its revision, e.g. `Rev. 2026-09`. */
   readonly revision: string;
   readonly children: ReactNode;
 }
 
 export function DocumentFrame({ title, form, revision, children }: DocumentFrameProps) {
   return (
-    <section className="document" aria-label={title}>
+    <section className="document">
       <DoubleRule />
       <div className="document-header">
         <h1 className="document-title">{title}</h1>

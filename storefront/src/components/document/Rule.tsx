@@ -6,10 +6,14 @@
  * Both are one `<hr>`, not two stacked elements. A double rule is a single
  * thematic break drawn twice, and rendering it as two `<hr>`s would have a
  * screen reader announce two separators where a reader sees one boundary.
+ *
+ * `Rule` carries no class: the base `hr` rule is already the single rule this
+ * identity draws, and a class with no declarations behind it is a hook for
+ * nothing.
  */
 
 export function Rule() {
-  return <hr className="rule" />;
+  return <hr />;
 }
 
 export function DoubleRule() {

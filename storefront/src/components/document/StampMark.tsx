@@ -10,6 +10,11 @@
  * with a `<title>` gives it the accessible name `brand.md` requires; the text
  * inside an SVG is otherwise announced as loose strings with no indication it
  * is a stamp.
+ *
+ * **Write the lines in sentence case.** The capitals are `text-transform` in
+ * the stylesheet, so the accessible name keeps its words -- an `aria-label` of
+ * `CERTIFIED LOUSY DEAL` is the shape screen readers spell out letter by
+ * letter, and this is the one element `brand.md` §3 requires to have a name.
  */
 
 const SIZE = 120;
@@ -17,7 +22,7 @@ const OUTER_RADIUS = 57;
 const INNER_RADIUS = 51;
 
 export interface StampMarkProps {
-  /** One line per row of stamped text; two or three read best. */
+  /** One line per row, written sentence case; CSS capitalises them. */
   readonly lines: readonly string[];
 }
 

@@ -96,6 +96,11 @@ without a table cell forcing it to.
 `§1.1` sits above prose it must not be smaller than, and caps with tracking
 separate it well enough without a size change.
 
+**A ledger row is set in two steps**: its label at the small step, its value at
+the body step. The table above assigns "labels" and "ledger rows" to different
+steps and both readings are defensible; this is the one taken. The label is the
+quieter half of the pair, and the figure is the half a reader came for.
+
 ### Colour
 
 | Token | Value | Role |
@@ -127,6 +132,9 @@ narrower, because they are read rather than scanned. Border radius is 0
 everywhere. No shadow, no gradient, no illustration, no photograph, no mascot,
 no icon set. The only vector artwork on the site is the stamp mark.
 
+The stamp mark is 120px square — `--stamp-size`, deliberately off the spacing
+scale, because it is artwork rather than layout and nothing aligns to it.
+
 Sections are separated by **rules, not boxes**: a 1px `--ink` horizontal rule.
 A document's top and bottom carry a **double rule** — two 1px lines 3px apart.
 Spacing comes from an eight-value scale and nothing between: 4, 8, 12, 16, 24,
@@ -157,11 +165,13 @@ Six components carry the whole identity. They live in
   text. Focus is a 2px `--stamp` outline with a 2px offset, visible on both.
 
 Links are underlined and ink-coloured, visited identical to unvisited, hover
-switches to `--stamp`. **The masthead wordmark is the one exception** — it
-links home and carries no underline, because a letterhead is not a link in
-prose and underlining the one element on every page would make it read as a
-footnote reference. There is no second exception; a component that wants one
-amends this paragraph. Transitions never exceed 120ms and only ever animate
+switches to `--stamp`. **Two things are not links in prose and are exempt.**
+The masthead wordmark links home without an underline, because a letterhead
+underlined would read as a footnote reference. And a `Button` rendered as an
+`<a>` is styled as a button throughout — no underline, and its hover inverts
+ground and text like every other button rather than turning `--stamp`, because
+a control that looked like a control at rest and like a link on hover is worse
+than either. Anything else that wants an exception amends this paragraph. Transitions never exceed 120ms and only ever animate
 colour. Nothing scales, bounces, slides or fades. `prefers-reduced-motion` is
 respected, which costs nothing because the only motion on the site is the
 loading cursor.

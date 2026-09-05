@@ -5,9 +5,13 @@
  * neighbourhood before, so it is stated here.** Medusa is seeded with
  * `amount: record.amountMinor / 100` (`backend/src/scripts/seed-product.ts:122`),
  * so a five-dollar tier is stored and returned as `5`, not as a count of
- * cents. Every number this module formats -- `Tier.amount` from `listTiers`,
- * `total` from `getCheckoutCart` -- is a **major-unit decimal**, carried
- * through from the Store API without conversion.
+ * cents. The read path does not rescale it either:
+ * `node_modules/@medusajs/pricing/dist/services/pricing-module.js:238-240`
+ * sets `calculated_amount` to `parseFloat(calculatedPrice.amount)`, the stored
+ * value parsed and nothing more, and `medusa-client.ts`'s `listTiers` carries
+ * that straight into `Tier.amount`. So every number this module formats --
+ * `Tier.amount`, and `total` from `getCheckoutCart` -- is a **major-unit
+ * decimal**.
  *
  * `Intl.NumberFormat` is deliberately not used. Its output varies with the
  * runtime's ICU data and the ambient locale, and `docs/current/brand.md` §3

@@ -54,6 +54,21 @@ describe("LedgerRow", () => {
     expect(css).toMatch(/\.ledger-label::after\s*\{[^}]*content:\s*""/);
   });
 
+  // Measured in Chromium at a 390px viewport before this was fixed: a value
+  // that could not shrink took its max-content width, ran 48px past the
+  // viewport and gave the page horizontal scroll, while the label collapsed to
+  // zero and rendered its text over the value. Both halves are asserted,
+  // because either one alone leaves the row broken.
+  it("lets a long value wrap instead of overflowing a narrow screen", () => {
+    const value = /\.ledger-value\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(value).toContain("flex: 0 1 auto");
+    expect(value).toContain("overflow-wrap: anywhere");
+    expect(value).toContain("min-width: 0");
+
+    const label = /\.ledger-label\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(label).toMatch(/min-width:\s*(?!0[;\s])/);
+  });
+
   it("marks a bad-news figure with the accent rather than a word", () => {
     const stamped = renderToStaticMarkup(
       createElement(Ledger, {
@@ -77,9 +92,18 @@ describe("LedgerRow", () => {
   });
 });
 
+describe("focus", () => {
+  it("is a 2px stamp outline, offset, and is never removed", () => {
+    const block = /:focus-visible\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(block).toContain("outline: 2px solid var(--stamp)");
+    expect(block).toContain("outline-offset: 2px");
+    expect(css).not.toMatch(/outline:\s*(?:none|0)\b/);
+  });
+});
+
 describe("Rule and DoubleRule", () => {
   it("are each one element, so one boundary is announced once", () => {
-    expect(renderToStaticMarkup(createElement(Rule))).toBe('<hr class="rule"/>');
+    expect(renderToStaticMarkup(createElement(Rule))).toBe("<hr/>");
     expect(renderToStaticMarkup(createElement(DoubleRule))).toBe('<hr class="double-rule"/>');
   });
 
@@ -88,6 +112,8 @@ describe("Rule and DoubleRule", () => {
     expect(block).toContain("border-top");
     expect(block).toContain("border-bottom");
     expect(block).toContain("height: var(--rule-gap)");
+    expect(block).toContain("border-top: var(--rule-width)");
+    expect(block).toContain("border-bottom: var(--rule-width)");
     // content-box, or the declared gap would silently be the gap minus the
     // two borders under the global border-box.
     expect(block).toContain("box-sizing: content-box");
@@ -97,16 +123,25 @@ describe("Rule and DoubleRule", () => {
 describe("DocumentFrame", () => {
   const html = renderToStaticMarkup(
     createElement(DocumentFrame, {
-      title: "PURCHASE ORDER",
-      form: "FORM LD-1",
-      revision: "REV. 2026-09",
+      title: "Purchase order",
+      form: "Form LD-1",
+      revision: "Rev. 2026-09",
       children: createElement(FinePrint, { children: "Terms apply." }),
     }),
   );
 
-  it("is a labelled section with the title as its heading", () => {
-    expect(html).toContain('<section class="document" aria-label="PURCHASE ORDER">');
-    expect(html).toContain('<h1 class="document-title">PURCHASE ORDER</h1>');
+  it("names its content once, with the heading rather than a second landmark", () => {
+    expect(html).toContain('<section class="document">');
+    expect(html).toContain('<h1 class="document-title">Purchase order</h1>');
+    // A named <section> is a region landmark; one named the same as the <h1>
+    // inside it has assistive tech announce the title twice.
+    expect(html).not.toContain("aria-label");
+  });
+
+  it("writes its strings naturally and capitalises them in CSS", () => {
+    expect(html).not.toContain("PURCHASE ORDER");
+    expect(css).toMatch(/\.document-reference\s*\{[^}]*text-transform:\s*uppercase/);
+    expect(css).toMatch(/^h1,\nh2,\nh3,\nh4 \{[^}]*text-transform:\s*uppercase/m);
   });
 
   it("carries a double rule at the top and at the bottom", () => {
@@ -116,23 +151,31 @@ describe("DocumentFrame", () => {
   });
 
   it("joins the form number and revision itself, so no caller can differ", () => {
-    expect(html).toContain("FORM LD-1 · REV. 2026-09");
+    expect(html).toContain("Form LD-1 · Rev. 2026-09");
   });
 });
 
 describe("StampMark", () => {
-  const html = renderToStaticMarkup(createElement(StampMark, { lines: ["CERTIFIED", "LOUSY DEAL"] }));
+  const html = renderToStaticMarkup(createElement(StampMark, { lines: ["Certified", "lousy deal"] }));
 
-  it("has an accessible name rather than loose strings", () => {
+  it("has an accessible name rather than loose strings, and keeps it as words", () => {
     expect(html).toContain('role="img"');
-    expect(html).toContain('aria-label="CERTIFIED LOUSY DEAL"');
-    expect(html).toContain("<title>CERTIFIED LOUSY DEAL</title>");
+    // Sentence case in the name: an aria-label of "CERTIFIED LOUSY DEAL" is
+    // the shape screen readers spell out letter by letter, and this is the one
+    // element brand.md requires to carry a name.
+    expect(html).toContain('aria-label="Certified lousy deal"');
+    expect(html).toContain("<title>Certified lousy deal</title>");
+  });
+
+  it("capitalises the stamped text in CSS, not in the caller's string", () => {
+    expect(css).toMatch(/\.stamp-mark text\s*\{[^}]*text-transform:\s*uppercase/);
   });
 
   it("is a double ring", () => {
     expect(html.match(/<circle/g)).toHaveLength(2);
     expect(css).toMatch(/\.stamp-mark\s*\{[^}]*stroke-width:\s*1\.5/);
     expect(css).toMatch(/\.stamp-mark\s*\{[^}]*stroke:\s*var\(--stamp\)/);
+    expect(css).toMatch(/\.stamp-mark\s*\{[^}]*width:\s*var\(--stamp-size\)/);
   });
 
   it("centres its lines on the circle rather than hanging them below it", () => {
@@ -157,6 +200,17 @@ describe("Button", () => {
     );
   });
 
+  it("is a stamp ground with paper text, on the one border this identity draws", () => {
+    const primary = /\.button\.is-primary\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(primary).toContain("background: var(--stamp)");
+    expect(primary).toContain("color: var(--paper)");
+    const secondary = /\.button\.is-secondary\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(secondary).toContain("background: transparent");
+    expect(secondary).toContain("color: var(--ink)");
+    const base = /\.button\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(base).toContain("border: var(--rule-width) solid var(--ink)");
+  });
+
   it("inverts ground and text on hover, and does nothing else", () => {
     expect(css).toMatch(/\.button\.is-primary:hover\s*\{[^}]*background:\s*var\(--paper\)/);
     expect(css).toMatch(/\.button\.is-secondary:hover\s*\{[^}]*background:\s*var\(--ink\)/);
@@ -172,11 +226,13 @@ describe("Button", () => {
 });
 
 describe("FinePrint", () => {
-  it("is a paragraph in the fine-print style", () => {
+  it("is a paragraph in the fine-print style: fine step, italic, --ink-soft", () => {
     expect(renderToStaticMarkup(createElement(FinePrint, { children: "No refunds." }))).toBe(
       '<p class="fine-print">No refunds.</p>',
     );
-    expect(css).toMatch(/\.fine-print\s*\{[^}]*font-size:\s*var\(--size-fine\)/);
-    expect(css).toMatch(/\.fine-print\s*\{[^}]*font-style:\s*italic/);
+    const block = /\.fine-print\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(block).toContain("font-size: var(--size-fine)");
+    expect(block).toContain("font-style: italic");
+    expect(block).toContain("color: var(--ink-soft)");
   });
 });
