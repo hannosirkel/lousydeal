@@ -8,6 +8,15 @@ import {
   type RuntimeConfig,
 } from "../src/config/runtime-config";
 
+/** Used where the trader identity is not what the assertion is about. */
+const NO_MERCHANT: RuntimeConfig["merchant"] = {
+  legalName: null,
+  address: null,
+  email: null,
+  registryCode: null,
+  vatNumber: null,
+};
+
 describe("getRuntimeConfig", () => {
   it("is built from the record it is given, not from process.env", () => {
     // Nothing in this test ever assigns to process.env. If getRuntimeConfig
@@ -17,11 +26,23 @@ describe("getRuntimeConfig", () => {
       MEDUSA_BACKEND_URL: "http://backend.example:9000",
       MEDUSA_PUBLISHABLE_API_KEY: "pk_medusa_example",
       STRIPE_PUBLISHABLE_KEY: "pk_test_example",
+      MERCHANT_LEGAL_NAME: "Example Trader OÜ",
+      MERCHANT_ADDRESS: "Example tn 1, 10000 Tallinn, Estonia",
+      MERCHANT_EMAIL: "trader@example.test",
+      MERCHANT_REGISTRY_CODE: "10000000",
+      MERCHANT_VAT_NUMBER: "EE100000000",
     });
 
     expect(config).toEqual({
       medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
       stripe: { publishableKey: "pk_test_example" },
+      merchant: {
+        legalName: "Example Trader OÜ",
+        address: "Example tn 1, 10000 Tallinn, Estonia",
+        email: "trader@example.test",
+        registryCode: "10000000",
+        vatNumber: "EE100000000",
+      },
     });
     expect(process.env.MEDUSA_BACKEND_URL).toBeUndefined();
   });
@@ -30,6 +51,7 @@ describe("getRuntimeConfig", () => {
     expect(getRuntimeConfig({})).toEqual({
       medusa: { backendUrl: null, publishableKey: null },
       stripe: { publishableKey: null },
+      merchant: { legalName: null, address: null, email: null, registryCode: null, vatNumber: null },
     });
   });
 
@@ -54,6 +76,13 @@ describe("only a named, pinned subset of the runtime config is published to the 
   const config: RuntimeConfig = {
     medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
     stripe: { publishableKey: "pk_test_example" },
+    merchant: {
+      legalName: "Example Trader OÜ",
+      address: "Example tn 1, 10000 Tallinn, Estonia",
+      email: "trader@example.test",
+      registryCode: "10000000",
+      vatNumber: "EE100000000",
+    },
   };
 
   it("publishes exactly the declared key set", () => {
@@ -76,6 +105,18 @@ describe("only a named, pinned subset of the runtime config is published to the 
     expect(serialized).not.toContain("pk_medusa_example");
     expect("medusa" in toClientRuntimeConfig(config)).toBe(false);
   });
+
+  // The trader identity is public information and is still server-side only:
+  // no page reads it in the browser, and what the browser is handed is a
+  // decision each field earns rather than one it inherits. Asserted on the
+  // serialized string as well as the key, for the same reason as above.
+  it("does not publish the trader identity", () => {
+    const serialized = JSON.stringify(toClientRuntimeConfig(config));
+    for (const value of Object.values(config.merchant)) {
+      expect(serialized).not.toContain(value);
+    }
+    expect("merchant" in toClientRuntimeConfig(config)).toBe(false);
+  });
 });
 
 /**
@@ -95,6 +136,7 @@ describe("serializeRuntimeConfig", () => {
     const withClosingTag: RuntimeConfig = {
       medusa: { backendUrl: null, publishableKey: null },
       stripe: { publishableKey: `${closingTag}<script>alert(1)</script>` },
+      merchant: NO_MERCHANT,
     };
     const serialized = serializeRuntimeConfig(toClientRuntimeConfig(withClosingTag));
     expect(serialized).not.toContain(closingTag);
@@ -105,6 +147,7 @@ describe("serializeRuntimeConfig", () => {
     const value: RuntimeConfig = {
       medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
       stripe: { publishableKey: "pk_test_example" },
+      merchant: NO_MERCHANT,
     };
     const projected = toClientRuntimeConfig(value);
     expect(JSON.parse(serializeRuntimeConfig(projected))).toEqual(projected);

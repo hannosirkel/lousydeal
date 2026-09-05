@@ -157,7 +157,11 @@ Six components carry the whole identity. They live in
   text. Focus is a 2px `--stamp` outline with a 2px offset, visible on both.
 
 Links are underlined and ink-coloured, visited identical to unvisited, hover
-switches to `--stamp`. Transitions never exceed 120ms and only ever animate
+switches to `--stamp`. **The masthead wordmark is the one exception** — it
+links home and carries no underline, because a letterhead is not a link in
+prose and underlining the one element on every page would make it read as a
+footnote reference. There is no second exception; a component that wants one
+amends this paragraph. Transitions never exceed 120ms and only ever animate
 colour. Nothing scales, bounces, slides or fades. `prefers-reduced-motion` is
 respected, which costs nothing because the only motion on the site is the
 loading cursor.
@@ -186,8 +190,12 @@ document.
 
 ### Global
 
-- Masthead: `LOUSYDEAL.COM`, centred, label style. Beneath it, fine print:
-  `PURVEYORS OF OBJECTIVELY BAD VALUE`.
+- Masthead: `LOUSYDEAL.COM`, centred, label style, linking home and not
+  underlined. Beneath it, the line `PURVEYORS OF OBJECTIVELY BAD VALUE` at the
+  fine step in `--ink-soft` — **upright caps, not the italic `FinePrint`
+  carries elsewhere**, because italic all-caps at 0.6875rem is unreadable. It
+  is written sentence case in the markup with `text-transform` doing the caps,
+  so a screen reader and a copy-paste both get words rather than letters.
 - Browser title and social description are the masthead and its fine print,
   unchanged: `LOUSYDEAL.COM` and `Purveyors of objectively bad value.` The tab
   is another surface, and it says what the letterhead says.
