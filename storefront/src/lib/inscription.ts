@@ -31,16 +31,46 @@ const MARKUP = /<[^>]*>?/g;
 
 /** `https://…`, `www.…`, and a bare `example.com/path`. */
 const URLS = /\b(?:[a-z][a-z0-9+.-]*:\/\/|www\.)\S+/gi;
-const BARE_DOMAIN = /\b[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)*\.[a-z]{2,}(?:\/\S*)?/gi;
+
+/**
+ * A bare host, lower-case only and deliberately so.
+ *
+ * Case-insensitively this ate any two words joined by a full stop with no
+ * space after it: Gate D measured `regrettably.Bought anyway` becoming
+ * `regrettably anyway`. A missing space is a typing slip, and §7 tells a buyer
+ * their domain names are removed, not their sentences. Requiring a lower-case
+ * label after the dot keeps `example.com` and returns the slip.
+ */
+const BARE_DOMAIN = /\b[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)*\.[a-z]{2,24}\b(?:\/\S*)?/g;
 
 const EMAIL = /\b[^\s@]+@[^\s@]+\.[^\s@]+\b/gi;
 
 /**
- * Seven or more digits with the punctuation a phone number is written with.
- * Seven because a shorter run is a serial, a year or a price, and this filter
- * would rather keep a number than take a sentence apart.
+ * A candidate telephone number: a run written with the punctuation one is
+ * written with. What survives the check below is what is actually removed.
  */
-const PHONE = /\+?[\d][\d\s().-]{5,}\d/g;
+const PHONE_CANDIDATE = /\+?\d[\d\s().-]{5,}\d/g;
+
+/** An ISO date is a date. Somebody writing one on a certificate meant it. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Whether a candidate is a telephone number rather than a quantity or a date.
+ *
+ * The pattern alone was too hungry: Gate D measured `1 000 000 nothings`
+ * losing its number and `2026-09-05 at 14:32:10` losing its date. Neither is a
+ * telephone number, and §7 promises a buyer that telephone numbers go — not
+ * that arithmetic does. Seven digits is the floor because a shorter run is a
+ * year, a quantity or a serial; space-grouped digits are a quantity, because
+ * nobody writes a phone number as `1 000 000`.
+ */
+function looksLikeATelephoneNumber(candidate: string): boolean {
+  const trimmed = candidate.trim();
+  if (ISO_DATE.test(trimmed)) return false;
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length < 7) return false;
+  return trimmed.startsWith("+") || !/\d \d/.test(trimmed);
+}
 
 /**
  * The inscription as it may be shown, or `null` when nothing is left to show.
@@ -60,7 +90,7 @@ export function sanitiseInscription(raw: string | null | undefined): string | nu
     .replace(EMAIL, " ")
     .replace(URLS, " ")
     .replace(BARE_DOMAIN, " ")
-    .replace(PHONE, " ")
+    .replace(PHONE_CANDIDATE, (match) => (looksLikeATelephoneNumber(match) ? " " : match))
     .replace(/\s+/g, " ")
     .trim();
 

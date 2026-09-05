@@ -8,6 +8,7 @@
  * say, and the things it must not.
  */
 
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { TERMS } from "../src/content/legal/terms";
@@ -33,8 +34,20 @@ describe("what is sold", () => {
     expect(section("2")).toContain("description of the product");
   });
 
-  it("says paying more gets you no more", () => {
+  it("says paying more gets you no more, without claiming where else it is said", () => {
     expect(section("2")).toMatch(/paying more does not get you more/i);
+    // The first draft added "this is stated on every page that offers the
+    // product". Measured, it is absent from the home page, the cart, the
+    // checkout and the Pro tier page -- a false statement about the site,
+    // inside the document §23 says must never mislead.
+    expect(prose).not.toMatch(/stated on every page/i);
+  });
+
+  it("does not deem the buyer to have declared anything by acting", () => {
+    // VÕS § 42(3) p 37 presumes unreasonably harmful a consumer term deeming a
+    // declaration of intent made by an act. The checkout collects a real,
+    // unticked consent instead.
+    expect(prose).not.toMatch(/by ordering you (?:confirm|agree|accept)/i);
   });
 });
 
@@ -51,12 +64,24 @@ describe("price and tax", () => {
     expect(section("3")).toContain("{merchantLegalName} bears it");
   });
 
+  it("states the condition the Estonian rate depends on", () => {
+    // `backend/src/commerce/tax-model.ts` records that one rate applies only
+    // under the Article 59c threshold. A clause that drops the condition
+    // becomes false the day it is crossed, with nothing linking it back.
+    expect(section("3")).toContain("Article 59c");
+    expect(section("3")).toMatch(/below the threshold/i);
+  });
+
   it("names no amount", () => {
     // Two reasons: a price written twice drifts, and the offer page's figures
     // come from the Store API. `tests/store-cart.test.ts` enforces the second
     // half of that across `storefront/src`; this asserts the intent here.
     expect(prose).not.toMatch(/[$€£]\s?\d/);
-    expect(prose).not.toMatch(/\b\d+(?:\.\d{2})?\s?(?:dollars|euros)\b/i);
+    // No amount of anything sold here. The one figure the document carries is
+    // the Committee's own threshold, which is a fact about a forum rather than
+    // a price -- and the point of stating it is that no price reaches it.
+    const withoutTheThreshold = prose.replace("at least 30 euros", "");
+    expect(withoutTheThreshold).not.toMatch(/\b\d+(?:\.\d{2})?\s?(?:dollars|euros)\b/i);
   });
 });
 
@@ -67,7 +92,7 @@ describe("delivery and withdrawal", () => {
 
   it("cites the right of withdrawal to the section that grants it", () => {
     // VÕS §56(1), read from Riigi Teataja's public API, not from memory.
-    expect(section("6")).toContain("§56(1)");
+    expect(section("6")).toContain("§ 56(1)");
     expect(section("6")).toContain("14 days");
     expect(section("6")).toContain("võlaõigusseadus");
   });
@@ -77,16 +102,24 @@ describe("delivery and withdrawal", () => {
     // acknowledgement, AND the trader's §55(1)-(2) confirmation. The checkout
     // collects the middle one; LD-02's email is the third.
     const withdrawal = section("6");
-    expect(withdrawal).toContain("§53(4) clause 7¹");
+    expect(withdrawal).toContain("§ 53(4) p 7¹");
     expect(withdrawal).toContain("express prior consent");
     expect(withdrawal).toContain("acknowledged");
-    expect(withdrawal).toContain("§55(1)");
+    expect(withdrawal).toContain("§ 55(1)");
     expect(withdrawal).toContain("If any of those conditions is not met, your 14-day right stands");
   });
 
   it("does not tell a buyer the right is already gone", () => {
-    expect(prose).not.toMatch(/you have (?:no|lost)\b[^.]*right of withdrawal/i);
+    // Stated as: no sentence may put the loss in the past or the present. The
+    // earlier version matched one exact phrasing, so "You lose your right of
+    // withdrawal once you tick the box" would have passed a test named for
+    // this guarantee.
     expect(prose).not.toMatch(/\bwaive[ds]?\b/i);
+    expect(prose).not.toMatch(/\b(?:you )?(?:have|has) (?:no|lost|forfeited)\b[^.]*right of withdrawal/i);
+    expect(prose).not.toMatch(/\byou (?:lose|forfeit|give up)\b[^.]*right of withdrawal/i);
+    expect(prose).not.toMatch(/\bno longer\b[^.]*right of withdrawal/i);
+    // The one permitted form is the conditional the statute actually creates.
+    expect(section("6")).toContain("would thereby lose the right");
   });
 });
 
@@ -114,8 +147,11 @@ describe("liability and law", () => {
     expect(section("9")).toMatch(/cannot be limited by law/i);
   });
 
-  it("caps the rest at what was actually paid", () => {
-    expect(section("9")).toContain("limited to the amount you paid");
+  it("caps contractual liability only, and says what the cap does not reach", () => {
+    expect(section("9")).toContain("liability for a breach of these terms is limited to the amount you paid");
+    // A contract cannot cap Article 82 damages, and this site publishes a
+    // buyer-supplied inscription on a public page.
+    expect(section("9")).toContain("Article 82");
   });
 
   it("chooses Estonian law without displacing a consumer's home protections", () => {
@@ -127,13 +163,30 @@ describe("liability and law", () => {
 describe("disputes", () => {
   it("names the Estonian authority and its committee", () => {
     expect(section("11")).toContain("Consumer Disputes Committee");
-    expect(section("11")).toContain("Tarbijakaitse ja Tehnilise Järelevalve Amet");
-    expect(section("11")).toContain("Endla 10a, 10122 Tallinn");
+    expect(section("11")).toContain("tarbijavaidluste komisjon");
+    expect(section("11")).toContain("Endla 10A, 10122 Tallinn");
   });
 
-  it("scopes the committee to consumers it is open to", () => {
-    expect(section("11")).toContain("resident in Estonia");
+  it("warns that the committee's threshold is above every price here", () => {
+    // The Committee ordinarily takes disputes worth at least 30 euros, and the
+    // dearest tier is below that. Offering a route that will not carry the
+    // claim, without saying so, is the kind of unhelpful helpfulness §23 is
+    // about.
+    expect(section("11")).toContain("at least 30 euros");
+    expect(section("11")).toMatch(/every item sold here costs less/i);
+  });
+
+  it("does not tell an EU consumer a forum is closed to them", () => {
+    // Sources conflict on whether the Committee takes cross-border disputes.
+    // Asserting the narrow reading would deny a right that may exist.
+    expect(section("11")).not.toMatch(/only.*resident in Estonia/i);
     expect(section("11")).toContain("European Consumer Centre");
+    expect(section("11")).toMatch(/courts remain open/i);
+  });
+
+  it("gives the committee's own contact, not the authority's switchboard", () => {
+    expect(section("11")).toContain("avaldus@komisjon.ee");
+    expect(section("11")).not.toContain("info@ttja.ee");
   });
 
   it("links no dispute platform that no longer exists", () => {
@@ -152,12 +205,30 @@ describe("the register", () => {
     expect(prose).not.toContain("!");
   });
 
-  it("makes no claim about a feature that does not exist", () => {
-    // Gifting is LD-03 and has no backend. A term about a feature nobody can
+  it("describes no feature belonging to a slice that has not started", () => {
+    // Gifting is LD-03 and merch is LD-04. A term about a feature nobody can
     // use is noise a lawyer has to read and a buyer has to disregard.
     expect(prose.toLowerCase()).not.toContain("gift");
-    // Merch is LD-04.
     expect(prose.toLowerCase()).not.toContain("t-shirt");
+    expect(prose.toLowerCase()).not.toContain("subscription");
+  });
+
+  it("makes exactly the forward-looking claims its header enumerates", () => {
+    // The header lists four mechanisms that do not exist yet. Gate D found two
+    // of them missing from a list of two, so the list is now checkable: each
+    // phrase below is one of them, and a fifth would need adding to both.
+    const forward = [
+      "a confirmation is sent to the email address you gave",
+      "we gave you the confirmation required by",
+      "we send that confirmation by email",
+      "both when you submit them",
+      "Refunds and Withdrawal",
+    ];
+    for (const phrase of forward) expect(prose).toContain(phrase);
+
+    const header = readFileSync(new URL("../src/content/legal/terms.ts", import.meta.url), "utf8").slice(0, 2000);
+    expect(header).toContain("Four clauses describe mechanisms that do not exist yet");
+    for (const owner of ["LD-02", "V10"]) expect(header).toContain(owner);
   });
 
   it("keeps the joke out of the clauses that decide anything", () => {

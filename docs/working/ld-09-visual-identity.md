@@ -557,7 +557,10 @@ Decision `004`'s named-visible-gap rule is executed here, not described.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/content/legal/terms.ts`,
 `storefront/src/app/legal/terms/page.tsx`,
-`storefront/tests/legal-terms.test.ts`.
+`storefront/src/content/legal/imprint.ts`,
+`storefront/src/lib/inscription.ts`,
+`storefront/tests/legal-terms.test.ts`,
+`storefront/tests/certificate.test.ts`.
 
 - [ ] Draft the Terms: seller identity; that the customer receives a numbered
       digital certificate and nothing else of value, and that this is the

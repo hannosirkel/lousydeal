@@ -180,6 +180,17 @@ describe("what an inscription may say", () => {
   it("takes the offending part and keeps the rest", () => {
     expect(bearerOf("Jane, at jane@evil.test")).toBe("Jane, at");
   });
+
+  // §7 of the Terms tells a buyer that markup, links, domains, addresses and
+  // telephone numbers are removed. It does not say their arithmetic is, and
+  // Gate D measured all three of these being eaten.
+  it.each([
+    ["Worth every cent, regrettably.Bought anyway", "a missing space after a full stop"],
+    ["I paid 25 dollars for 1 000 000 nothings", "a space-grouped quantity"],
+    ["Bought on 2026-09-05 at 14:32:10", "a date and a time"],
+  ])("keeps %s", (inscription) => {
+    expect(bearerOf(inscription)).toBe(inscription);
+  });
 });
 
 describe("the specimen", () => {

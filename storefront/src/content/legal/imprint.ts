@@ -55,8 +55,9 @@ export const IMPRINT: LegalDocument = {
       number: "4",
       heading: "Supervision and disputes",
       body: [
-        "Consumer matters in Estonia are supervised by the Consumer Protection and Technical Regulatory Authority (Tarbijakaitse ja Tehnilise Järelevalve Amet), Endla 10a, 10122 Tallinn, info@ttja.ee.",
-        "A consumer resident in Estonia who cannot resolve a complaint with us may refer it to the Consumer Disputes Committee at that authority. A consumer resident elsewhere in the European Union may approach the European Consumer Centre network instead; the Committee's own procedure is open to consumers resident in Estonia.",
+        "Consumer matters in Estonia are supervised by the Consumer Protection and Technical Regulatory Authority (Tarbijakaitse ja Tehnilise Järelevalve Amet), Endla 10A, 10122 Tallinn, info@ttja.ee.",
+        "A consumer who cannot resolve a complaint with us may put it to the Consumer Disputes Committee (tarbijavaidluste komisjon) at that authority: avaldus@komisjon.ee, +372 620 1700. The Committee ordinarily takes disputes worth at least 30 euros, which is more than anything sold here costs; the Terms of Service say so plainly rather than leaving you to find out.",
+        "A consumer resident in another European Union country may also approach the European Consumer Centre network, and the courts remain open wherever you live.",
       ],
     },
   ],

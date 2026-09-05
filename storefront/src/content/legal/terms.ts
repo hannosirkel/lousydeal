@@ -13,13 +13,21 @@
  * `storefront/src`, which includes this file. So the terms say what governs a
  * price rather than what one is.
  *
- * **Two clauses describe mechanisms that do not exist yet**, and both are named
- * in the pull request so the Legal gate sees them rather than discovering them:
- * §5's order confirmation and §6's reliance on it are LD-02's email, and §7's
- * entry-side inscription filter is LD-02's checkout field. The render-side
- * filter §7 also describes does exist — `src/lib/inscription.ts`, shipped with
- * the certificate. Nothing here may outlive an unpublished site: §23's gate
- * precedes publication and this document does not close it.
+ * **Four clauses describe mechanisms that do not exist yet.** Gate D found two
+ * more than the first draft named, which is the argument for listing them
+ * where they can be counted:
+ *
+ *   §5  the order confirmation, and the email address it is sent to — the
+ *       checkout collects no email address today. Both are LD-02's.
+ *   §6  its reliance on that confirmation, which is the third condition
+ *       § 53(4) p 7¹ requires. Also LD-02's.
+ *   §7  the entry-side inscription filter — LD-02's checkout field. The
+ *       render-side filter the same clause describes does exist:
+ *       `src/lib/inscription.ts`, shipped with the certificate.
+ *   §6  the cross-reference to Refunds and Withdrawal, which is V10's route.
+ *
+ * Nothing here may outlive an unpublished site: §23's gate precedes
+ * publication and this document does not close it.
  *
  * **Gifting is not mentioned.** LD-03 has no backend, and a term about a
  * feature nobody can use is noise a lawyer would have to read and a buyer
@@ -48,7 +56,7 @@ export const TERMS: LegalDocument = {
       body: [
         "You are buying a numbered digital certificate. You receive that and nothing else of value.",
         "That is the description of the product, not a limitation on it. The certificate confers no rights, no ownership, no entitlement, no membership, no service, no discount and no benefit of any kind, now or later. It is not an investment, it is not a security, and it cannot be redeemed for anything.",
-        "Three variants are sold. They cost different amounts and they deliver the same thing. Paying more does not get you more, this is stated on every page that offers the product, and by ordering you confirm you understood it.",
+        "Three variants are sold. They cost different amounts and they deliver the same thing. Paying more does not get you more.",
       ],
     },
     {
@@ -56,7 +64,7 @@ export const TERMS: LegalDocument = {
       heading: "Price and tax",
       body: [
         "The price shown on the offer page is the price charged. It includes value added tax where value added tax applies, and nothing is added at checkout: no tax line, no fee, and no charge you were not shown before you paid.",
-        "Where you are in the European Union, Estonian value added tax applies to your purchase and is contained in that price rather than added to it. {merchantLegalName} bears it. Your total does not change because of where you are.",
+        "Where you are in the European Union, value added tax on this supply is currently accounted for in Estonia, because {merchantLegalName}'s cross-border supplies of this kind remain below the threshold in Article 59c of Directive 2006/112/EC. It is contained in the price rather than added to it, {merchantLegalName} bears it, and your total does not change because of where you are.",
       ],
     },
     {
@@ -78,8 +86,8 @@ export const TERMS: LegalDocument = {
       number: "6",
       heading: "Your right of withdrawal",
       body: [
-        "Under §56(1) of the Estonian Law of Obligations Act (võlaõigusseadus), a consumer may withdraw from a distance contract within 14 days without giving a reason.",
-        "§53(4) clause 7¹ of that Act removes the right for digital content not supplied on a physical medium, but only where supply began before the withdrawal period ended, you gave express prior consent to it beginning and acknowledged that you would thereby lose the right, and we gave you the confirmation required by §55(1) and §55(2) of the Act.",
+        "Under § 56(1) of the Estonian Law of Obligations Act (võlaõigusseadus), a consumer may withdraw from a distance contract within 14 days without giving a reason.",
+        "§ 53(4) p 7¹ of that Act removes the right for digital content not supplied on a physical medium, but only where supply began before the withdrawal period ended, you gave express prior consent to it beginning and acknowledged that you would thereby lose the right, and we gave you the confirmation required by § 55(1) and § 55(2) of the Act.",
         "The checkout asks for that consent, with the box unticked, and we send that confirmation by email. If any of those conditions is not met, your 14-day right stands. This is set out in full in Refunds and Withdrawal, which states rights you have rather than rights we grant.",
       ],
     },
@@ -105,7 +113,7 @@ export const TERMS: LegalDocument = {
       heading: "Our liability",
       body: [
         "We are liable to you as Estonian law requires. Nothing in these terms limits our liability for intentional or grossly negligent conduct, for death or personal injury, or for anything else that cannot be limited by law.",
-        "Beyond that, our liability is limited to the amount you paid for the order concerned.",
+        "In all other cases, our liability for a breach of these terms is limited to the amount you paid for the order concerned. That limit does not apply to any liability arising otherwise than under these terms, including liability under Article 82 of the General Data Protection Regulation.",
       ],
     },
     {
@@ -120,7 +128,9 @@ export const TERMS: LegalDocument = {
       heading: "Complaints and disputes",
       body: [
         "Write to {merchantEmail} first. We would rather hear it than not.",
-        "If we cannot resolve it between us, a consumer resident in Estonia may refer the matter to the Consumer Disputes Committee at the Consumer Protection and Technical Regulatory Authority (Tarbijakaitse ja Tehnilise Järelevalve Amet), Endla 10a, 10122 Tallinn, info@ttja.ee. A consumer resident elsewhere in the European Union may approach the European Consumer Centre network.",
+        "If we cannot resolve it between us, a consumer may put the matter to the Consumer Disputes Committee (tarbijavaidluste komisjon) at the Consumer Protection and Technical Regulatory Authority, Endla 10A, 10122 Tallinn, avaldus@komisjon.ee, +372 620 1700.",
+        "You should know before you write: the Committee ordinarily takes disputes worth at least 30 euros, and every item sold here costs less than that. We are telling you because a route that will not carry your claim is worse than no route at all.",
+        "A consumer resident in another European Union country may also approach the European Consumer Centre network, and the courts remain open to you wherever you live.",
       ],
     },
   ],
