@@ -5,7 +5,7 @@
  * **Deliberately not at a `/done-deals/` URL.** Contract §5 fixes the public
  * route at `lousydeal.com/done-deals/{slug}`, with an opaque non-enumerable
  * slug. A fabricated deal must never occupy an address a real deal could have,
- * and `AGENTS.md` forbids publishing a fabricated transaction at all — so this
+ * and `AGENTS.md` forbids publishing a fabricated transaction total — so this
  * lives under `/design/`, which says what it is, and the certificate says so
  * on its own face as well.
  *

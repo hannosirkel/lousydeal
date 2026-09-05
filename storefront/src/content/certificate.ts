@@ -34,7 +34,7 @@ export const CERTIFICATE_CLAUSE =
 /**
  * What the specimen says that a real certificate does not.
  *
- * `AGENTS.md` forbids publishing a fabricated transaction, and a certificate is
- * a record of one. This line is the difference between a design and a lie.
+ * `AGENTS.md` forbids publishing a fabricated transaction total, and a
+ * certificate carries one. This line is the difference between a design and a lie.
  */
 export const SPECIMEN_NOTICE = "Specimen. No deal bears this number.";

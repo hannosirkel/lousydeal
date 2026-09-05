@@ -619,8 +619,12 @@ a.button.is-secondary:hover {
   text-align: center;
 }
 
+/* The title step, like every other document title. It wraps to two lines at
+   390px, and a certificate title that wraps is a certificate title; shrinking
+   it to the section step to avoid that would have been a brand rule taken in a
+   stylesheet. */
 .certificate-title {
-  font-size: var(--size-section);
+  font-size: var(--size-title);
 }
 
 /* The one display figure this page is allowed. */
@@ -634,7 +638,7 @@ a.button.is-secondary:hover {
 /* The ledger sits left-aligned inside a centred document: a column of figures
    that wanders with its labels is not a ledger. */
 .certificate .ledger {
-  margin: 0 auto var(--space-6);
+  margin: 0 0 var(--space-6);
   text-align: left;
 }
 

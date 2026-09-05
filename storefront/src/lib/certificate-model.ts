@@ -8,11 +8,13 @@
  * a reissue — so everything below is what a stored deal record yields, not
  * what it stores.
  *
- * **The layout is versioned from the first render.** §5: an issued certificate
- * keeps the layout it was issued under, so new deals get a new design and every
- * existing deal still renders exactly as its holder first saw it. That only
- * works if the first layout has a number, and this is it. A later design adds
- * `2` and keeps `1` in the codebase and under test.
+ * **The layout is recorded, not yet dispatched on.** §5 wants an issued
+ * certificate to keep the layout it was issued under, so a redesign is
+ * additive. Recording the number is the half this row can do; nothing reads it
+ * yet, and until something does, a layout 2 could still restyle every layout 1
+ * certificate. The row that adds a second layout is the row that has to branch
+ * on this field, and LD-02 — which issues the first real certificate — is
+ * where the field starts carrying weight.
  */
 
 import { groupThousands } from "./money";
@@ -49,7 +51,7 @@ export interface Certificate {
  * The one certificate this slice renders, at `/design/certificate`.
  *
  * **Serial zero, and it says so on the face.** `AGENTS.md` forbids publishing a
- * fabricated transaction, and a certificate is a record of one. This is not at
+ * fabricated transaction total, and a certificate carries one. This is not at
  * a `/done-deals/` URL either: a specimen must never occupy an address a real
  * deal could have.
  */
@@ -71,11 +73,16 @@ export const SPECIMEN_CERTIFICATE: Certificate = {
  * data, and the amount beside this figure is grouped by that rule.
  *
  * Not zero-padded. §5 forbids starting the sequence at an inflated offset to
- * look busier, and padding deal one out to five digits is the same claim made
- * typographically. (Written out rather than shown: a padded serial is
- * hash-then-zeros, which `tests/store-cart.test.ts`'s colour-literal guard
- * cannot tell from a hex colour, and it is right not to try.)
+ * look busier; padding is not that rule, but it is the same instinct — a
+ * sequence dressed to look longer than it is. Deal one is `#1`.
+ *
+ * Refuses what a serial cannot be. `serial` is typed `number`, and a
+ * non-integer or a negative one would set nonsense on the face of a document
+ * whose whole purpose is being believed.
  */
 export function formatSerial(serial: number): string {
+  if (!Number.isInteger(serial) || serial < 0) {
+    throw new Error(`a serial is a whole count, never ${String(serial)}`);
+  }
   return `#${groupThousands(String(serial))}`;
 }

@@ -157,9 +157,15 @@ Six components carry the whole identity. They live in
 - **`Rule`** and **`DoubleRule`**.
 - **`FinePrint`** — fine step, italic, `--ink-soft`.
 - **`StampMark`** — inline SVG, a 1.5px double-ring circle with all-caps text in
-  `--stamp`. **At most one per page**, and never on a page that already carries
-  a display-size figure and a certificate border. Its accessible name is its
-  text.
+  `--stamp`. **At most one per page.** Its accessible name is its text.
+
+  This paragraph used to add "and never on a page that already carries a
+  display-size figure and a certificate border", which §4 then requires of the
+  certificate — all three, on the one surface. The certificate is where the
+  identity spends everything it has; the rule was written for the pages that
+  are not it, and as a prohibition it contradicted the document it appeared in.
+  One stamp per page is the rule. Whether a page has earned one is a review
+  question.
 - **`Button`** — rectangular, 1px border. Primary is `--stamp` ground with paper
   text; secondary is transparent with an ink border. Hover inverts ground and
   text. Focus is a 2px `--stamp` outline with a 2px offset, visible on both.
@@ -366,6 +372,10 @@ the tier; the serial at display size; the issue date; one `StampMark` reading
 > This certificate confers no rights, value, or benefits of any kind, and the
 > bearer knew that.
 
+It carries **no form number**. Every other static page does — §3 says so — but
+a certificate is not a form, and a form number on it would claim the wrong kind
+of document. Its serial is its number.
+
 Its facts are set as a ledger, left-aligned inside the centred document — a
 column of figures that wanders with its labels is not a ledger. The labels are
 `BEARER`, `ITEM`, `AMOUNT WASTED`, `ISSUED`, and where no inscription was left
@@ -379,7 +389,7 @@ for the person it was sent to.
 It must be screenshot-worthy at 390px, because that is where it will be shared.
 
 **In this slice it is built and reviewable but not public.** It renders from a
-typed model at `/design/certificate` from a specimen record, serial `#0000`,
+typed model at `/design/certificate` from a specimen record, serial `#0`,
 carrying the extra fine print `Specimen. No deal bears this number.` The public
 route is `lousydeal.com/done-deals/{slug}` per contract §5 — an opaque,
 non-enumerable slug, never the serial — and LD-02 mounts this same component
