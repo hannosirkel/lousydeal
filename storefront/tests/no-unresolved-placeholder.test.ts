@@ -193,6 +193,23 @@ describe.each(documents)("$file", ({ record }) => {
     }
   });
 
+  it("claims nothing about what every page of the site says", () => {
+    // V9's Gate D measured "this is stated on every page that offers the
+    // product" against the running site and found it absent from the home
+    // page, the cart, the checkout and the Pro tier page. `legal-terms.test.ts`
+    // banned it -- in the Terms. V10 wrote the same claim into Refunds §7, and
+    // the ban did not reach.
+    //
+    // So it lives here now, where the walk already covers every document
+    // including the ones not written yet. A legal document may say what IT
+    // says; it may not certify the rest of the site, because nothing rechecks
+    // that certificate when a page changes.
+    const prose = record.sections.flatMap((section) => section.body).join(" ");
+    expect(prose).not.toMatch(/\b(?:on|from) every page\b/i);
+    expect(prose).not.toMatch(/\bevery page (?:that|which|of)\b/i);
+    expect(prose).not.toMatch(/\bthroughout (?:this|the) site\b/i);
+  });
+
   it("links no dispute-resolution platform that no longer exists", () => {
     // The EU ODR platform closed on 20 July 2025 under Regulation (EU)
     // 2024/3228, and traders were obliged to remove the link. Carrying one is

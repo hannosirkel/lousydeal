@@ -26,6 +26,18 @@
  *       `src/lib/inscription.ts`, shipped with the certificate.
  *   §6  the cross-reference to Refunds and Withdrawal, which is V10's route.
  *
+ * **V10's Gate D corrected two clauses here**, because a row that finds a
+ * neighbouring document wrong owns the correction:
+ *
+ *   §5  said the certificate "is shown to you, and a confirmation is sent",
+ *       which puts the confirmation after supply. § 55(1) requires it no later
+ *       than the moment supply begins, and Refunds §4 said so first. A
+ *       confirmation that arrives late does not satisfy the third condition of
+ *       § 53(4) p 7¹, so the ordering is the whole of the clause's effect.
+ *   §4  did not disclose that the consent is a condition of ordering. The
+ *       harsher term was stated only in Refunds, which is the document a buyer
+ *       is less likely to reach.
+ *
  * Nothing here may outlive an unpublished site: §23's gate precedes
  * publication and this document does not close it.
  *
@@ -72,14 +84,14 @@ export const TERMS: LegalDocument = {
       heading: "How an order is made",
       body: [
         "Displaying an item on this site is an invitation to order, not an offer. Your order is an offer to buy, and the contract is concluded when we accept it by confirming your order.",
-        "Before you pay, you are shown what you are buying, the total you will be charged, and the consent described in §6. Payment is processed by Stripe Payments Europe, Ltd. We do not receive or store your card details.",
+        "Before you pay, you are shown what you are buying, the total you will be charged, and the consent described in §6. That box is not ticked for you, and it is a condition of ordering: without it we cannot supply immediately, and the order does not proceed. Payment is processed by Stripe Payments Europe, Ltd. We do not receive or store your card details.",
       ],
     },
     {
       number: "5",
       heading: "Delivery",
       body: [
-        "The certificate is digital content supplied immediately after payment: it is shown to you, and a confirmation is sent to the email address you gave. There is nothing to ship and there is no delivery charge.",
+        "The certificate is digital content supplied immediately after payment: it is shown to you, and a confirmation is sent to the email address you gave, no later than the moment supply begins. There is nothing to ship and there is no delivery charge.",
       ],
     },
     {
