@@ -378,11 +378,32 @@ unpublished site.
 `storefront/src/app/legal/refunds/page.tsx`,
 `storefront/src/components/document/Footer.tsx`.
 
-- [ ] Draft the withdrawal policy: the 14-day statutory right, the
-      digital-content exception, and the express consent plus acknowledgement
-      the checkout collects to engage it — cited to VÕS § 53(4) and § 55, with
-      the exact point number verified against Riigi Teataja and quoted in the
-      pull request.
+- [ ] Draft the withdrawal policy: the 14-day statutory right of **VÕS
+      § 56(1)**, the digital-content exception of **§ 53(4) p 7¹**, and all
+      three conditions that exception requires — including the trader's
+      § 55(1)–(2) confirmation, which the checkout alone does not satisfy.
+
+**The clause is verified, and it has a third condition this plan did not
+account for.** Read 2026-09-05 from Riigi Teataja's own public API —
+`https://www.riigiteataja.ee/public-api/api/v1/akt/106072023116/blob-html`,
+which serves the consolidated text the site's JavaScript application renders;
+the `/akt/…`, `/consolide`, `/print` and `.pdf` URLs all return the
+application shell instead. § 53(4) p 7¹ excludes the right only where supply
+began before the period ended, **and** the consumer gave express prior consent
+with an acknowledgement of losing the right, **and** *ettevõtja on andnud
+käesoleva seaduse § 55 lõigetes 1 ja 2 nimetatud kinnituse* — the trader has
+given the § 55(1)–(2) confirmation.
+
+§ 55(1) requires that confirmation **on a durable medium**, no later than when
+supply begins; § 55(2) requires it, for digital content, to state that the
+consumer gave the § 53(4) p 7¹ consent.
+
+**So the checkbox alone never excludes the right.** Until an order
+confirmation goes out on a durable medium saying so, the 14-day right stands —
+and that email is LD-02. This row writes the position accurately, which means
+writing a document describing a mechanism the site does not yet have. That is
+named in the pull request and carried to the Legal gate rather than softened,
+because the alternative is a page overstating what the buyer gave up.
 
 The statutory paragraph is straight prose with no flourish. A `NO REFUNDS` stamp
 may appear on this page **only** below the consent explanation, where it is
@@ -419,6 +440,15 @@ LD-08's, and a banner for cookies nobody sets is a dark pattern in reverse.
 - [ ] Link all four documents from every page and give `/legal` an index.
       Verified by a test asserting each footer legal link resolves to a content
       file that exists.
+- [ ] Build the footer's remaining two columns — LEGAL and COMPANY — so the
+      footer is the three-column block [`brand.md`](../current/brand.md) §4
+      specifies rather than a single trader line.
+
+**The second checkbox exists because V2's review found the column had no
+owner.** V2 ships the trader line and defers the LEGAL column, correctly: its
+four links have no routes until V8–V11. But the COMPANY column was folded
+silently into that line and named by no row, so the three-column footer would
+have quietly never arrived.
 
 Folded out of V9–V11 so three copy-review rows carry copy and one structural row
 carries structure, which is what §13's "do not bury copy review inside a
@@ -508,7 +538,15 @@ loose ends.
 | Server-side enforcement that consent was given before an order exists | the row that records consent on the order |
 | `robots.txt`, sitemap, analytics, performance budget | LD-08 |
 | Closing the Legal gate | the operator, with a qualified human reader |
-| Publishing anything — removing an Access policy, seeding a live Stripe key | after the Legal gate and the print-on-demand provider |
+| Publishing anything — removing an Access policy, seeding a live Stripe key | after the Legal gate, LD-02, and the print-on-demand provider |
+
+**One of those deferrals became a hard precondition at V10's research.** The
+site cannot publish before **LD-02** regardless of the Legal gate, because
+VÕS § 53(4) p 7¹ excludes the right of withdrawal only where the trader has
+given the § 55(1)–(2) confirmation on a durable medium — the order
+confirmation email, which LD-02 builds. Publishing before it exists would mean
+a checkout that tells a buyer they have waived a right they have not waived.
+See V10.
 
 ## OWNER MUST FILL
 
