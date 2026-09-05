@@ -522,7 +522,9 @@ the runtime's ICU data — the reason that file gives for not using it.
 `storefront/src/components/document/LegalDocument.tsx`,
 `storefront/src/app/legal/layout.tsx`,
 `storefront/src/app/legal/imprint/page.tsx`,
-`storefront/tests/no-unresolved-placeholder.test.ts`.
+`storefront/src/app/globals.css`,
+`storefront/tests/no-unresolved-placeholder.test.ts`,
+`docs/current/brand.md`.
 
 - [ ] Render a legal document from structured content — numbered sections, a
       table of contents, the closing line and date — and ship the imprint as
@@ -533,7 +535,9 @@ the runtime's ICU data — the reason that file gives for not using it.
 
 The guard test is written here, against the smallest document, so the three long
 ones land under a check that already works rather than beside one written to fit
-them.
+them. **It walks the directory rather than a list**, because a guard that names
+its files stops covering the ones added after it — V9, V10 and V11 are covered
+the moment they land, without editing the test.
 
 The imprint is where an unconfigured field is most dangerous: an imprint quietly
 missing its registration number reads as a complete legal notice and is not one.
@@ -754,8 +758,8 @@ report.
 
 | Value | Needed by | State |
 | --- | --- | --- |
-| Registry code | imprint, terms | not supplied — renders as a named gap |
-| VAT number | imprint, terms | registered, number not supplied — renders as a named gap |
+| Registry code | imprint, terms | not supplied — **renders as a named gap on `/legal/imprint` today** |
+| VAT number | imprint, terms | registered, number not supplied — **renders as a named gap on `/legal/imprint` today** |
 | Whether registry code and VAT number may be committed to `deploys` | V14 | operator decision |
 | Hosting arrangement as it should be described to a data subject | V11 | operator confirmation |
 | Retention periods for order and inscription data | V11 | operator decision |

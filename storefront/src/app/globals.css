@@ -609,6 +609,35 @@ a.button.is-secondary:hover {
   }
 }
 
+/* ---- Legal documents ------------------------------------------------- */
+
+/* The narrow measure: read rather than scanned. */
+.legal {
+  max-width: var(--measure-narrow);
+  margin: 0 auto;
+}
+
+.legal-contents {
+  margin-bottom: var(--space-6);
+}
+
+.legal-contents ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legal-contents li {
+  font-size: var(--size-small);
+}
+
+/* A section heading is a heading, not a run-in: it sits above its prose with
+   the space a reader needs to find it while scrolling for one clause. */
+.legal h3 {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-2);
+}
+
 /* ---- The certificate ------------------------------------------------- */
 
 /* Narrower than the sheet: `brand.md` §3 gives a document that is read the

@@ -436,7 +436,18 @@ images arrive with LD-02, when there is a certificate to render.
 
 Four documents — Terms of Service, Refunds & Withdrawal, Privacy Policy,
 Imprint — at 640px in `DocumentFrame`, with numbered sections (§1, §1.1) and a
-short table of contents.
+short table of contents headed `CONTENTS`.
+
+Form numbers: `FORM LD-T`, `FORM LD-R`, `FORM LD-P`, `FORM LD-I`.
+
+**The section sign is hidden from a screen reader.** `§1.1` announced as
+"section sign one point one" is punctuation read aloud; the heading text
+carries the meaning and the sign is there for the eye.
+
+Where a document is missing a detail it must state, it says so under its last
+section, above the closing line: `This document is incomplete: a detail it is
+required to state has not been configured.` The gaps themselves are named
+where they fall.
 
 **The typography is the identity; the substance is straight.** An absurdist
 flourish is allowed in a recital and nowhere that changes legal meaning. A
