@@ -545,6 +545,23 @@ small {
   }
 }
 
+/* The loading indicator: a block cursor, drawn rather than set. U+25AE is not
+   in this typeface, so a glyph would be tofu -- see `src/fonts/plex-mono.ts`. */
+.cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.1em;
+  background: var(--ink);
+  vertical-align: text-bottom;
+  animation: cursor-blink 1s steps(1, end) infinite;
+}
+
+@keyframes cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
 /* There is almost no motion here to reduce -- one colour fade and one blinking
    block. Honouring the preference is a two-line rule, so it is honoured
    rather than argued about. */
@@ -555,5 +572,12 @@ small {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* The blanket rule above would leave the cursor stopped at whichever
+     keyframe a 0.01ms run landed on, which can be the invisible one. Stopping
+     the animation outright leaves it drawn. */
+  .cursor {
+    animation: none !important;
   }
 }
