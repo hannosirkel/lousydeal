@@ -13,13 +13,13 @@ export const DEAL_DOCUMENT = {
   revision: "Rev. 2026-09",
 } as const;
 
-/** The same four labels the home page's offer block uses. */
-export const DEAL_LABELS = {
-  item: "Item",
-  price: "Price",
-  value: "Value",
-  return: "Return",
-} as const;
+/**
+ * The same four labels and the same return figure the home page's offer block
+ * uses — re-exported, not restated. `brand.md` §2 requires the same word for
+ * the same thing on every page, and two copies of a figure drift: editing
+ * `OFFER_RETURN` would have changed the home page and silently not this one.
+ */
+export { OFFER_LABELS as DEAL_LABELS, OFFER_RETURN } from "./home";
 
 export const UPGRADES_TITLE = "Upgrades available";
 

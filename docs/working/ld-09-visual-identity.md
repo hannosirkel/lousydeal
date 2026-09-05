@@ -294,6 +294,8 @@ same deferral the footer's legal column already carries.
 **Files:** `storefront/src/app/deal/[handle]/page.tsx`,
 `storefront/src/content/deal.ts`, `storefront/src/lib/tier-rows.ts`,
 `storefront/src/components/document/TierTable.tsx`,
+`storefront/src/components/document/Quotation.tsx`,
+`storefront/src/app/not-found.tsx`,
 `storefront/tests/tier-page.test.ts`, `storefront/tests/home-page.test.ts`,
 `docs/current/brand.md`.
 
@@ -311,8 +313,66 @@ page cannot be rendered outside a request so they have to be callable on their
 own to be tested at all.
 
 `TierTable.tsx` is here because the tier name in the home page's table becomes
-the link to this route — the `handle` field V4's review found dead now has the
-purpose it was waiting for.
+the link to this route. V4's review had found `TierRow.handle` dead and removed
+it, guessing this row would want it; what this row wants is the *path*, so the
+row carries `href` from `tierPath()` instead and the handle stays where it
+belongs.
+
+**`not-found.tsx` is here because this row makes a 404 reachable.** It is the
+first route that can produce one, and without the file Next serves its own —
+an empty document under server rendering, filled in by client JavaScript, in
+the UA's serif, with a `prefers-color-scheme: dark` block. Three separate
+`brand.md` rules broken by a framework default. `error.tsx` and `loading.tsx`
+are the same gap and are **V5b**, below; they predate this row, since the home
+page could already throw.
+
+**The withdrawal notice ships without the link `brand.md` §4 gives it.** V10
+builds the route and **V12 adds the link** — its checkbox and `Files` list now
+name `content/deal.ts`, which they did not, so the link had no owner at all.
+
+**The `addToCart` action is a second copy of the home page's.** The two bodies
+are byte-identical, and the cookie name, its four attributes, the quantity and
+the redirect target must now stay in step across two files with nothing
+guarding them. **V6 shares it** — it owns `cart/page.tsx` and
+`checkout/page.tsx`, which already import `CART_ID_COOKIE` from the home
+page's route module, so it is the row that can move the constant somewhere
+sensible at the same time.
+
+### V5b — The system pages
+
+**Repository:** `lousydeal`. **Runs before V6.**
+**Files:** `storefront/src/app/error.tsx`, `storefront/src/app/loading.tsx`,
+`storefront/src/app/globals.css`, `storefront/tests/system-pages.test.ts`.
+
+- [ ] Render the error and loading states as
+      [`brand.md`](../current/brand.md) §4's system-pages table describes them:
+      `PROCESSING ERROR` as a document, and a single blinking block cursor
+      drawn in CSS rather than set as a glyph. Verified by a test asserting
+      each against the strings `brand.md` itself carries.
+
+**This row exists because the plan never had one.** `brand.md` §4 has specified
+three system pages since Gate C, and the row that should have built them was
+never written — V5's review found it while finding the 404. The 404 itself is
+V5's, because V5 is what made one reachable.
+
+**`notFound()` from a dynamic route still delivers an empty body**, and this
+row is where that is looked at again. Measured on the built server after V5
+added `not-found.tsx`: a URL matching no route (`/nonexistent`) server-renders
+the whole document, masthead and footer included; `notFound()` thrown from
+`/deal/[handle]` returns `<html id="__next_error__">` with an empty body and
+the document only in the flight payload, because the shell was flushed before
+the throw and Next cannot rewind a started response. The status is 404 in both
+and a reader with JavaScript sees the document in both. A reader without it
+sees a blank page on the thrown one — one route, one condition, and the
+identity's rule against client-rendered surfaces broken by the framework
+rather than by a choice. Either find the shape that server-renders it, or
+record it as accepted with this measurement; do not leave it undescribed.
+
+`error.tsx` must carry `"use client"`: a React error boundary cannot be a
+Server Component. That is the third exception to §6's no-client-JavaScript
+rule, after the consent checkbox and the Stripe element, and it is a framework
+requirement rather than a choice — so it amends `brand.md` §6 rather than
+quietly widening it.
 
 ### V6 — Cart, checkout, and the express-consent checkbox
 
@@ -320,8 +380,14 @@ purpose it was waiting for.
 **Files:** `storefront/src/app/cart/page.tsx`,
 `storefront/src/app/checkout/page.tsx`,
 `storefront/src/app/checkout/PaymentForm.tsx`,
+`storefront/src/lib/cart-actions.ts`, `storefront/src/app/page.tsx`,
+`storefront/src/app/deal/[handle]/page.tsx`,
 `storefront/tests/checkout-consent.test.ts`.
 
+- [ ] Share the `addToCart` Server Action, which V4 and V5 each carry a
+      byte-identical copy of. Both routes and both cart-reading pages already
+      import `CART_ID_COOKIE` from the home page's route module; this row moves
+      the constant and the action somewhere that is not a route.
 - [ ] Render the cart as `ORDER SUMMARY` and the checkout as `PAYMENT
       AUTHORISATION`, with the total explicit above an unticked consent
       checkbox that the pay control is disabled behind. Verified by a test
@@ -479,9 +545,10 @@ LD-08's, and a banner for cookies nobody sets is a dark pattern in reverse.
 `storefront/src/app/legal/page.tsx`,
 `storefront/tests/legal-routes.test.ts`.
 
-- [ ] Link all four documents from every page and give `/legal` an index.
-      Verified by a test asserting each footer legal link resolves to a content
-      file that exists.
+- [ ] Link all four documents from every page and give `/legal` an index, and
+      add the link from the tier page's withdrawal notice that
+      [`brand.md`](../current/brand.md) §4 gives it. Verified by a test
+      asserting each link resolves to a content file that exists.
 - [ ] Build the footer's remaining two columns — LEGAL and COMPANY — so the
       footer is the three-column block [`brand.md`](../current/brand.md) §4
       specifies rather than a single trader line.
@@ -579,6 +646,7 @@ loose ends.
 | Baldrick, and his voice section in `brand.md` | LD-05 |
 | Server-side enforcement that consent was given before an order exists | the row that records consent on the order |
 | `robots.txt`, sitemap, analytics, performance budget | LD-08 |
+| Sharing the `addToCart` action between the home and tier routes | V6 |
 | Closing the Legal gate | the operator, with a qualified human reader |
 | Publishing anything — removing an Access policy, seeding a live Stripe key | after the Legal gate, LD-02, and the print-on-demand provider |
 

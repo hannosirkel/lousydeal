@@ -5,40 +5,36 @@
  * `getRuntimeConfig()` must run inside a dynamically rendered request rather
  * than once at build time — see that file's comment.
  *
- * **An unknown handle is a 404, not an empty quotation.** `notFound()` renders
- * the not-found page and sends the status with it; a document headed
- * `QUOTATION` with no item would tell a crawler, and a reader, that this is a
- * real page for a deal that does not exist.
+ * What this route decides is in `src/lib/tier-rows.ts` and what it renders is
+ * in `Quotation`; both because a route awaiting `connection()` and `cookies()`
+ * cannot be reached from a test.
  *
- * The add-to-cart action is the home page's, repeated rather than shared: a
- * Server Action is defined in the component that uses it, and hoisting this
- * one into a module both pages import would make its `"use server"` boundary a
- * thing two routes depend on for a saving of nine lines.
+ * **The `addToCart` action is a second copy of the home page's, and that is a
+ * known duplication rather than a considered one.** The two bodies are
+ * identical — the same cookie name, the same four cookie attributes, the same
+ * reuse-or-create, the same quantity, the same redirect — and nothing keeps
+ * them in step. A Server Action used by two routes belongs in its own
+ * `"use server"` module, which is Next's documented factoring; the objection
+ * that it would couple two routes does not survive the fact that this file
+ * already imports `CART_ID_COOKIE` from the home page's route module, as
+ * `cart/page.tsx` and `checkout/page.tsx` do. V6 owns those files and shares
+ * it; this row does not widen into them.
  */
 
 import { cookies } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
 import { DocumentFrame } from "../../../components/document/DocumentFrame";
-import { FinePrint } from "../../../components/document/FinePrint";
-import { Ledger, LedgerRow } from "../../../components/document/LedgerRow";
 import { OrderForm } from "../../../components/document/OrderForm";
-import { Rule } from "../../../components/document/Rule";
+import { Quotation } from "../../../components/document/Quotation";
 import { getRuntimeConfig } from "../../../config/runtime-config";
+import { DEAL_DOCUMENT } from "../../../content/deal";
 import { ACQUIRE_LABEL_PREFIX } from "../../../content/home";
-import {
-  DEAL_DOCUMENT,
-  DEAL_LABELS,
-  NO_UPGRADES_LINE,
-  UPGRADES_LINE,
-  UPGRADES_TITLE,
-  WITHDRAWAL_NOTICE,
-} from "../../../content/deal";
 import { createStoreFetchJson, getDefaultRegion, listTiers, type StoreClientConfig } from "../../../lib/medusa-client";
 import { formatMoney } from "../../../lib/money";
 import { addLineToCart, createCart } from "../../../lib/store-cart";
-import { NO_VALUE, tierByHandle, tierPath, upgrades } from "../../../lib/tier-rows";
+import { NO_VALUE, requireTier, tierPath, upgrades } from "../../../lib/tier-rows";
 import { CART_ID_COOKIE } from "../../page";
 
 function requireStoreClientConfig(): StoreClientConfig {
@@ -54,9 +50,7 @@ export default async function DealPage({ params }: { readonly params: Promise<{ 
   const { handle } = await params;
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const tiers = await listTiers(fetchJson);
-  const tier = tierByHandle(tiers, handle);
-
-  if (tier === undefined) notFound();
+  const tier = requireTier(tiers, handle);
 
   async function addToCart(formData: FormData): Promise<void> {
     "use server";
@@ -78,45 +72,27 @@ export default async function DealPage({ params }: { readonly params: Promise<{ 
     redirect("/cart");
   }
 
-  const worse = upgrades(tiers, tier);
-
   return (
     <main>
       <DocumentFrame title={DEAL_DOCUMENT.title} form={DEAL_DOCUMENT.form} revision={DEAL_DOCUMENT.revision}>
-        <Ledger>
-          <LedgerRow label={DEAL_LABELS.item} value={tier.title} />
-          <LedgerRow label={DEAL_LABELS.price} value={formatMoney(tier.amount, tier.currencyCode)} />
-          <LedgerRow label={DEAL_LABELS.value} value={formatMoney(NO_VALUE, tier.currencyCode)} />
-          <LedgerRow label={DEAL_LABELS.return} value="-100%" tone="stamp" />
-        </Ledger>
-
-        <OrderForm
-          action={addToCart}
-          variantId={tier.variantId}
-          label={`${ACQUIRE_LABEL_PREFIX} ${formatMoney(tier.amount, tier.currencyCode)}`}
+        <Quotation
+          title={tier.title}
+          price={formatMoney(tier.amount, tier.currencyCode)}
+          value={formatMoney(NO_VALUE, tier.currencyCode)}
+          action={
+            <OrderForm
+              action={addToCart}
+              variantId={tier.variantId}
+              label={`${ACQUIRE_LABEL_PREFIX} ${formatMoney(tier.amount, tier.currencyCode)}`}
+            />
+          }
+          upgrades={upgrades(tiers, tier).map((upgrade) => ({
+            id: upgrade.id,
+            title: upgrade.title,
+            price: formatMoney(upgrade.amount, upgrade.currencyCode),
+            href: tierPath(upgrade.handle),
+          }))}
         />
-
-        <Rule />
-        <h2>{UPGRADES_TITLE}</h2>
-        {worse.length === 0 ? (
-          <p>{NO_UPGRADES_LINE}</p>
-        ) : (
-          <>
-            <p>{UPGRADES_LINE}</p>
-            <Ledger>
-              {worse.map((upgrade) => (
-                <LedgerRow
-                  key={upgrade.id}
-                  label={<a href={tierPath(upgrade.handle)}>{upgrade.title}</a>}
-                  value={formatMoney(upgrade.amount, upgrade.currencyCode)}
-                />
-              ))}
-            </Ledger>
-          </>
-        )}
-
-        <Rule />
-        <FinePrint>{WITHDRAWAL_NOTICE}</FinePrint>
       </DocumentFrame>
     </main>
   );
