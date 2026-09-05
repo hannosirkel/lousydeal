@@ -35,7 +35,7 @@ import { connection } from "next/server";
 import { getRuntimeConfig } from "../../config/runtime-config";
 import { createStoreFetchJson, getDefaultRegion } from "../../lib/medusa-client";
 import { getCheckoutCart } from "../../lib/store-checkout";
-import { CART_ID_COOKIE } from "../page";
+import { CART_ID_COOKIE } from "../../lib/store-session";
 import { PaymentForm } from "./PaymentForm";
 
 export default async function CheckoutPage() {
