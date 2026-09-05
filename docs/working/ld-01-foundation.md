@@ -833,11 +833,11 @@ T18b cites both rather than assuming either.
 **An exact-path refusal in the proxy makes the ambiguity moot**, because a wider
 bypass would then reach nothing.
 
-- [ ] Admit exactly the registered webhook path under `hooks` and refuse every
+- [x] Admit exactly the registered webhook path under `hooks` and refuse every
       other path in that namespace, in `plepic`. Verified by a test asserting the
       real path resolves, that a same-depth sibling and a nested path are
       refused, and that the other namespaces are unchanged.
-- [ ] The same in `lousydeal`, deriving the path rather than spelling it.
+- [x] The same in `lousydeal`, deriving the path rather than spelling it.
       Verified the same way, and by the exact-delivery probe still passing.
 
 **Found by T18b's review, not by a row that set out to look for it.** The

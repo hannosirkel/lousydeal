@@ -104,18 +104,30 @@ describe("resolveStoreApiPath's normalization re-check", () => {
    * parser `resolveStoreApiTarget` (and this function's own re-check) runs the
    * path through then strips ASCII tab/newline/CR before parsing (the
    * `remove all ASCII tab or newline` step in the URL spec's basic parser),
-   * turning `.\t.` into a real `..` and collapsing `/hooks/.\t./admin/users`
-   * to `/admin/users` -- outside the `hooks` namespace that admitted the
+   * turning `.\t.` into a real `..` and collapsing `/store/.\t./admin/users`
+   * to `/admin/users` -- outside the `store` namespace that admitted the
    * request. Only the re-check's `startsWith` catches this; defences 1-4 all
-   * pass it. Measured directly: `new URL("/hooks/.\t./admin/users",
+   * pass it. Measured directly: `new URL("/store/.\t./admin/users",
    * "http://store-api-proxy.invalid").pathname === "/admin/users"`.
+   *
+   * Orchestrator review, Major: these two cases originally targeted `hooks`,
+   * from before T22b gave `hooks` its own admitted-path branch. That branch
+   * now returns -- admitted or refused -- for every `hooks` input on a
+   * `segments.length !== 3` mismatch alone, before this function ever reaches
+   * the re-check below; deleting the re-check does not change either
+   * `hooks`-namespace outcome, so a `hooks` case here proved nothing about
+   * this line. `store` still runs the shared code past all four defences
+   * above, so it is the namespace this proof has to live in. The `hooks`
+   * inputs this block used to carry moved to "the hooks namespace admits
+   * exactly the registered webhook path" below, where they now assert that
+   * branch's own segment-count refusal instead.
    */
   it("refuses a tab-spliced dot segment that defences 1-4 all pass, and only the re-check catches", () => {
-    expect(resolveStoreApiPath("/api/store/hooks/.\t./admin/users")).toBeNull();
+    expect(resolveStoreApiPath("/api/store/store/.\t./admin/users")).toBeNull();
   });
 
   it("refuses the same tab-splice family with a leading real segment before it", () => {
-    expect(resolveStoreApiPath("/api/store/hooks/x/.\t./.\t./admin/users")).toBeNull();
+    expect(resolveStoreApiPath("/api/store/store/x/.\t./.\t./admin/users")).toBeNull();
   });
 });
 
@@ -158,6 +170,90 @@ describe("resolveStoreApiPath admits the payment webhook path (T18)", () => {
   // route even if some future change breaks the derivation between them.
   it("resolves the exact, literal route Stripe delivers to", () => {
     expect(resolveStoreApiPath("/api/store/hooks/payment/stripe_stripe")).toBe("/hooks/payment/stripe_stripe");
+  });
+});
+
+/**
+ * T22a's own review of the identical change in plepic (`71c242d`) found that
+ * "a test that refuses one hardcoded sibling proves almost nothing," and that
+ * its first draft tested the decode-based check with no percent-encoded input
+ * at all. This suite is written against that lesson: it asserts the property
+ * -- under `hooks`, the path resolves **iff** the second segment is exactly
+ * `payment` (undecoded) and the third *decodes* to
+ * `STRIPE_PROVIDER_ID.slice("pp_".length)` -- with a cross product covering
+ * case variants and near misses, and it exercises the decode explicitly with
+ * percent-encoded, double-encoded and encoded-fixed-segment inputs.
+ */
+describe("the hooks namespace admits exactly the registered webhook path, and nothing shaped like it", () => {
+  const REAL_SEGMENT = STRIPE_PROVIDER_ID.slice("pp_".length);
+  const REAL_PATH = `/api/store/hooks/payment/${REAL_SEGMENT}`;
+
+  it("resolves only the exact (payment, provider) pair, and refuses every other combination in the cross product", () => {
+    const secondSegments = ["payment", "Payment", "PAYMENT", "payments", "refunds", "hooks"];
+    const thirdSegments = [
+      REAL_SEGMENT,
+      REAL_SEGMENT.toUpperCase(),
+      `${REAL_SEGMENT}EVIL`,
+      REAL_SEGMENT.slice(0, -1),
+      "anything",
+      "pp_stripe_stripe",
+    ];
+
+    for (const second of secondSegments) {
+      for (const third of thirdSegments) {
+        const pathname = `/api/store/hooks/${second}/${third}`;
+        const expected = second === "payment" && third === REAL_SEGMENT ? `/hooks/payment/${REAL_SEGMENT}` : null;
+        expect(resolveStoreApiPath(pathname), pathname).toBe(expected);
+      }
+    }
+  });
+
+  it("refuses a nested path past the real one, and a bare prefix of it", () => {
+    for (const pathname of [`${REAL_PATH}/extra`, `${REAL_PATH}/`, "/api/store/hooks/payment", "/api/store/hooks"]) {
+      expect(resolveStoreApiPath(pathname), pathname).toBeNull();
+    }
+  });
+
+  // These two inputs used to live in "resolveStoreApiPath's normalization
+  // re-check", proving that describe block's own re-check line. T22b's
+  // `namespace === "hooks"` branch (`route.ts`) now returns for every `hooks`
+  // input before that shared line runs, on `segments.length !== 3` alone for
+  // both paths below -- so they moved here, where they assert this branch's
+  // own segment-count refusal instead. The re-check is proved by the two
+  // `store`-namespace equivalents in that describe block now, not by these.
+  it("refuses a tab-spliced dot segment, via this branch's own segment count, not the shared re-check", () => {
+    expect(resolveStoreApiPath("/api/store/hooks/.\t./admin/users")).toBeNull();
+  });
+
+  it("refuses the same tab-splice family with a leading real segment before it", () => {
+    expect(resolveStoreApiPath("/api/store/hooks/x/.\t./.\t./admin/users")).toBeNull();
+  });
+
+  // The provider segment is compared decoded on purpose (see the
+  // `namespace === "hooks"` branch's own comment): Express decodes
+  // `:provider` with the same `decodeURIComponent`, so each spelling below
+  // reaches the identical handler call as the plain one, and each resolves to
+  // the *canonical* path -- not the caller's spelling.
+  it("admits an encoded spelling of the provider segment that decodes to the registered one, and canonicalizes it", () => {
+    const encodedProvider = `%${REAL_SEGMENT.charCodeAt(0).toString(16)}${REAL_SEGMENT.slice(1)}`;
+    for (const candidate of [encodedProvider, REAL_SEGMENT.replace("_", "%5F")]) {
+      const pathname = `/api/store/hooks/payment/${candidate}`;
+      expect(resolveStoreApiPath(pathname), pathname).toBe(`/hooks/payment/${REAL_SEGMENT}`);
+    }
+  });
+
+  // Double-encoding does not resolve: `decodeSegment` decodes exactly once,
+  // so a `%25`-doubled escape decodes to literal `%`-bearing text, not the
+  // registered identifier. Mirrors T22a's own case for the identical reason.
+  it("refuses a double-encoded provider segment", () => {
+    expect(resolveStoreApiPath(`/api/store/hooks/payment/%2573tripe_stripe`)).toBeNull();
+  });
+
+  // The fixed `payment` segment is compared undecoded, unlike the provider
+  // segment above -- see the `namespace === "hooks"` branch's own comment for
+  // why. T22a's first draft admitted this and Express then 404'd it.
+  it("refuses an encoded spelling of the fixed payment segment", () => {
+    expect(resolveStoreApiPath(`/api/store/hooks/%70ayment/${REAL_SEGMENT}`)).toBeNull();
   });
 });
 
@@ -214,6 +310,16 @@ describe("the store-api namespace allowlist admits exactly what it declares", ()
 
     for (const namespace of namespaces) {
       const resolved = resolveStoreApiPath(`/api/store/${namespace}/probe`);
+      if (namespace === "hooks") {
+        // T22b narrows `hooks` from a namespace allowlist to a one-path
+        // allowlist (see the dedicated describe block below): declared in
+        // ALLOWED_NAMESPACES, but a bare `hooks/probe` is still refused
+        // because it is not `hooks/payment/<the registered provider>`. This
+        // is the one namespace where "declared" and "resolves a same-shape
+        // probe" deliberately diverge.
+        expect(resolved).toBeNull();
+        continue;
+      }
       expect(resolved).toBe(ALLOWED_NAMESPACES.has(namespace) ? `/${namespace}/probe` : null);
     }
   });

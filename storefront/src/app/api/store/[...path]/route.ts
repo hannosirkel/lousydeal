@@ -48,6 +48,7 @@
 
 import { getRuntimeConfig } from "../../../../config/runtime-config";
 import { STORE_PUBLISHABLE_KEY_HEADER } from "../../../../lib/medusa-client";
+import { STRIPE_PROVIDER_ID } from "../../../../lib/store-payment";
 
 /** This route's own mount point. Never itself forwarded -- see {@link resolveStoreApiPath}. */
 const MOUNT_PREFIX = "/api/store/";
@@ -74,6 +75,32 @@ const MOUNT_PREFIX = "/api/store/";
  * former.
  */
 export const ALLOWED_NAMESPACES: ReadonlySet<string> = new Set(["store", "hooks"]);
+
+/**
+ * The provider segment {@link resolveStoreApiPath} admits under `hooks`,
+ * derived from `store-payment.ts`'s {@link STRIPE_PROVIDER_ID} rather than
+ * written out a second time here.
+ *
+ * `getWebhookActionAndData` (`node_modules/@medusajs/payment/dist/services/payment-module.js:697`,
+ * measured: `` `pp_${eventData.provider}` ``) resolves the `:provider` route
+ * param back to a payment-provider registration key by prefixing it with
+ * `pp_` -- so the URL segment is that registration key *without* the prefix,
+ * and `STRIPE_PROVIDER_ID` (`pp_stripe_stripe`) already is that key. Slicing
+ * it here, instead of re-deriving `stripe_stripe` from
+ * `backend/src/config/payment.ts`'s two identifiers, is what plepic's own
+ * T22a review (`71c242d`) found the hard way: a second hand-written literal
+ * agrees with a coherent rename of the backend's identifiers right up until
+ * it doesn't, and no suite here names the backend's config to catch it. This
+ * repository has one source for the identifier already -- T18a's
+ * `STRIPE_PROVIDER_ID`, itself pinned by a literal-equality test
+ * (`store-checkout.test.ts`) -- so deriving from it here means a corrupted
+ * `STRIPE_PROVIDER_ID` moves this constant too, rather than the two silently
+ * disagreeing.
+ */
+const STRIPE_WEBHOOK_PROVIDER_SEGMENT = STRIPE_PROVIDER_ID.slice("pp_".length);
+
+/** The one path {@link resolveStoreApiPath} admits under `hooks` -- see its hooks branch. */
+const STRIPE_WEBHOOK_PATH = `/hooks/payment/${STRIPE_WEBHOOK_PROVIDER_SEGMENT}`;
 
 /**
  * The origin dot segments are resolved against when {@link resolveStoreApiPath}
@@ -132,6 +159,31 @@ function decodeSegmentFully(segment: string): string {
 }
 
 /**
+ * Percent-decodes a segment exactly once, treating a malformed escape as its
+ * own literal text rather than throwing.
+ *
+ * Deliberately not {@link decodeSegmentFully}: that function decodes to a
+ * fixed point because a dot segment must be refused under *any* stacking of
+ * `%25`. The provider segment below is the opposite case -- it is compared
+ * for equality with a known-good identifier, not scanned for a dangerous
+ * shape -- and a single decode is what Express itself performs on a route
+ * param (`decode_param`, `node_modules/express/lib/router/layer.js:172`,
+ * `decodeURIComponent`, confirmed against this repository's installed
+ * express@4.22.2 and path-to-regexp@0.1.13). Decoding further than that would
+ * admit `%2573tripe_stripe` (which single-decodes to the literal text
+ * `%73tripe_stripe`, not the registered identifier) as though it were the
+ * same request Express would route -- it is not; Express never performs that
+ * second decode either.
+ */
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+/**
  * Whether a segment may not appear in a forwarded path: empty, a dot segment
  * in *any* encoding (including one stacked more than once), or one hiding a
  * separator.
@@ -178,6 +230,19 @@ function isRefusedSegment(segment: string): boolean {
  * target still sits under `store`" holds on its own rather than only because
  * the segment refusals above happened to be complete.
  *
+ * These five are written to apply to every namespace, `hooks` included --
+ * but the fifth is unreachable for `hooks` in practice. `hooks` also gets a
+ * sixth, narrower gate of its own (the `namespace === "hooks"` branch below),
+ * which sits between the fourth and fifth and returns -- admitted or refused
+ * -- for every `hooks` input, on nothing more than `segments.length !== 3`
+ * for most refused shapes. Execution for that namespace never falls through
+ * to the fifth line at all. Orchestrator review, Major: this is why
+ * `store-checkout.test.ts`'s tab-splice cases for the fifth defence are
+ * written against `store`, not `hooks` -- a `hooks` input there would go on
+ * proving only this sixth gate's own segment-count check, unable to notice
+ * the fifth line deleted. `store` never enters this branch, so it is the
+ * only namespace left that still exercises the fifth line's own contract.
+ *
  * **No character or length bound.** A NUL byte, a raw control character, a
  * CRLF pair, a 100 000-character path or 5 000 segments all pass every
  * defence above unless they also happen to decode to a dot segment or a
@@ -201,6 +266,48 @@ export function resolveStoreApiPath(pathname: string): string | null {
   }
   if (segments.some(isRefusedSegment)) {
     return null;
+  }
+
+  // A sixth gate, narrower than and additional to the five general-purpose
+  // defences above and below: `hooks` is only in ALLOWED_NAMESPACES for
+  // `POST /hooks/payment/:provider`
+  // (`node_modules/@medusajs/medusa/dist/api/hooks/payment/[provider]/route.js`),
+  // which Medusa core queues a webhook job from before verifying anything,
+  // including `:provider` against a registered provider. Admitting the
+  // namespace and stopping at the four defences above would still forward
+  // `/hooks/payment/<anything>` -- or a nested or sibling path one segment
+  // over -- to that handler, enqueuing a job from an unauthenticated body. So
+  // `hooks` gets an allowlist of exactly one path rather than a namespace.
+  //
+  // The two variable segments are compared two different ways, and the
+  // asymmetry is deliberate:
+  //
+  // - `segments[1]` ("payment") is compared **undecoded**. It is a literal
+  //   route segment, not a route parameter, and nothing observed in this
+  //   repository's own Express says how (or whether) it decodes a literal
+  //   segment before matching it -- so admitting an encoded spelling here
+  //   would be a guess, not a proven equivalence, and it is refused.
+  // - `segments[2]` (the provider) is compared **decoded**, via
+  //   {@link decodeSegment}, against {@link STRIPE_WEBHOOK_PROVIDER_SEGMENT}.
+  //   Express resolves `req.params.provider` with the same
+  //   `decodeURIComponent` (see {@link decodeSegment}'s own comment), so
+  //   every admitted spelling of this segment reaches the handler as the
+  //   identical string -- the encoding variance is two spellings of one
+  //   request, not a bypass, and refusing it would refuse traffic the handler
+  //   treats as the real webhook.
+  //
+  // {@link STRIPE_WEBHOOK_PATH} -- the canonical spelling -- is returned
+  // rather than the caller's, so a log or alert keyed on the resolved path
+  // sees one string regardless of how the caller encoded the request.
+  if (namespace === "hooks") {
+    if (
+      segments.length !== 3 ||
+      segments[1] !== "payment" ||
+      decodeSegment(segments[2] ?? "") !== STRIPE_WEBHOOK_PROVIDER_SEGMENT
+    ) {
+      return null;
+    }
+    return STRIPE_WEBHOOK_PATH;
   }
 
   const normalized = new URL(`/${upstreamPath}`, NORMALIZATION_BASE).pathname;
