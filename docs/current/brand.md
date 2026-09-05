@@ -92,6 +92,10 @@ text are sentence case. Line height is 1.6 for body, 1.2 for headings. Every
 numeral is `font-variant-numeric: tabular-nums`, so a column of figures aligns
 without a table cell forcing it to.
 
+**Sub-headings take the body step**, not a smaller one — a legal document's
+`§1.1` sits above prose it must not be smaller than, and caps with tracking
+separate it well enough without a size change.
+
 ### Colour
 
 | Token | Value | Role |
@@ -127,6 +131,10 @@ Sections are separated by **rules, not boxes**: a 1px `--ink` horizontal rule.
 A document's top and bottom carry a **double rule** — two 1px lines 3px apart.
 Spacing comes from an eight-value scale and nothing between: 4, 8, 12, 16, 24,
 32, 48, 64px.
+
+The page itself sits in 32px of margin at the top, 16px at the sides and 64px
+at the foot — a document has a wider foot than head, and the sides stay narrow
+so a 390px screen loses as little measure as possible.
 
 ### Components
 
@@ -180,6 +188,9 @@ document.
 
 - Masthead: `LOUSYDEAL.COM`, centred, label style. Beneath it, fine print:
   `PURVEYORS OF OBJECTIVELY BAD VALUE`.
+- Browser title and social description are the masthead and its fine print,
+  unchanged: `LOUSYDEAL.COM` and `Purveyors of objectively bad value.` The tab
+  is another surface, and it says what the letterhead says.
 - Footer, on every page: three columns — **LEGAL** (Terms, Refunds &
   Withdrawal, Privacy, Imprint), **COMPANY** (Imprint contact address), and a
   fine-print trader line resolved from runtime configuration.

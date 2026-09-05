@@ -1,0 +1,207 @@
+/*
+ * The design tokens, and the base element styles that consume them.
+ *
+ * `docs/current/brand.md` §3 is the authority for every value below; this file
+ * is where it becomes executable. `tests/tokens.test.ts` fails if a colour
+ * literal appears outside the `:root` block here or anywhere under
+ * `storefront/src`, and fails if any of the three colours used as text --
+ * `--ink`, `--stamp`, `--ink-soft` -- stops clearing WCAG AA against
+ * `--paper`. The other two, `--paper` and `--paper-shade`, are grounds rather
+ * than text and have no contrast bound to hold them to: they are 1.09:1
+ * against each other by design.
+ *
+ * No Tailwind, no CSS modules, no preprocessor. The identity is five colours,
+ * six type steps and a rule; a build step to express that would be more
+ * machinery than the thing it expresses.
+ */
+
+:root {
+  /* Colour. --stamp is the only accent, and adding a second one is a change to
+     the brand document rather than a decision a component may take. */
+  --paper: #fafaf7;
+  --paper-shade: #f1f0eb;
+  --ink: #141412;
+  --ink-soft: #6b6b66;
+  --stamp: #b3261e;
+
+  /* Type scale, rem. Six steps and nothing between them. */
+  --size-fine: 0.6875rem;
+  --size-small: 0.8125rem;
+  --size-body: 0.9375rem;
+  --size-section: 1.125rem;
+  --size-title: 1.5rem;
+  --size-display: 2.25rem;
+
+  --leading-body: 1.6;
+  --leading-heading: 1.2;
+  --tracking-label: 0.08em;
+
+  /* Spacing. Eight values, no arbitrary pixel anywhere else. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Measures. A document is narrow; one that is read is narrower still. */
+  --measure-document: 720px;
+  --measure-narrow: 640px;
+
+  /* The rule is the only border this identity draws. */
+  --rule-width: 1px;
+  --rule-gap: 3px;
+
+  /* The one motion budget. Colour only, and only this long. */
+  --transition: 120ms;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* The fallback belongs inside var(): an undefined custom property makes the
+     whole declaration invalid at computed-value time, so terms written after
+     it never act -- the element would take the UA default serif, not the
+     monospace written beside it. */
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 100%;
+  /* Every figure on this site sits in a column beside another figure. Inert
+     for this face -- it is monospaced, and ships no `tnum` feature -- but the
+     fallback stack is not, and `ui-monospace` resolves to proportional-digit
+     faces on some platforms. */
+  font-variant-numeric: tabular-nums;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Form controls inherit neither family nor size from `body` by UA default,
+   and this identity has exactly one typeface. Without this, the primary
+   button and the checkout consent control ship in Helvetica. */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+body {
+  margin: 0;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--size-body);
+  line-height: var(--leading-body);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 700;
+  line-height: var(--leading-heading);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: var(--size-title);
+}
+
+h2 {
+  font-size: var(--size-section);
+}
+
+/* Sub-headings take the body step, not a smaller one: a legal document's
+   `§1.1` sits above prose it must not be smaller than. Caps and tracking do
+   the separating instead of size. */
+h3,
+h4 {
+  font-size: var(--size-body);
+}
+
+p,
+ul,
+ol,
+dl,
+table {
+  margin: 0 0 var(--space-4);
+}
+
+ul,
+ol {
+  padding-left: var(--space-5);
+}
+
+/* Links are underlined at rest, because an underline is the one affordance a
+   document has. Visited is identical to unvisited on purpose: which pages a
+   reader has already opened is not information this design carries. */
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  transition: color var(--transition) linear;
+}
+
+a:visited {
+  color: inherit;
+}
+
+a:hover {
+  color: var(--stamp);
+}
+
+/* Focus is never removed and never subtle. AA-contrast red at 2px, offset so
+   it reads against both the paper and a stamp-ground button. */
+:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--paper-shade);
+  color: var(--ink);
+}
+
+hr {
+  height: 0;
+  margin: var(--space-5) 0;
+  border: 0;
+  border-top: var(--rule-width) solid var(--ink);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  font-size: var(--size-small);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-align: left;
+  text-transform: uppercase;
+}
+
+small {
+  font-size: var(--size-fine);
+}
+
+/* There is almost no motion here to reduce -- one colour fade and one blinking
+   block. Honouring the preference is a two-line rule, so it is honoured
+   rather than argued about. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
