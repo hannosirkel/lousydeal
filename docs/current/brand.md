@@ -107,7 +107,7 @@ stamp mark, and focus outlines. Nothing else. A second accent colour is a change
 to this document, not a component's decision.
 
 Measured against `--paper` by the WCAG 2.1 relative-luminance formula: `--ink`
-17.6:1, `--stamp` 6.2:1, `--ink-soft` 5.1:1. All three clear AA for normal text,
+17.6:1, `--stamp` 6.3:1, `--ink-soft` 5.1:1. All three clear AA for normal text,
 so the fine print and the red are usable as text rather than only as
 decoration. `--ink-soft` is still never the only carrier of something a reader
 must act on. A test asserts these three ratios, so a token nudged later fails
@@ -153,6 +153,11 @@ switches to `--stamp`. Transitions never exceed 120ms and only ever animate
 colour. Nothing scales, bounces, slides or fades. `prefers-reduced-motion` is
 respected, which costs nothing because the only motion on the site is the
 loading cursor.
+
+The cursor is **drawn in CSS, not set as a glyph.** `▮` (U+25AE) is not in IBM
+Plex Mono — measured against the source file the fonts are subset from — and a
+character the typeface does not carry renders as tofu, which is the one thing
+this identity cannot afford.
 
 ### Document numbers, and why they are form numbers
 
@@ -270,7 +275,7 @@ URL and is not used.
 | --- | --- | --- |
 | 404 | `DOCUMENT NOT FOUND` | This page has even less content than our products. |
 | Error | `PROCESSING ERROR` | The request could not be completed. This was not, on this occasion, deliberate. |
-| Loading | — | A single blinking `▮`. No spinner. |
+| Loading | — | A single blinking block cursor. No spinner. |
 
 ### Social images
 
