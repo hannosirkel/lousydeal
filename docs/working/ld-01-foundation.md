@@ -806,7 +806,7 @@ deliveries fail until all three are fixed.
 - [x] Admit the payment webhook path through the storefront proxy, and no other
       namespace. Verified by a test asserting the webhook path resolves and that
       every other new namespace is still refused.
-- [ ] Add a Cloudflare Access bypass for exactly that path, and nothing else.
+- [x] Add a Cloudflare Access bypass for exactly that path, and nothing else.
       Verified by an unauthenticated request to the webhook path reaching the
       storefront while every other path still refuses.
 

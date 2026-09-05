@@ -50,7 +50,7 @@ Started 2026-08-29. Preflight confirmed the same day.
 | T20a | T20 | deploys | `a0073b7ba64f` | AGENT | done | agent | journal, T20 | 2026-09-04 |
 | T20b | T20 | orange | `2752980ec3a8` | JOINT | done | operator | journal, T20 | 2026-09-04 |
 | T18a | T18 | lousydeal | `082a19d0a94c` | AGENT | done | agent | journal, T18a | 2026-09-04 |
-| T18b | T18 | orange | `d1efa3329d35` | JOINT | open | operator | — | — |
+| T18b | T18 | orange | `d1efa3329d35` | JOINT | done | operator | journal, T18b | 2026-09-05 |
 | T22a | T22 | plepic | `f7d3f51bf9ab` | AGENT | done | agent | journal, T22 | 2026-09-04 |
 | T22b | T22 | lousydeal | `585965d1fdce` | AGENT | done | agent | journal, T22 | 2026-09-05 |
 | T15a | T15 | orange | `d0eaff8881f5` | JOINT | done | operator | journal, T15a | 2026-09-03 |
