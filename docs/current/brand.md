@@ -436,7 +436,31 @@ images arrive with LD-02, when there is a certificate to render.
 
 Four documents — Terms of Service, Refunds & Withdrawal, Privacy Policy,
 Imprint — at 640px in `DocumentFrame`, with numbered sections (§1, §1.1) and a
-short table of contents.
+short table of contents headed `CONTENTS`.
+
+Form numbers: `FORM LD-T`, `FORM LD-R`, `FORM LD-P`, `FORM LD-I`.
+
+**The section sign is hidden from a screen reader.** `§1.1` announced as
+"section sign one point one" is punctuation read aloud; the heading text
+carries the meaning and the sign is there for the eye.
+
+Where a document is missing a detail it must state, it says so under its last
+section, above the closing line: `This document is incomplete: a detail it is
+required to state has not been configured.` The gaps themselves are named
+where they fall.
+
+The last-updated line is labelled `Last updated`, at the fine step under the
+closing sentence.
+
+**A sub-section is indented and takes the next heading level**, and its entry
+in the contents list is indented to match. Depth comes from the number, so a
+content file stays a flat list and renumbering a clause does not restructure
+anything.
+
+**A contents entry is set at the body step**, not the small step. §3's table
+gives `small` to labels, table headers and footer links; a contents entry is
+none of those, and at the small step the links measured 17px tall with 20.8px
+between centres, which fails WCAG 2.2 SC 2.5.8 on both size and spacing.
 
 **The typography is the identity; the substance is straight.** An absurdist
 flourish is allowed in a recital and nowhere that changes legal meaning. A

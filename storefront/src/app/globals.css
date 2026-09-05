@@ -609,6 +609,73 @@ a.button.is-secondary:hover {
   }
 }
 
+/* ---- Legal documents ------------------------------------------------- */
+
+/* The narrow measure: read rather than scanned. */
+.legal {
+  max-width: var(--measure-narrow);
+  margin: 0 auto;
+}
+
+.legal-contents {
+  margin-bottom: var(--space-6);
+}
+
+/* `role="list"` is on the element, because Safari drops list semantics from a
+   list whose markers are removed. */
+.legal-contents ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The body step, not the small step: `brand.md` gives `small` to labels, table
+   headers and footer links, and a contents entry is none of those. It is also
+   what makes each entry a large enough target -- at the small step they
+   measured 17px tall with 20.8px between centres, which fails WCAG 2.2 SC
+   2.5.8 both on size and on the spacing exception. */
+.legal-contents li {
+  padding: var(--space-1) 0;
+  font-size: var(--size-body);
+}
+
+/* A sub-section's entry sits under its parent's. */
+/* The anchor fills its row, so the target is the row rather than the text: at
+   the body step with the padding above, that is 24px tall, which satisfies
+   WCAG 2.2 SC 2.5.8 outright instead of through the spacing exception. */
+.legal-contents a {
+  display: block;
+}
+
+.legal-contents .contents-depth-2 {
+  padding-left: var(--space-4);
+}
+
+.legal-contents .contents-depth-3 {
+  padding-left: var(--space-6);
+}
+
+/* And so does the section itself. */
+.legal-depth-2 {
+  padding-left: var(--space-4);
+}
+
+.legal-depth-3 {
+  padding-left: var(--space-6);
+}
+
+/* A section heading is a heading, not a run-in: it sits above its prose with
+   the space a reader needs to find it while scrolling for one clause. */
+.legal h3,
+.legal h4 {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-2);
+}
+
+.legal h4 {
+  margin-top: var(--space-5);
+}
+
 /* ---- The certificate ------------------------------------------------- */
 
 /* Narrower than the sheet: `brand.md` §3 gives a document that is read the
