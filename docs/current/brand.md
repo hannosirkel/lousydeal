@@ -271,9 +271,38 @@ orders, or it does not arrive.
 ### Tier page — `/deal/[handle]`, `FORM LD-2`, a quotation
 
 Document title `QUOTATION`. A ledger block for that tier — item, price, value,
-return — then `UPGRADES AVAILABLE`, listing the more expensive tiers under the
-line **"Pay more. Receive the same."** Then the primary button, then fine print
-carrying the withdrawal notice and a link to Refunds & Withdrawal.
+return — then the primary button, reading `ACQUIRE FOR $5.00` with that tier's
+own price, as the home page's does. Then `UPGRADES AVAILABLE`, listing the more
+expensive tiers under the line **"Pay more. Receive the same."** Then fine
+print carrying the withdrawal notice and a link to Refunds & Withdrawal.
+
+Each upgrade is a ledger row: the tier's name, the leader, its price. Only
+tiers costing **strictly more** are listed — a tier priced the same is not an
+upgrade, and offering one would be inviting a buyer to pay the same amount for
+the same nothing, which is a joke this site does not make.
+
+On the most expensive tier **the heading goes with the list**, replaced by
+**"This is the worst deal available. There is nothing further to pay for."** A
+document announcing `UPGRADES AVAILABLE` directly above a line saying there are
+none is inaccurate, and accuracy is what carries the joke.
+
+**An upgrade's name is set in label style**, capitals and tracking, because it
+is the label half of a ledger row. The same name appears sentence case in the
+home page's table, where it is the row's subject rather than a label. Two
+roles, not two spellings — §2's rule is about the words, and they are the
+same.
+
+The withdrawal notice says what the checkout *asks*, never that a right is
+already lost: "This is digital content supplied immediately. At checkout you
+are asked to consent to supply beginning at once, and to acknowledge that you
+thereby lose the 14-day right of withdrawal. The box is not ticked for you."
+The reason is §5's, and it is the same reason the home page's fourth line is
+worded that way.
+
+A handle no tier has is a **404**, not an empty quotation — a document headed
+`QUOTATION` with no item tells a reader, and a crawler, that a deal exists.
+
+The tier name in the home page's table links here.
 
 **No gift toggle.** Gifting is LD-03 and has no backend. A toggle that does
 nothing is a lie in a control, which is worse than an absent feature.

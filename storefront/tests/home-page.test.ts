@@ -25,7 +25,7 @@ import { TierTable, type TierRow } from "../src/components/document/TierTable";
 import { NO_OFFER_NOTICE, TERMS_OF_OFFER, TIER_TABLE_HEADINGS } from "../src/content/home";
 import type { Tier } from "../src/lib/medusa-client";
 import { formatMoney } from "../src/lib/money";
-import { cheapest, tierRowData } from "../src/lib/tier-rows";
+import { cheapest, tierPath, tierRowData } from "../src/lib/tier-rows";
 
 const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
@@ -114,9 +114,11 @@ describe("the tier table", () => {
     expect(html.match(/<tbody>[\s\S]*<\/tbody>/)?.[0].match(/<tr>/g)).toHaveLength(3);
   });
 
-  it("names each tier as the row header the other cells describe", () => {
+  it("names each tier as the row header the other cells describe, linking its quotation", () => {
     for (const tier of TIERS) {
-      expect(html).toContain(`<th scope="row" data-label="${TIER_TABLE_HEADINGS.item}"><span class="cell-value">${tier.title}</span></th>`);
+      expect(html).toContain(
+        `<th scope="row" data-label="${TIER_TABLE_HEADINGS.item}"><span class="cell-value"><a href="${tierPath(tier.handle)}">${tier.title}</a></span></th>`,
+      );
     }
   });
 

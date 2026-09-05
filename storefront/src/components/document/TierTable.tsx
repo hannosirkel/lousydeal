@@ -30,6 +30,8 @@ import { TIER_TABLE_HEADINGS } from "../../content/home";
 export interface TierRow {
   readonly id: string;
   readonly title: string;
+  /** The tier's own quotation. The row header links to it. */
+  readonly href: string;
   readonly description: string;
   readonly value: string;
   readonly price: string;
@@ -86,7 +88,9 @@ export function TierTable({ rows }: { readonly rows: readonly TierRow[] }) {
                 what the other four cells are about, and a screen reader
                 reading a cell out of order gets told which row it is in. */}
             <th scope="row" data-label={TIER_TABLE_HEADINGS.item}>
-              <span className="cell-value">{row.title}</span>
+              <span className="cell-value">
+                <a href={row.href}>{row.title}</a>
+              </span>
             </th>
             <Cell label={TIER_TABLE_HEADINGS.description}>{row.description}</Cell>
             <Cell label={TIER_TABLE_HEADINGS.value} align="figure">
