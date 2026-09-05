@@ -11,6 +11,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import { REFUNDS } from "../src/content/legal/refunds";
 import { TERMS } from "../src/content/legal/terms";
 
 /** Every paragraph, flattened, for assertions about the document as a whole. */
@@ -120,6 +121,25 @@ describe("delivery and withdrawal", () => {
     expect(prose).not.toMatch(/\bno longer\b[^.]*right of withdrawal/i);
     // The one permitted form is the conditional the statute actually creates.
     expect(section("6")).toContain("would thereby lose the right");
+  });
+});
+
+describe("agreement with Refunds and Withdrawal", () => {
+  it("puts the confirmation no later than the start of supply, as § 55(1) does", () => {
+    // The first draft read "it is shown to you, and a confirmation is sent",
+    // which puts the confirmation after supply began. A late confirmation does
+    // not satisfy the third condition of § 53(4) p 7¹, so the ordering decides
+    // whether the exception applies at all.
+    expect(section("5")).toContain("no later than the moment supply begins");
+    expect(REFUNDS.sections.flatMap((s) => s.body).join("\n")).toContain("no later than the moment supply begins");
+  });
+
+  it("discloses that the consent is a condition of ordering, not merely shown", () => {
+    // Refunds §4 said the order does not proceed without it. Stating a harsher
+    // term only in the document a buyer is less likely to read is the defect,
+    // not the term.
+    expect(section("4")).toMatch(/condition of ordering/i);
+    expect(section("4")).toMatch(/does not proceed/i);
   });
 });
 

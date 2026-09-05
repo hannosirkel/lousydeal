@@ -596,7 +596,7 @@ unpublished site.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/content/legal/refunds.ts`,
 `storefront/src/app/legal/refunds/page.tsx`,
-`storefront/src/components/document/Footer.tsx`.
+`storefront/tests/legal-refunds.test.ts`.
 
 - [ ] Draft the withdrawal policy: the 14-day statutory right of **VÕS
       § 56(1)**, the digital-content exception of **§ 53(4) p 7¹**, and all
@@ -625,9 +625,93 @@ writing a document describing a mechanism the site does not yet have. That is
 named in the pull request and carried to the Legal gate rather than softened,
 because the alternative is a page overstating what the buyer gave up.
 
-The statutory paragraph is straight prose with no flourish. A `NO REFUNDS` stamp
-may appear on this page **only** below the consent explanation, where it is
-true, and never above it.
+The statutory paragraphs are straight prose with no flourish.
+
+**No `NO REFUNDS` stamp is used.** The permission above stands, and this row
+declined it: whether the sentence is true depends on whether all three
+conditions of § 53(4) p 7¹ were met for a particular reader, and a static page
+cannot know. A stamp true for some readers and false for others is the
+misleading §23 forbids, and this is the last document on the site to make a
+claim that only usually holds.
+
+Four provisions this row read that the earlier research had not reached, all
+from the same API path: § 56(2¹), a notice is in time if sent inside the
+period; § 56(2²) and § 56(2³), the model form and its regulation; § 56(2⁵), the
+consumer bears the burden of proving withdrawal; and § 62, which makes void any
+agreement departing from these provisions to the consumer's detriment. The last
+is worth stating on a page a buyer reads while already suspicious.
+
+#### What V10's own Gate D changed
+
+The first draft cited redaction `106072023116`, which stopped being law on
+**12.07.2024**. Its metadata says so — `kehtivuseLopp`, and
+`onHetkelKehtivKuvada = false` — and the row did not check. The in-force text is
+`120062026018`, effective **01.09.2026**, and reading it added two provisions
+absent from the stale redaction, one of which the site does not comply with.
+Every citation is now re-read from the current text.
+
+Three blocking defects, each recorded because each is a way this document could
+have misled the reader it exists to protect:
+
+1. **§7 claimed the worthlessness is "stated on every page that sells one".**
+   Measured: absent from the cart and the checkout, which is where the sale is
+   concluded. This is the identical claim V9's Gate D deleted from the Terms.
+   The ban had been written into `legal-terms.test.ts`, so it did not reach a
+   second document — it now lives in `no-unresolved-placeholder.test.ts`, which
+   walks the directory and so covers documents not yet written.
+2. **§4 said "We send it by email" in the unqualified present tense.** It is
+   LD-02's email, it does not exist, and it is the third condition — so a
+   reader taking §3 and §4 together concluded the right was gone. §4 now says
+   we do not send it yet, and §3 says the third condition is missing for every
+   order today.
+3. **§ 56⁴ and § 54(1) p 13¹, both in force 01.09.2026**, require a withdrawal
+   button marked "Taganen lepingust", reachable throughout the period, with a
+   confirmation control and a durable-medium receipt — and require telling the
+   buyer where it is. **There is no such button.** §5 states that as
+   non-compliance rather than omitting it.
+
+Nine further legal findings were fixed: the uncited § 56¹(1)/(4) refund rule;
+the missing § 56(1³) start date, without which a buyer cannot compute a
+deadline; § 55(2)'s full contents rather than the consent half; § 62¹⁴'s
+remedies, and that the election is the consumer's; § 62¹¹/§ 62¹²'s periods and
+burden of proof; the § 54(1) p 18 reminder; an unbounded "the only circumstance
+in which we will say no"; §2 addressing the right to the reader rather than to
+a consumer; and §7's flat "worth nothing is not a defect", which § 62¹⁰ makes
+depend on an express and separate agreement the checkout does not collect.
+
+**§5.1 reproduces the model form** rather than naming it, since § 54(1) p 13
+makes the form itself pre-contractual information.
+
+Two claims in the row's own commit were false and are corrected: the test count
+(442 at the time, not 445 — the third miscount in this slice) and the closure
+of gate item 2, which mentioning a form did not achieve.
+
+**Two clauses in the Terms were wrong and this row fixed them**, because a row
+that finds a neighbouring document wrong owns the correction: §5 put the
+confirmation after supply, where § 55(1) requires it no later than the start of
+supply; and §4 did not disclose that the consent is a condition of ordering —
+the harsher term appeared only in the document a buyer is less likely to reach.
+
+#### The legal gate list
+
+Recorded here rather than in a commit message. V9's five items were named in
+`bcaf378`'s message only, so a qualified reader given this plan — which is how
+§23's gate is meant to work — could not see them. Item 2 is struck through
+because V10 closed it; the numbering is kept so earlier references resolve.
+
+| # | Item | Raised |
+| --- | --- | --- |
+| 1 | No telephone number is published. § 54(1) p 2 requires one where available. | V9 |
+| 2 | ~~The model withdrawal form is not provided.~~ Closed by V10 §5.1. | V9 |
+| 3 | § 54(1) p 5 is unstated. | V9 |
+| 4 | ~~§ 54(1) p 18 is unstated.~~ Closed by V10 §7. | V9 |
+| 5 | § 62²(2)'s information duty, against what the checkout page shows. | V9 |
+| 6 | The §4/§5 contract-conclusion ordering in the Terms. | V9 |
+| 7 | **No § 56⁴ withdrawal button exists**, and § 54(1) p 13¹ requires saying where it is. Both in force 01.09.2026. A build task, not a copy task. | V10 |
+| 8 | The consent is a **condition of ordering** — there is no way to buy without giving up the right. § 56²(9) voids a term hindering the exercise of the right, and § 62 voids departures to the consumer's detriment. Whether this crosses either line is the reader's call. | V10 |
+| 9 | Worthlessness departs from § 62⁷(3) p 2, and § 62¹⁰ excuses that only on specific information **and** an express, separate agreement at conclusion. The checkout collects one box. | V10 |
+| 10 | The current redaction of the Justice Minister's regulation No 41 of 17.12.2013 could not be retrieved: that redaction's wording ended 26.05.2022 and Riigi Teataja returns an empty redaction list for it. §5.1's form is Annex I(B) of Directive 2011/83/EU and is not in doubt; the current Estonian annex should be checked against it. | V10 |
+| 11 | **LD-02 is a hard precondition for publishing**, independently of this gate: without the § 55 confirmation the third condition is never met for any order. | V9 |
 
 ### V11 — Privacy Policy
 
