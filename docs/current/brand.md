@@ -366,6 +366,16 @@ the tier; the serial at display size; the issue date; one `StampMark` reading
 > This certificate confers no rights, value, or benefits of any kind, and the
 > bearer knew that.
 
+Its facts are set as a ledger, left-aligned inside the centred document — a
+column of figures that wanders with its labels is not a ledger. The labels are
+`BEARER`, `ITEM`, `AMOUNT WASTED`, `ISSUED`, and where no inscription was left
+the bearer line reads **`The bearer`** rather than collapsing: §5 requires an
+empty inscription to look deliberate, and most buyers will leave one.
+
+The date is the stored ISO date, rendered as it is stored. A shared screenshot
+outlives the runtime that made it, and a locale format would read differently
+for the person it was sent to.
+
 It must be screenshot-worthy at 390px, because that is where it will be shared.
 
 **In this slice it is built and reviewable but not public.** It renders from a
@@ -374,7 +384,9 @@ carrying the extra fine print `Specimen. No deal bears this number.` The public
 route is `lousydeal.com/done-deals/{slug}` per contract §5 — an opaque,
 non-enumerable slug, never the serial — and LD-02 mounts this same component
 there against real data. The prompt's `/deal/nr/[publicId]` is not the agreed
-URL and is not used.
+URL and is not used. The specimen route carries `noindex, nofollow`: a design
+surface is not a page a search engine should hold, and Access will not always
+be the thing keeping it out.
 
 ### System pages
 

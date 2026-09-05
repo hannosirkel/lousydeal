@@ -20,8 +20,13 @@
  * machine and a trailing one on another is a §23 problem, not a cosmetic one.
  */
 
-/** Grouped to three digits, always two decimal places, no locale involved. */
-function groupThousands(whole: string): string {
+/**
+ * Grouped to three digits, no locale involved. Exported because a certificate
+ * serial groups the same way and for the same reason: `toLocaleString` moves
+ * with the runtime's ICU data, and two figures on one page must not be grouped
+ * by two different rules.
+ */
+export function groupThousands(whole: string): string {
   return whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 

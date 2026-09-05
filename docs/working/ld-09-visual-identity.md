@@ -472,9 +472,11 @@ computation of a figure the API already gives.
 
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/components/document/Certificate.tsx`,
-`storefront/src/lib/certificate-model.ts`,
+`storefront/src/lib/certificate-model.ts`, `storefront/src/lib/money.ts`,
+`storefront/src/content/certificate.ts`,
 `storefront/src/app/design/certificate/page.tsx`,
-`storefront/tests/certificate.test.ts`.
+`storefront/src/app/globals.css`, `storefront/tests/certificate.test.ts`,
+`docs/current/brand.md`.
 
 - [ ] Build the certificate against a typed model — inscription, tier, amount,
       serial, issue date, layout version — and render one specimen record at
@@ -490,7 +492,12 @@ to version.
 
 **The specimen is not at a `/done-deals/` URL.** A fabricated deal must never
 occupy an address a real deal could have. `/design/` is a design surface and
-says so.
+says so, the certificate says so on its own face, and the route carries
+`noindex, nofollow` so that stays true after Access comes off.
+
+`money.ts` exports its thousands grouping so the serial uses it. Two figures on
+one document must not be grouped by two rules, and `toLocaleString` moves with
+the runtime's ICU data — the reason that file gives for not using it.
 
 ### V8 — The legal document shell, proven on the imprint
 
