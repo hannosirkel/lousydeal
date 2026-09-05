@@ -72,3 +72,6 @@ behind Cloudflare Access. Promotion is by digest, never by tag. See
 | How do I work here? | [`AGENTS.md`](./AGENTS.md) |
 | Why is it like this? | `docs/decisions/` |
 | What rules apply everywhere? | [`architecture/standards/`](https://github.com/hannosirkel/architecture/tree/main/standards) |
+
+<!-- Provisioning smoke test: verifies the Meeme VM can branch,
+     validate, push and open a pull request. Reverted before merge. -->
