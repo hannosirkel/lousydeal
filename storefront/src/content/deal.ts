@@ -38,8 +38,14 @@ export const NO_UPGRADES_LINE = "This is the worst deal available. There is noth
  * collects the first; LD-02's order email is the second. So this says what the
  * checkout will ask, and does not report a right as already lost.
  *
- * `brand.md` §4 has this linking to Refunds & Withdrawal. That route arrives
- * with V10 and V12 adds the link; a link that 404s is worse than an absent one.
+ * **"thereby lose" was still too flat**, and V10's Gate D caught it as the
+ * third surface saying the opposite of what Refunds §3 says. It is the surface
+ * a buyer reads *before* paying, which makes it the worst of the three to be
+ * wrong on. The conditional is the statute's own, and the missing confirmation
+ * is stated rather than left for a reader to discover two documents later.
+ *
+ * `brand.md` §4 has this linking to Refunds & Withdrawal. V12 adds the link;
+ * naming the document is the most this can do until then.
  */
 export const WITHDRAWAL_NOTICE =
-  "This is digital content supplied immediately. At checkout you are asked to consent to supply beginning at once, and to acknowledge that you thereby lose the 14-day right of withdrawal. The box is not ticked for you.";
+  "This is digital content supplied immediately. At checkout you are asked to consent to supply beginning at once, and to acknowledge that you would thereby lose the 14-day right of withdrawal. The box is not ticked for you. Losing that right also takes a confirmation we do not yet send, so today it survives the box. Refunds and Withdrawal sets out why.";

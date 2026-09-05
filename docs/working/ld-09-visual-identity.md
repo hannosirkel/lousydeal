@@ -710,8 +710,70 @@ because V10 closed it; the numbering is kept so earlier references resolve.
 | 7 | **No § 56⁴ withdrawal button exists**, and § 54(1) p 13¹ requires saying where it is. Both in force 01.09.2026. A build task, not a copy task. | V10 |
 | 8 | The consent is a **condition of ordering** — there is no way to buy without giving up the right. § 56²(9) voids a term hindering the exercise of the right, and § 62 voids departures to the consumer's detriment. Whether this crosses either line is the reader's call. | V10 |
 | 9 | Worthlessness departs from § 62⁷(3) p 2, and § 62¹⁰ excuses that only on specific information **and** an express, separate agreement at conclusion. The checkout collects one box. | V10 |
-| 10 | The current redaction of the Justice Minister's regulation No 41 of 17.12.2013 could not be retrieved: that redaction's wording ended 26.05.2022 and Riigi Teataja returns an empty redaction list for it. §5.1's form is Annex I(B) of Directive 2011/83/EU and is not in doubt; the current Estonian annex should be checked against it. | V10 |
+| 10 | The Estonian annex **has now been read** and §5.1 matches it line for line. What remains: the wording retrieved is the one in force 13.06.2014–26.05.2022, which lapsed the day before the 2021 amendments took effect. Whether a later redaction exists and differs is open. | V10, narrowed by V10a |
 | 11 | **LD-02 is a hard precondition for publishing**, independently of this gate: without the § 55 confirmation the third condition is never met for any order. | V9 |
+| 12 | **§ 56(1⁶): where the trader breached the § 54(1) p 12 duty, the period runs 12 months longer.** Nothing on the site links `/legal/refunds` — V12 adds the footer — so whether that information is given pre-contractually at all is a live question, and the answer decides whether the period is 14 days or 12 months. Now stated in both documents; whether it is *discharged* is the reader's. | V10a |
+| 13 | The checkout requires the buyer to affirm "I acknowledge that I will lose my right of withdrawal" — an acknowledgement of something that, on this analysis, will not happen for any order placed today. § 53(4) p 7¹ requires that wording, so it is not a defect; but it sits beside item 8 and the reader should see the two together. | V10a |
+| 14 | **`fresh-build.md` §23 says not to write terms, refund policy or consumer disclosures as part of any LD slice**, and rows V8–V11 do exactly that. `brand.md` §5 records it as being at the operator's instruction. If that instruction exists it belongs in `docs/decisions/`, because §23 is the document the qualified reader will be handed. | V10a |
+
+### V10a — What the second Gate D found
+
+**Files:** `storefront/src/content/legal/refunds.ts`,
+`storefront/src/content/legal/terms.ts`, `storefront/src/content/deal.ts`,
+`storefront/tests/legal-consistency.test.ts`,
+`storefront/tests/legal-refunds.test.ts`,
+`storefront/tests/legal-terms.test.ts`,
+`storefront/tests/no-unresolved-placeholder.test.ts`.
+
+V10 merged with the defect it was convened to remove still in it, one document
+over. **Terms §6 said "and we send that confirmation by email"** — the
+unqualified present tense, three sentences after reciting the three conditions,
+so a reader of the Terms concluded the right was gone while a reader of Refunds
+was told it stands. §5 said the same in the passive, on a line V10 edited and
+left. The offer page, which a buyer reads *before* paying, said "you thereby
+lose the 14-day right". Three surfaces, three positions, on the one fact the
+exception turns on.
+
+**Nothing caught it because every test checked one document against itself.**
+The ban existed — in `legal-refunds.test.ts`, scoped to `REFUNDS`, worded
+`(?:it|you|the confirmation)`, which does not match "that confirmation".
+`legal-consistency.test.ts` now takes the claim as the unit instead of the
+file: every surface a buyer can read is collected, including the offer page and
+the checkout box, and the rules apply across all of them at once.
+
+**Two other guards were weaker than their names.** The consent test compared
+word *coverage*, so Gate D rewrote §4 to "You do not acknowledge anything by
+ticking it, and you will not lose your right of withdrawal" — a superset of the
+label's vocabulary, saying the opposite — and 459 tests passed. The refund
+promise had no guard against acquiring a condition, and "provided you have not
+used the certificate" (which § 62 voids) passed. Both now fail on those exact
+mutations, verified.
+
+**A false diagnostic was recorded in three places and is corrected.**
+`onHetkelKehtivKuvada = false` was given as the tell that a redaction is dead.
+It is `false` on the in-force redaction too. The discriminator is `aktiStaatus`
+— `KEHTIV` against `KEHTINUD`. V11 would have reused the wrong recipe.
+
+**The Estonian annex was retrievable all along.** `JM_m41_lisa1.pdf` answers an
+HTTP error to curl's default user-agent and returns the PDF to a browser's; the
+"empty redaction list" offered as evidence is empty for the Law of Obligations
+Act as well. §5.1 matches the annex line for line, so gate item 10 narrows to
+whether a post-2022 wording exists.
+
+**Four legal corrections.** § 56(1⁶) added to both documents — the 12-month
+extension, and the one provision that lengthens the right rather than limiting
+it. § 62¹⁴(3) p 2 mistranslated "brought into conformity" as "delivered", which
+is a different remedy and would leave a buyer unable to recognise their own
+ground. § 62¹²(1) understated the burden, which is supply *in accordance with
+§ 62⁶* and not supply at all. § 56²(7) added: where the exception does not
+apply, the buyer owes nothing for what was supplied meanwhile. Two qualifiers
+that ran in the buyer's favour but were not the law — § 62¹⁴(1)'s
+reasonableness limit and § 62¹⁴(5)'s materiality — are now stated.
+
+**§ 56⁴'s tense was itself the defect it describes.** "That is our
+non-compliance" is a claim about a site that has published nothing, concluded
+no consumer contract and runs Stripe in test mode. There is no breach yet, only
+a certain one on opening, and the clause now says that.
 
 ### V11 — Privacy Policy
 

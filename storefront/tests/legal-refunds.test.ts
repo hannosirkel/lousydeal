@@ -145,7 +145,14 @@ describe("how to withdraw", () => {
     expect(s).toContain("§ 56⁴");
     expect(s).toContain("Taganen lepingust");
     expect(s).toMatch(/This site does not have one/);
-    expect(s).toMatch(/our non-compliance and not a restriction on you/i);
+    // "That is our non-compliance" was itself a claim about the site that is
+    // not presently true: nothing is published, Stripe is in test mode, and no
+    // consumer contract has been concluded, so there is no breach yet -- only a
+    // certain one on opening. It errs against the trader rather than the buyer,
+    // which is why it was a minor and not a blocking finding, but it is the
+    // same category of defect as the one this row is fixing.
+    expect(s).toMatch(/When it opens for business without one, that is our failure/);
+    expect(s).toMatch(/not a restriction on you/i);
   });
 });
 
@@ -258,14 +265,46 @@ describe("agreement with the checkout", () => {
     ),
   ];
 
+  /** The sentence in §4 that describes the box, isolated so it can be judged. */
+  const boxSentence = section("4")
+    .split(/(?<=\.)\s+/)
+    .filter((sentence) => /\btick/i.test(sentence))
+    .join(" ");
+
   it("paraphrases the box the checkout actually renders, word for word", () => {
-    // Derived from the label rather than restated beside it. Gate D's mutation
-    // -- "begin immediately on the fourteenth day, and I acknowledge nothing
-    // whatever" -- introduces `fourteenth`, `nothing` and `whatever`, none of
-    // which §4 contains, so this now fails where the old version passed.
-    const described = section("4").toLowerCase();
-    const missing = contentWords(CONSENT_LABEL).filter((word) => !described.includes(word));
+    // Derived from the label rather than restated beside it, and matched on
+    // word boundaries: `includes` let "acknowledge" be satisfied by
+    // "acknowledges" in an unrelated clause.
+    const described = boxSentence.toLowerCase();
+    const missing = contentWords(CONSENT_LABEL).filter(
+      (word) => !new RegExp(`\\b${word}\\b`).test(described),
+    );
     expect(missing).toEqual([]);
+  });
+
+  it("does not negate what the box says while quoting its vocabulary", () => {
+    // Gate D rewrote §4 to "You do not acknowledge anything by ticking it, and
+    // you will not lose your right of withdrawal once supply has begun" -- a
+    // superset of the label's words, saying the opposite -- and every test
+    // passed. Word coverage alone cannot see a negation, so it is checked for
+    // separately, on the one sentence that describes the control.
+    expect(boxSentence).not.toBe("");
+    // "not ticked for you" is a negation the clause must keep, and it sits in
+    // the same sentence as the acknowledgement, so it is removed before the
+    // rest is judged. Its presence is asserted separately below.
+    expect(boxSentence).toMatch(/is not ticked for you/i);
+    const claims = boxSentence.replace(/is not ticked for you/gi, "");
+    // What may not be negated is the acknowledgement or the loss -- the two
+    // things the box actually says.
+    expect(claims).not.toMatch(/\bnot\b[^.]*\backnowledg/i);
+    expect(claims).not.toMatch(/\backnowledg[^.]*\bnothing\b/i);
+    expect(claims).not.toMatch(/\b(?:will not|do(?:es)? not|never)\s+lose\b/i);
+  });
+
+  it("keeps the checkout label free of a negation too", () => {
+    // The mirror. Inverting CONSENT_LABEL with "not" leaves its content words
+    // intact, so the derivation above would still agree with §4.
+    expect(CONSENT_LABEL).not.toMatch(/\b(?:not|never|nothing)\b/i);
   });
 
   it("compares against a label that still says the two things it must", () => {
