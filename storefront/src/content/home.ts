@@ -74,11 +74,17 @@ export const TERMS_OF_OFFER_TITLE = "Terms of this offer";
 /**
  * Four lines, and each one is checkable against something.
  *
- * The fourth is worded carefully. VÕS § 53(4) p 7¹ removes the right of
- * withdrawal only where the consumer consented **and** the trader gave the
- * § 55(1)–(2) confirmation on a durable medium; the checkout collects the
- * first half and LD-02 sends the second. So this says what the checkout asks
- * of a buyer, and does not claim the right is already gone.
+ * **The fourth was not worded carefully enough, and Gate E found it.** It read
+ * "acknowledge that you thereby lose the 14-day right of withdrawal" -- the
+ * flat form V10a corrected in the Terms, in Refunds and on the offer page, on
+ * a fourth surface nobody had listed. This is the home page: the first thing a
+ * buyer reads.
+ *
+ * VÕS § 53(4) p 7¹ removes the right only where the consumer consented **and**
+ * the trader gave the § 55(1)–(2) confirmation on a durable medium. The
+ * checkout collects the first half; LD-02 sends the second and does not exist.
+ * So the conditional is the statute's own, and the missing confirmation is
+ * stated rather than left to a document two clicks away.
  *
  * `brand.md` §4 has each line linking the document that governs it. Those
  * routes arrive with V8–V11 and V12 adds the links; a link that 404s is worse
@@ -88,5 +94,5 @@ export const TERMS_OF_OFFER: readonly string[] = [
   "You receive a numbered digital certificate and nothing else of value. That is the product, not a caveat.",
   "It is supplied immediately after payment.",
   "The price shown is the price charged. It includes VAT where VAT applies, and nothing is added at checkout.",
-  "At checkout you are asked to consent to that immediate supply, and to acknowledge that you thereby lose the 14-day right of withdrawal. The box is not ticked for you.",
+  "At checkout you are asked to consent to that immediate supply, and to acknowledge that you would thereby lose the 14-day right of withdrawal. The box is not ticked for you, and losing that right also takes a confirmation we do not yet send.",
 ];

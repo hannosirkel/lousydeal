@@ -57,6 +57,7 @@ import {
   COUNTRY_LABEL,
   PAY_LABEL,
   PAYING_LABEL,
+  PAYMENT_NEEDS_SCRIPTING,
   PREPARING_PAYMENT_LABEL,
 } from "../../content/checkout";
 import { payDisabled } from "../../lib/checkout-rules";
@@ -137,10 +138,18 @@ export function PaymentForm({ cartId, stripePublishableKey, countries }: Payment
     // rendered page. As a route-level `loading.tsx` it made every page serve
     // nothing without JavaScript -- see V5c.
     return (
-      <p role="status">
-        <span className="cursor" aria-hidden="true" />
-        <span className="visually-hidden">{PREPARING_PAYMENT_LABEL}</span>
-      </p>
+      <>
+        <p role="status">
+          <span className="cursor" aria-hidden="true" />
+          <span className="visually-hidden">{PREPARING_PAYMENT_LABEL}</span>
+        </p>
+        {/* Gate E: served without scripting, this page showed the cursor and
+            "Preparing payment" for ever, and nothing was preparing. The
+            element that resolves it is the script that will never run. */}
+        <noscript>
+          <p className="notice">{PAYMENT_NEEDS_SCRIPTING}</p>
+        </noscript>
+      </>
     );
   }
 

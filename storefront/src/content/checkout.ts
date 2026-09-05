@@ -67,4 +67,21 @@ export const PAYING_LABEL = "Paying";
 /** The one place the loading cursor belongs: a state inside a rendered page. */
 export const PREPARING_PAYMENT_LABEL = "Preparing payment";
 
+/**
+ * What the payment step says when scripting is off.
+ *
+ * **Gate E measured this and it was the one page that lied.** Fetched with no
+ * JavaScript, `/checkout` served a blinking cursor and the words "Preparing
+ * payment" — and nothing was preparing, because the thing that prepares it is
+ * the script that will never run. Every other route serves its whole document
+ * without scripting; this one cannot, since a card is entered into a frame
+ * Stripe serves.
+ *
+ * So the inability is inherent and the message was not. It names the cause and
+ * gives a way to reach a person, which is the same standard the rest of the
+ * site is held to.
+ */
+export const PAYMENT_NEEDS_SCRIPTING =
+  "Paying needs JavaScript, because the card form is served by Stripe and runs in your browser. Nothing else on this site does. If you would rather not turn it on, write to us and we will take the order by email.";
+
 export const COUNTRY_LABEL = "Country";

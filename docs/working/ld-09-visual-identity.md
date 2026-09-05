@@ -1075,17 +1075,80 @@ behaviour and not a defect.
 **Files:** `docs/working/status.md`, `docs/current/brand.md`,
 `docs/working/ld-09-visual-identity.md`, `AGENTS.md`.
 
-- [ ] Fetch every route from a built server **with scripting disabled**, and
-      record the status and the served body for each. V5b shipped a change
-      that blanked every page and turned a 404 into a 200 while the whole unit
-      suite stayed green; nothing that renders components in isolation can
-      catch that class of defect.
-- [ ] Run the site, inspect every surface at desktop width and at 390px,
+- [x] Fetch every route from a built server **with scripting disabled**, and
+      record the status and the served body for each.
+- [x] Run the site, inspect every surface at desktop width and at 390px,
       exercise add-to-cart and the consent checkbox, and compare against
-      [`brand.md`](../current/brand.md). Record the result, the date and what
-      was inspected. Update the resume point.
-- [ ] Confirm both environments serve the new storefront and both still refuse
+      [`brand.md`](../current/brand.md).
+- [x] Confirm both environments serve the new storefront and both still refuse
       an unauthenticated request.
+
+**Run 2026-09-05**, against a built server (`next build`, `next start`) and a
+stubbed Store API, with Chromium for the widths.
+
+### With scripting disabled
+
+Fourteen routes fetched. Every one serves its whole document — the masthead, the
+content and the three-column footer — with no script executed.
+
+| Route | Status | Body |
+| --- | --- | --- |
+| `/` | 200 | 155 words |
+| `/deal/{lousy,worse,worst}-deal` | 200 | 118–121 words |
+| `/deal/nope` | **404** | **empty** |
+| `/cart`, `/checkout` | 200 | the empty-cart documents |
+| `/legal` | 200 | 117 words |
+| `/legal/{terms,refunds,privacy,imprint}` | 200 | 297–1459 words |
+| `/design/certificate` | 200 | 74 words |
+| `/nope-not-a-route` | 404 | the `FORM LD-404` document |
+
+`/deal/nope` is the accepted limitation recorded under V5c: `notFound()` from a
+dynamic route delivers the right status and an empty body. The status is the
+half that matters and the half V5b broke; the body is the half nothing in this
+slice can fix without `generateStaticParams` (barred by decision `002`) or
+middleware (barred by credential-at-edge).
+
+**Add-to-cart works with no JavaScript at all.** Posting the offer form as a
+browser would — multipart, carrying the `$ACTION_ID` field Next renders —
+answered `303`, set `lousydeal_cart_id`, and `/cart` then served *Worse deal
+$10.00 · Total $10.00 · Proceed to payment*.
+
+### Three defects, all fixed in this row
+
+**1. The home page was a fourth surface saying the right was already gone.**
+`TERMS_OF_OFFER[3]` read "acknowledge that you thereby lose the 14-day right of
+withdrawal" — the exact flat form V10a corrected in the Terms, in Refunds and on
+the offer page, three rows earlier. It survived because
+`legal-consistency.test.ts` guards a *list* of surfaces and the home page's
+offer terms were not on it. They are now, and the guard fails on the old
+wording.
+
+That is the second time in this slice a guard has been narrower than the claim
+it protects, and both times the gap was a surface nobody had listed.
+
+**2. The empty checkout was a dead end.** `/cart` has offered a way back since
+V6a; `/checkout` in the same state offered nothing. A visitor whose cart expired
+between the two pages reached a document with no action on it.
+
+**3. The payment step said something untrue without scripting.** `/checkout`
+served a blinking cursor and the words "Preparing payment", for ever — nothing
+was preparing, because what resolves it is the script that will never run. The
+inability to pay is inherent (the card form is Stripe's, and runs in the
+browser); the message was not. A `<noscript>` now names the cause and offers a
+way to reach a person.
+
+### At 390px and at desktop
+
+Nine surfaces at each width. The tier table collapses to stacked ledger blocks,
+the contents list nests `§5.1` under `§5`, the dotted leaders hold, and nothing
+overflows horizontally. The footer's three columns resolve `Aislopica OÜ`, its
+address and its contact from V14's configuration.
+
+### Both environments
+
+`lousydeal.com`, `www.lousydeal.com` and `test.lousydeal.com` each answer `302`
+to Cloudflare Access for an unauthenticated request. Deploying is not
+publishing.
 
 A passing unit suite is not visual acceptance — §14 says so directly. This row
 produces screenshots and a written comparison, and it is the row that may fail

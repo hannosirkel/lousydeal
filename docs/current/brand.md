@@ -434,6 +434,13 @@ images arrive with LD-02, when there is a certificate to render.
 
 ## 5. Legal documents
 
+**The social image's ledger leader is dashed, not dotted.** Satori, which
+renders it, rejects `borderStyle: "dotted"` outright — "Allowed values: solid |
+dashed" — so the choice was the nearest thing it renders or a hand-drawn row of
+glyphs that sets to a different rhythm at every width. It is the one place on
+any surface where the leader is not dotted, and at 1200px it reads as though it
+were.
+
 Four documents — Terms of Service, Refunds & Withdrawal, Privacy Policy,
 Imprint — at 640px in `DocumentFrame`, with numbered sections (§1, §1.1) and a
 short table of contents headed `CONTENTS`.
