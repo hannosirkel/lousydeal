@@ -30,6 +30,8 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 
+import { Footer } from "../components/document/Footer";
+import { Masthead } from "../components/document/Masthead";
 import {
   getRuntimeConfig,
   RUNTIME_CONFIG_ELEMENT_ID,
@@ -53,7 +55,8 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { readonly children: ReactNode }) {
   await connection();
-  const serializedConfig = serializeRuntimeConfig(toClientRuntimeConfig(getRuntimeConfig()));
+  const config = getRuntimeConfig();
+  const serializedConfig = serializeRuntimeConfig(toClientRuntimeConfig(config));
 
   return (
     <html lang="en" className={plexMono.variable}>
@@ -63,7 +66,17 @@ export default async function RootLayout({ children }: { readonly children: Reac
           type="application/json"
           dangerouslySetInnerHTML={{ __html: serializedConfig }}
         />
-        {children}
+        {/* One measure for the whole sheet, so the letterhead, the content
+            and the trader line share an edge the way a printed document does.
+            A <div> rather than a <main>: the three routes this repository
+            serves today each render their own, and two would be invalid. The
+            framework's built-in 404 renders here with none, which V6 fixes
+            when it replaces that page. */}
+        <div className="sheet">
+          <Masthead />
+          {children}
+          <Footer merchant={config.merchant} />
+        </div>
       </body>
     </html>
   );

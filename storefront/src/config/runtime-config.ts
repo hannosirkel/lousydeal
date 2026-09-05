@@ -18,11 +18,12 @@
  *
  * Only what LD-01 actually consumes is here: the Medusa backend URL and
  * publishable key (Task 9/10), and the Stripe **publishable** key (C6, a
- * paid Stripe test-mode order reached through the storefront). No
- * `MERCHANT_*` field — no row in this slice renders an imprint, and a
- * configuration field nothing reads is a defect this build has already
- * removed more than once. A later row that renders trader details adds that
- * field then, not now.
+ * paid Stripe test-mode order reached through the storefront).
+ *
+ * The five `MERCHANT_*` fields are read here rather than written into content
+ * because decision `004` rules that a disclosure must be changeable by
+ * configuration, not by a code change — see `src/content/merchant.ts` for the
+ * substitution and `src/content/chrome.ts` for the templates that use it.
  */
 
 import { readEnv, type EnvRecord } from "./env";
@@ -47,6 +48,22 @@ export interface RuntimeConfig {
     /** Stripe's publishable key is public by design; no secret key lives here. */
     readonly publishableKey: string | null;
   };
+  /**
+   * Trader identity, server-side only. Every field is public information and
+   * none of it is in `ClientRuntimeConfig`: what the browser is handed is a
+   * decision each field earns, and no page needs these in the browser.
+   *
+   * `registryCode` and `vatNumber` are the two the operator has not supplied.
+   * They stay `null` until a deployment sets them, and a `null` renders as a
+   * named visible gap rather than a blank — `src/content/merchant.ts`.
+   */
+  readonly merchant: {
+    readonly legalName: string | null;
+    readonly address: string | null;
+    readonly email: string | null;
+    readonly registryCode: string | null;
+    readonly vatNumber: string | null;
+  };
 }
 
 export function getRuntimeConfig(env: EnvRecord = process.env): RuntimeConfig {
@@ -57,6 +74,13 @@ export function getRuntimeConfig(env: EnvRecord = process.env): RuntimeConfig {
     },
     stripe: {
       publishableKey: readEnv("STRIPE_PUBLISHABLE_KEY", env) ?? null,
+    },
+    merchant: {
+      legalName: readEnv("MERCHANT_LEGAL_NAME", env) ?? null,
+      address: readEnv("MERCHANT_ADDRESS", env) ?? null,
+      email: readEnv("MERCHANT_EMAIL", env) ?? null,
+      registryCode: readEnv("MERCHANT_REGISTRY_CODE", env) ?? null,
+      vatNumber: readEnv("MERCHANT_VAT_NUMBER", env) ?? null,
     },
   };
 }

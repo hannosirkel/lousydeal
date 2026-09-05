@@ -193,6 +193,55 @@ small {
   font-size: var(--size-fine);
 }
 
+/* The sheet: one measure for the letterhead, the content and the trader line,
+   so all three share an edge. */
+.sheet {
+  max-width: var(--measure-document);
+  margin: 0 auto;
+}
+
+.masthead {
+  margin-bottom: var(--space-7);
+  text-align: center;
+}
+
+.masthead-mark {
+  font-size: var(--size-small);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-decoration: none;
+}
+
+.masthead-line {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-soft);
+  font-size: var(--size-fine);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.footer {
+  margin-top: var(--space-8);
+}
+
+.footer p {
+  margin: 0 0 var(--space-1);
+}
+
+/* Fine print is the one italic on the site. */
+.fine-print {
+  color: var(--ink-soft);
+  font-size: var(--size-fine);
+  font-style: italic;
+}
+
+/* An unconfigured legal detail. Named and visible, never blank -- decision
+   004 -- and in the one colour this identity gives an error state. */
+.gap {
+  color: var(--stamp);
+  font-style: normal;
+}
+
 /* There is almost no motion here to reduce -- one colour fade and one blinking
    block. Honouring the preference is a two-line rule, so it is honoured
    rather than argued about. */
