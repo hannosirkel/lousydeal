@@ -341,8 +341,10 @@ sensible at the same time.
 ### V5b — The system pages
 
 **Repository:** `lousydeal`. **Runs before V6.**
-**Files:** `storefront/src/app/error.tsx`, `storefront/src/app/loading.tsx`,
-`storefront/src/app/globals.css`, `storefront/tests/system-pages.test.ts`.
+**Files:** `storefront/src/app/error.tsx`,
+`storefront/src/app/global-error.tsx`, `storefront/src/app/loading.tsx`,
+`storefront/src/app/globals.css`, `storefront/tests/system-pages.test.ts`,
+`docs/current/brand.md`.
 
 - [ ] Render the error and loading states as
       [`brand.md`](../current/brand.md) §4's system-pages table describes them:
@@ -355,18 +357,25 @@ three system pages since Gate C, and the row that should have built them was
 never written — V5's review found it while finding the 404. The 404 itself is
 V5's, because V5 is what made one reachable.
 
-**`notFound()` from a dynamic route still delivers an empty body**, and this
-row is where that is looked at again. Measured on the built server after V5
-added `not-found.tsx`: a URL matching no route (`/nonexistent`) server-renders
-the whole document, masthead and footer included; `notFound()` thrown from
-`/deal/[handle]` returns `<html id="__next_error__">` with an empty body and
-the document only in the flight payload, because the shell was flushed before
-the throw and Next cannot rewind a started response. The status is 404 in both
-and a reader with JavaScript sees the document in both. A reader without it
-sees a blank page on the thrown one — one route, one condition, and the
-identity's rule against client-rendered surfaces broken by the framework
-rather than by a choice. Either find the shape that server-renders it, or
-record it as accepted with this measurement; do not leave it undescribed.
+**`notFound()` from a dynamic route delivers an empty body, and this row
+accepts it.** Measured on the built server: a URL matching no route
+(`/nonexistent`) server-renders the whole document, masthead and footer
+included; `notFound()` thrown from `/deal/[handle]` returns
+`<html id="__next_error__">` with an empty body and the document only in the
+flight payload. The shell is flushed before the throw and Next cannot rewind a
+started response.
+
+**One hypothesis was tried and disproved.** Moving the decision into
+`generateMetadata`, which runs before the page renders, changes nothing:
+measured, `/deal/nope` still returns the error shell with an empty body while
+`/deal/lousy-deal` renders normally. The two shapes that would fix it are both
+barred here — `generateStaticParams` with `dynamicParams: false` needs the tier
+list at build time, which decision `002` forbids baking into an image, and a
+middleware check needs the Store API and its credential at the edge.
+
+So it is **accepted, with its blast radius stated**: one route, one condition,
+readers without JavaScript, status still 404, and every reader with JavaScript
+sees the right document. V15's Gate E confirms it has not widened.
 
 `error.tsx` must carry `"use client"`: a React error boundary cannot be a
 Server Component. That is the third exception to §6's no-client-JavaScript

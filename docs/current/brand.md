@@ -353,7 +353,17 @@ URL and is not used.
 | --- | --- | --- |
 | 404 | `DOCUMENT NOT FOUND` | This page has even less content than our products. |
 | Error | `PROCESSING ERROR` | The request could not be completed. This was not, on this occasion, deliberate. |
-| Loading | — | A single blinking block cursor. No spinner. |
+| Loading | — | A single blinking block cursor, drawn in CSS. No spinner. Carries the hidden word `Loading` for a reader who cannot see it. |
+| Layout error | `PROCESSING ERROR` | The same, without masthead or footer — the layout that renders them is what failed. |
+
+The error page offers **"Return to the purchase order"** as a secondary button
+rather than a retry control: a retry needs a click handler, and a link works
+even where the boundary's own JavaScript did not load. It never shows what was
+thrown.
+
+Form numbers: `FORM LD-404` and `FORM LD-5XX`. A form number for a page that
+is not a form is the joke a filing clerk would have made, which is the register
+§1 asks for.
 
 ### Social images
 
@@ -406,5 +416,8 @@ A single list, so a later surface does not have to re-derive it:
 - no animation beyond a 120ms colour change and the loading cursor;
 - no emoji and no exclamation mark, in any surface or any error message;
 - no fabricated order, total, customer, testimonial or review;
-- no client-side JavaScript for anything except the consent checkbox and the
-  Stripe payment element.
+- no client-side JavaScript for anything except the consent checkbox, the
+  Stripe payment element, and the two error boundaries — a React error boundary
+  cannot be a Server Component, so `error.tsx` and `global-error.tsx` carry
+  `"use client"` as a framework requirement rather than a choice. They render
+  no interactivity beyond a link.
