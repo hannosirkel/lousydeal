@@ -253,6 +253,76 @@ small {
   margin: 0 0 var(--space-1);
 }
 
+/* `brand.md` §4's three columns. Two are headed blocks; the third is the
+   trader line beneath them, which is a footnote to the whole footer rather
+   than a peer of the other two -- it names the same company the COMPANY
+   column contacts. */
+.footer-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+.footer-column {
+  flex: 1 1 auto;
+  min-width: min-content;
+}
+
+/* Set as a label, per the type scale: this is a column heading, not a section
+   heading, and giving it the section step would make the footer shout. */
+.footer-heading {
+  margin: 0 0 var(--space-1);
+  font-size: var(--size-small);
+  font-weight: 400;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.footer-column ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer-column li,
+.footer-column p {
+  font-size: var(--size-small);
+  margin: 0;
+}
+
+/* Same reasoning as the contents list: the anchor fills its row so the target
+   is the row. At the small step with this padding the row is 24px, which meets
+   WCAG 2.2 SC 2.5.8 without relying on the spacing exception. */
+.footer-column a {
+  display: block;
+  padding: 3px 0;
+}
+
+/* The index is a list of documents, each a link over its own summary. The
+   summary is not a link: two targets for one destination reads as a repeat to
+   anyone tabbing through. */
+.legal-index {
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.legal-index li {
+  margin-bottom: var(--space-4);
+}
+
+.legal-index a {
+  display: block;
+}
+
+.legal-index-summary {
+  display: block;
+  color: var(--ink-soft);
+  font-size: var(--size-small);
+}
+
 /* Fine print is the one italic on the site. */
 .fine-print {
   color: var(--ink-soft);
@@ -639,7 +709,6 @@ a.button.is-secondary:hover {
   font-size: var(--size-body);
 }
 
-/* A sub-section's entry sits under its parent's. */
 /* The anchor fills its row, so the target is the row rather than the text: at
    the body step with the padding above, that is 24px tall, which satisfies
    WCAG 2.2 SC 2.5.8 outright instead of through the spacing exception. */
@@ -647,6 +716,7 @@ a.button.is-secondary:hover {
   display: block;
 }
 
+/* A sub-section's entry sits under its parent's. */
 .legal-contents .contents-depth-2 {
   padding-left: var(--space-4);
 }
