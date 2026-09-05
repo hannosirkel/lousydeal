@@ -95,6 +95,25 @@ textarea {
   color: inherit;
 }
 
+/* A checked box is drawn by the UA, and its default is the platform blue --
+   a second accent on the one control this site's legal position rests on.
+   `tests/tokens.test.ts` guards colour literals in source and cannot see a
+   colour the browser draws, so this is the only place it can be said. */
+input[type="checkbox"] {
+  accent-color: var(--stamp);
+}
+
+/* The country control, in the identity rather than in the UA's grey. The
+   disclosure triangle stays the browser's -- drawing one would be the icon
+   set §6 forbids. */
+select {
+  padding: var(--space-1) var(--space-2);
+  border: var(--rule-width) solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--size-body);
+}
+
 body {
   margin: 0;
   padding: var(--space-6) var(--space-4) var(--space-8);
@@ -397,15 +416,60 @@ small {
   color: var(--ink);
 }
 
+/* A control that cannot be used yet says so in ink weight, not in colour:
+   --stamp is this identity's error state and a not-yet is not an error. */
+.button:disabled {
+  border-color: var(--ink-soft);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+
 /* Hover inverts ground and text. No scale, no shadow, no lift. */
-.button.is-primary:hover {
+.button.is-primary:hover:enabled,
+a.button.is-primary:hover {
   background: var(--paper);
   color: var(--stamp);
 }
 
-.button.is-secondary:hover {
+.button.is-secondary:hover:enabled,
+a.button.is-secondary:hover {
   background: var(--ink);
   color: var(--paper);
+}
+
+/* The country control and the consent box. A checkbox and its label read as
+   one thing, so they sit on one baseline with the label free to wrap. */
+.field,
+.consent {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+/* Legal prose takes the body step, like every other legal sentence on the
+   site -- `brand.md` §3's table gives the small step to labels, and this is a
+   disclosure that happens to be inside a `<label>`. */
+.consent label {
+  font-size: var(--size-body);
+}
+
+/* A field label, set as a label. */
+.field label {
+  font-size: var(--size-small);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* An empty document's one line, in label style. */
+.notice {
+  font-size: var(--size-small);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.payment-error {
+  color: var(--stamp);
 }
 
 /* Visually hidden, still read. Not `display: none`, which removes it from the

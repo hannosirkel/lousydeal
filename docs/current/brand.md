@@ -309,13 +309,15 @@ nothing is a lie in a control, which is worse than an absent feature.
 
 ### Cart — `ORDER SUMMARY`
 
-Line items as ledger rows, the cart's own total as the closing row, and one
-button to checkout. The empty state is a document too: `NO ITEMS OF RECORD`.
+`FORM LD-3`. Line items as ledger rows, the cart's own total as the closing
+row — read from the API, never summed here — and one button, `PROCEED TO
+PAYMENT`. The empty state is a document too: `NO ITEMS OF RECORD`.
 
 ### Checkout — `PAYMENT AUTHORISATION`
 
-The total, explicit, as a ledger row before anything else. Then fine print:
-`Price includes VAT where applicable. The amount shown is the amount charged.`
+`FORM LD-4`. The total, explicit, as a ledger row before anything else. Then
+fine print: `Price includes VAT where applicable. The amount shown is the
+amount charged.`
 
 Then the **consent checkbox**, unticked by default, which the pay control is
 disabled behind:
@@ -326,6 +328,33 @@ disabled behind:
 Then the Stripe payment element. The checkbox is required by
 [`fresh-build.md`](../working/fresh-build.md) §23 and by VÕS § 53(4); its
 wording is legal text and changes only with the legal documents.
+
+While the box is unticked the pay control is **disabled** and fine print under
+it reads `Payment cannot begin until that box is ticked.` — a control that is
+off says why, rather than leaving the reader to work it out.
+
+**A disabled control is drawn in `--ink-soft`, not in `--stamp`.** The accent
+is this identity's error state, and a not-yet is not an error.
+
+**A ticked checkbox is `--stamp`**, set with `accent-color`. Left alone the
+browser draws its own platform blue, which would put a second accent on the
+one control this site's legal position rests on. The colour-literal test
+guards source and cannot see a colour a browser draws, so it is said here.
+
+**The consent sentence is set at the body step**, not the small step. It is
+legal prose that happens to live inside a `<label>`, and §3's table gives the
+small step to labels rather than to disclosures.
+
+The country control is bordered in `--ink` on the paper, like every other
+field. **Its disclosure triangle stays the browser's** — drawing one would be
+the icon set §6 forbids.
+
+An empty document offers a way on: `NO ITEMS OF RECORD` above a secondary
+`RETURN TO THE PURCHASE ORDER`. A dead end is not a document.
+
+While the payment session is being created the page shows the blinking cursor
+with the hidden word `Preparing payment`. That is the state §4's loading row
+means: one inside a rendered page, never a route boundary.
 
 ### Certificate — the most designed surface
 

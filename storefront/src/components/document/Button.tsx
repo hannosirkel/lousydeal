@@ -19,8 +19,12 @@ interface Common {
 
 type ButtonProps = Common &
   (
-    | { readonly href: string; readonly type?: never }
-    | { readonly href?: never; readonly type?: "submit" | "button" }
+    | { readonly href: string; readonly type?: never; readonly disabled?: never }
+    // `disabled` is only on the button branch, and deliberately: a disabled
+    // link is not a thing HTML has. A control that must not be used yet is a
+    // `<button>`, which browsers and assistive technology both understand as
+    // unavailable; `<a aria-disabled>` is still focusable and still followed.
+    | { readonly href?: never; readonly type?: "submit" | "button"; readonly disabled?: boolean }
   );
 
 export function Button({ variant = "primary", children, ...rest }: ButtonProps) {
@@ -35,7 +39,7 @@ export function Button({ variant = "primary", children, ...rest }: ButtonProps) 
   }
 
   return (
-    <button className={className} type={rest.type ?? "submit"}>
+    <button className={className} type={rest.type ?? "submit"} disabled={rest.disabled ?? false}>
       {children}
     </button>
   );
