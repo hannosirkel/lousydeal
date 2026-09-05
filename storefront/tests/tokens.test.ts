@@ -15,6 +15,8 @@ import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { PALETTE, PALETTE_TOKENS } from "../src/app/palette";
+
 const cssPath = fileURLToPath(new URL("../src/app/globals.css", import.meta.url));
 const css = readFileSync(cssPath, "utf8");
 
@@ -91,6 +93,8 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
+const palettePath = fileURLToPath(new URL("../src/app/palette.ts", import.meta.url));
+
 describe("design tokens", () => {
   it("declares each token exactly once, inside :root", () => {
     expect(rootBlock).not.toBe("");
@@ -102,16 +106,30 @@ describe("design tokens", () => {
     }
   });
 
-  it("writes no colour literal anywhere under src, outside :root", () => {
+  it("writes no colour literal anywhere under src, outside :root and the palette", () => {
     const srcRoot = fileURLToPath(new URL("../src", import.meta.url));
     const offenders = sourceFiles(srcRoot)
       .map((path) => {
+        if (path === palettePath) return null;
         const body = path === cssPath ? css.replace(rootBlock, "") : readFileSync(path, "utf8");
         const hit = COLOUR_LITERAL.exec(body);
         return hit === null ? null : `${path}: ${hit[0]}`;
       })
       .filter((hit): hit is string => hit !== null);
     expect(offenders).toEqual([]);
+  });
+
+  it("keeps the palette module in step with :root, since it is the second home", () => {
+    // Satori renders in Node with no cascade, so the social image cannot read a
+    // custom property and `src/app/palette.ts` restates the five values. The
+    // exemption above is only defensible while this comparison exists: every
+    // entry must equal the `:root` declaration it names, so changing one and
+    // not the other fails here rather than shipping two palettes.
+    expect(Object.keys(PALETTE).sort()).toEqual(Object.keys(PALETTE_TOKENS).sort());
+    for (const [name, token] of Object.entries(PALETTE_TOKENS)) {
+      const declared = tokenValue(token);
+      expect(`${token} = ${PALETTE[name as keyof typeof PALETTE]}`).toBe(`${token} = ${declared}`);
+    }
   });
 });
 

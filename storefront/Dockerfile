@@ -88,10 +88,12 @@ WORKDIR /app
 COPY --from=build /src/storefront/.next/standalone/storefront ./
 # Not traced into the standalone output; Next expects it beside the server.
 COPY --from=build /src/storefront/.next/static ./.next/static
-# No `public/` COPY: this repository has none yet (`ls storefront/public`
-# reports nothing as of this row) -- a build's own tracing has no directory to
-# copy, and stating one that does not exist would fail the build rather than
-# ship an empty one. A row that adds static assets adds this line with them.
+# `public/` is not traced into the standalone output either, and V13 is the row
+# the note above anticipated: it adds `public/fonts/`, the two unmodified IBM
+# Plex Mono TTFs that `src/app/opengraph-image.tsx` hands to Satori. Without
+# this line the social image route throws ENOENT at runtime and `next build`
+# says nothing, because the file it reads is read on the first request.
+COPY --from=build /src/storefront/public ./public
 
 RUN mkdir -p /app/.next/cache && chown 10001:10001 /app/.next/cache
 
