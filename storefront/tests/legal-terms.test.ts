@@ -107,7 +107,7 @@ describe("delivery and withdrawal", () => {
     expect(withdrawal).toContain("express prior consent");
     expect(withdrawal).toContain("acknowledged");
     expect(withdrawal).toContain("§ 55(1)");
-    expect(withdrawal).toContain("If any of those conditions is not met, your 14-day right stands");
+    expect(withdrawal).toContain("the third condition is not met for any order placed here and your 14-day right stands");
   });
 
   it("does not tell a buyer the right is already gone", () => {
@@ -238,9 +238,9 @@ describe("the register", () => {
     // of them missing from a list of two, so the list is now checkable: each
     // phrase below is one of them, and a fifth would need adding to both.
     const forward = [
-      "a confirmation is sent to the email address you gave",
+      "We owe you a confirmation on a durable medium",
       "we gave you the confirmation required by",
-      "we send that confirmation by email",
+      "We do not yet send that confirmation",
       "both when you submit them",
       "Refunds and Withdrawal",
     ];

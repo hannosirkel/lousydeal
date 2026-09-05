@@ -17,8 +17,9 @@
  * more than the first draft named, which is the argument for listing them
  * where they can be counted:
  *
- *   §5  the order confirmation, and the email address it is sent to — the
- *       checkout collects no email address today. Both are LD-02's.
+ *   §5  the order confirmation we owe and do not send, and the email address
+ *       it would go to — the checkout collects none. Both are LD-02's. The
+ *       clause states the obligation and the failure rather than the act.
  *   §6  its reliance on that confirmation, which is the third condition
  *       § 53(4) p 7¹ requires. Also LD-02's.
  *   §7  the entry-side inscription filter — LD-02's checkout field. The
@@ -91,7 +92,8 @@ export const TERMS: LegalDocument = {
       number: "5",
       heading: "Delivery",
       body: [
-        "The certificate is digital content supplied immediately after payment: it is shown to you, and a confirmation is sent to the email address you gave, no later than the moment supply begins. There is nothing to ship and there is no delivery charge.",
+        "The certificate is digital content supplied immediately after payment: it is shown to you as soon as you have paid. There is nothing to ship and there is no delivery charge.",
+        "We owe you a confirmation on a durable medium no later than the moment supply begins, and we do not yet send one. §6 says what follows from that.",
       ],
     },
     {
@@ -100,7 +102,8 @@ export const TERMS: LegalDocument = {
       body: [
         "Under § 56(1) of the Estonian Law of Obligations Act (võlaõigusseadus), a consumer may withdraw from a distance contract within 14 days without giving a reason.",
         "§ 53(4) p 7¹ of that Act removes the right for digital content not supplied on a physical medium, but only where supply began before the withdrawal period ended, you gave express prior consent to it beginning and acknowledged that you would thereby lose the right, and we gave you the confirmation required by § 55(1) and § 55(2) of the Act.",
-        "The checkout asks for that consent, with the box unticked, and we send that confirmation by email. If any of those conditions is not met, your 14-day right stands. This is set out in full in Refunds and Withdrawal, which states rights you have rather than rights we grant.",
+        "The checkout asks for that consent, with the box unticked. We do not yet send that confirmation, so the third condition is not met for any order placed here and your 14-day right stands, whatever you answered at checkout. This is set out in full in Refunds and Withdrawal, which states rights you have rather than rights we grant.",
+        "If we did not tell you about the right of withdrawal, its time limit and how to use it, § 56(1⁶) extends the period to 12 months after the ordinary 14 days; and if we tell you late but within those 12 months, you have 14 days from being told.",
       ],
     },
     {

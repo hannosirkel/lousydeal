@@ -204,10 +204,18 @@ describe.each(documents)("$file", ({ record }) => {
     // including the ones not written yet. A legal document may say what IT
     // says; it may not certify the rest of the site, because nothing rechecks
     // that certificate when a page changes.
+    //
+    // It is a phrase list, and a phrase list is weaker than a property: Gate D
+    // got the same claim past the first version as "stated on each page of this
+    // site". The list is wider now and the quantifier is what it keys on, but
+    // the honest statement of its strength is that it catches the shapes anyone
+    // has actually written, not every shape. Review is still the real guard.
     const prose = record.sections.flatMap((section) => section.body).join(" ");
-    expect(prose).not.toMatch(/\b(?:on|from) every page\b/i);
-    expect(prose).not.toMatch(/\bevery page (?:that|which|of)\b/i);
-    expect(prose).not.toMatch(/\bthroughout (?:this|the) site\b/i);
+    const quantifier = /\b(?:every|each|any|all|either)\b[^.]{0,30}\bpages?\b|\bpages?\b[^.]{0,20}\b(?:on|of|across)\s+(?:this|the|our)\s+site\b/i;
+    const offending = prose.split(/(?<=\.)\s+/).filter((sentence) => quantifier.test(sentence));
+    expect(offending.join(" | ")).toBe("");
+    expect(prose).not.toMatch(/\bthroughout (?:this|the|our) site\b/i);
+    expect(prose).not.toMatch(/\bwherever (?:it|they) (?:is|are) (?:sold|offered|shown)\b/i);
   });
 
   it("links no dispute-resolution platform that no longer exists", () => {
