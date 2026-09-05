@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Lousy deal">
+  <title>Lousy deal</title>
+  <!--
+    The favicon is the stamp, and nothing but the stamp.
+
+    `StampMark` is inline SVG so it can inherit the page's typeface and colour
+    from CSS. A favicon inherits nothing, so the two rings, the stroke and the
+    one colour are written out here as literals: 57 and 51 are `OUTER_RADIUS`
+    and `INNER_RADIUS`, 1.5 is the stroke width, and #b3261e is `--stamp`.
+    `tests/opengraph.test.ts` checks those four against their sources, because
+    a copy nobody compares is a copy that drifts.
+
+    The lettering is deliberately absent. At 16px the stamp's text is a smudge,
+    and `brand.md` §3 gives the mark its meaning through the double ring; a
+    favicon that renders its words as three grey pixels is worse than one that
+    does not try.
+  -->
+  <rect width="120" height="120" fill="#fafaf7"/>
+  <circle cx="60" cy="60" r="57" fill="none" stroke="#b3261e" stroke-width="1.5"/>
+  <circle cx="60" cy="60" r="51" fill="none" stroke="#b3261e" stroke-width="1.5"/>
+</svg>

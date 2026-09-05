@@ -27,11 +27,13 @@
  */
 
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 
 import { Footer } from "../components/document/Footer";
 import { Masthead } from "../components/document/Masthead";
+import { MASTHEAD_LINE, MASTHEAD_MARK } from "../content/chrome";
 import {
   getRuntimeConfig,
   RUNTIME_CONFIG_ELEMENT_ID,
@@ -43,15 +45,35 @@ import { plexMono } from "../fonts/plex-mono";
 import "./globals.css";
 
 /**
- * Deliberately without `metadataBase` or an image. Both are per-environment —
- * a social image URL is absolute and therefore names a host — and Global
- * Constraint 2 forbids baking a host into the built artifact. The row that
- * adds the social image derives its base from the request instead.
+ * `metadataBase` is derived from the request, never written down.
+ *
+ * A social image URL is absolute and so names a host, and Global Constraint 2
+ * forbids baking one into the built artifact — the same image has to serve
+ * `test.` and the live host from one image. `headers()` gives the host the
+ * request arrived on, which is the only place that fact exists at runtime.
+ *
+ * **The scheme is derived too.** `x-forwarded-proto` is what the tunnel sets,
+ * and it decides the scheme: measured behind `next start`, a request carrying
+ * `X-Forwarded-Proto: https` produced an `https://` image URL and one without
+ * produced `http://` — so something upstream of this code supplies the header
+ * even locally, and the `?? "https"` below is a fallback for the case where
+ * nothing does rather than the usual path. It is https because an `http://`
+ * image URL sends a scraper to a redirect, and not all of them follow one.
  */
-export const metadata: Metadata = {
-  title: "LOUSYDEAL.COM",
-  description: "Purveyors of objectively bad value.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("host");
+  const proto = requestHeaders.get("x-forwarded-proto") ?? "https";
+
+  return {
+    title: MASTHEAD_MARK,
+    description: `${MASTHEAD_LINE}.`,
+    // Absent rather than guessed when the host is: `metadataBase` with a wrong
+    // origin produces confidently wrong absolute URLs, and Next falls back to a
+    // relative one, which every scraper resolves against the page it fetched.
+    ...(host === null ? {} : { metadataBase: new URL(`${proto}://${host}`) }),
+  };
+}
 
 export default async function RootLayout({ children }: { readonly children: ReactNode }) {
   await connection();

@@ -62,13 +62,16 @@ const COOKIE_FILES = new Set([
 /**
  * Every way a cookie can be written from this codebase.
  *
- * `cookies()` from `next/headers` is the one in use. The other two are what
+ * `cookies()` from `next/headers` is the one in use, matched on the named
+ * import rather than on the module: V13's layout imports `headers` from the
+ * same place to derive `metadataBase`, and reads no cookie at all. The other
+ * two are what
  * Gate D reached for: a `NextResponse`/`NextRequest` cookie jar, which needs no
  * import from `next/headers`, and the raw header. Each is matched on its own
  * because a single "cookie" substring would fire on every comment in the tree.
  */
 const COOKIE_WRITE =
-  /from "next\/headers"|cookieStore|\bcookies\s*\(\s*\)|\.cookies\.(?:set|delete)\b|document\.cookie|["']set-cookie["']/i;
+  /import\s*\{[^}]*\bcookies\b[^}]*\}\s*from\s*"next\/headers"|cookieStore|\bcookies\s*\(\s*\)|\.cookies\.(?:set|delete)\b|document\.cookie|["']set-cookie["']/i;
 
 const srcDir = fileURLToPath(new URL("../src", import.meta.url));
 

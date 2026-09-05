@@ -990,10 +990,46 @@ frontend PR" asks for in the other direction too.
 `storefront/public/fonts/IBMPlexMono-Bold.ttf`, `storefront/Dockerfile`,
 `storefront/tests/opengraph.test.ts`.
 
-- [ ] Render a 1200×630 social image for the home page from the same tokens,
+- [x] Render a 1200×630 social image for the home page from the same tokens,
       with the offer ledger as its content, and set the metadata that points at
       it. Verified by a test asserting the route produces a PNG of those exact
       dimensions.
+
+**Next prerenders an `opengraph-image` by default, and it did.** The first
+build of this row produced a static card with no offer rows, because the build
+can reach no store — and a card baked at build time is baked once for two
+environments, which is decision `002`'s rule with a price in it. `connection()`
+makes it dynamic, the same marker every other route here uses, and a test now
+asserts the marker rather than the symptom.
+
+**The leader is dashed, and the site's is dotted.** Satori rejects
+`borderStyle: "dotted"` outright — "Allowed values: solid | dashed" — so the
+choice was the nearest thing it renders or a hand-drawn row of glyphs that sets
+to a different rhythm at every width. Recorded here rather than left for someone
+to find by comparing a share card with the page. At 1200px it reads as dotted.
+
+**`public/fonts/` carries IBM Plex Mono under its own name.** Satori cannot read
+woff2, so the route needs a different file from the one the pages use — and the
+file it needs is the *unmodified* upstream TTF, which may keep the Reserved Font
+Name that OFL 1.1 clause 3 denies the subsets. Two names for one typeface is
+what the licence asks for, not an inconsistency.
+
+Both files were fetched at the commit `src/fonts/plex-mono.ts` already records,
+and their SHA-256 sums match the ones that file wrote down for the sources it
+subsetted. `tests/opengraph.test.ts` re-checks both against that file, so
+provenance is executed rather than asserted.
+
+**`src/app/palette.ts` is the second declared home for a colour, and there are
+exactly two.** Satori renders in Node with no cascade, so `var(--paper)` reaches
+it as a string and paints nothing. `tokens.test.ts` bans hex literals everywhere
+else under `src` and now compares every entry in the palette against the `:root`
+declaration it mirrors, so the two homes cannot drift.
+
+**The Dockerfile line was the one this row was warned about.** Its runtime stage
+carried no `COPY` for `public/` and said "a row that adds static assets adds
+this line with them". Satori reads the fonts on the first request, so without it
+the route throws ENOENT in production and `next build` says nothing — which is
+why the test asserts the Dockerfile line directly.
 
 `metadataBase` is per-environment and therefore never a literal: it is derived
 from the request host, like every other environment-specific value in this
