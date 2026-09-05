@@ -3161,3 +3161,55 @@ spans the two halves, and neither row's file list gives a mechanism to add one.
 each reverting their own uncommitted edits along with a scratch mutation. Both
 caught it, both reconstructed, both disclosed. `git` cannot distinguish the
 intended diff from the scratch one; a scoped revert can.
+
+## T18b: the ambiguity, resolved by running it
+
+```text
+created the Access bypass application for test.lousydeal.com/api/store/hooks/payment/stripe_stripe
+created the Webhook bypass policy   for test.lousydeal.com/api/store/hooks/payment/stripe_stripe
+36 existing resources unchanged
+
+POST /api/store/hooks/payment/stripe_stripe   ->  200 OK        (no Access challenge)
+GET  /                                        ->  302 Access login
+GET  /api/store/store/products                ->  302 Access login
+GET  /api/store/hooks/payment/anything        ->  302 Access login
+GET  /api/store/hooks/payment/stripe_stripeEVIL -> 302 Access login
+```
+
+Both halves of the checkbox. Fifteen Access applications on the account; the
+bypass is the only one whose decision is `bypass`, and the only one carrying a
+path.
+
+### What two Cloudflare pages disagreed about, measured
+
+T18b cited both and assumed neither: `app-paths.mdx` says a path inherits rules
+from its parent; `workers/configuration/cloudflare-access.mdx` says a bare path
+*"protects only that exact URL"*. **The live account answers it:**
+
+```text
+/api/store/hooks/payment/stripe_stripe/nested  ->  404   (Access admitted it)
+/api/store/hooks/payment/stripe_stripe/a/b     ->  404   (Access admitted it)
+/api/store/hooks/payment/stripe_stripe.        ->  302   Access login
+/api/store/hooks/payment/stripe_stripe%2fx     ->  302   Access login
+```
+
+**A bare path is a segment-anchored prefix.** It covers the path and everything
+nested beneath it — `app-paths.mdx` is right and the Workers page is wrong — but
+it does **not** cover same-depth string extensions. So the two failure modes
+T18b bounded separately were both real, and each was real in the opposite
+direction to the other's argument.
+
+### And the 404s are ours
+
+The nested paths return 404 because **the storefront proxy refuses them**, not
+because Cloudflare does. That is T22b's check, doing exactly the job it was added
+for.
+
+**Without T22, Access would have admitted every nested path and the proxy would
+have forwarded them** to a route that enqueues with three retries before
+verifying anything. The row that looked like defence in depth turned out to be
+the only defence at that depth.
+
+**T18b was written asking whether one bypass was narrow enough. The answer was
+no — and the fix was not to narrow the bypass, which could not have helped,
+but to stop the thing behind it from accepting what the bypass let through.**
