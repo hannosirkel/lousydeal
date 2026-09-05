@@ -353,8 +353,18 @@ URL and is not used.
 | --- | --- | --- |
 | 404 | `DOCUMENT NOT FOUND` | This page has even less content than our products. |
 | Error | `PROCESSING ERROR` | The request could not be completed. This was not, on this occasion, deliberate. |
-| Loading | — | A single blinking block cursor, drawn in CSS. No spinner. Carries the hidden word `Loading` for a reader who cannot see it. |
+| Loading | — | A single blinking block cursor, drawn in CSS. No spinner. Carries the hidden word `Loading` for a reader who cannot see it. **Used inside a page, never as a route boundary** — see below. |
 | Layout error | `PROCESSING ERROR` | The same, without masthead or footer — the layout that renders them is what failed. |
+
+**The loading cursor is not a `loading.tsx`.** A Suspense fallback at a route
+root makes Next flush the shell as soon as the fallback renders; after that
+the status is committed and the body arrives only through inline scripts. One
+shipped briefly, and it was measured serving every page as masthead, cursor
+and footer with no content at all without JavaScript, and answering an unknown
+deal handle with 200 instead of 404. Every route here is a document that has
+to arrive whole, so no segment can afford to stream. The cursor belongs to a
+state *within* a rendered page — the checkout waiting on its payment session
+is the one that has it.
 
 The error page offers **"Return to the purchase order"** as a secondary button
 rather than a retry control: a retry needs a click handler, and a link works

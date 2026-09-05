@@ -375,7 +375,20 @@ middleware check needs the Store API and its credential at the edge.
 
 So it is **accepted, with its blast radius stated**: one route, one condition,
 readers without JavaScript, status still 404, and every reader with JavaScript
-sees the right document. V15's Gate E confirms it has not widened.
+sees the right document.
+
+**That sentence was false for as long as V5b's `loading.tsx` was on `main`,
+and the row that wrote it is the row that falsified it.** A Suspense fallback
+at the app root made every route flush its shell immediately, so the status
+was committed before any page rendered: measured, `/` served masthead, cursor
+and footer and nothing else without JavaScript, `/deal/nope` answered **200**,
+and a store outage answered 200 as well. Not one route and not one condition —
+every route, every request, every reader without JavaScript. V5c removes the
+file and re-measures; the guard against its return is in
+`tests/system-pages.test.ts`.
+
+V15's Gate E confirms it has not widened, **by fetching from a built server
+with scripting disabled** rather than by rendering components.
 
 `error.tsx` must carry `"use client"`: a React error boundary cannot be a
 Server Component. That is the third exception to §6's no-client-JavaScript
@@ -652,6 +665,11 @@ behaviour and not a defect.
 **Files:** `docs/working/status.md`, `docs/current/brand.md`,
 `docs/working/ld-09-visual-identity.md`, `AGENTS.md`.
 
+- [ ] Fetch every route from a built server **with scripting disabled**, and
+      record the status and the served body for each. V5b shipped a change
+      that blanked every page and turned a 404 into a 200 while the whole unit
+      suite stayed green; nothing that renders components in isolation can
+      catch that class of defect.
 - [ ] Run the site, inspect every surface at desktop width and at 390px,
       exercise add-to-cart and the consent checkbox, and compare against
       [`brand.md`](../current/brand.md). Record the result, the date and what
