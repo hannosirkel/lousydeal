@@ -431,7 +431,8 @@ rather than in it.
 `storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/content/checkout.ts`,
 `storefront/src/components/document/Button.tsx`,
-`storefront/src/lib/store-cart.ts`, `storefront/src/app/globals.css`,
+`storefront/src/lib/checkout-rules.ts`, `storefront/src/lib/store-cart.ts`,
+`storefront/src/app/globals.css`,
 `storefront/tests/checkout-consent.test.ts`, `docs/current/brand.md`.
 
 - [ ] Render the cart as `ORDER SUMMARY` and the checkout as `PAYMENT
@@ -451,6 +452,14 @@ matters legally, because a disabled button is a client-side fact. This row does
 not claim otherwise, and no server-side enforcement is added here — the order is
 created by Medusa from a cart this storefront does not gate. That is recorded,
 not fixed, and it belongs to whichever row wires consent into the order record.
+
+**The consent gate is checked twice and asserted on rendered markup.**
+`payDisabled` is a function in `src/lib/checkout-rules.ts` that the component
+calls, and `handleSubmit` refuses without consent as well — `disabled` alone is
+one attribute between an unticked box and a completed order, and
+`form.requestSubmit()` ignores it. The checkbox also carries `required`. The
+suite renders the real control with `@stripe/react-stripe-js` mocked, which is
+possible because nothing under test touches Stripe.
 
 `Button` gains a `disabled` prop, on the button branch only: a disabled link is
 not a thing HTML has, and `<a aria-disabled>` is still focusable and still

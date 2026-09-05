@@ -36,7 +36,7 @@ import { DocumentFrame } from "../../components/document/DocumentFrame";
 import { FinePrint } from "../../components/document/FinePrint";
 import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
 import { getRuntimeConfig } from "../../config/runtime-config";
-import { CART_DOCUMENT, CART_EMPTY_NOTICE, CART_LABELS, CHECKOUT_DOCUMENT, PRICE_NOTICE } from "../../content/checkout";
+import { CART_EMPTY_NOTICE, CART_LABELS, CHECKOUT_DOCUMENT, PRICE_NOTICE } from "../../content/checkout";
 import { createStoreFetchJson, getDefaultRegion } from "../../lib/medusa-client";
 import { formatMoney } from "../../lib/money";
 import { getCheckoutCart } from "../../lib/store-checkout";
@@ -51,8 +51,12 @@ export default async function CheckoutPage() {
   if (cartId === undefined) {
     return (
       <main>
-        <DocumentFrame title={CART_DOCUMENT.title} form={CART_DOCUMENT.form} revision={CART_DOCUMENT.revision}>
-          <p>{CART_EMPTY_NOTICE}</p>
+        <DocumentFrame
+          title={CHECKOUT_DOCUMENT.title}
+          form={CHECKOUT_DOCUMENT.form}
+          revision={CHECKOUT_DOCUMENT.revision}
+        >
+          <p className="notice">{CART_EMPTY_NOTICE}</p>
         </DocumentFrame>
       </main>
     );

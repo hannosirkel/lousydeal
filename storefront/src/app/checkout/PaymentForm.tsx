@@ -59,6 +59,7 @@ import {
   PAYING_LABEL,
   PREPARING_PAYMENT_LABEL,
 } from "../../content/checkout";
+import { payDisabled } from "../../lib/checkout-rules";
 import type { FetchJson, StoreFetchInit, StoreRegionCountry } from "../../lib/medusa-client";
 import { setCartCountry } from "../../lib/store-checkout";
 import { completeCheckoutCart, createPaymentCollection, initiateStripePaymentSession } from "../../lib/store-payment";
@@ -156,8 +157,18 @@ interface PayButtonProps {
   readonly countries: readonly StoreRegionCountry[];
 }
 
-/** The card-entry form and the pay control. Split from `PaymentForm` because `useStripe`/`useElements` require an `<Elements>` ancestor. */
-function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
+/**
+ * The card-entry form, the consent box and the pay control. Split from
+ * `PaymentForm` because `useStripe`/`useElements` require an `<Elements>`
+ * ancestor.
+ *
+ * **Exported so the suite can render it.** V6b's first version claimed this
+ * could not be reached without a live Stripe client secret, and that was
+ * wrong: nothing under test touches Stripe, so four lines of `vi.mock` over
+ * `@stripe/react-stripe-js` render the real markup -- the real default, the
+ * real `disabled`.
+ */
+export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -184,7 +195,11 @@ function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (stripe === null || elements === null || submitting) return;
+    // Consent is checked here as well as on the control. `disabled` alone is
+    // one attribute between an unticked box and a completed order --
+    // `form.requestSubmit()` ignores it, which Gate D demonstrated by
+    // completing a cart with the box visibly unticked.
+    if (stripe === null || elements === null || submitting || !consented) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -253,26 +268,45 @@ function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
       </p>
 
       <p className="consent">
+        {/* `required` as well as the disabled control: it is the native
+            mechanism for this pattern and it blocks an implicit submission
+            the `disabled` attribute does not. */}
         <input
           id="checkout-consent"
           type="checkbox"
           checked={consented}
+          required
+          aria-describedby={consented ? undefined : "checkout-consent-required"}
           onChange={(event) => setConsented(event.target.checked)}
         />
         <label htmlFor="checkout-consent">{CONSENT_LABEL}</label>
       </p>
 
       <PaymentElement options={{ wallets: { applePay: "auto", googlePay: "auto", link: "auto" } }} />
-      {error !== null && <p className="payment-error">{error}</p>}
+      {error !== null && (
+        <p className="payment-error" role="alert">
+          {error}
+        </p>
+      )}
       {/* Disabled until consent. `brand.md` §4 puts the pay control behind the
           box; this is the visible half of that. It is not the enforcing half
           -- a disabled button is a client-side fact -- and no row here claims
           otherwise; the order is created by Medusa from a cart this storefront
           does not gate. */}
-      <Button type="submit" disabled={stripe === null || submitting || !consented}>
+      <Button
+        type="submit"
+        disabled={payDisabled({ stripeReady: stripe !== null, submitting, consented })}
+      >
         {submitting ? PAYING_LABEL : PAY_LABEL}
       </Button>
-      {consented ? null : <FinePrint>{CONSENT_REQUIRED_NOTICE}</FinePrint>}
+      {/* Attached to the checkbox rather than to the button: a disabled
+          `<button>` is not focusable, so a keyboard reader tabs from the box
+          straight past the explanation. */}
+      {consented ? null : (
+        <FinePrint>
+          <span id="checkout-consent-required">{CONSENT_REQUIRED_NOTICE}</span>
+        </FinePrint>
+      )}
     </form>
   );
 }

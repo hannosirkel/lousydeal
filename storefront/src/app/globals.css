@@ -95,6 +95,25 @@ textarea {
   color: inherit;
 }
 
+/* A checked box is drawn by the UA, and its default is the platform blue --
+   a second accent on the one control this site's legal position rests on.
+   `tests/tokens.test.ts` guards colour literals in source and cannot see a
+   colour the browser draws, so this is the only place it can be said. */
+input[type="checkbox"] {
+  accent-color: var(--stamp);
+}
+
+/* The country control, in the identity rather than in the UA's grey. The
+   disclosure triangle stays the browser's -- drawing one would be the icon
+   set §6 forbids. */
+select {
+  padding: var(--space-1) var(--space-2);
+  border: var(--rule-width) solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--size-body);
+}
+
 body {
   margin: 0;
   padding: var(--space-6) var(--space-4) var(--space-8);
@@ -428,8 +447,25 @@ a.button.is-secondary:hover {
   align-items: baseline;
 }
 
+/* Legal prose takes the body step, like every other legal sentence on the
+   site -- `brand.md` §3's table gives the small step to labels, and this is a
+   disclosure that happens to be inside a `<label>`. */
 .consent label {
+  font-size: var(--size-body);
+}
+
+/* A field label, set as a label. */
+.field label {
   font-size: var(--size-small);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* An empty document's one line, in label style. */
+.notice {
+  font-size: var(--size-small);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
 }
 
 .payment-error {

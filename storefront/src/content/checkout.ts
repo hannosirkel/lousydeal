@@ -23,8 +23,11 @@ export const CART_LABELS = {
   total: "Total",
 } as const;
 
-/** `brand.md` §4: the empty cart is a document too. */
-export const CART_EMPTY_NOTICE = "No items of record.";
+/** `brand.md` §4: the empty cart is a document too. Set in label style. */
+export const CART_EMPTY_NOTICE = "No items of record";
+
+/** An empty document still offers a way on. */
+export const RETURN_LABEL = "Return to the purchase order";
 
 export const CHECKOUT_LABEL = "Proceed to payment";
 

@@ -2,28 +2,39 @@
  * Holds the checkout's consent mechanism, which is the one piece of legal
  * machinery `fresh-build.md` §23 puts inside this build rather than after it.
  *
- * `PaymentForm` itself cannot be rendered here: it is a client component whose
- * tree needs `@stripe/react-stripe-js`'s `<Elements>` provider and a live
- * client secret. What this file holds is the part that decides — the wording,
- * the default, and the control's disabled rule — plus `Button`'s disabled
- * behaviour, which is what that rule acts through.
+ * **It renders the real control.** An earlier version of this file declared
+ * the pay control's disabled rule itself and asserted that, claiming the form
+ * could not be reached without a live Stripe client secret. Gate D disproved
+ * both halves: it defaulted the consent box to ticked and deleted the gate
+ * from `PaymentForm` entirely, and every test still passed. Nothing under test
+ * touches Stripe, so four lines of `vi.mock` render the actual markup.
  */
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { Button } from "../src/components/document/Button";
 import {
+  CART_DOCUMENT,
   CART_EMPTY_NOTICE,
+  CHECKOUT_DOCUMENT,
   CONSENT_LABEL,
   CONSENT_REQUIRED_NOTICE,
   PRICE_NOTICE,
 } from "../src/content/checkout";
+import { payDisabled } from "../src/lib/checkout-rules";
+import { PayButton } from "../src/app/checkout/PaymentForm";
 
-/** The rule `PaymentForm` applies, stated once so a test can apply it too. */
-const payDisabled = (stripeReady: boolean, submitting: boolean, consented: boolean) =>
-  !stripeReady || submitting || !consented;
+// Nothing asserted below touches Stripe; these four exist only so the module
+// imports.
+vi.mock("@stripe/react-stripe-js", () => ({
+  Elements: ({ children }: { children: unknown }) => children,
+  PaymentElement: () => createElement("div", { "data-testid": "payment-element" }),
+  useStripe: () => ({}),
+  useElements: () => ({}),
+}));
+vi.mock("@stripe/stripe-js", () => ({ loadStripe: () => Promise.resolve(null) }));
 
 describe("the express consent", () => {
   it("asks for both things VOS s 53(4) p 7-1 requires", () => {
@@ -54,15 +65,50 @@ describe("the express consent", () => {
   });
 });
 
-describe("the pay control", () => {
-  it("is disabled until the box is ticked, and only then", () => {
-    // Unticked is the default and the reason the control is off: consent the
-    // trader supplies is not consent.
-    expect(payDisabled(true, false, false)).toBe(true);
-    expect(payDisabled(true, false, true)).toBe(false);
-    // And still off while Stripe is not ready, or a submission is in flight.
-    expect(payDisabled(false, false, true)).toBe(true);
-    expect(payDisabled(true, true, true)).toBe(true);
+describe("the rendered checkout form", () => {
+  const html = renderToStaticMarkup(
+    createElement(PayButton, {
+      cartId: "cart_1",
+      fetchJson: (async () => ({})) as never,
+      countries: [{ iso_2: "ee", display_name: "Estonia" }],
+    }),
+  );
+
+  it("ships the consent box unticked", () => {
+    // The default, read off the markup a browser gets -- not off a constant
+    // and not off an argument a test chose. Defaulting it to ticked is the
+    // regression this assertion exists for.
+    expect(html).toContain('id="checkout-consent"');
+    expect(html).toMatch(/<input[^>]*id="checkout-consent"[^>]*>/);
+    expect(/<input[^>]*id="checkout-consent"[^>]*checked/.test(html)).toBe(false);
+  });
+
+  it("marks the box required, so an implicit submission cannot skip it", () => {
+    expect(/<input[^>]*id="checkout-consent"[^>]*required/.test(html)).toBe(true);
+  });
+
+  it("ships the pay control disabled, and says why next to the box", () => {
+    expect(html).toMatch(/<button[^>]*class="button is-primary"[^>]*disabled/);
+    expect(html).toContain(CONSENT_REQUIRED_NOTICE);
+    // Described by the box, not the button: a disabled button is not
+    // focusable, so a keyboard reader never reaches an explanation hung on it.
+    expect(html).toContain('aria-describedby="checkout-consent-required"');
+    expect(html).toContain('id="checkout-consent-required"');
+  });
+
+  it("labels the box with the consent wording itself", () => {
+    expect(html).toContain('for="checkout-consent"');
+    expect(html).toContain(CONSENT_LABEL);
+  });
+});
+
+describe("the pay control's rule", () => {
+  it("is off until the box is ticked, and only then", () => {
+    // The function the component calls -- imported, not restated here.
+    expect(payDisabled({ stripeReady: true, submitting: false, consented: false })).toBe(true);
+    expect(payDisabled({ stripeReady: true, submitting: false, consented: true })).toBe(false);
+    expect(payDisabled({ stripeReady: false, submitting: false, consented: true })).toBe(true);
+    expect(payDisabled({ stripeReady: true, submitting: true, consented: true })).toBe(true);
   });
 
   it("renders as a real disabled button, which a link cannot be", () => {
@@ -76,6 +122,13 @@ describe("the pay control", () => {
 
   it("says why it is off, rather than leaving the reader to guess", () => {
     expect(CONSENT_REQUIRED_NOTICE).toContain("ticked");
+  });
+});
+
+describe("the two documents", () => {
+  it("are titled and numbered as the brand document says", () => {
+    expect(CART_DOCUMENT).toMatchObject({ title: "Order summary", form: "Form LD-3" });
+    expect(CHECKOUT_DOCUMENT).toMatchObject({ title: "Payment authorisation", form: "Form LD-4" });
   });
 });
 
