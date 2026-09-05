@@ -449,6 +449,19 @@ section, above the closing line: `This document is incomplete: a detail it is
 required to state has not been configured.` The gaps themselves are named
 where they fall.
 
+The last-updated line is labelled `Last updated`, at the fine step under the
+closing sentence.
+
+**A sub-section is indented and takes the next heading level**, and its entry
+in the contents list is indented to match. Depth comes from the number, so a
+content file stays a flat list and renumbering a clause does not restructure
+anything.
+
+**A contents entry is set at the body step**, not the small step. §3's table
+gives `small` to labels, table headers and footer links; a contents entry is
+none of those, and at the small step the links measured 17px tall with 20.8px
+between centres, which fails WCAG 2.2 SC 2.5.8 on both size and spacing.
+
 **The typography is the identity; the substance is straight.** An absurdist
 flourish is allowed in a recital and nowhere that changes legal meaning. A
 withdrawal clause, a data-subject right and a liability limit are never funny.

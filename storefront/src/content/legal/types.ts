@@ -37,7 +37,7 @@ export const LEGAL_CLOSING_LINE = "This document is legally binding, unlike our 
 /** Heading for the short table of contents `brand.md` §5 asks each document to carry. */
 export const CONTENTS_HEADING = "Contents";
 
-/** Label for the last-updated line under the closing sentence. */
+/** Label for the last-updated line under the closing sentence. `brand.md` §5. */
 export const UPDATED_LABEL = "Last updated";
 
 /**

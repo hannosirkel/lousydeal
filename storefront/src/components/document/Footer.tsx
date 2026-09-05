@@ -10,32 +10,9 @@
  * something behind it today.
  */
 
-import { Fragment } from "react";
-
 import { CONTACT_LINE, INCOMPLETE_NOTICE, TRADER_LINE } from "../../content/chrome";
-import { hasGap, resolveText, type MerchantIdentity, type ResolvedPart } from "../../content/merchant";
-
-/**
- * A gap is rendered visibly and named, never as a blank — decision `004`. It
- * is `--stamp` because an incomplete legal notice is an error state, and this
- * identity has one colour for those. The bracketed label carries the meaning
- * on its own, so the colour is not the only signal.
- */
-function Parts({ parts }: { readonly parts: readonly ResolvedPart[] }) {
-  return (
-    <>
-      {parts.map((part, index) =>
-        part.kind === "text" ? (
-          <Fragment key={index}>{part.text}</Fragment>
-        ) : (
-          <span key={index} className="gap">
-            [{part.label} NOT CONFIGURED]
-          </span>
-        ),
-      )}
-    </>
-  );
-}
+import { hasGap, resolveText, type MerchantIdentity } from "../../content/merchant";
+import { Parts } from "./Parts";
 
 /**
  * The contact address, as a link when it is configured and as the vocabulary's

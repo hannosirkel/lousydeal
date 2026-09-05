@@ -522,6 +522,8 @@ the runtime's ICU data — the reason that file gives for not using it.
 `storefront/src/components/document/LegalDocument.tsx`,
 `storefront/src/app/legal/layout.tsx`,
 `storefront/src/app/legal/imprint/page.tsx`,
+`storefront/src/components/document/Parts.tsx`,
+`storefront/src/components/document/Footer.tsx`,
 `storefront/src/app/globals.css`,
 `storefront/tests/no-unresolved-placeholder.test.ts`,
 `docs/current/brand.md`.
@@ -537,7 +539,14 @@ The guard test is written here, against the smallest document, so the three long
 ones land under a check that already works rather than beside one written to fit
 them. **It walks the directory rather than a list**, because a guard that names
 its files stops covering the ones added after it — V9, V10 and V11 are covered
-the moment they land, without editing the test.
+the moment they land, without editing the test. Recursively, in both
+extensions, and every exported document rather than the first: Gate D got a
+document past the first version of that walk in each of those three shapes.
+
+`Parts` is one component now. The footer and the legal documents each had their
+own copy of decision `004`'s rendering rule and the two had already diverged,
+which is one copy too many for a rule about how a missing legal detail
+appears.
 
 The imprint is where an unconfigured field is most dangerous: an imprint quietly
 missing its registration number reads as a complete legal notice and is not one.

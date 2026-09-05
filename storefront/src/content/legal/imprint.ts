@@ -6,10 +6,12 @@
  * legal notice that is not one, so every field here is a placeholder and an
  * unconfigured one is named on the page rather than dropped.
  *
- * Two of the five are unconfigured today and expected to stay so until the
- * operator supplies them: the registry code and the VAT number. §2b is
- * explicit that those two are each their own decision, separate from the legal
- * name, address and contact address it does publish.
+ * Two of the five are expected to stay unconfigured until the operator
+ * supplies them: the registry code and the VAT number. §2b is explicit that
+ * those two are each their own decision, separate from the legal name, address
+ * and contact address it does publish. **In the deployed environments all five
+ * are unconfigured**, because the row that supplies `MERCHANT_*` in the
+ * overlays is V14 and has not landed.
  *
  * **It does not close the legal gate.** §23 makes that an operator gate a
  * qualified human reader closes. This is drafted at the operator's instruction
@@ -28,7 +30,7 @@ export const IMPRINT: LegalDocument = {
       number: "1",
       heading: "Who operates this site",
       body: [
-        "This site is operated by {merchantLegalName}, a private limited company registered in Estonia.",
+        "This site is operated by {merchantLegalName}, a private limited company entered in the Estonian commercial register (äriregister).",
         "Registry code: {merchantRegistryCode}",
         "Registered address: {merchantAddress}",
         "VAT number: {merchantVatNumber}",
@@ -38,8 +40,8 @@ export const IMPRINT: LegalDocument = {
       number: "2",
       heading: "How to reach us",
       body: [
-        "Write to {merchantEmail}. It is a real address and it is read.",
-        "There is no telephone number, because there is no telephone. A shop selling a certificate that confers nothing does not need a call centre, and one would be a worse way to reach us than the address above.",
+        "Write to {merchantEmail}.",
+        "There is no telephone number. A shop selling a certificate that confers nothing does not need a call centre, and the address above is the route we answer on.",
       ],
     },
     {
@@ -54,7 +56,7 @@ export const IMPRINT: LegalDocument = {
       heading: "Supervision and disputes",
       body: [
         "Consumer matters in Estonia are supervised by the Consumer Protection and Technical Regulatory Authority (Tarbijakaitse ja Tehnilise Järelevalve Amet), Endla 10a, 10122 Tallinn, info@ttja.ee.",
-        "A consumer who cannot resolve a complaint with us may refer it to the Consumer Disputes Committee at that authority. A consumer resident in another European Union country may also approach the European Consumer Centre network.",
+        "A consumer resident in Estonia who cannot resolve a complaint with us may refer it to the Consumer Disputes Committee at that authority. A consumer resident elsewhere in the European Union may approach the European Consumer Centre network instead; the Committee's own procedure is open to consumers resident in Estonia.",
       ],
     },
   ],
