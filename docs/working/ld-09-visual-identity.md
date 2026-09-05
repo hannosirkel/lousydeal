@@ -557,7 +557,10 @@ Decision `004`'s named-visible-gap rule is executed here, not described.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/content/legal/terms.ts`,
 `storefront/src/app/legal/terms/page.tsx`,
-`storefront/src/components/document/Footer.tsx`.
+`storefront/src/content/legal/imprint.ts`,
+`storefront/src/lib/inscription.ts`,
+`storefront/tests/legal-terms.test.ts`,
+`storefront/tests/certificate.test.ts`.
 
 - [ ] Draft the Terms: seller identity; that the customer receives a numbered
       digital certificate and nothing else of value, and that this is the
@@ -567,10 +570,22 @@ Decision `004`'s named-visible-gap rule is executed here, not described.
       limits; governing law Estonia; and Estonian consumer-dispute information
       naming the TTJA and its consumer disputes committee, with no ODR link.
 
+`Footer.tsx` is **not** here: the footer's legal column is V12's, and this row
+adds a route rather than a link to it.
+
+**No price appears in the document.** A price written twice drifts, the offer
+page's figures come from the Store API, and `tests/store-cart.test.ts` forbids
+a currency literal anywhere under `storefront/src` — which includes a legal
+content file. So the Terms say what governs a price rather than what one is.
+
+**Gifting is not mentioned.** LD-03 has no backend, and a term about a feature
+nobody can use is noise a lawyer has to read and a buyer has to disregard. The
+row that builds gifting writes its clause.
+
 Every factual claim is checked against this repository before it is written:
-prices from `product-model.ts`, the VAT reading from decision `009`, the
-inscription rules from contract §5, the trader identity from §2b through the
-resolver. **A clause describing a mechanism that does not exist yet is written
+the VAT reading from decision `009`, the inscription rules from contract §5,
+the withdrawal position from Riigi Teataja, the trader identity from §2b
+through the resolver. **A clause describing a mechanism that does not exist yet is written
 in the present tense only if the mechanism ships before publication**, and any
 such clause is named in the pull request so the Legal gate sees it — the
 certificate itself is LD-02, and terms that promise one must not outlive an
