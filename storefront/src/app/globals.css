@@ -120,6 +120,7 @@ h1 {
 }
 
 h2 {
+  margin-bottom: var(--space-3);
   font-size: var(--size-section);
 }
 
@@ -392,6 +393,148 @@ small {
 .button.is-secondary:hover {
   background: var(--ink);
   color: var(--paper);
+}
+
+/* Visually hidden, still read. Not `display: none`, which removes it from the
+   accessibility tree as well as the page. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---- The tier table, and its second layout --------------------------- */
+
+.tier-table {
+  margin: 0 0 var(--space-5);
+}
+
+.tier-table th,
+.tier-table td {
+  padding: var(--space-3) var(--space-2);
+  border-bottom: var(--rule-width) solid var(--ink-soft);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.tier-table thead th {
+  border-bottom: var(--rule-width) solid var(--ink);
+  background: var(--paper-shade);
+}
+
+/* The tier name is short and is the row's subject; wrapping it mid-name reads
+   as two items. It shrinks with the table until the layout collapses. */
+.tier-table tbody th {
+  font-size: var(--size-body);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.tier-table tbody tr:hover {
+  background: var(--paper-shade);
+}
+
+.tier-table th:first-child,
+.tier-table td:first-child {
+  padding-left: 0;
+}
+
+/* The two numeric columns are read as figures, so they align as figures and
+   never wrap. Their headings go with them. */
+.tier-table td[data-label="Value"],
+.tier-table td[data-label="Price"],
+.tier-table thead th:nth-child(3),
+.tier-table thead th:nth-child(4) {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tier-table td:last-child {
+  padding-right: 0;
+  text-align: right;
+}
+
+.tier-table .tier-action .button {
+  white-space: nowrap;
+}
+
+/* Below the narrow measure the table becomes stacked ledger blocks -- one
+   markup tree, per `brand.md` §4. The header row is hidden from sight but not
+   from the accessibility tree, and each cell supplies its own label. */
+@media (max-width: 640px) {
+  .tier-table,
+  .tier-table tbody,
+  .tier-table tr,
+  .tier-table th,
+  .tier-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .tier-table thead {
+    display: none;
+  }
+
+  .tier-table tbody tr {
+    padding: var(--space-3) 0;
+    border-bottom: var(--rule-width) solid var(--ink);
+  }
+
+  .tier-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .tier-table tbody th,
+  .tier-table td {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding: var(--space-1) 0;
+    border-bottom: 0;
+    /* The nowrap that keeps a tier name on one line in the table is wrong once
+       the row is a stacked block: here the name is the value and may wrap. */
+    white-space: normal;
+  }
+
+  /* Label, leader, value -- the ledger row's shape, built from one cell.
+     `order` is what puts the value after the leader: `::after` can be a flex
+     item but an anonymous text run cannot take an `order`, which is why the
+     value is wrapped in a span. */
+  .tier-table [data-label]::before {
+    order: -1;
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: var(--size-small);
+    font-weight: 400;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+
+  .tier-table [data-label]::after {
+    order: 0;
+    content: "";
+    flex: 1 1 auto;
+    transform: translateY(-0.3em);
+    border-bottom: var(--rule-width) dotted var(--ink-soft);
+  }
+
+  .tier-table .cell-value {
+    order: 1;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+
+  .tier-table .tier-action {
+    padding-top: var(--space-3);
+    text-align: left;
+  }
 }
 
 /* There is almost no motion here to reduce -- one colour fade and one blinking

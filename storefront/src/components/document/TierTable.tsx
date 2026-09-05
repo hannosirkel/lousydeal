@@ -1,0 +1,73 @@
+/**
+ * The three tiers as rows of one invoice-style table, per
+ * `docs/current/brand.md` §4 — rows, not cards.
+ *
+ * **One markup tree, two layouts.** Below 640px the table becomes stacked
+ * ledger blocks through CSS alone: `display: block` on the table parts, the
+ * header row visually hidden, and each cell's label supplied by
+ * `content: attr(data-label)`. Rendering a second tree for small screens would
+ * duplicate every price in the DOM and read both to a screen reader.
+ *
+ * The value is wrapped in a `<span>` so the collapsed view can order it after
+ * the leader. `::before` and `::after` can both be flex items, but an
+ * anonymous text run cannot be given an `order`, so without the span the
+ * stacked row would read label, value, leader instead of label, leader, value.
+ */
+
+import type { ReactNode } from "react";
+
+import { TIER_TABLE_HEADINGS } from "../../content/home";
+
+export interface TierRow {
+  readonly id: string;
+  readonly handle: string;
+  readonly title: string;
+  readonly description: string;
+  readonly value: string;
+  readonly price: string;
+  readonly action: ReactNode;
+}
+
+function Cell({ label, children }: { readonly label: string; readonly children: ReactNode }) {
+  return (
+    <td data-label={label}>
+      <span className="cell-value">{children}</span>
+    </td>
+  );
+}
+
+export function TierTable({ rows }: { readonly rows: readonly TierRow[] }) {
+  return (
+    <table className="tier-table">
+      <thead>
+        <tr>
+          <th scope="col">{TIER_TABLE_HEADINGS.item}</th>
+          <th scope="col">{TIER_TABLE_HEADINGS.description}</th>
+          <th scope="col">{TIER_TABLE_HEADINGS.value}</th>
+          <th scope="col">{TIER_TABLE_HEADINGS.price}</th>
+          {/* The action column's heading is for a screen reader reaching the
+              submit control; sighted readers get the button's own label. */}
+          <th scope="col">
+            <span className="visually-hidden">{TIER_TABLE_HEADINGS.action}</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.id}>
+            {/* `th scope="row"` rather than a fourth `td`: the tier name is
+                what the other four cells are about, and a screen reader
+                reading a cell out of order gets told which row it is in. */}
+            <th scope="row" data-label={TIER_TABLE_HEADINGS.item}>
+              <span className="cell-value">{row.title}</span>
+            </th>
+            <Cell label={TIER_TABLE_HEADINGS.description}>{row.description}</Cell>
+            <Cell label={TIER_TABLE_HEADINGS.value}>{row.value}</Cell>
+            <Cell label={TIER_TABLE_HEADINGS.price}>{row.price}</Cell>
+            <td className="tier-action">{row.action}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
