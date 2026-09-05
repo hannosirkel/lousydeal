@@ -26,9 +26,13 @@ export const OFFER_LABELS = {
 } as const;
 
 /**
- * The one figure on this page allowed the display step and the accent: the
- * return on the transaction, which is total. It is a ratio rather than an
+ * The return on the transaction, which is total. A ratio rather than an
  * amount, so it is not a price and does not come from the API.
+ *
+ * It is set at the body step, not the display step `brand.md` §3 permits for
+ * it. §3 allows at most one display figure per page and requires none; a
+ * 2.25rem figure in the middle of a four-row ledger unbalances the block, and
+ * the accent already does the work.
  */
 export const OFFER_RETURN = "-100%";
 
@@ -39,6 +43,9 @@ export const TIER_TABLE_HEADINGS = {
   price: "Price",
   action: "Order",
 } as const;
+
+/** Rendered when the store offers nothing, per `brand.md` §4. */
+export const NO_OFFER_NOTICE = "No items of record. Nothing is currently offered.";
 
 /**
  * Keyed by the product handle `backend/src/commerce/product-model.ts` declares.

@@ -227,8 +227,13 @@ document.
 
    `-100%` in `--stamp`. Then the primary button, `ACQUIRE FOR $5.00`.
 3. **The tier table**, as one invoice-style table with columns ITEM /
-   DESCRIPTION / VALUE / PRICE / (action) — rows, not cards. Below 640px each
-   row collapses into a stacked ledger block. Descriptions:
+   DESCRIPTION / VALUE / PRICE / ORDER — rows, not cards. Below 640px each row
+   collapses into a stacked ledger block. The ORDER column's heading is for a
+   screen reader only; sighted readers get the button. Its button reads
+   `ACQUIRE`, without a price: the row already carries one, and a control
+   repeating it puts the figure in the markup twice. The tier's name is added
+   to the button's accessible name, so three buttons are not three identical
+   entries in a controls list. Descriptions:
 
    | Tier | Description |
    | --- | --- |
@@ -240,8 +245,23 @@ document.
 4. **`TERMS OF THIS OFFER`** — a fine-print block summarising, in four lines,
    what is actually bought: a numbered digital certificate and nothing else;
    supplied immediately; the price shown is the price charged and includes VAT
-   where it applies; the right of withdrawal is waived at checkout by an express
-   consent the buyer gives. Each line links to the document that governs it.
+   where it applies; and that **at checkout the buyer is asked to consent** to
+   immediate supply and to acknowledge that they thereby lose the 14-day right
+   of withdrawal, with the box unticked. Each line links to the document that
+   governs it.
+
+   **That fourth line used to say the right "is waived at checkout by an
+   express consent the buyer gives", and that was wrong.** VÕS § 53(4) p 7¹
+   removes the right only once the trader has *also* given the § 55(1)–(2)
+   confirmation on a durable medium — LD-02's order-confirmation email. Until
+   that exists, the right is not waived, and a page saying it is overstates
+   what the buyer gave up. The line now says what the checkout asks; it does
+   not report an outcome.
+
+The document is titled `PURCHASE ORDER`, and when the store offers nothing it
+carries `No items of record. Nothing is currently offered.` in place of the
+offer, the table and the terms — an empty invoice band above terms for a
+product nobody can buy is a rendering artefact, not a document.
 
 **No counter.** The prompt asked for `TOTAL VOLUNTARILY WASTED`. There is no
 order data to compute it from, and `AGENTS.md` is explicit that a public counter

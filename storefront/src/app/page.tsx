@@ -24,8 +24,8 @@ import { connection } from "next/server";
 
 import { DocumentFrame } from "../components/document/DocumentFrame";
 import { FinePrint } from "../components/document/FinePrint";
-import { Button } from "../components/document/Button";
 import { Ledger, LedgerRow } from "../components/document/LedgerRow";
+import { OrderForm } from "../components/document/OrderForm";
 import { Rule } from "../components/document/Rule";
 import { TierTable, type TierRow } from "../components/document/TierTable";
 import { getRuntimeConfig } from "../config/runtime-config";
@@ -33,25 +33,19 @@ import {
   ACQUIRE_LABEL,
   ACQUIRE_LABEL_PREFIX,
   HOME_DOCUMENT,
+  NO_OFFER_NOTICE,
   OFFER_LABELS,
   OFFER_RETURN,
   TERMS_OF_OFFER,
   TERMS_OF_OFFER_TITLE,
-  TIER_DESCRIPTIONS,
 } from "../content/home";
-import { createStoreFetchJson, getDefaultRegion, listTiers, type StoreClientConfig, type Tier } from "../lib/medusa-client";
+import { createStoreFetchJson, getDefaultRegion, listTiers, type StoreClientConfig } from "../lib/medusa-client";
 import { formatMoney } from "../lib/money";
 import { addLineToCart, createCart } from "../lib/store-cart";
+import { cheapest, NO_VALUE, tierRowData } from "../lib/tier-rows";
 
 /** Also read by `src/app/cart/page.tsx`, which looks the cart up by this id. */
 export const CART_ID_COOKIE = "lousydeal_cart_id";
-
-/**
- * What a certificate is worth, which is the joke and is also true: the
- * customer receives a numbered certificate conferring nothing. Formatted
- * rather than written, so it carries the same currency as the price beside it.
- */
-const NO_VALUE = 0;
 
 function requireStoreClientConfig(): StoreClientConfig {
   const { medusa } = getRuntimeConfig();
@@ -59,14 +53,6 @@ function requireStoreClientConfig(): StoreClientConfig {
     throw new Error("MEDUSA_BACKEND_URL and MEDUSA_PUBLISHABLE_API_KEY must both be set to render the storefront");
   }
   return { backendUrl: medusa.backendUrl, publishableKey: medusa.publishableKey };
-}
-
-/** The cheapest tier, which is what the offer block quotes. */
-function cheapest(tiers: readonly Tier[]): Tier | undefined {
-  return tiers.reduce<Tier | undefined>(
-    (lowest, tier) => (lowest === undefined || tier.amount < lowest.amount ? tier : lowest),
-    undefined,
-  );
 }
 
 export default async function HomePage() {
@@ -96,40 +82,48 @@ export default async function HomePage() {
 
   const offer = cheapest(tiers);
 
-  const rows: TierRow[] = tiers.map((tier) => ({
-    id: tier.id,
-    handle: tier.handle,
-    title: tier.title,
-    description: TIER_DESCRIPTIONS[tier.handle] ?? "",
-    value: formatMoney(NO_VALUE, tier.currencyCode),
-    price: formatMoney(tier.amount, tier.currencyCode),
-    action: (
-      <form action={addToCart}>
-        <input type="hidden" name="variantId" value={tier.variantId} />
-        <Button type="submit">{ACQUIRE_LABEL}</Button>
-      </form>
-    ),
-  }));
+  // Nothing offered is a state this page can reach -- `listTiers` drops any
+  // tier the API prices with no `calculated_price` -- and a headed table with
+  // no rows above terms describing a product nobody can buy is a rendering
+  // artefact, not a document. `brand.md` §4's empty-document pattern applies.
+  if (offer === undefined) {
+    return (
+      <main>
+        <DocumentFrame title={HOME_DOCUMENT.title} form={HOME_DOCUMENT.form} revision={HOME_DOCUMENT.revision}>
+          <p>{NO_OFFER_NOTICE}</p>
+        </DocumentFrame>
+      </main>
+    );
+  }
+
+  const rows: TierRow[] = tiers.map((tier) => {
+    const data = tierRowData(tier);
+    return {
+      ...data,
+      action: (
+        <OrderForm action={addToCart} variantId={data.variantId} label={ACQUIRE_LABEL} forTier={data.title} />
+      ),
+    };
+  });
 
   return (
     <main>
       <DocumentFrame title={HOME_DOCUMENT.title} form={HOME_DOCUMENT.form} revision={HOME_DOCUMENT.revision}>
-        {offer === undefined ? null : (
-          <>
-            <Ledger>
-              <LedgerRow label={OFFER_LABELS.item} value={offer.title} />
-              <LedgerRow label={OFFER_LABELS.price} value={formatMoney(offer.amount, offer.currencyCode)} />
-              <LedgerRow label={OFFER_LABELS.value} value={formatMoney(NO_VALUE, offer.currencyCode)} />
-              <LedgerRow label={OFFER_LABELS.return} value={OFFER_RETURN} tone="stamp" />
-            </Ledger>
-            <form action={addToCart}>
-              <input type="hidden" name="variantId" value={offer.variantId} />
-              <Button type="submit">
-                {ACQUIRE_LABEL_PREFIX} {formatMoney(offer.amount, offer.currencyCode)}
-              </Button>
-            </form>
-          </>
-        )}
+        <Ledger>
+          <LedgerRow label={OFFER_LABELS.item} value={offer.title} />
+          <LedgerRow label={OFFER_LABELS.price} value={formatMoney(offer.amount, offer.currencyCode)} />
+          <LedgerRow label={OFFER_LABELS.value} value={formatMoney(NO_VALUE, offer.currencyCode)} />
+          <LedgerRow label={OFFER_LABELS.return} value={OFFER_RETURN} tone="stamp" />
+        </Ledger>
+        {/* One template literal, not two children with a space between them:
+            React renders `{a} {b}` as separate text nodes, and the accessible
+            name comes out with the price run onto the label with no space.
+            Measured. */}
+        <OrderForm
+          action={addToCart}
+          variantId={offer.variantId}
+          label={`${ACQUIRE_LABEL_PREFIX} ${formatMoney(offer.amount, offer.currencyCode)}`}
+        />
 
         <Rule />
         <TierTable rows={rows} />

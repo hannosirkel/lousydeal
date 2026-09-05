@@ -290,10 +290,39 @@ small {
   padding: var(--space-1) 0;
 }
 
-/* The dt is itself a flex container so its ::after can grow into the space
-   between label and value. That pseudo-element is the dotted leader -- drawn,
-   never typed, so nothing reads a run of full stops aloud. */
-/* `min-content`, not zero and not a guessed rem. Zero lets the label collapse
+/* The dotted leader, in one place. `LedgerRow` reaches it through
+   `.ledger-label`; the tier table's collapsed rows reach it through
+   `[data-label]`, because that layout cannot reuse the component without a
+   second markup tree. Drawn, never typed, so nothing reads a run of full stops
+   aloud. */
+.ledger-label::after,
+.tier-table [data-label]::after {
+  content: "";
+  flex: 1 1 auto;
+  transform: translateY(-0.3em);
+  border-bottom: var(--rule-width) dotted var(--ink-soft);
+}
+
+/* What sits at the end of a leader: shrinkable, wrappable, right-aligned.
+   Shared for the same reason.
+
+   `0 1 auto`, not `0 0 auto`. A value that cannot shrink takes its max-content
+   width, and a long one -- a tier description in the stacked layout, or a
+   buyer's inscription on a certificate -- pushed 48px past a 390px viewport
+   and gave the whole page horizontal scroll. `overflow-wrap` is what lets it
+   break rather than merely permitting it to. */
+.ledger-value,
+.tier-table .cell-value {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+/* The dt is itself a flex container so the leader can grow into the space
+   between label and value.
+
+   `min-content`, not zero and not a guessed rem. Zero lets the label collapse
    and render its text outside its own box, over the value; a fixed floor is
    right until a label is longer than it. min-content is the label's own
    longest word, which is the smallest width at which it cannot spill.
@@ -311,24 +340,8 @@ small {
   text-transform: uppercase;
 }
 
-.ledger-label::after {
-  content: "";
-  flex: 1 1 auto;
-  transform: translateY(-0.3em);
-  border-bottom: var(--rule-width) dotted var(--ink-soft);
-}
-
-/* `0 1 auto`, not `0 0 auto`. A value that cannot shrink takes its max-content
-   width, and a long one -- a tier description in the stacked layout below
-   640px, or a buyer's inscription on a certificate -- pushed 48px past a 390px
-   viewport and gave the whole page horizontal scroll. `overflow-wrap` is what
-   lets it break rather than merely permitting it to. */
 .ledger-value {
-  flex: 0 1 auto;
-  min-width: 0;
   margin: 0;
-  overflow-wrap: anywhere;
-  text-align: right;
 }
 
 .ledger-value.is-stamp {
@@ -444,12 +457,11 @@ small {
   padding-left: 0;
 }
 
-/* The two numeric columns are read as figures, so they align as figures and
-   never wrap. Their headings go with them. */
-.tier-table td[data-label="Value"],
-.tier-table td[data-label="Price"],
-.tier-table thead th:nth-child(3),
-.tier-table thead th:nth-child(4) {
+/* Figures align as figures and never wrap. Keyed on `data-align`, set in the
+   markup, rather than on the heading text -- that text lives in a content file
+   so it can be edited, and a selector reading it would un-align the column the
+   day it changed. */
+.tier-table [data-align="figure"] {
   text-align: right;
   white-space: nowrap;
 }
@@ -464,9 +476,13 @@ small {
 }
 
 /* Below the narrow measure the table becomes stacked ledger blocks -- one
-   markup tree, per `brand.md` §4. The header row is hidden from sight but not
-   from the accessibility tree, and each cell supplies its own label. */
-@media (max-width: 640px) {
+   markup tree, per `brand.md` §4. The header row goes entirely, from sight and
+   from the accessibility tree alike, because each cell then carries its own
+   label; `TierTable.tsx` records what that was measured to do.
+
+   `width < 640px` rather than `max-width: 640px`, which includes 640 itself.
+   The number is `--measure-narrow`, which a media query cannot read. */
+@media (width < 640px) {
   .tier-table,
   .tier-table tbody,
   .tier-table tr,
@@ -517,18 +533,10 @@ small {
 
   .tier-table [data-label]::after {
     order: 0;
-    content: "";
-    flex: 1 1 auto;
-    transform: translateY(-0.3em);
-    border-bottom: var(--rule-width) dotted var(--ink-soft);
   }
 
   .tier-table .cell-value {
     order: 1;
-    flex: 0 1 auto;
-    min-width: 0;
-    overflow-wrap: anywhere;
-    text-align: right;
   }
 
   .tier-table .tier-action {
