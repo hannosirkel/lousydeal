@@ -11,7 +11,7 @@ import { connection } from "next/server";
 import { getRuntimeConfig } from "../../config/runtime-config";
 import { createStoreFetchJson, StoreApiError } from "../../lib/medusa-client";
 import { getCart } from "../../lib/store-cart";
-import { CART_ID_COOKIE } from "../page";
+import { CART_ID_COOKIE } from "../../lib/store-session";
 
 export default async function CartPage() {
   await connection();

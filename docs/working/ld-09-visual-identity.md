@@ -383,20 +383,42 @@ rule, after the consent checkbox and the Stripe element, and it is a framework
 requirement rather than a choice — so it amends `brand.md` §6 rather than
 quietly widening it.
 
-### V6 — Cart, checkout, and the express-consent checkbox
+### V6a — One cart action, in one place
+
+**Repository:** `lousydeal`.
+**Files:** `storefront/src/lib/cart-actions.ts`,
+`storefront/src/lib/store-session.ts`, `storefront/src/app/page.tsx`,
+`storefront/src/app/deal/[handle]/page.tsx`,
+`storefront/src/app/cart/page.tsx`, `storefront/src/app/checkout/page.tsx`,
+`storefront/tests/cart-actions.test.ts`.
+
+- [ ] Share the `addToCart` Server Action, which V4 and V5 each carry a
+      byte-identical copy of, and move `CART_ID_COOKIE` out of the home page's
+      route module, which three other files import it from. Verified by a test
+      asserting the cookie's attributes as one object, that the action refuses
+      a submission with no variant, that it exports exactly one function, and
+      that the quantity is not read from the form.
+
+**Split out of V6 because it is a different responsibility and would have put
+that row over the file bound.** Two Gate D reviews flagged the duplication; the
+second observed that the objection to sharing — that a `"use server"` module
+would couple two routes — did not survive the fact that both routes already
+imported a constant from the home page's route module.
+
+**Every export of a `"use server"` module is a POST endpoint.** Next gives each
+one a public action id reachable by any visitor with any arguments, which is
+why that module exports one function and the cookie constants live beside it
+rather than in it.
+
+### V6b — Cart, checkout, and the express-consent checkbox
 
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/cart/page.tsx`,
 `storefront/src/app/checkout/page.tsx`,
 `storefront/src/app/checkout/PaymentForm.tsx`,
-`storefront/src/lib/cart-actions.ts`, `storefront/src/app/page.tsx`,
-`storefront/src/app/deal/[handle]/page.tsx`,
-`storefront/tests/checkout-consent.test.ts`.
+`storefront/src/content/checkout.ts`, `storefront/src/app/globals.css`,
+`storefront/tests/checkout-consent.test.ts`, `docs/current/brand.md`.
 
-- [ ] Share the `addToCart` Server Action, which V4 and V5 each carry a
-      byte-identical copy of. Both routes and both cart-reading pages already
-      import `CART_ID_COOKIE` from the home page's route module; this row moves
-      the constant and the action somewhere that is not a route.
 - [ ] Render the cart as `ORDER SUMMARY` and the checkout as `PAYMENT
       AUTHORISATION`, with the total explicit above an unticked consent
       checkbox that the pay control is disabled behind. Verified by a test
@@ -655,7 +677,7 @@ loose ends.
 | Baldrick, and his voice section in `brand.md` | LD-05 |
 | Server-side enforcement that consent was given before an order exists | the row that records consent on the order |
 | `robots.txt`, sitemap, analytics, performance budget | LD-08 |
-| Sharing the `addToCart` action between the home and tier routes | V6 |
+| Sharing the `addToCart` action between the home and tier routes | done, V6a |
 | Closing the Legal gate | the operator, with a qualified human reader |
 | Publishing anything — removing an Access policy, seeding a live Stripe key | after the Legal gate, LD-02, and the print-on-demand provider |
 
