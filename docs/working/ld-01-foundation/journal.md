@@ -3091,3 +3091,73 @@ genuinely open.** It ticked exactly 25 and left the rest alone.
 **The record is the deliverable too.** A build whose whole method is that a
 claim must be bounded, cited or executed spent a day claiming a row was open
 because nobody executed the check on the checker.
+
+## T22: the guard that survived while its tests moved off it
+
+```text
+plepic     /store-api/hooks/payment/anything  ->  null   (was "/hooks/payment/anything")
+lousydeal  /api/store/hooks/payment/anything  ->  null
+both       encoded provider spellings canonicalize to /hooks/payment/stripe_stripe
+           encoded fixed segment (%70ayment) refused
+```
+
+Medusa's `POST /hooks/payment/:provider` enqueues with `attempts: 3` **before any
+verification** and never checks `req.params.provider`. Both proxies admitted the
+namespace and constrained nothing after it.
+
+**Plepic's exposure was unconditional**: its apex runs an `everyone` Access
+bypass, so anyone could enqueue from an unauthenticated body. Lousy Deal's was
+contingent on how wide a Cloudflare bare path reaches — a question two Cloudflare
+pages answer differently.
+
+### The asymmetry is the design
+
+The fixed segment is compared **undecoded**, so `/hooks/%70ayment/…` is refused.
+The provider segment is compared **decoded**, which closes the encoding bypass —
+and that is not a guess: Express 4.22.2 decodes route parameters with
+`decodeURIComponent`, the same function, verified in
+`express/lib/router/layer.js:148`. The canonical path is returned, so logs see
+one string.
+
+Plepic's first draft got the second half right and the first half wrong, and
+admitted `%70ayment` for Express to 404.
+
+### The finding that nearly shipped
+
+T18a's review found that deleting this file's fifth defence passed **all 484
+tests** while opening seven Admin-API bypasses. It closed that with tab-splice
+tests — **written against `hooks`**, the namespace that row admitted.
+
+T22b's branch returns early for `hooks`. **Those tests stopped reaching the
+fifth defence, and nothing said so.**
+
+```text
+delete the fifth defence                   42 passed
+"/api/store/store/.\t./admin/users"    ->  "/admin/users"
+"/api/store/hooks/.\t./admin/users"    ->  null   <- the new branch, not the fifth defence
+```
+
+**Nothing about the defence changed. The tests moved off it, and the bypass
+relocated to the other namespace.** Found by running the mutation the previous
+row's review taught, against a change with no obvious connection to it. The
+cases now live in `store`, which is the only namespace that still reaches that
+line.
+
+**The same shape as T21**: tests that were not weak, testing something that had
+quietly stopped being the thing under test. Third time in this build a guard
+outlived its own coverage.
+
+### A gap both rows document and neither closes
+
+A **coherent** rename of the provider identifier — every pin updated together,
+the proxy untouched — leaves every suite green while the live webhook 404s. The
+pins that catch drift live in the files a renamer is already editing. No test
+spans the two halves, and neither row's file list gives a mechanism to add one.
+**Recorded in both repositories rather than papered over.**
+
+### And a process risk worth naming
+
+**Two implementers lost work to `git checkout --` mid-task** — T20a and T22b —
+each reverting their own uncommitted edits along with a scratch mutation. Both
+caught it, both reconstructed, both disclosed. `git` cannot distinguish the
+intended diff from the scratch one; a scoped revert can.
