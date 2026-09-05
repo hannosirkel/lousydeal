@@ -242,6 +242,151 @@ small {
   font-style: normal;
 }
 
+/* ---- Document motifs ------------------------------------------------- */
+
+.rule {
+  margin: var(--space-5) 0;
+}
+
+/* Two 1px lines, --rule-gap apart. content-box so the gap is the gap and not
+   the gap minus the two borders, which is what the global border-box would
+   otherwise give. */
+.double-rule {
+  box-sizing: content-box;
+  height: var(--rule-gap);
+  margin: var(--space-5) 0;
+  border: 0;
+  border-top: var(--rule-width) solid var(--ink);
+  border-bottom: var(--rule-width) solid var(--ink);
+}
+
+.document-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.document-title {
+  font-size: var(--size-title);
+}
+
+.document-reference {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--size-fine);
+  letter-spacing: var(--tracking-label);
+  white-space: nowrap;
+}
+
+.ledger {
+  margin: 0 0 var(--space-5);
+}
+
+.ledger-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+
+/* The dt is itself a flex container so its ::after can grow into the space
+   between label and value. That pseudo-element is the dotted leader -- drawn,
+   never typed, so nothing reads a run of full stops aloud. */
+.ledger-label {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--space-2);
+  align-items: baseline;
+  min-width: 0;
+  font-size: var(--size-small);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.ledger-label::after {
+  content: "";
+  flex: 1 1 auto;
+  transform: translateY(-0.3em);
+  border-bottom: var(--rule-width) dotted var(--ink-soft);
+}
+
+.ledger-value {
+  flex: 0 0 auto;
+  margin: 0;
+  text-align: right;
+}
+
+.ledger-value.is-stamp {
+  color: var(--stamp);
+}
+
+.ledger-value.is-display {
+  font-size: var(--size-display);
+  line-height: var(--leading-heading);
+}
+
+.stamp-mark {
+  display: block;
+  width: 120px;
+  height: 120px;
+  fill: none;
+  stroke: var(--stamp);
+  stroke-width: 1.5;
+}
+
+.stamp-mark text {
+  fill: var(--stamp);
+  stroke: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+}
+
+.button {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  border: var(--rule-width) solid var(--ink);
+  font-size: var(--size-small);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background-color var(--transition) linear,
+    color var(--transition) linear;
+}
+
+.button.is-primary {
+  border-color: var(--stamp);
+  background: var(--stamp);
+  color: var(--paper);
+}
+
+.button.is-secondary {
+  background: transparent;
+  color: var(--ink);
+}
+
+/* Hover inverts ground and text. No scale, no shadow, no lift. The
+   `text-decoration` reset is because the base `a` rule underlines links, and
+   a button is not prose. */
+.button:hover {
+  text-decoration: none;
+}
+
+.button.is-primary:hover {
+  background: var(--paper);
+  color: var(--stamp);
+}
+
+.button.is-secondary:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
 /* There is almost no motion here to reduce -- one colour fade and one blinking
    block. Honouring the preference is a two-line rule, so it is honoured
    rather than argued about. */
