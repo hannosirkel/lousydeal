@@ -20,6 +20,7 @@ import {
   UPGRADES_TITLE,
   WITHDRAWAL_NOTICE,
 } from "../../content/deal";
+import { WITHDRAWAL_ROUTE } from "../../content/legal-routes";
 import { FinePrint } from "./FinePrint";
 import { Ledger, LedgerRow } from "./LedgerRow";
 import { Rule } from "./Rule";
@@ -73,7 +74,16 @@ export function Quotation({ title, price, value, action, upgrades }: QuotationPr
       )}
 
       <Rule />
-      <FinePrint>{WITHDRAWAL_NOTICE}</FinePrint>
+      {/* `brand.md` §4 gives this notice a link to Refunds & Withdrawal, and
+          V12 is the row that can add it -- the route did not exist before V10.
+          It is not decoration: § 54(1) p 12 requires the conditions, the time
+          limit and the procedure to be given before the contract is concluded,
+          and § 56(1⁶) runs the period to 12 months where that duty was
+          breached. The offer page is the last surface a buyer sees before the
+          cart. */}
+      <FinePrint>
+        {WITHDRAWAL_NOTICE} <a href={WITHDRAWAL_ROUTE.href}>{WITHDRAWAL_ROUTE.label}</a>.
+      </FinePrint>
     </>
   );
 }

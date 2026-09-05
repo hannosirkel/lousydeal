@@ -866,13 +866,37 @@ is V14's repository, not this one.
 `storefront/src/app/legal/page.tsx`,
 `storefront/tests/legal-routes.test.ts`.
 
-- [ ] Link all four documents from every page and give `/legal` an index, and
+- [x] Link all four documents from every page and give `/legal` an index, and
       add the link from the tier page's withdrawal notice that
       [`brand.md`](../current/brand.md) §4 gives it. Verified by a test
       asserting each link resolves to a content file that exists.
-- [ ] Build the footer's remaining two columns — LEGAL and COMPANY — so the
+- [x] Build the footer's remaining two columns — LEGAL and COMPANY — so the
       footer is the three-column block [`brand.md`](../current/brand.md) §4
       specifies rather than a single trader line.
+
+**One list, read by everything that points at a legal document.**
+`src/content/legal-routes.ts` holds the four routes, their labels and their
+summaries; the footer, the `/legal` index and the offer page's withdrawal link
+all read it. It sits beside `content/legal/` rather than inside it because
+`no-unresolved-placeholder.test.ts` requires every file in that directory to
+export a legal document, and loosening that walk to admit a routing table is
+how the next document hides.
+
+**The route test checks the filesystem, not a second list.** A route is
+`src/app/<path>/page.tsx`, which is what Next resolves too; comparing
+`LEGAL_ROUTES` to a hand-written array of the same strings would agree with
+itself forever. It runs both ways — a link with no page fails, and a page under
+`src/app/legal/` with no link fails. Both verified by mutation.
+
+**This narrows gate item 12 without closing it.** § 54(1) p 12 requires the
+conditions, the time limit and the procedure for withdrawal to be given before
+the contract is concluded, and § 56(1⁶) runs the period to 12 months rather
+than 14 days where that duty was breached. Until this row nothing on the site
+linked the document at all. Whether a footer link and the offer page's link
+discharge p 12 is the qualified reader's question, not this row's.
+
+`brand.md` §4 names the footer entry `Privacy` and §5 calls the document
+`Privacy Policy`. The link keeps §4's label; the document's own title is V11's.
 
 **The second checkbox exists because V2's review found the column had no
 owner.** V2 ships the trader line and defers the LEGAL column, correctly: its

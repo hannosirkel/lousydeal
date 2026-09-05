@@ -44,8 +44,10 @@ export const NO_UPGRADES_LINE = "This is the worst deal available. There is noth
  * wrong on. The conditional is the statute's own, and the missing confirmation
  * is stated rather than left for a reader to discover two documents later.
  *
- * `brand.md` §4 has this linking to Refunds & Withdrawal. V12 adds the link;
- * naming the document is the most this can do until then.
+ * `brand.md` §4 has this linking to Refunds & Withdrawal, and V12 adds it.
+ * The notice ends on a colon because the link follows it: naming the document
+ * in prose *and* linking it made two targets for one destination, which reads
+ * as a repeat to anyone tabbing through.
  */
 export const WITHDRAWAL_NOTICE =
-  "This is digital content supplied immediately. At checkout you are asked to consent to supply beginning at once, and to acknowledge that you would thereby lose the 14-day right of withdrawal. The box is not ticked for you. Losing that right also takes a confirmation we do not yet send, so today it survives the box. Refunds and Withdrawal sets out why.";
+  "This is digital content supplied immediately. At checkout you are asked to consent to supply beginning at once, and to acknowledge that you would thereby lose the 14-day right of withdrawal. The box is not ticked for you. Losing that right also takes a confirmation we do not yet send, so today it survives the box. Why, in full:";
