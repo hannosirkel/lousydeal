@@ -472,9 +472,12 @@ computation of a figure the API already gives.
 
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/components/document/Certificate.tsx`,
-`storefront/src/lib/certificate-model.ts`,
+`storefront/src/lib/certificate-model.ts`, `storefront/src/lib/inscription.ts`,
+`storefront/src/lib/money.ts`,
+`storefront/src/content/certificate.ts`,
 `storefront/src/app/design/certificate/page.tsx`,
-`storefront/tests/certificate.test.ts`.
+`storefront/src/app/globals.css`, `storefront/tests/certificate.test.ts`,
+`docs/current/brand.md`.
 
 - [ ] Build the certificate against a typed model — inscription, tier, amount,
       serial, issue date, layout version — and render one specimen record at
@@ -490,7 +493,26 @@ to version.
 
 **The specimen is not at a `/done-deals/` URL.** A fabricated deal must never
 occupy an address a real deal could have. `/design/` is a design surface and
-says so.
+says so, the certificate says so on its own face, and the route carries
+`noindex, nofollow` so that stays true after Access comes off.
+
+**The inscription is filtered at render, not only at entry.** §5 asks for both
+in those words, and this row builds the render — `sanitiseInscription` strips
+markup, script and style bodies, URLs, bare domains, email addresses and phone
+numbers, and returns `null` when nothing is left. It is a mechanical filter
+against the page becoming a billboard or a phishing surface, which is how §5
+describes it, and it is not moderation: that is a legal-gate decision and not a
+regular expression's.
+
+**The layout field is recorded, not dispatched on.** §5 wants a redesign to be
+additive, and nothing reads the field yet, so a layout 2 could still restyle
+every layout 1 certificate. LD-02 issues the first real certificate and is
+where the field starts carrying weight; the row that adds a second layout is
+the row that has to branch on it. Stated rather than implied.
+
+`money.ts` exports its thousands grouping so the serial uses it. Two figures on
+one document must not be grouped by two rules, and `toLocaleString` moves with
+the runtime's ICU data — the reason that file gives for not using it.
 
 ### V8 — The legal document shell, proven on the imprint
 
