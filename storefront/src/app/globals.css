@@ -2,10 +2,13 @@
  * The design tokens, and the base element styles that consume them.
  *
  * `docs/current/brand.md` §3 is the authority for every value below; this file
- * is where it becomes executable. Nothing else in the storefront declares a
- * colour, a type size or a spacing value -- `tests/tokens.test.ts` fails if a
- * colour literal appears anywhere in this file outside the `:root` block, and
- * fails if any of the five colours stops clearing WCAG AA against the paper.
+ * is where it becomes executable. `tests/tokens.test.ts` fails if a colour
+ * literal appears outside the `:root` block here or anywhere under
+ * `storefront/src`, and fails if any of the three colours used as text --
+ * `--ink`, `--stamp`, `--ink-soft` -- stops clearing WCAG AA against
+ * `--paper`. The other two, `--paper` and `--paper-shade`, are grounds rather
+ * than text and have no contrast bound to hold them to: they are 1.09:1
+ * against each other by design.
  *
  * No Tailwind, no CSS modules, no preprocessor. The identity is five colours,
  * six type steps and a rule; a build step to express that would be more
@@ -62,11 +65,29 @@
 }
 
 html {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  /* The fallback belongs inside var(): an undefined custom property makes the
+     whole declaration invalid at computed-value time, so terms written after
+     it never act -- the element would take the UA default serif, not the
+     monospace written beside it. */
+  font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 100%;
-  /* Every figure on this site sits in a column beside another figure. */
+  /* Every figure on this site sits in a column beside another figure. Inert
+     for this face -- it is monospaced, and ships no `tnum` feature -- but the
+     fallback stack is not, and `ui-monospace` resolves to proportional-digit
+     faces on some platforms. */
   font-variant-numeric: tabular-nums;
   -webkit-text-size-adjust: 100%;
+}
+
+/* Form controls inherit neither family nor size from `body` by UA default,
+   and this identity has exactly one typeface. Without this, the primary
+   button and the checkout consent control ship in Helvetica. */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
 }
 
 body {
@@ -97,9 +118,12 @@ h2 {
   font-size: var(--size-section);
 }
 
+/* Sub-headings take the body step, not a smaller one: a legal document's
+   `§1.1` sits above prose it must not be smaller than. Caps and tracking do
+   the separating instead of size. */
 h3,
 h4 {
-  font-size: var(--size-small);
+  font-size: var(--size-body);
 }
 
 p,
