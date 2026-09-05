@@ -596,7 +596,7 @@ unpublished site.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/content/legal/refunds.ts`,
 `storefront/src/app/legal/refunds/page.tsx`,
-`storefront/src/components/document/Footer.tsx`.
+`storefront/tests/legal-refunds.test.ts`.
 
 - [ ] Draft the withdrawal policy: the 14-day statutory right of **VÕS
       § 56(1)**, the digital-content exception of **§ 53(4) p 7¹**, and all
@@ -625,9 +625,27 @@ writing a document describing a mechanism the site does not yet have. That is
 named in the pull request and carried to the Legal gate rather than softened,
 because the alternative is a page overstating what the buyer gave up.
 
-The statutory paragraph is straight prose with no flourish. A `NO REFUNDS` stamp
-may appear on this page **only** below the consent explanation, where it is
-true, and never above it.
+The statutory paragraphs are straight prose with no flourish.
+
+**No `NO REFUNDS` stamp is used.** The permission above stands, and this row
+declined it: whether the sentence is true depends on whether all three
+conditions of § 53(4) p 7¹ were met for a particular reader, and a static page
+cannot know. A stamp true for some readers and false for others is the
+misleading §23 forbids, and this is the last document on the site to make a
+claim that only usually holds.
+
+**Item 2 of V9's gate list is closed here.** § 54(1) p 13 requires the model
+withdrawal form (*taganemisavalduse tüüpvorm*), and §5 offers it alongside the
+"any other unequivocal statement" § 56(2²) gives equal standing to — a document
+naming only an email address hides half of that provision. The remaining four
+items are still the qualified reader's.
+
+Four provisions this row read that the earlier research had not reached, all
+from the same API path: § 56(2¹), a notice is in time if sent inside the
+period; § 56(2²) and § 56(2³), the model form and its regulation; § 56(2⁵), the
+consumer bears the burden of proving withdrawal; and § 62, which makes void any
+agreement departing from these provisions to the consumer's detriment. The last
+is worth stating on a page a buyer reads while already suspicious.
 
 ### V11 — Privacy Policy
 
