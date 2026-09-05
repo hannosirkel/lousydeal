@@ -23,6 +23,7 @@ import { describe, expect, it } from "vitest";
 import { CONSENT_LABEL } from "../src/content/checkout";
 import { WITHDRAWAL_NOTICE } from "../src/content/deal";
 import { IMPRINT } from "../src/content/legal/imprint";
+import { PRIVACY } from "../src/content/legal/privacy";
 import { REFUNDS } from "../src/content/legal/refunds";
 import { TERMS } from "../src/content/legal/terms";
 import type { LegalDocument } from "../src/content/legal/types";
@@ -41,6 +42,7 @@ const SURFACES: ReadonlyArray<readonly [string, string]> = [
   ["Refunds and Withdrawal", documentProse(REFUNDS)],
   ["the Terms", documentProse(TERMS)],
   ["the Imprint", documentProse(IMPRINT)],
+  ["the Privacy Policy", documentProse(PRIVACY)],
   ["the offer page notice", WITHDRAWAL_NOTICE],
   ["the checkout consent box", CONSENT_LABEL],
 ];
@@ -52,7 +54,7 @@ describe("the surfaces this applies to", () => {
   it("includes every legal document and the two pre-contractual surfaces", () => {
     // A cross-document guard that silently stops covering a document is the
     // failure it was written to prevent.
-    expect(SURFACES).toHaveLength(5);
+    expect(SURFACES).toHaveLength(6);
     for (const [name, text] of SURFACES) expect(`${name}: ${String(text.length > 0)}`).toBe(`${name}: true`);
   });
 

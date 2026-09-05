@@ -715,6 +715,8 @@ because V10 closed it; the numbering is kept so earlier references resolve.
 | 12 | **§ 56(1⁶): where the trader breached the § 54(1) p 12 duty, the period runs 12 months longer.** Nothing on the site links `/legal/refunds` — V12 adds the footer — so whether that information is given pre-contractually at all is a live question, and the answer decides whether the period is 14 days or 12 months. Now stated in both documents; whether it is *discharged* is the reader's. | V10a |
 | 13 | The checkout requires the buyer to affirm "I acknowledge that I will lose my right of withdrawal" — an acknowledgement of something that, on this analysis, will not happen for any order placed today. § 53(4) p 7¹ requires that wording, so it is not a defect; but it sits beside item 8 and the reader should see the two together. | V10a |
 | 14 | **`fresh-build.md` §23 says not to write terms, refund policy or consumer disclosures as part of any LD slice**, and rows V8–V11 do exactly that. `brand.md` §5 records it as being at the operator's instruction. If that instruction exists it belongs in `docs/decisions/`, because §23 is the document the qualified reader will be handed. | V10a |
+| 15 | **No deletion job exists** for the seven-year accounting record the Privacy Policy states. Nothing in either repository deletes or ages out anything. The obligation is real and nothing has reached it, so the document is not yet false — but it will be, on a fixed date. | V11 |
+| 16 | **The request log has no configured retention.** Medusa's morgan writes an IP address, user agent, referrer and path for every request; `LOG_LEVEL` is unset so it defaults to `http`. §7 gives a criterion rather than a period, which Article 13(2)(a) permits, because the platform's log handling is outside these repositories. Setting `LOG_LEVEL=info` in the deploys overlays would suppress it entirely — V14's repository. | V11 |
 
 ### V10a — What the second Gate D found
 
@@ -780,21 +782,82 @@ a certain one on opening, and the clause now says that.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/content/legal/privacy.ts`,
 `storefront/src/app/legal/privacy/page.tsx`,
-`storefront/src/components/document/Footer.tsx`.
+`storefront/tests/legal-privacy.test.ts`,
+`storefront/tests/browser-storage-disclosure.test.ts`,
+`storefront/tests/third-party-disclosure.test.ts`,
+`storefront/tests/legal-consistency.test.ts`.
 
-- [ ] Draft the GDPR notice: controller identity; what is processed and why;
+`Footer.tsx` is **not** here. V12 owns the footer's legal column, and this row
+adding a link there would have split one change across two rows.
+
+- [x] Draft the GDPR notice: controller identity; what is processed and why;
       legal bases; retention; processors actually in the path; international
       transfers; data-subject rights; and the complaint right to the Estonian
       Data Protection Inspectorate.
 
-**Only processors that actually process something are named.** Stripe and
-Cloudflare are in the path today. Printful is not, because there is no merch;
-listing it would describe processing that does not happen. Adding it is LD-04's
-row.
+**Every fact was measured, and the first measurement was wrong.** A survey of
+the data flows ran against a checkout ten commits behind `main` and reported
+that the certificate, the inscription filter and five routes did not exist. It
+was re-run against `5d13aa4`. Nothing in the document rests on the first pass.
 
-Cookies: the cart id and Stripe's own, both strictly necessary, no analytics.
-That is stated plainly and no consent banner is added — §24's analytics work is
-LD-08's, and a banner for cookies nobody sets is a dark pattern in reverse.
+What the measurement found, and why the notice is short: **one cookie**
+(`lousydeal_cart_id`, httpOnly, secure, sameSite lax, no `maxAge`, so it ends
+with the session); **two form fields**, a country select and the consent
+checkbox, which is the whole of what this site's own code receives from a
+visitor; **no customer email anywhere**; **no analytics, pixel, beacon, error
+reporter, third-party font or CDN**; and **no third party on any route except
+the checkout**.
+
+**Three disclosures a template would have missed**, each verified in the
+installed code:
+
+  §3  Stripe's `advancedFraudSignals`. `loadStripe` is called without
+      `setLoadParameters`, so device fingerprinting is on by default. It is
+      the closest thing to tracking on this site.
+  §4  the payment record. Medusa retrieves the PaymentIntent with
+      `expand: ["payment_method"]` and writes the result into `payment.data`,
+      so billing details typed into Stripe's own frame reach this site's
+      database having never passed through its code.
+  §2  the request log. Medusa installs morgan, `LOG_LEVEL` is set nowhere so it
+      defaults to `http`, and `trust proxy` is on — an IP address, user agent,
+      referrer and path for every request.
+
+**Only processors that actually process something are named.** Stripe,
+Cloudflare and Backblaze. Printful is not, because there is no merch; the
+sibling project's Google, Meta and Brevo are not, because none of them is here.
+`third-party-disclosure.test.ts` asserts both halves — that each named party is
+reachable from the code, and that none of the unnamed ones appears.
+
+**No consent banner, and the document does not pretend otherwise.** One
+strictly necessary cookie and no measurement of any kind: there is nothing to
+consent to, and a banner for cookies nobody sets is a dark pattern in reverse.
+§24's analytics work is LD-08's, and it will need one.
+
+**Two operator answers.** Processing is in the EEA, so §6 states that and
+carries the Stripe/Cloudflare transfer clause. The IP logging stays and is
+disclosed; the missing deletion mechanism is recorded below rather than
+promised in the document.
+
+**Retention states periods, not mechanisms that exist.** Nothing in either
+repository deletes or ages out anything — the only expiry that runs is the
+cookie ending with the session. The seven-year accounting obligation is real
+and nothing has reached it, so §7 states it; the log period is given as a
+criterion, which Article 13(2)(a) permits, because the platform's own log
+handling is a third repository outside this work.
+
+**The guard is taken from the sibling project**, where it refuses any
+`document.cookie` write outside one declared file. It is worth having because
+the failure it prevents is silent: a cookie added for a good reason is not a
+bug, fails no build, and leaves a privacy notice that has quietly become false.
+`third-party-disclosure.test.ts` does the same for hosts and dependencies, so
+§2's claim about what the pages load is executed rather than asserted —
+constraint 10.
+
+Two build items for the gate list, both about the gap between what the document
+states and what runs: **no deletion job exists** for the seven-year accounting
+record, and **the request log has no configured retention**. Setting
+`LOG_LEVEL=info` in the deploys overlays would suppress the log entirely; that
+is V14's repository, not this one.
 
 ### V12 — Footer links and the legal index
 
