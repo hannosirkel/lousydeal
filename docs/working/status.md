@@ -7,8 +7,8 @@ does not.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-05 |
-| Current slice | LD-09, visual identity and legal documents. All sixteen rows merged; Gate E run 2026-09-05. |
+| Updated | 2026-09-06 |
+| Current slice | LD-09 complete. Sixteen rows plus V16, merged across three repositories; Gate E run 2026-09-05. |
 | Next action | **The operator's, not an agent's.** Two of them, below, and neither is code. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -25,7 +25,7 @@ operator, and they are not the same kind of thing.
 
 ### 1. The legal gate (§23)
 
-**Eighteen items** are recorded in the gate list at the foot of
+**Eighteen items, four of them closed**, are recorded in the gate list at the foot of
 [`ld-09-visual-identity.md`](./ld-09-visual-identity.md), and §23 makes closing
 them an operator gate that a qualified human reader closes. Four documents are
 drafted and every provision in them is cited to the redaction of the Law of
@@ -44,16 +44,26 @@ wording:
   site's own domain. The privacy notice states the position taken and does not
   pretend the ePrivacy question is settled.
 
-### 2. Two secrets, and the imprint is incomplete until they exist
+### 2. Six merchant values in the private inventory
 
-`MERCHANT_REGISTRY_CODE` and `MERCHANT_VAT_NUMBER` are declared on the
-storefront in both environments as optional `secretKeyRef`s, per §2b: they may
-not be committed, and this repository and `deploys` are both public. **Until
-they are in OpenBao, the imprint renders each as a named, visible gap and says
-the document is incomplete** — designed behaviour, and still a visible gap.
+**Not secrets, and not OpenBao.** §2b's open decision was settled on 2026-09-06
+and the answer is the reference project's: the trader identity is injected by
+Orange's Application from `argocd_lousydeal_environments[*].merchant`, whose
+committed values are placeholders and whose real values live in the operator's
+private Ansible inventory.
 
-Everything else §2b lets us commit is committed and resolves in both
-environments, verified by rendering the overlays.
+So the remaining action is: put the real six — legal name, address, email,
+telephone, registry code, VAT number — under that key in the private
+`orange.yml`. Until then both environments render `Example Trader OÜ` and the
+rest of the placeholders.
+
+`deploys/lousydeal/base/storefront.yaml` carries the real values as a fallback
+the patch supersedes, for the reason `deploys/plepic`'s does: a manifest applied
+without Orange should still publish a lawful imprint rather than a page of gaps.
+
+**The imprint is complete either way.** Verified 2026-09-06: served from a built
+server with all six configured, it renders no gap and no incompleteness notice —
+the first time that has been true.
 
 ### Not this initiative's to schedule
 
@@ -70,7 +80,7 @@ What is actually held, as against what the contract expects in §2b.
 | Domain `lousydeal.com` | yes | DNS not yet published |
 | Company identity, Aislopica OÜ | yes | §2b |
 | Stripe test-mode keys | yes | `.keys/stripe-lousydeal-test` in the Orange checkout, provider-first per `006` |
-| Registry code and VAT number in OpenBao | **no** | the imprint is incomplete in both environments until they are; §2b forbids committing either |
+| Merchant identity in the private `orange.yml` | **no** | placeholders render until it is there; §2b settled 2026-09-06, and these are inventory values rather than secrets |
 | Stripe live keys | no | not before the publication gate, by design |
 | Printful account and sandbox | no | request before LD-04 |
 | SMTP transactional credentials | no | request before LD-02 |
