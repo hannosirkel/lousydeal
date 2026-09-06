@@ -65,6 +65,27 @@ export const EMAIL_LABEL = "Email address";
 export const EMAIL_HINT =
   "Your order confirmation goes here. We owe you one on a durable medium and do not yet send it, which is why your 14-day right of withdrawal still stands — Refunds and Withdrawal explains that in full.";
 
+/** §5's two inscription fields, both optional. C3c. */
+export const INSCRIPTION_LABELS = {
+  displayName: "Name on the certificate (optional)",
+  dedication: "Dedication (optional)",
+} as const;
+
+/**
+ * What the two fields are, said before they are filled in.
+ *
+ * **Three things it has to say, and §5 gives all three.** That both are
+ * public. That the billing name is never printed, so leaving them blank does
+ * not fall back to it. And that some things are removed mechanically — §7 of
+ * the Terms already promises the buyer that, and a filter that silently eats
+ * what somebody typed is worse than one that says so.
+ */
+export const INSCRIPTION_NOTICE =
+  "Both are optional and both are public. Your billing name is never printed on a certificate, and leaving these blank prints “the bearer” instead. Links, domain names, email addresses, telephone numbers and markup are removed automatically, and the preview shows what will actually appear.";
+
+/** The heading over the preview of what the certificate will carry. */
+export const INSCRIPTION_PREVIEW_LABEL = "What will appear";
+
 /**
  * The price disclosure, above the pay control rather than below it.
  *

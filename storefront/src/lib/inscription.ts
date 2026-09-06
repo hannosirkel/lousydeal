@@ -18,6 +18,37 @@
  * given is not a filter.
  */
 
+/*
+ * The rules below are character-for-character the same as the ones in
+ * `backend/src/modules/deal/inscription.ts`, and
+ * `backend/tests/inscription-filter.test.ts` compares the two.
+ *
+ * There is no package shared between the two workspaces -- the backend emits
+ * CommonJS under `ts-node`, this one is ESM under Next -- and §5 asks for a
+ * pass at entry and a pass at render regardless, so the rules are duplicated
+ * on purpose and held identical by a test rather than by hope. The sentinels
+ * are what the test slices between; the prose above them is each file's own.
+ *
+ * Edit one, edit both, and add the case to
+ * `tests/fixtures/inscription-cases.json` that proves what changed.
+ */
+
+/**
+ * §5's two lengths, and the checkout field's `maxLength`.
+ *
+ * **Outside the shared region on purpose.** The backend has its own copy under
+ * its own name (`DEAL_INSCRIPTION_LIMITS`), and neither is the authority:
+ * `tests/fixtures/inscription-cases.json` is, and both suites assert their
+ * constant against it. The numbers are counted *after* filtering, which is what
+ * makes 120 a limit on what appears on the certificate rather than on what was
+ * typed.
+ */
+export const INSCRIPTION_LIMITS = {
+  displayName: 60,
+  dedication: 120,
+} as const;
+
+// >>> shared inscription filter
 /**
  * A script or style element **and what is inside it**. Removing only the tags
  * would leave the body as text — `<script>alert(1)</script>` became the
@@ -96,3 +127,4 @@ export function sanitiseInscription(raw: string | null | undefined): string | nu
 
   return stripped === "" ? null : stripped;
 }
+// <<< shared inscription filter

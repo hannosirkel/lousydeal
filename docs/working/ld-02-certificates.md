@@ -389,35 +389,65 @@ the instrument `legal-routes.test.ts` already uses for the same reason.
 #### C3c — The inscription
 
 **Repository:** `lousydeal`.
-**Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
-`storefront/src/lib/inscription.ts`, `storefront/src/content/checkout.ts`,
-`backend/src/modules/deal/inscription.ts`, a shared fixture, and both suites'
-tests.
+**Files:** `tests/fixtures/inscription-cases.json`,
+`storefront/src/app/checkout/PaymentForm.tsx`,
+`storefront/src/lib/inscription.ts`, `storefront/src/lib/store-checkout.ts`,
+`storefront/src/content/checkout.ts`,
+`backend/src/modules/deal/inscription.ts`,
+`backend/tests/inscription-filter.test.ts`,
+`storefront/tests/certificate.test.ts`,
+`storefront/tests/checkout-inscription.test.ts`.
 
-- [ ] Collect the two optional inscription fields, filter them at entry — **in
+- [x] Collect the two optional inscription fields, filter them at entry — **in
       the backend, at issuance** — and show the buyer what will be public
       before they pay.
 
-**Entry-side filtering is the half §5 asks for that does not exist.**
-`sanitiseInscription` already strips markup, URLs, bare domains, addresses and
-telephone numbers at render.
+**Entry-side filtering was the half §5 asks for that did not exist.**
+`sanitiseInscription` already stripped markup, URLs, bare domains, addresses
+and telephone numbers at render.
 
 **Amended by C2: the entry-side filter belongs in the backend.** The plan first
 put it in the checkout form alone. C2 found that the endpoint carrying the
 inscription — `POST /store/carts/:id` — is public and accepts arbitrary
 metadata, so the storefront form is not a boundary and filtering there protects
 nothing. The filter runs in `backend/src/modules/deal/inscription.ts`, where
-the trust boundary is. The checkout keeps its own for what it shows the buyer
-*before* they pay, which is a disclosure duty rather than a security one.
+the trust boundary is. The checkout keeps its own copy for the preview it shows
+before payment, which is a disclosure duty rather than a security one — and the
+value that travels to the cart is the raw one, so the two cannot look agreed
+when only one is load-bearing.
 
-**Two implementations, one specification.** There is no package shared between
-the two workspaces, and §5 asks for a pass at entry and a pass at render
-anyway. A committed fixture of input/expected pairs is run by both suites, so
-a divergence fails on whichever side moved.
+**Two implementations, and two mechanisms holding them together**, because they
+catch different failures:
 
-**Dedication is capped at 120 characters**, §5's figure, counted after
-filtering rather than before. The display name is capped at 60 — C2's number,
-not the contract's; see there.
+- `tests/fixtures/inscription-cases.json` says what the rules must *do*. Both
+  suites run every case. It would still pass if one copy gained a rule the
+  other lacks and no case exercised it.
+- `backend/tests/inscription-filter.test.ts` compares the two files' shared
+  regions **character for character**, between sentinels each file carries.
+  That catches exactly what the fixture cannot. Proven: drifting one regex in
+  one copy fails the comparison and no fixture case.
+
+A third test guards the fixture rather than the filter — every rule the shared
+region declares must be described by at least one case's stated reason, so a
+rule cannot be protected by the character comparison alone and described
+nowhere.
+
+**One case is a deliberate keep, not a gap.** `javascript:alert(1)` survives
+the filter. An inscription is rendered as text and never as an `href` or any
+attribute, so it cannot execute; §5's targets are a billboard and a phishing
+surface and this is neither; and the rule that would catch it — a word followed
+by a colon — also eats `Note:` and `10:30`, which is the same over-eagerness
+three Gate D findings already punished. The fixture records the reasoning
+rather than leaving the case out.
+
+**The limit is counted after filtering.** That is what makes 120 a limit on
+what appears on the certificate rather than on what was typed; capping first
+would let a buyer spend the allowance on text that was going to be removed and
+arrive with a dedication shorter than the preview showed them.
+
+**Dedication is capped at 120 characters**, §5's figure. The display name is
+capped at 60 — C2's number, not the contract's — and both now live in the
+fixture, with each workspace's constant asserted against it.
 
 **Dedication is capped at 120 characters**, §5's figure, counted after
 filtering rather than before. The display name is capped at 60 — C2's number,

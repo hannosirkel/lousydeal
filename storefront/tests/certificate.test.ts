@@ -25,6 +25,7 @@ import {
   NO_INSCRIPTION,
   SPECIMEN_NOTICE,
 } from "../src/content/certificate";
+import { INSCRIPTION_LIMITS, sanitiseInscription } from "../src/lib/inscription";
 import {
   CERTIFICATE_LAYOUT_V1,
   formatSerial,
@@ -160,18 +161,6 @@ describe("what an inscription may say", () => {
     expect(bearerOf("worth every cent, regrettably")).toBe("worth every cent, regrettably");
   });
 
-  it.each([
-    ["https://evil.example.com/free-money", "a link"],
-    ["www.evil.test", "a bare host"],
-    ["evil.example.com/pay", "a bare domain"],
-    ["me@evil.test", "an email address"],
-    ["+372 5555 5555", "a phone number"],
-  ])("strips %s, which would make this a billboard", (inscription) => {
-    // Not moderation -- §5 calls this a mechanical filter against the public
-    // page becoming a free billboard or a phishing surface.
-    expect(bearerOf(inscription)).toBe("The bearer");
-  });
-
   it("removes markup rather than relying on it being escaped", () => {
     expect(bearerOf("<script>alert(1)</script>")).toBe("The bearer");
     expect(bearerOf("Jane <b>Example</b>")).toBe("Jane Example");
@@ -181,15 +170,40 @@ describe("what an inscription may say", () => {
     expect(bearerOf("Jane, at jane@evil.test")).toBe("Jane, at");
   });
 
-  // §7 of the Terms tells a buyer that markup, links, domains, addresses and
-  // telephone numbers are removed. It does not say their arithmetic is, and
-  // Gate D measured all three of these being eaten.
-  it.each([
-    ["Worth every cent, regrettably.Bought anyway", "a missing space after a full stop"],
-    ["I paid 25 dollars for 1 000 000 nothings", "a space-grouped quantity"],
-    ["Bought on 2026-09-05 at 14:32:10", "a date and a time"],
-  ])("keeps %s", (inscription) => {
-    expect(bearerOf(inscription)).toBe(inscription);
+  // The exhaustive rule-by-rule cases moved to
+  // `tests/fixtures/inscription-cases.json` in C3c, which the block below runs
+  // against this copy of the filter and `backend/tests/inscription-filter.test.ts`
+  // runs against the other. What stays here is the render: that a filtered-away
+  // inscription reaches the certificate's no-inscription state rather than a
+  // blank row, which is a fact about this component and not about the filter.
+});
+
+/**
+ * C3c. The specification both copies of §5's filter answer to.
+ *
+ * §5 asks for a pass "at entry and again at render" and this project runs them
+ * in different runtimes: the entry pass is
+ * `backend/src/modules/deal/inscription.ts`, because the endpoint carrying an
+ * inscription is public, and the render pass is the one imported here. There is
+ * no package shared between the two workspaces, so the fixture is where the
+ * rules are agreed and `backend/tests/inscription-filter.test.ts` additionally
+ * compares the two files character for character.
+ */
+describe("the shared §5 filter, as the fixture specifies it", () => {
+  const spec = JSON.parse(
+    readFileSync(new URL("../../tests/fixtures/inscription-cases.json", import.meta.url), "utf8"),
+  ) as {
+    limits: { displayName: number; dedication: number };
+    cases: { why: string; input: string; expected: string | null }[];
+  };
+
+  it.each(spec.cases.map((one) => [one.why, one.input, one.expected] as const))("%s", (_why, input, expected) => {
+    expect(sanitiseInscription(input)).toBe(expected);
+  });
+
+  it("agrees with the checkout's own limits", () => {
+    expect(INSCRIPTION_LIMITS.displayName).toBe(spec.limits.displayName);
+    expect(INSCRIPTION_LIMITS.dedication).toBe(spec.limits.dedication);
   });
 });
 

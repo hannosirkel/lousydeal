@@ -1,0 +1,40 @@
+{
+  "$comment": [
+    "The specification of contract §5's inscription filter, and the one place its two implementations meet.",
+    "§5 requires markup, scripts, URLs, bare domain names, email addresses and telephone numbers stripped 'at entry and again at render'. Those are two passes in two runtimes: the entry pass runs in the backend at issuance (backend/src/modules/deal/inscription.ts), because the endpoint carrying an inscription — POST /store/carts/:id — is public and accepts arbitrary metadata, so a filter in the checkout form filters nothing; the render pass runs in the storefront (storefront/src/lib/inscription.ts), because §5 also requires an operator to be able to blank an inscription later without reissuing the certificate, which is only possible if the rendered document is derived every time.",
+    "There is no package shared between the two workspaces — the backend emits CommonJS under ts-node and the storefront is ESM under Next — so there are two copies of the rules. This file is what stops them drifting: both test suites run every case below against their own implementation, and backend/tests/inscription-filter.test.ts additionally compares the two files' rule sections character for character.",
+    "'expected: null' means nothing survives and the certificate shows its no-inscription state, which §5 requires to look deliberate rather than truncated.",
+    "Cases marked 'gate' were found by a Gate D review of LD-09's V7 and are the reason the rules are shaped the way they are. Deleting one re-opens a defect somebody already found."
+  ],
+  "limits": {
+    "$comment": "§5 gives 120 for the dedication and calls the display name 'short'. 60 is C2's number, not the contract's: it is what fits the certificate's BEARER row on one line at 390px. Counted after filtering, not before.",
+    "displayName": 60,
+    "dedication": 120
+  },
+  "cases": [
+    { "why": "an ordinary name", "input": "Jane Example", "expected": "Jane Example" },
+    { "why": "an ordinary dedication", "input": "worth every cent, regrettably", "expected": "worth every cent, regrettably" },
+
+    { "why": "a link", "input": "https://evil.example.com/free-money", "expected": null },
+    { "why": "a bare host", "input": "www.evil.test", "expected": null },
+    { "why": "a bare domain with a path", "input": "evil.example.com/pay", "expected": null },
+    { "why": "an email address", "input": "me@evil.test", "expected": null },
+    { "why": "a telephone number", "input": "+372 5555 5555", "expected": null },
+    { "why": "a schemeless pseudo-URL is KEPT, and this is a decision rather than a gap: an inscription is rendered as text and never as an href or any attribute, so 'javascript:alert(1)' cannot execute anywhere it appears; §5's targets are a billboard and a phishing surface and this is neither; and the rule that would catch it — any word followed by a colon — eats 'Note:' and '10:30', which is the same over-eagerness three Gate D findings already punished", "input": "javascript:alert(1)", "expected": "javascript:alert(1)" },
+
+    { "why": "a script element and its body, not merely its tags", "input": "<script>alert(1)</script>", "expected": null },
+    { "why": "a style element and its body", "input": "<style>body{display:none}</style>", "expected": null },
+    { "why": "markup around text keeps the text", "input": "Jane <b>Example</b>", "expected": "Jane Example" },
+    { "why": "an unclosed tag", "input": "Jane <b Example", "expected": "Jane" },
+
+    { "why": "the offending part goes and the rest stays", "input": "Jane, at jane@evil.test", "expected": "Jane, at" },
+
+    { "why": "gate: a missing space after a full stop is a typing slip, not a domain", "input": "Worth every cent, regrettably.Bought anyway", "expected": "Worth every cent, regrettably.Bought anyway" },
+    { "why": "gate: a space-grouped quantity is arithmetic, not a telephone number", "input": "I paid 25 dollars for 1 000 000 nothings", "expected": "I paid 25 dollars for 1 000 000 nothings" },
+    { "why": "gate: an ISO date with a time is a date", "input": "Bought on 2026-09-05 at 14:32:10", "expected": "Bought on 2026-09-05 at 14:32:10" },
+
+    { "why": "empty", "input": "", "expected": null },
+    { "why": "whitespace only", "input": "   ", "expected": null },
+    { "why": "collapses the whitespace a removal leaves behind", "input": "Jane    Example", "expected": "Jane Example" }
+  ]
+}

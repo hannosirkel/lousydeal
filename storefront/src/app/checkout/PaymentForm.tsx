@@ -51,20 +51,26 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "../../components/document/Button";
 import { FinePrint } from "../../components/document/FinePrint";
+import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
 import {
   CONSENT_LABEL,
   CONSENT_REQUIRED_NOTICE,
   COUNTRY_LABEL,
   EMAIL_HINT,
   EMAIL_LABEL,
+  INSCRIPTION_LABELS,
+  INSCRIPTION_NOTICE,
+  INSCRIPTION_PREVIEW_LABEL,
   PAY_LABEL,
   PAYING_LABEL,
   PAYMENT_NEEDS_SCRIPTING,
   PREPARING_PAYMENT_LABEL,
 } from "../../content/checkout";
+import { NO_INSCRIPTION } from "../../content/certificate";
 import { payDisabled } from "../../lib/checkout-rules";
+import { INSCRIPTION_LIMITS, sanitiseInscription } from "../../lib/inscription";
 import type { FetchJson, StoreFetchInit, StoreRegionCountry } from "../../lib/medusa-client";
-import { setCartCountry, setCartEmail } from "../../lib/store-checkout";
+import { setCartCountry, setCartEmail, setCartInscription } from "../../lib/store-checkout";
 import { completeCheckoutCart, createPaymentCollection, initiateStripePaymentSession } from "../../lib/store-payment";
 
 /** This route's own mount point (`src/app/api/store/[...path]/route.ts`), never the backend origin. */
@@ -210,6 +216,16 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
    * remember a buyer by, so anything here would be a guess.
    */
   const [email, setEmail] = useState("");
+  /**
+   * §5's two inscription fields, both optional and both public. C3c.
+   *
+   * Held raw. The preview below runs the render-side filter so the buyer sees
+   * what will appear, but what travels to the cart is what they typed: the
+   * pass that decides what is *stored* runs in the backend at issuance,
+   * because the endpoint carrying this is public.
+   */
+  const [displayName, setDisplayName] = useState("");
+  const [dedication, setDedication] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -242,6 +258,7 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
       // below, so neither can leave a charged card on an order Medusa then
       // refuses. `setCartEmail` throws on an address Medusa will not take.
       await setCartEmail(fetchJson, cartId, email);
+      await setCartInscription(fetchJson, cartId, { displayName, dedication });
       await setCartCountry(fetchJson, cartId, countryCode);
 
       // `redirect: "if_required"` keeps a standard test-mode card on this
@@ -290,6 +307,51 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
       </p>
       <FinePrint>
         <span id="checkout-email-hint">{EMAIL_HINT}</span>
+      </FinePrint>
+
+      {/* C3c. §5's two fields, and the notice that has to come before them
+          rather than after: what is public, that the billing name is never
+          used, and that some of what is typed is removed. No `required` on
+          either -- §5 says most buyers leave both blank and the certificate
+          has to look deliberate when they do. */}
+      <FinePrint>
+        <span id="checkout-inscription-notice">{INSCRIPTION_NOTICE}</span>
+      </FinePrint>
+      <p className="field">
+        <label htmlFor="checkout-display-name">{INSCRIPTION_LABELS.displayName}</label>
+        <input
+          id="checkout-display-name"
+          type="text"
+          value={displayName}
+          maxLength={INSCRIPTION_LIMITS.displayName}
+          aria-describedby="checkout-inscription-notice"
+          onChange={(event) => setDisplayName(event.target.value)}
+        />
+      </p>
+      <p className="field">
+        <label htmlFor="checkout-dedication">{INSCRIPTION_LABELS.dedication}</label>
+        <input
+          id="checkout-dedication"
+          type="text"
+          value={dedication}
+          maxLength={INSCRIPTION_LIMITS.dedication}
+          aria-describedby="checkout-inscription-notice"
+          onChange={(event) => setDedication(event.target.value)}
+        />
+      </p>
+      {/* The preview is the disclosure §5 asks for -- the buyer is shown what
+          is public *before* they pay -- run through the same filter the
+          certificate renders with, so it cannot flatter. `aria-live` because
+          it changes as they type and a screen reader would otherwise never
+          learn that something was removed. */}
+      <Ledger>
+        <LedgerRow
+          label={INSCRIPTION_PREVIEW_LABEL}
+          value={sanitiseInscription(displayName) ?? NO_INSCRIPTION}
+        />
+      </Ledger>
+      <FinePrint>
+        <span aria-live="polite">{sanitiseInscription(dedication) ?? ""}</span>
       </FinePrint>
 
       {/* Collects the one field the row asks for, sourced from `countries` --
