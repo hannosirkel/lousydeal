@@ -22,6 +22,7 @@ import { describe, expect, it } from "vitest";
 
 import { CONSENT_LABEL } from "../src/content/checkout";
 import { WITHDRAWAL_NOTICE } from "../src/content/deal";
+import { TERMS_OF_OFFER } from "../src/content/home";
 import { IMPRINT } from "../src/content/legal/imprint";
 import { PRIVACY } from "../src/content/legal/privacy";
 import { REFUNDS } from "../src/content/legal/refunds";
@@ -44,6 +45,11 @@ const SURFACES: ReadonlyArray<readonly [string, string]> = [
   ["the Imprint", documentProse(IMPRINT)],
   ["the Privacy Policy", documentProse(PRIVACY)],
   ["the offer page notice", WITHDRAWAL_NOTICE],
+  // Gate E found this one saying "you thereby lose the 14-day right of
+  // withdrawal" -- the flat form V10a corrected on three other surfaces --
+  // three rows after that correction, on the home page. It was not on the list,
+  // and a guard is only as wide as its list.
+  ["the home page's offer terms", TERMS_OF_OFFER.join("\n")],
   ["the checkout consent box", CONSENT_LABEL],
 ];
 
@@ -51,10 +57,10 @@ const SURFACES: ReadonlyArray<readonly [string, string]> = [
 const mentionsTheConfirmation = SURFACES.filter(([, text]) => /\bconfirmation\b/i.test(text));
 
 describe("the surfaces this applies to", () => {
-  it("includes every legal document and the two pre-contractual surfaces", () => {
+  it("includes every legal document and every pre-contractual surface", () => {
     // A cross-document guard that silently stops covering a document is the
     // failure it was written to prevent.
-    expect(SURFACES).toHaveLength(6);
+    expect(SURFACES).toHaveLength(7);
     for (const [name, text] of SURFACES) expect(`${name}: ${String(text.length > 0)}`).toBe(`${name}: true`);
   });
 

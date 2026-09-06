@@ -32,11 +32,12 @@
 import { cookies } from "next/headers";
 import { connection } from "next/server";
 
+import { Button } from "../../components/document/Button";
 import { DocumentFrame } from "../../components/document/DocumentFrame";
 import { FinePrint } from "../../components/document/FinePrint";
 import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
 import { getRuntimeConfig } from "../../config/runtime-config";
-import { CART_EMPTY_NOTICE, CART_LABELS, CHECKOUT_DOCUMENT, PRICE_NOTICE } from "../../content/checkout";
+import { CART_EMPTY_NOTICE, CART_LABELS, CHECKOUT_DOCUMENT, PRICE_NOTICE, RETURN_LABEL } from "../../content/checkout";
 import { createStoreFetchJson, getDefaultRegion } from "../../lib/medusa-client";
 import { formatMoney } from "../../lib/money";
 import { getCheckoutCart } from "../../lib/store-checkout";
@@ -57,6 +58,12 @@ export default async function CheckoutPage() {
           revision={CHECKOUT_DOCUMENT.revision}
         >
           <p className="notice">{CART_EMPTY_NOTICE}</p>
+          {/* Gate E: this state had no way onward. The cart's identical state
+              has carried one since V6a, and a visitor whose cart expired
+              between the two pages reached a document with nothing to do. */}
+          <Button variant="secondary" href="/">
+            {RETURN_LABEL}
+          </Button>
         </DocumentFrame>
       </main>
     );
