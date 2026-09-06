@@ -79,6 +79,44 @@ export async function getCheckoutCart(fetchJson: FetchJson, cartId: string): Pro
   return { id: cart.id, currencyCode: cart.currency_code, total: cart.total, quantities };
 }
 
+interface StoreCartEmailResponse {
+  readonly cart?: { readonly email?: unknown };
+}
+
+/**
+ * Puts the buyer's email address on the cart, from where Medusa carries it onto
+ * the order.
+ *
+ * **This is the address the § 55(1)-(2) confirmation has to go to**, and until
+ * C3b there was none: nothing set `cart.email`, and Medusa tolerates that all
+ * the way through -- `complete-cart.js:446,505` passes `cart.email` and
+ * `cart.email || null` to the order without requiring either. An order with no
+ * address cannot be confirmed on a durable medium, which is the third condition
+ * VOS s 53(4) p 7-1 needs and the reason nothing here excludes the 14-day right.
+ *
+ * **Read back, not assumed.** Medusa validates the address itself
+ * (`email: z.string().email().nullish()`, `carts/validators.js:18`) and answers
+ * 400 for one it refuses, which `fetchJson` turns into a throw -- so a bad
+ * address fails here, before the card is charged. The read-back is what
+ * separates "Medusa accepted it" from "the request did not error".
+ *
+ * Setting it does not disturb an existing Stripe session: the payment
+ * collection is refreshed on every cart update, but the session is dropped only
+ * when the cart's own total changes or its currency differs
+ * (`refresh-payment-collection.js:88-93`, cited in full on `setCartCountry`
+ * below). An email address changes neither.
+ */
+export async function setCartEmail(fetchJson: FetchJson, cartId: string, email: string): Promise<string> {
+  const { cart } = await fetchJson<StoreCartEmailResponse>(`/store/carts/${encodeURIComponent(cartId)}`, {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  if (typeof cart?.email !== "string" || cart.email.length === 0) {
+    throw new Error(`Medusa did not return an email address for cart ${cartId}`);
+  }
+  return cart.email;
+}
+
 export interface CartCountry {
   readonly countryCode: string;
   /**

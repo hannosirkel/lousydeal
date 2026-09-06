@@ -90,7 +90,8 @@ export const PRIVACY: LegalDocument = {
       number: "3",
       heading: "When you buy something",
       body: [
-        "Our own code asks you for two things: the country you are in, and the consent described in Refunds and Withdrawal. Nothing else we have written asks you for anything.",
+        "Our own code asks you for three things: your email address, the country you are in, and the consent described in Refunds and Withdrawal. Nothing else we have written asks you for anything.",
+        "The email address is where the order confirmation we owe you goes. We do not yet send that confirmation — Refunds and Withdrawal says what follows from that — and we ask for the address now because the order is addressed to it either way. §4 says what happens to it and §7 how long it is kept.",
         "The payment itself happens inside a frame that Stripe serves and controls, which we place on our checkout page. Stripe decides what that frame asks for. Today it asks for your card details, and depending on how you pay it may also ask for your name, your email address, your telephone number or a billing address — and if you pay with Apple Pay, Google Pay or Link, those services hand Stripe what they hold about you. None of it is typed into anything we wrote, and none of it reaches us except as §4 describes.",
         "Stripe's script also collects signals about the device and browser you are paying from. It uses them to judge whether a payment is fraudulent, and that judgement is made automatically: a payment can be declined by it without a person looking. If that happens to you and you think it is wrong, write to {merchantEmail} and a person will look.",
         "You do not have to give any of this. It is what a card payment requires, so if you would rather not, the consequence is simply that you cannot buy anything here. Nothing else on the site is affected.",
@@ -100,7 +101,7 @@ export const PRIVACY: LegalDocument = {
       number: "4",
       heading: "What an order leaves behind",
       body: [
-        "An order record holds its number, what you bought, what you paid, the currency, the country you selected, and the time. There is no name and no email address on it, because our own code never asked for either.",
+        "An order record holds its number, what you bought, what you paid, the currency, the country you selected, the email address you gave, and the time. There is no name on it, because our own code never asks for one.",
         "It also holds what Stripe tells us about the payment. That record is stored as Stripe returns it, and it can include the brand of your card, its last four digits, its expiry, and any billing details Stripe collected in its own frame — details that reach our database without ever passing through this site's code. We use them only to reconcile the payment, and they are not shown to anyone.",
       ],
     },
@@ -126,9 +127,9 @@ export const PRIVACY: LegalDocument = {
       number: "7",
       heading: "On what basis, and for how long",
       body: [
-        "Taking your order and giving you what you paid for is performance of a contract. Keeping the accounting record is a legal obligation. Operating and defending the site, and checking that a payment is not fraudulent, are our legitimate interests and Stripe's. Nothing on this site runs on consent, which is why nothing on it asks you for any.",
+        "Taking your order and giving you what you paid for is performance of a contract. Keeping the accounting record, and confirming your order to you on a durable medium, are legal obligations. Operating and defending the site, and checking that a payment is not fraudulent, are our legitimate interests and Stripe's. Nothing on this site runs on consent, which is why nothing on it asks you for any.",
         "The cart cookie ends with your browser session. Stripe's last 30 minutes and a year, as §2 says.",
-        "Estonian accounting law requires us to keep the record of an order for seven years from the end of the financial year it falls in, and we keep it no longer than that. The payment details described in §4 are part of that record and are kept with it.",
+        "Estonian accounting law requires us to keep the record of an order for seven years from the end of the financial year it falls in, and we keep it no longer than that. The payment details described in §4 are part of that record, and so is your email address; both are kept with it and for as long.",
         "The request lines described in §2 are kept for 30 days.",
         "Cloudflare keeps its own record of the requests it carries, under its own retention and not ours. We do not control how long it holds them, and §5 says what it sees.",
         "If you write to us we keep the message and your address for two years after the last message in the conversation, so that we can find it again if you come back about the same order.",
@@ -139,7 +140,7 @@ export const PRIVACY: LegalDocument = {
       heading: "Your rights",
       body: [
         "You may ask what we hold about you, ask for it to be corrected, ask for it to be deleted, ask us to stop or limit what we do with it, ask for a copy in a portable form, or object to processing we do on the basis of our legitimate interests. Write to {merchantEmail}.",
-        "Because we hold no name and no email address, an order is identified by its number and by the payment behind it. If you ask us about an order, tell us which one, or we will not be able to find you in our own records.",
+        "We hold no name, so an order is identified by its number, by the email address you gave, and by the payment behind it. If you ask us about an order, write from that address or tell us which order it is, or we will not be able to find you in our own records.",
         "If you think we have got it wrong you may complain to your national data protection authority. In Estonia that is the Data Protection Inspectorate (Andmekaitse Inspektsioon), Tatari 39, 10134 Tallinn, info@aki.ee.",
       ],
     },
