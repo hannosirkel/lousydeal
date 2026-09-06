@@ -21,6 +21,8 @@
  * production, so a later row may want them required too.
  */
 
+import { isIP } from "node:net";
+
 import { type Environment, ConfigError, optionalEnv, requireEnv } from "./env";
 import {
   type DatabaseDriverOptions,
@@ -39,6 +41,98 @@ export interface BackendRuntimeConfig {
   };
   readonly redis: RedisRuntimeConfig;
   readonly stripe: StripeRuntimeConfig;
+  /**
+   * How this deployment sends mail, or `null` if it cannot.
+   *
+   * **Nullable, and that is C8's one real decision.** Every other value here is
+   * required, and a missing one refuses the process. Mail cannot be, yet:
+   * C8 teaches the backend to send and C10/C11 are the rows that give both
+   * environments something to send through, so a required `SMTP_HOST` would
+   * take down two running deployments for the length of three pull requests.
+   * The header above records the same reasoning for
+   * `MEDUSA_ADMIN_EMAIL`, which is deliberately outside this type for the
+   * identical reason.
+   *
+   * **The absence is loud rather than silent**, which is what makes it
+   * tolerable: `readSmtpRuntimeConfig` refuses a half-configured deployment
+   * outright, and the subscriber that cannot send a § 55 confirmation says so
+   * per order. A row after C11 may tighten this to required, and should.
+   */
+  readonly smtp: SmtpRuntimeConfig | null;
+}
+
+/** What `notifications/smtp.ts` needs, read from the environment. */
+export interface SmtpRuntimeConfig {
+  readonly host: string;
+  readonly port: 587;
+  readonly tlsServername?: string;
+  readonly username: string;
+  readonly password: string;
+  readonly fromName: string;
+  readonly envelopeFrom: string;
+}
+
+/** Every variable the mail transport reads. Named once, so the all-or-nothing rule below can count them. */
+export const SMTP_ENVIRONMENT_VARIABLES = [
+  "SMTP_HOST",
+  "SMTP_PORT",
+  "SMTP_USERNAME",
+  "SMTP_PASSWORD",
+  "SMTP_FROM_NAME",
+  "SMTP_ENVELOPE_FROM",
+] as const;
+
+/**
+ * The mail configuration, or `null` where there is none.
+ *
+ * **All of it or none of it.** A deployment with `SMTP_HOST` and no
+ * `SMTP_PASSWORD` is not an unconfigured deployment; it is a misconfigured one,
+ * and treating it as unconfigured would swallow the mistake exactly where it
+ * costs a buyer their § 55 confirmation. So a partial set throws and names
+ * what is missing.
+ *
+ * **Port 587 exactly**, not a range and not a default. 25 is relay and 465 is
+ * implicit TLS, which the transport's `secure: false` + `requireTLS: true`
+ * cannot speak; accepting either would mean a configuration that connects and
+ * then behaves differently from what `smtp.ts` documents.
+ *
+ * **A TLS servername is required when the host is an IP address**, because
+ * certificate validation has nothing to match against otherwise —
+ * `rejectUnauthorized: true` would fail every connection, or, worse, a later
+ * reader would turn it off to make it work.
+ */
+export function readSmtpRuntimeConfig(environment: Environment): SmtpRuntimeConfig | null {
+  const present = SMTP_ENVIRONMENT_VARIABLES.filter((name) => optionalEnv(environment, name) !== undefined);
+  if (present.length === 0) return null;
+
+  if (present.length !== SMTP_ENVIRONMENT_VARIABLES.length) {
+    const missing = SMTP_ENVIRONMENT_VARIABLES.filter((name) => !present.includes(name));
+    throw new ConfigError(
+      `Mail is partly configured: ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} missing. ` +
+        "Set all of them or none of them.",
+    );
+  }
+
+  const port = requireEnv(environment, "SMTP_PORT");
+  if (port !== "587") {
+    throw new ConfigError("SMTP_PORT must be exactly 587: submission with STARTTLS, not relay and not implicit TLS");
+  }
+
+  const host = requireEnv(environment, "SMTP_HOST");
+  const tlsServername = optionalEnv(environment, "SMTP_TLS_SERVERNAME");
+  if (isIP(host) !== 0 && tlsServername === undefined) {
+    throw new ConfigError("SMTP_TLS_SERVERNAME is required when SMTP_HOST is an IP address: a certificate cannot be validated against one");
+  }
+
+  return {
+    host,
+    port: 587,
+    ...(tlsServername === undefined ? {} : { tlsServername }),
+    username: requireEnv(environment, "SMTP_USERNAME"),
+    password: requireEnv(environment, "SMTP_PASSWORD"),
+    fromName: requireEnv(environment, "SMTP_FROM_NAME"),
+    envelopeFrom: requireEnv(environment, "SMTP_ENVELOPE_FROM"),
+  };
 }
 
 /**
@@ -56,6 +150,7 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
       driverOptions: resolveDatabaseDriverOptions(environment),
     },
     redis: readRedisRuntimeConfig(environment),
+    smtp: readSmtpRuntimeConfig(environment),
     stripe: {
       apiKey: requireEnv(environment, "STRIPE_SECRET_KEY"),
       webhookSecret: requireEnv(environment, "STRIPE_WEBHOOK_SECRET"),

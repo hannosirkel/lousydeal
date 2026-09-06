@@ -730,11 +730,13 @@ the card as well as the page.
 `backend/src/config/runtime.ts`, `backend/src/config/notification.ts`,
 `backend/medusa-config.ts`, `backend/package.json`, `package-lock.json`,
 `backend/tests/smtp-provider.test.ts`,
-`backend/tests/mail-submission-target.test.ts`.
+`backend/tests/mail-submission-target.test.ts`,
+`backend/tests/runtime-config.test.ts`.
 
-- [ ] Register an SMTP notification provider reading its host, port, TLS
+- [x] Register an SMTP notification provider reading its host, port, TLS
       servername, envelope sender and credentials from the environment, and
-      refuse to start if any is missing or if the transport is not TLS.
+      refuse to start if the transport is not TLS or the configuration is
+      partial.
 
 The reference project's `notifications/smtp.ts` is the shape and this row ports
 it: `AbstractNotificationProviderService`, nodemailer, `requireTLS: true`,
@@ -744,11 +746,44 @@ so the test never opens a socket. Provider id `lousydeal-smtp`.
 **The submission-target test is not decoration.** It asserts the transport
 options this file builds are the ones that refuse plaintext — a regression here
 is a credential sent in the clear, and it would pass every other test in the
-suite.
+suite. Proven: dropping `requireTLS` fails that file and nothing else.
 
-`readBackendRuntimeConfig` throws at import time on a missing value, which is
-already this codebase's rule and is why a misconfigured deployment fails the
-readiness probe instead of silently not sending mail.
+**Mail is the one nullable value in `BackendRuntimeConfig`, and that is this
+row's one real departure.** The plan said "refuse to start if any is missing".
+Every other value here does exactly that — but C8 teaches the backend to
+*send*, and C10 and C11 are the rows that give either environment something to
+send *through*. A required `SMTP_HOST` would take two running deployments down
+for the length of three pull requests. `runtime.ts`'s own header already
+records the identical reasoning for `MEDUSA_ADMIN_EMAIL`.
+
+What makes it safe is that the absence is loud rather than silent:
+
+- **A partial configuration throws and names what is missing.** A deployment
+  with `SMTP_HOST` and no `SMTP_PASSWORD` is misconfigured, not unconfigured,
+  and reading it as unconfigured would swallow the mistake exactly where it
+  costs a buyer their § 55 confirmation.
+- **The module is not registered at all when mail is absent**, rather than
+  registered with nothing to send through — which would fail on the first
+  order rather than at boot, and for every order rather than once.
+- **A row after C11 should tighten this to required**, and the type says so.
+
+**Port 587 exactly, and a TLS servername when the host is an IP.** 25 is relay
+and 465 is implicit TLS, which `secure: false` + `requireTLS: true` cannot
+speak; either would connect and then behave differently from what the file
+documents. And `rejectUnauthorized: true` has nothing to match a certificate
+against an IP address — the next reader would turn it off to make it work.
+
+**The thrown error carries nothing from the original.** A transport failure's
+message routinely quotes the server's response, which on an authentication
+failure includes the username — and that error reaches a subscriber that logs
+it.
+
+**One assertion exists because the row could otherwise be dead code.**
+`medusa-config.test.ts` asserts exactly five customised modules and passes
+either way, because its environment sets no mail. So `smtp-provider.test.ts`
+loads `medusa-config.ts` under a *configured* environment and asserts the
+notification module is really there — without it, nothing in the suite would
+notice the provider never being registered.
 
 ### C9 — The § 55 confirmation
 
