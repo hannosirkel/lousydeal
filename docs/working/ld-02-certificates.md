@@ -130,12 +130,12 @@ before either environment sends anything.
 ### C1 — The deal module: what a deal is, its serial, and its slug
 
 **Repository:** `lousydeal`.
-**Files:** `backend/src/modules/deal/index.ts`, `.../model.ts`,
-`.../service.ts`, `.../serial.ts`, `.../slug.ts`, the generated migration,
-`backend/medusa-config.ts`, `backend/tests/deal-module.test.ts`,
-`backend/tests/medusa-config.test.ts`.
+**Files:** `backend/src/modules/deal/index.ts`, `.../models/lousy-deal.ts`,
+`.../service.ts`, `.../slug.ts`, the generated migration and its schema
+snapshot, `backend/src/config/deal.ts`, `backend/medusa-config.ts`,
+`backend/tests/deal-module.test.ts`, `backend/tests/medusa-config.test.ts`.
 
-- [ ] Define the `LousyDeal` model against the installed Medusa (2.18.0), register
+- [x] Define the `LousyDeal` model against the installed Medusa (2.18.0), register
       it, generate its migration, and prove the serial is sequential and the
       slug is not derivable from it.
 
@@ -162,6 +162,35 @@ generating a hundred and checking for correlation in neither direction.
 Not a lock, not a check-then-insert — the constraint. C2 depends on it.
 
 **`layout_version` is written at issuance and never updated.** Constraint 7.
+
+**Three departures from the file list this row was planned with**, each forced
+by how Medusa 2.18 actually behaves rather than chosen:
+
+- **No `serial.ts`.** The DML has `model.autoincrement()`, which maps to a
+  MikroORM `Property({ autoincrement: true })` and generates `"serial" serial`
+  — a real `nextval('lousy_deal_serial_seq')` default. The plan called for a
+  sequence and the framework already had one; a hand-rolled `nextval` helper
+  would have been a second mechanism for the same guarantee.
+- **The model is `models/lousy-deal.ts`, not `model.ts`.** Medusa discovers a
+  module's models by scanning that one directory
+  (`@medusajs/modules-sdk/dist/loaders/utils/load-internal.js:393`). Defined
+  beside the service instead, everything compiled and registered and
+  `medusa db:generate deal` answered `Skipped. No changes detected in your
+  models.` against an empty database. Found by running it.
+- **`src/config/deal.ts` exists**, matching `payment.ts` and `redis.ts`, and it
+  supplies a `key`. Without one, `defineConfig` learns the module's name by
+  `require`-ing it at config-assembly time (`define-config.js:74-91`) — Node's
+  `require`, which cannot read a directory of `.ts` files unless something has
+  registered `ts-node`. True under the Medusa CLI, false under Vitest, so
+  `medusa-config.ts` became unimportable in its own test. `key` skips that
+  branch; the cost is that the name is written twice, and a test binds the two.
+
+**Verified against a real PostgreSQL**, not only against the DML: the migration
+applied, `\d lousy_deal` shows `serial` defaulting to the sequence and all
+three partial unique indexes, three inserts took serials 1, 2 and 3, and a
+fourth insert reusing `order_1` was refused by
+`IDX_lousy_deal_order_id_unique` with the row count unchanged. That last one is
+C2's guarantee, proven at the level that enforces it.
 
 ### C2 — Issuance, and its idempotency under replay
 

@@ -23,9 +23,13 @@
  * The Stripe payment module is T6b's wiring, imported the same way -- see
  * `src/config/payment.ts` for why its provider id is derived rather than
  * written down here.
+ *
+ * The Lousy Deal module is C1's wiring, and the only one of the four resolved
+ * by a local path -- see `src/config/deal.ts`.
  */
 import { defineConfig } from "@medusajs/framework/utils";
 
+import { dealModule } from "./src/config/deal";
 import { stripePaymentModule } from "./src/config/payment";
 import { redisEventBusModule, redisLockingModule, redisWorkflowEngineModule } from "./src/config/redis";
 import { readBackendRuntimeConfig } from "./src/config/runtime";
@@ -46,5 +50,6 @@ export default defineConfig({
     redisWorkflowEngineModule(runtime.redis),
     redisLockingModule(runtime.redis),
     stripePaymentModule(runtime.stripe),
+    dealModule(),
   ],
 });

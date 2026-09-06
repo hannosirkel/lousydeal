@@ -1,10 +1,13 @@
+import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
 import type { ConfigModule } from "@medusajs/framework/types";
 import { Modules, defineConfig } from "@medusajs/framework/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { DEAL_MODULE_PATH } from "../src/config/deal";
 import { redisEventBusModule, redisLockingModule, redisWorkflowEngineModule } from "../src/config/redis";
+import { DEAL_MODULE } from "../src/modules/deal";
 
 /**
  * `medusa-config.ts` reads `process.env` once, at import time. Each test
@@ -57,11 +60,36 @@ const OTHER_ENVIRONMENT: Record<string, string> = {
 
 const ORIGINAL_ENV = { ...process.env };
 
+/**
+ * The directory `medusa start` runs in, and therefore the one the local Lousy
+ * Deal module's `./src/modules/deal` resolves against.
+ *
+ * `defineConfig` resolves a local module's path eagerly, at config-assembly
+ * time, by `require`-ing it:
+ * `normalizeImportPathWithSource`
+ * (`@medusajs/utils/dist/common/normalize-import-path-with-source.js:9-23`)
+ * joins the string onto `process.cwd()`, and
+ * `define-config.js:78-82` requires the result. Vitest runs from the
+ * repository root, where `src/modules/deal` does not exist, so without this
+ * the module cannot be loaded and every test in this file fails on a path
+ * that is correct in production. Both real entry points do start here:
+ * `backend/` when the source tree runs and `backend/.medusa/server` when the
+ * built artifact does, each with `src/modules/deal` beneath it.
+ */
+// `__dirname` rather than `import.meta.url`, for the reason
+// `tests/redis-modules.test.ts` gives at its own head: this workspace types as
+// CommonJS, and `tsc -p tsconfig.test.json` refuses `import.meta` outright
+// (TS1470) even though Vitest would have transformed it happily.
+const BACKEND_DIR = join(__dirname, "..");
+
+const ORIGINAL_CWD = process.cwd();
+
 afterEach(() => {
   for (const name of Object.keys(process.env)) {
     if (!(name in ORIGINAL_ENV)) delete process.env[name];
   }
   Object.assign(process.env, ORIGINAL_ENV);
+  process.chdir(ORIGINAL_CWD);
 });
 
 /** Repoint `process.env` to `environment` and import a fresh `medusa-config`. */
@@ -78,6 +106,7 @@ async function loadConfig(
     else process.env[name] = value;
   }
 
+  process.chdir(BACKEND_DIR);
   vi.resetModules();
 
   // Asserted, not inferred. `medusa-config.ts` is outside
@@ -117,13 +146,20 @@ function customisedModuleKeys(config: ConfigModule, projectConfig: ConfigModule[
 }
 
 describe("medusa-config", () => {
-  it("customises exactly four modules over Medusa's defaults: the three Redis wirings from redis.ts, and Stripe as a provider of the payment module", async () => {
+  it("customises exactly five modules over Medusa's defaults: the three Redis wirings from redis.ts, Stripe as a provider of the payment module, and the local Lousy Deal module", async () => {
     const config = await loadConfig(VALID_ENVIRONMENT);
     const redis = { host: "redis.internal", port: 6379, password: "redis-secret-value" };
 
     expect(customisedModuleKeys(config, config.projectConfig)).toEqual(
-      [Modules.EVENT_BUS, Modules.LOCKING, Modules.PAYMENT, Modules.WORKFLOW_ENGINE].sort(),
+      [Modules.EVENT_BUS, Modules.LOCKING, Modules.PAYMENT, Modules.WORKFLOW_ENGINE, DEAL_MODULE].sort(),
     );
+
+    // C1. Registered under `DEAL_MODULE`, which is the name
+    // `container.resolve()` takes. `defineConfig` consumes and deletes the
+    // `key` `deal.ts` supplies (`define-config.js:76`), so what survives into
+    // the config is the resolve path alone -- asserted from `deal.ts`'s own
+    // exported constant rather than retyped, so moving the module moves this.
+    expect(config.modules?.[DEAL_MODULE]).toEqual({ resolve: DEAL_MODULE_PATH });
 
     // Equality against redis.ts's own wiring functions, not a hand-copied
     // shape.
