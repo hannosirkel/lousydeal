@@ -29,3 +29,26 @@ export interface PayGateInput {
 export function payDisabled({ stripeReady, submitting, consented }: PayGateInput): boolean {
   return !stripeReady || submitting || !consented;
 }
+
+/**
+ * Whether this cart is for exactly one certificate.
+ *
+ * Contract §16 gives a deal one `order_id` and no line reference, so an order
+ * for two things has no single tier and no single price to put on a document.
+ * C2's subscriber therefore issues nothing for such an order rather than
+ * printing a transaction that did not happen — and an order that takes money
+ * and yields no certificate is the worst of the available outcomes, so the
+ * checkout must not offer to take it.
+ *
+ * `addToCart` keeps a cart out of this state by replacing rather than
+ * appending. This is the second check and not a redundant one:
+ * `POST /store/carts/:id/line-items` is public, so the state is reachable by
+ * anyone who wants it, and a cart made before C3a shipped can still be in it.
+ *
+ * Zero lines is not "one certificate" either — the page has its own empty-cart
+ * document for that, and this returning `true` for an empty cart would offer a
+ * pay control for nothing.
+ */
+export function isSingleCertificate(quantities: readonly number[]): boolean {
+  return quantities.length === 1 && quantities[0] === 1;
+}

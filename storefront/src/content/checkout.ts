@@ -29,6 +29,23 @@ export const CART_EMPTY_NOTICE = "No items of record";
 /** An empty document still offers a way on. */
 export const RETURN_LABEL = "Return to the purchase order";
 
+/**
+ * Shown in place of the pay control when the cart is not for exactly one
+ * certificate. C3a.
+ *
+ * **It states the rule rather than reporting a validation failure**, and does
+ * not apologise for something the buyer had no way to know. One certificate
+ * per order is a consequence of what a certificate is — §16 gives a deal one
+ * order and no line reference — so the notice says that, then says what to do.
+ *
+ * Register per `brand.md` §2: a clerk's remark, not an error dialog.
+ */
+export const CART_NOT_SINGLE_NOTICE =
+  "A certificate is issued against one order, so an order carries one certificate. This cart holds something else. Choose the one you want and it will replace what is there.";
+
+/** The way out of that state, to the document that can fix it. */
+export const CART_LINK_LABEL = "Return to the order summary";
+
 export const CHECKOUT_LABEL = "Proceed to payment";
 
 /**

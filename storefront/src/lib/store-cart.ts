@@ -43,6 +43,17 @@ export interface StoreCartResponse {
    * anything is discounted or taxed differently from what a caller assumes.
    */
   readonly total?: number;
+  /**
+   * Set once the cart has been turned into an order, `null` until then.
+   *
+   * Already on the wire — `defaultStoreCartFields` carries it
+   * (`query-config.js:14`). C3a reads it because **a completed cart is not a
+   * cart**: its lines cannot be changed and adding to one fails. The cookie
+   * outlives the checkout, and nothing clears it — a Client Component cannot,
+   * the cookie being `httpOnly` — so a visitor buying a second certificate
+   * arrives at `addToCart` holding the id of the cart they already paid for.
+   */
+  readonly completed_at?: string | null;
 }
 
 /** The line this row's verification checks: the API's own line, carried through, not recomputed. */
@@ -66,6 +77,23 @@ export async function createCart(fetchJson: FetchJson, regionId: string): Promis
 export async function getCart(fetchJson: FetchJson, cartId: string): Promise<StoreCartResponse> {
   const { cart } = await fetchJson<{ cart: StoreCartResponse }>(`/store/carts/${encodeURIComponent(cartId)}`);
   return cart;
+}
+
+/**
+ * Removes one line from a cart.
+ *
+ * `DELETE /store/carts/:id/line-items/:line_id`
+ * (`.../line-items/[line_id]/route.js:21-38`), which answers
+ * `{ id, object, deleted, parent }` where `parent` is the refetched cart.
+ * Nothing here reads any of it: the caller is about to add the line it wants
+ * and will read the cart back from that response instead, so consuming this
+ * one would be a second, staler view of the same cart.
+ */
+export async function removeLineFromCart(fetchJson: FetchJson, cartId: string, lineId: string): Promise<void> {
+  await fetchJson(
+    `/store/carts/${encodeURIComponent(cartId)}/line-items/${encodeURIComponent(lineId)}`,
+    { method: "DELETE" },
+  );
 }
 
 /**

@@ -40,11 +40,14 @@ import { getRuntimeConfig } from "../../config/runtime-config";
 import {
   CART_EMPTY_NOTICE,
   CART_LABELS,
+  CART_LINK_LABEL,
+  CART_NOT_SINGLE_NOTICE,
   CHECKOUT_DOCUMENT,
   ORDER_SUMMARY_LINES,
   PRICE_NOTICE,
   RETURN_LABEL,
 } from "../../content/checkout";
+import { isSingleCertificate } from "../../lib/checkout-rules";
 import { createStoreFetchJson, getDefaultRegion } from "../../lib/medusa-client";
 import { formatMoney } from "../../lib/money";
 import { getCheckoutCart } from "../../lib/store-checkout";
@@ -83,6 +86,33 @@ export default async function CheckoutPage() {
 
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const cart = await getCheckoutCart(fetchJson, cartId);
+
+  // C3a. A cart holding anything other than one certificate cannot be
+  // certified -- C2's subscriber issues nothing for it rather than print a
+  // transaction that did not happen -- so this page must not offer to take the
+  // money. The ledger row is still shown: the buyer is owed the figure they
+  // were looking at, and hiding it would make the refusal harder to
+  // understand, not easier.
+  if (!isSingleCertificate(cart.quantities)) {
+    return (
+      <main>
+        <DocumentFrame
+          title={CHECKOUT_DOCUMENT.title}
+          form={CHECKOUT_DOCUMENT.form}
+          revision={CHECKOUT_DOCUMENT.revision}
+        >
+          <Ledger>
+            <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currencyCode)} />
+          </Ledger>
+          <p className="notice">{CART_NOT_SINGLE_NOTICE}</p>
+          <Button variant="secondary" href="/cart">
+            {CART_LINK_LABEL}
+          </Button>
+        </DocumentFrame>
+      </main>
+    );
+  }
+
   const region = await getDefaultRegion(fetchJson);
 
   return (
