@@ -8,20 +8,29 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-09-06 |
-| Current slice | LD-09 complete. Sixteen rows plus V16, merged across three repositories; Gate E run 2026-09-05. |
-| Next action | **The operator's, not an agent's.** Two of them, below, and neither is code. |
+| Current slice | **LD-02 — Certificates**, planned, not started. LD-01 closed by the operator 2026-09-06; LD-09 complete. |
+| Next action | Execute [`ld-02-certificates.md`](./ld-02-certificates.md) from `C1`. Two operator items below run alongside it. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
 
 ## Next action, in full
 
-**LD-01 is closed** and **LD-09 is complete** — sixteen rows, `V0` to `V15`,
-merged as pull requests 71 to 83 in this repository and 35 in `deploys`. The
-plan and its record are [`ld-09-visual-identity.md`](./ld-09-visual-identity.md).
+**LD-01 was closed by the operator on 2026-09-06** and **LD-09 is complete** —
+sixteen rows, `V0` to `V15`, merged as pull requests 71 to 83 in this repository
+and 35 in `deploys`. The plan and its record are
+[`ld-09-visual-identity.md`](./ld-09-visual-identity.md).
 
-Nothing in this initiative is waiting on an agent. Two things are waiting on the
-operator, and they are not the same kind of thing.
+**LD-02 is the current slice**, planned in
+[`ld-02-certificates.md`](./ld-02-certificates.md): sixteen rows across three
+repositories, issuing a deal for a real order, addressing it at
+`/done-deals/{slug}`, rendering it as a page and a vector PDF, and sending the
+§ 55 confirmation the publication gate is waiting on. The transactional mail
+credentials were supplied on 2026-09-06 and are held in the operator's key
+store; they reach OpenBao in `C11` and no repository.
+
+Two things are still waiting on the operator, and they are not the same kind of
+thing.
 
 ### 1. The legal gate (§23)
 
@@ -71,11 +80,13 @@ without Orange should still publish a lawful imprint rather than a page of gaps.
 server with all six configured, it renders no gap and no incompleteness notice —
 the first time that has been true.
 
-### Not this initiative's to schedule
+### What LD-02 still needs from the operator
 
-LD-02 is the next slice and has no plan yet. It carries the order confirmation
-email, the certificate at `/done-deals/{slug}`, the inscription field, and the
-public counter — the four largest items in LD-09's deferrals table.
+Named in full in that plan's `OWNER MUST FILL`. The blocking one is the SMTP
+submission host, port, TLS servername and destination CIDR for each environment.
+Those are inventory values, not secrets, and they belong in the private
+`orange.yml` beside the merchant block above — `C10` and `C11` cannot be
+verified against a running deployment without them.
 
 ## Operator items
 
@@ -89,7 +100,8 @@ What is actually held, as against what the contract expects in §2b.
 | Merchant identity in the private `orange.yml` | **no** | placeholders render until it is there; §2b settled 2026-09-06, and these are inventory values rather than secrets |
 | Stripe live keys | no | not before the publication gate, by design |
 | Printful account and sandbox | no | request before LD-04 |
-| SMTP transactional credentials | no | request before LD-02 |
+| SMTP transactional credentials | **yes** | supplied 2026-09-06, live and test; in the Orange key store, seeded to OpenBao by `C11` |
+| SMTP submission host, port, servername and destination CIDR | **no** | inventory values, per environment; blocks `C10` and `C11` from being verified against a deployment |
 | Cloudflare Access policy for `test.lousydeal.com` | yes | measured 2026-09-05: all three hostnames answer 302 to Access |
 
 The runtime credentials the deployment reads are seeded; the two merchant
