@@ -940,7 +940,15 @@ The operator settled §2b's open decision on 2026-09-06 and the answer is the
 reference project's: **the registry code, the VAT number and the telephone
 number are committed, not withheld.**
 
-The argument is `deploys/plepic/README.md`'s. Article 6(1) CRD as amended by
+**The values live in the private inventory, and Orange injects them.**
+`orange`'s Application patches all six `MERCHANT_*` names onto the storefront
+from `environment.merchant`, exactly as the reference's does for its seven; the
+literals in `deploys/lousydeal` are the fallback that patch supersedes. The
+first version of this row said the reference "commits these publicly" and
+stopped there — true of the fallback, and not of the half that takes effect.
+
+The argument for the fallback carrying real values rather than placeholders is
+`deploys/plepic/README.md`'s. Article 6(1) CRD as amended by
 Directive (EU) 2019/2161 and VÕS § 54¹ oblige a trader to publish its name,
 registered address, contact address and telephone number; Article 5(1)(d) of
 Directive 2000/31/EC obliges it to name the register and its code within it. So

@@ -172,14 +172,23 @@ too — the operator, 2026-09-06.** They are added to the table above and the
 paragraph below records why the earlier rule was wrong rather than merely
 superseded.
 
-The reference project publishes all three as literals in
-`deploys/plepic/base/storefront.yaml`, and its README argues the case: Article
-6(1) CRD as amended by Directive (EU) 2019/2161 and VÕS § 54¹ oblige a trader to
-publish its name, registered address, contact address and telephone number, and
-Article 5(1)(d) of Directive 2000/31/EC obliges it to name the register and its
-code within it — so each has exactly one correct value, the law's requirement is
-that it be **published**, and "a reserved placeholder in one of these fields is
-a legally required disclosure that is wrong rather than a secret withheld".
+**The reference keeps these in the private inventory and injects them.**
+`orange/roles/argocd/templates/plepic-application.yaml.j2` patches all seven
+`MERCHANT_*` names onto `plepic-storefront` from `environment.merchant`, whose
+committed values are placeholders — `Example Games OÜ`, `12345678` — and whose
+real values live in the operator's private Ansible inventory. Lousy Deal now
+does the same, through the equivalent block in its own Application.
+
+It *also* carries real literals in `deploys/lousydeal/base/storefront.yaml`,
+because the reference does: that is the fallback the patch supersedes, and it
+is real rather than placeholder so that a manifest applied without Orange still
+publishes a lawful imprint. Its README argues the case: Article 6(1) CRD as
+amended by Directive (EU) 2019/2161 and VÕS § 54¹ oblige a trader to publish its
+name, registered address, contact address and telephone number, and Article
+5(1)(d) of Directive 2000/31/EC obliges it to name the register and its code
+within it — so each has exactly one correct value, the law's requirement is that
+it be **published**, and "a reserved placeholder in one of these fields is a
+legally required disclosure that is wrong rather than a secret withheld".
 
 **The rule this replaces cited that project and described the opposite of what
 it does.** It said the VAT number "reaches a page the way the reference delivers
