@@ -44,7 +44,8 @@ const brand = readFileSync(new URL("../../docs/current/brand.md", import.meta.ur
 
 const ISSUED: CertificateRecord = {
   serial: 18421,
-  inscription: "Jane Example",
+  displayName: "Jane Example",
+  dedication: "worth every cent, regrettably",
   tier: "Lousy Deal Pro",
   amount: 25,
   currencyCode: "usd",
@@ -124,7 +125,7 @@ describe("the certificate", () => {
 describe("a certificate nobody inscribed", () => {
   // §5: both fields are optional, most buyers leave them empty, and an empty
   // pair must render deliberately rather than as an unfinished document.
-  const html = render({ ...ISSUED, inscription: null });
+  const html = render({ ...ISSUED, displayName: null, dedication: null });
 
   it("names the bearer rather than leaving a blank", () => {
     expect(NO_INSCRIPTION).toBe("The bearer");
@@ -137,7 +138,7 @@ describe("a certificate nobody inscribed", () => {
     // Measured before the fix: the bearer cell rendered 0px wide with its
     // leader running to the edge, at four fifths the height of its neighbours.
     for (const empty of ["", "   ", "\t\n"]) {
-      expect(render({ ...ISSUED, inscription: empty })).toContain(
+      expect(render({ ...ISSUED, displayName: empty })).toContain(
         "<dd class=\"ledger-value\">The bearer</dd>",
       );
     }
@@ -150,11 +151,69 @@ describe("a certificate nobody inscribed", () => {
   });
 });
 
+/**
+ * C5a. §5 gives the buyer two fields, not one, and they behave differently:
+ * the name is a ledger row that always holds its place, the dedication is a
+ * quotation that disappears when there is nothing to quote.
+ */
+describe("the dedication", () => {
+  const quoted = (certificate: CertificateRecord) =>
+    /<blockquote class="certificate-dedication">(.*?)<\/blockquote>/.exec(render(certificate))?.[1];
+
+  it("is set as a quotation between the ledger and the stamp", () => {
+    const html = render(ISSUED);
+    expect(html).toContain("worth every cent, regrettably");
+    expect(html.indexOf("certificate-dedication")).toBeGreaterThan(html.indexOf("</dl>"));
+    expect(html.indexOf("certificate-dedication")).toBeLessThan(html.indexOf("stamp-mark"));
+  });
+
+  it("is the one element that disappears when empty, rather than holding its place", () => {
+    // Every ledger row keeps its place -- a missing row is a document with
+    // something wrong with it. An empty quotation is not a deliberate blank;
+    // it is a pair of quotation marks around nothing.
+    for (const empty of [null, "", "   ", "https://evil.example.com"]) {
+      expect(render({ ...ISSUED, dedication: empty }), String(empty)).not.toContain("certificate-dedication");
+    }
+  });
+
+  it("is blanked without touching the name, and the name without touching it", () => {
+    // §5 requires an operator to be able to blank *either* field later. One
+    // stored string would make blanking one a rewrite of the other.
+    expect(render({ ...ISSUED, dedication: null })).toContain("Jane Example");
+    expect(quoted({ ...ISSUED, displayName: null })).toContain("worth every cent, regrettably");
+    expect(render({ ...ISSUED, displayName: null })).toContain("The bearer");
+  });
+
+  it("is filtered on its own, not only alongside the name", () => {
+    // The filter runs per field. A dedication that is entirely a URL leaves
+    // nothing, and the element goes with it -- while the bearer row is
+    // untouched.
+    const html = render({ ...ISSUED, dedication: "buy at evil.example.com/pay" });
+    expect(html).not.toContain("evil.example.com");
+    expect(html).toContain("Jane Example");
+  });
+
+  it("draws its quotation marks in the stylesheet, not in the text", () => {
+    // A buyer who uses a quote character must not end up nested inside the
+    // document's own; and `q` would add locale-dependent marks, which a
+    // document made to be screenshotted and sent on must not do -- the same
+    // reason `brand.md` §4 gives for the ISO date.
+    expect(quoted(ISSUED)).not.toContain("\u201C");
+    expect(css).toMatch(/\.certificate-dedication p::before \{[^}]*content: "\\201C"/);
+    expect(css).toMatch(/\.certificate-dedication p::after \{[^}]*content: "\\201D"/);
+  });
+
+  it("is the only italic on the document, which is what marks it as quoted", () => {
+    expect(css).toMatch(/\.certificate-dedication \{[^}]*font-style: italic/);
+    expect(brand).toContain("the only italic the certificate uses");
+  });
+});
+
 describe("what an inscription may say", () => {
   // §5 requires markup, URLs, bare domains, emails and phone numbers stripped
   // "at entry and again at render". This is the render.
-  const bearerOf = (inscription: string) =>
-    /<dd class="ledger-value">([^<]*)<\/dd>/.exec(render({ ...ISSUED, inscription }))?.[1] ?? "";
+  const bearerOf = (displayName: string) =>
+    /<dd class="ledger-value">([^<]*)<\/dd>/.exec(render({ ...ISSUED, displayName }))?.[1] ?? "";
 
   it("keeps an ordinary inscription", () => {
     expect(bearerOf("Jane Example")).toBe("Jane Example");
@@ -220,7 +279,8 @@ describe("the specimen", () => {
   });
 
   it("carries no inscription, which is the case worth designing for", () => {
-    expect(SPECIMEN_CERTIFICATE.inscription).toBeNull();
+    expect(SPECIMEN_CERTIFICATE.displayName).toBeNull();
+    expect(SPECIMEN_CERTIFICATE.dedication).toBeNull();
     expect(html).toContain(NO_INSCRIPTION);
   });
 

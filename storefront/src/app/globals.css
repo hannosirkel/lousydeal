@@ -796,6 +796,30 @@ a.button.is-secondary:hover {
   text-align: left;
 }
 
+/* The dedication: a quotation, set between the ledger and the stamp.
+   Centred with the document rather than left-aligned with the ledger -- it is
+   not a figure, and a quoted line ranged left under a ledger reads as a fifth
+   row that lost its label. Italic is the only italic on this document, which
+   is what makes it read as somebody else's voice. */
+.certificate-dedication {
+  margin: 0 0 var(--space-6);
+  font-style: italic;
+}
+
+/* Quotation marks drawn by the stylesheet, not typed into the content: the
+   dedication is buyer text and a quote character inside it would then be
+   nested inside the ones the document adds. `q` would do this natively and
+   would also add locale-dependent marks -- a document made to be screenshotted
+   and sent on must not change punctuation with the reader's runtime, which is
+   the reason `brand.md` §4 gives for the ISO date. */
+.certificate-dedication p::before {
+  content: "\201C";
+}
+
+.certificate-dedication p::after {
+  content: "\201D";
+}
+
 .certificate .stamp-mark {
   margin: 0 auto var(--space-5);
 }

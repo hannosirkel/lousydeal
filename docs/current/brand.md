@@ -365,9 +365,10 @@ means: one inside a rendered page, never a route boundary.
 ### Certificate — the most designed surface
 
 `CERTIFICATE OF LOUSY JUDGMENT`, 640px, centred, double-ruled. It carries: the
-inscription the buyer chose or, where they chose none, "the bearer"; the amount;
-the tier; the serial at display size; the issue date; one `StampMark` reading
-`CERTIFIED LOUSY DEAL`; and the closing fine print:
+name the buyer chose or, where they chose none, "the bearer"; their dedication,
+when they left one; the amount; the tier; the serial at display size; the issue
+date; one `StampMark` reading `CERTIFIED LOUSY DEAL`; and the closing fine
+print:
 
 > This certificate confers no rights, value, or benefits of any kind, and the
 > bearer knew that.
@@ -378,9 +379,24 @@ of document. Its serial is its number.
 
 Its facts are set as a ledger, left-aligned inside the centred document — a
 column of figures that wanders with its labels is not a ledger. The labels are
-`BEARER`, `ITEM`, `AMOUNT WASTED`, `ISSUED`, and where no inscription was left
-the bearer line reads **`The bearer`** rather than collapsing: §5 requires an
-empty inscription to look deliberate, and most buyers will leave one.
+`BEARER`, `ITEM`, `AMOUNT WASTED`, `ISSUED`, and where no name was left the
+bearer line reads **`The bearer`** rather than collapsing: §5 requires an empty
+inscription to look deliberate, and most buyers will leave one.
+
+**The dedication is not a ledger row.** Contract §5 gives the buyer two fields,
+not one — a short name and a line of up to 120 characters — and they are
+different kinds of thing: the name is a fact about the document and belongs in
+the ledger, the dedication is somebody's voice. It is set as a quotation
+between the ledger and the stamp, centred with the document rather than ranged
+left with the figures, and italic — the only italic the certificate uses, which
+is what marks it as quoted rather than stated.
+
+**It is the one element that disappears when empty.** Every ledger row holds
+its place, because a missing row is a document with something wrong with it.
+An empty quotation is not a deliberate blank; it is a pair of quotation marks
+around nothing. The marks themselves are drawn by the stylesheet rather than
+typed into the text, so a buyer who uses a quote character does not end up
+nested inside the document's own.
 
 The date is the stored ISO date, rendered as it is stored. A shared screenshot
 outlives the runtime that made it, and a locale format would read differently
