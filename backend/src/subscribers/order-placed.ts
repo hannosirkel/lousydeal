@@ -14,11 +14,13 @@
  */
 
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework";
-import { ContainerRegistrationKeys, OrderWorkflowEvents } from "@medusajs/framework/utils";
+import { ContainerRegistrationKeys, Modules, OrderWorkflowEvents } from "@medusajs/framework/utils";
 
+import { readBackendRuntimeConfig } from "../config/runtime";
 import { DEAL_MODULE } from "../modules/deal";
 import { readInscription } from "../modules/deal/inscription";
 import type { DealIssuanceInput, IssuedDeal } from "../modules/deal/issue";
+import { buildOrderConfirmation } from "../notifications/order-confirmation";
 
 interface OrderPlacedEvent {
   readonly id: string;
@@ -31,6 +33,7 @@ interface QueriedOrderItem {
 
 interface QueriedOrder {
   readonly id?: unknown;
+  readonly email?: unknown;
   readonly currency_code?: unknown;
   readonly total?: unknown;
   readonly created_at?: unknown;
@@ -88,7 +91,16 @@ export default async function orderPlaced({
     const query = container.resolve(ContainerRegistrationKeys.QUERY);
     const { data } = await query.graph({
       entity: "order",
-      fields: ["id", "currency_code", "total", "created_at", "metadata", "items.title", "items.detail.quantity"],
+      fields: [
+        "id",
+        "email",
+        "currency_code",
+        "total",
+        "created_at",
+        "metadata",
+        "items.title",
+        "items.detail.quantity",
+      ],
       filters: { id: orderId },
     });
 
@@ -128,9 +140,102 @@ export default async function orderPlaced({
     // makes it the only thing standing between the document and the whole
     // internet -- a log line is a place it would outlive its purpose.
     logger.info(`deal #${deal.serial} issued for order ${orderId}`);
+
+    await sendConfirmation({ container, logger, order, deal, orderId });
   } catch (error) {
     logger.error(
       `deal issuance failed for order ${orderId}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
+ * Sends the VOS § 55(1)-(2) confirmation, or says why it did not.
+ *
+ * **The one thing it must never do is send a deficient one.** § 55(2) requires
+ * the confirmation to carry the § 54(1) information, and a message with a
+ * missing trader name has not carried it. A confirmation not sent is a duty
+ * unperformed and recoverable from the order record; a confirmation sent and
+ * deficient is a duty performed badly, and cannot be taken back.
+ *
+ * So three things must be present, and the log line names whichever is not:
+ * the trader identity, this deployment's own base URL, and a mail transport.
+ * All three are nullable today and all three arrive with C10 and C11.
+ *
+ * **It never throws.** The subscriber's own header says why: Medusa retries a
+ * rejecting subscriber, and a defect that fails on every delivery of the same
+ * event is an event storm rather than a logged failure.
+ */
+async function sendConfirmation({
+  container,
+  logger,
+  order,
+  deal,
+  orderId,
+}: {
+  container: SubscriberArgs<OrderPlacedEvent>["container"];
+  logger: { info(message: string): void; error(message: string): void };
+  order: QueriedOrder;
+  deal: IssuedDeal;
+  orderId: string;
+}): Promise<void> {
+  const runtime = readBackendRuntimeConfig(process.env);
+  const address = text(order.email);
+
+  const missing = [
+    runtime.merchant === null ? "the trader identity" : null,
+    runtime.siteBaseUrl === null ? "SITE_BASE_URL" : null,
+    runtime.smtp === null ? "a mail transport" : null,
+    address === null ? "an address on the order" : null,
+  ].filter((what): what is string => what !== null);
+
+  if (missing.length > 0 || runtime.siteBaseUrl === null || address === null) {
+    // Deliberately loud, and per order rather than once at boot: this is the
+    // § 55 confirmation, and an operator needs to know which orders did not
+    // get one.
+    logger.error(`no § 55 confirmation sent for order ${orderId}: missing ${missing.join(", ")}`);
+    return;
+  }
+
+  const message = buildOrderConfirmation(
+    {
+      serial: deal.serial,
+      tier: text(order.items?.[0]?.title) ?? "",
+      // `Intl` here and not in the certificate: `money.ts` refuses it because a
+      // shared screenshot outlives the runtime that made it, and two runtimes
+      // may carry different ICU data. An email is formatted once, by this
+      // process, and never re-formatted by a reader's.
+      total: new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: (text(order.currency_code) ?? "usd").toUpperCase(),
+      }).format(amount(order.total) ?? 0),
+      issuedOn: new Date(String(order.created_at)).toISOString().slice(0, 10),
+      certificateUrl: `${runtime.siteBaseUrl}/done-deals/${deal.public_slug}`,
+    },
+    runtime.merchant,
+    runtime.siteBaseUrl,
+  );
+
+  if (message === null) {
+    logger.error(`no § 55 confirmation sent for order ${orderId}: the confirmation could not be built`);
+    return;
+  }
+
+  try {
+    const notification = container.resolve(Modules.NOTIFICATION);
+    await notification.createNotifications({
+      to: address,
+      channel: "email",
+      template: "order-confirmation",
+      content: message,
+    });
+    // The address is not logged. It is the one piece of personal data this
+    // subscriber handles, and a log line is a place it would outlive the
+    // order record's own retention.
+    logger.info(`§ 55 confirmation sent for order ${orderId}`);
+  } catch (error) {
+    logger.error(
+      `§ 55 confirmation failed for order ${orderId}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }

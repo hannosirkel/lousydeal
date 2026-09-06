@@ -877,9 +877,10 @@ record's own retention.
 #### C9c — Sending it
 
 **Repository:** `lousydeal`.
-**Files:** `backend/src/subscribers/order-placed.ts`, and its own test.
+**Files:** `backend/src/subscribers/order-placed.ts`,
+`backend/tests/order-placed-confirmation.test.ts`.
 
-- [ ] Send the built confirmation from `order.placed`, and say per order which
+- [x] Send the built confirmation from `order.placed`, and say per order which
       precondition was missing when it could not.
 
 **This row exists because C9b could otherwise be dead code.** Everything in
@@ -888,10 +889,20 @@ built the message and dropped it would pass all of it — the same lesson C8
 learned about the notification module never being registered. So the subscriber
 is driven with a fake container and the notification it creates is inspected.
 
-**Nothing is sent from either environment yet**, because all three
-preconditions are absent: C10 and C11 supply the mail transport, the trader
-identity and the base URL. Until then the subscriber logs, per order, which
-part is missing.
+**Four preconditions, and the log names whichever is missing**: the trader
+identity, `SITE_BASE_URL`, a mail transport, and an address on the order. The
+first three arrive with C10 and C11; the fourth arrived with C3b, and before it
+every order this storefront could place was unaddressed.
+
+**It never throws, and the address is never logged.** The subscriber's own
+header records the first: Medusa retries a rejecting subscriber, so a defect
+failing on every delivery of the same event is an event storm rather than a
+logged failure. The second is because the buyer's address is the one piece of
+personal data this subscriber handles, and a log line is a place it would
+outlive the order record's own retention.
+
+**Nothing is sent from either environment yet**, because three of the four
+preconditions are absent until C10 and C11.
 
 **This is the row the publication gate is waiting on.** The content is not a
 receipt with a link; § 55(2) requires the confirmation to reproduce the
