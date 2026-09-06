@@ -460,9 +460,9 @@ already sets the country, and Medusa copies cart metadata to the order.
 
 **Repository:** `lousydeal`.
 **Files:** `backend/src/api/store/deals/[slug]/route.ts`,
-`backend/src/api/middlewares.ts`, `backend/tests/deal-route.test.ts`.
+`backend/tests/deal-route.test.ts`, `backend/tests/smoke/store-api.test.ts`.
 
-- [ ] Serve a deal by slug over the Store API, returning only what §5 makes
+- [x] Serve a deal by slug over the Store API, returning only what §5 makes
       public, and 404 for a slug that does not exist.
 
 The first custom Store API route here. The response carries serial, tier,
@@ -474,7 +474,34 @@ deliberate: an allowlist fails closed.
 
 **404 rather than 403 for an unknown slug.** The slug is the only secret; a
 response that distinguishes "no such deal" from "not yours" would make it
-enumerable, which §5 says is the entire reason the slug exists.
+enumerable, which §5 says is the entire reason the slug exists. A hidden
+certificate answers the same 404 in the same words, for the same reason — 410
+Gone would leak the same fact more politely.
+
+**No `middlewares.ts`, and that is a finding rather than an omission.** The
+plan expected one. `ensurePublishableApiKeyMiddleware` is applied to the whole
+`/store` namespace by the framework's own loader
+(`@medusajs/framework/dist/http/router.js:98`), so a route file placed under
+`src/api/store/` inherits it with nothing declared. Asserted rather than
+assumed: the smoke suite makes the same request without the key and requires a
+400 naming `x-publishable-api-key`.
+
+**The date, not the moment.** §5 asks the certificate to carry an issuance
+date; the exact second somebody bought something is more than the document
+needs, and this endpoint is unauthenticated. Sliced rather than formatted, for
+the reason `money.ts` gives about locale data moving.
+
+**Verified against the running server** through `scripts/store-smoke`, which is
+where the wiring lives that no unit test reaches — that the file's path becomes
+the route at all. Two cases, neither needing a deal to exist: the keyed request
+answers this route's own 404 body rather than the router's fallback, and the
+unkeyed one answers 400. The 200 path needs a real order, and that is C15.
+
+**`medusa build` refused the first version**, and so did `tsc`: `req.params.slug`
+is `string | undefined`, and passing it unguarded would have reached MikroORM as
+`{ public_slug: undefined }` — no condition at all, and therefore the first row
+in the table answered to a request that named no deal. Vitest passed it,
+because Vitest does not typecheck. Found by running the build, not by reasoning.
 
 ### C5 — `/done-deals/{slug}`
 

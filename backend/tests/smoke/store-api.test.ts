@@ -328,3 +328,41 @@ describe("a cart can be created and a tier added to it", () => {
     expect(line!["unit_price"]).toBe(firstTier.amountMinor / 100);
   });
 });
+
+/**
+ * C4's route, against the running server. The unit test drives the handler
+ * with fakes; what it cannot check is the framework's own wiring, and that is
+ * the whole of what these two cases are for.
+ *
+ * Neither needs a deal to exist. The 200 path needs a real order, which needs
+ * Stripe, and C15 is where that runs.
+ */
+describe("the public deal endpoint is wired, and is behind the store's key", () => {
+  it("answers 404 for a slug that addresses nothing, which means the route is registered", async () => {
+    // A route Medusa never registered answers 404 too -- but with the
+    // framework's own body, not this one. The message is what separates
+    // "reached the handler" from "reached the router's fallback".
+    const answer = await store("/store/deals/nosuchslugatall1");
+
+    expect(
+      answer.status,
+      `GET /store/deals/nosuchslugatall1 answered ${String(answer.status)}: ${answer.text}`,
+    ).toBe(404);
+    expect(record(answer.body, "404 body")["message"]).toBe("No such deal");
+  });
+
+  it("refuses the same request without a publishable key", async () => {
+    // Asserted rather than assumed. `route.js:98` applies
+    // `ensurePublishableApiKeyMiddleware` to the whole `/store` namespace, so
+    // a route file placed under `src/api/store/` inherits it -- and this is
+    // what proves the inheritance is real for a *custom* route rather than
+    // only for Medusa's own.
+    const answer = await json("/store/deals/nosuchslugatall1");
+
+    expect(answer.status, `unkeyed request answered ${String(answer.status)}: ${answer.text}`).toBe(400);
+    // The header's name rather than the sentence around it: Medusa's wording
+    // ("Publishable API key required in the request header: ...") is Medusa's
+    // to change, and asserting the prose would fail on a release note.
+    expect(answer.text).toContain("x-publishable-api-key");
+  });
+});
