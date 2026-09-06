@@ -48,6 +48,23 @@ export const CART_LINK_LABEL = "Return to the order summary";
 
 export const CHECKOUT_LABEL = "Proceed to payment";
 
+/** The address the order confirmation is sent to. C3b. */
+export const EMAIL_LABEL = "Email address";
+
+/**
+ * Why the address is asked for, said before it is given rather than after.
+ *
+ * **It states the duty and the failure in one breath**, because every other
+ * surface on this site does and `tests/legal-consistency.test.ts` enforces it
+ * across all seven. § 55(1) requires a confirmation on a durable medium no
+ * later than the moment supply begins; we do not yet send one; the buyer's
+ * 14-day right therefore survives whatever the consent box says. A field
+ * captioned "we'll email your confirmation" would be the first place on this
+ * site to imply otherwise.
+ */
+export const EMAIL_HINT =
+  "Your order confirmation goes here. We owe you one on a durable medium and do not yet send it, which is why your 14-day right of withdrawal still stands — Refunds and Withdrawal explains that in full.";
+
 /**
  * The price disclosure, above the pay control rather than below it.
  *

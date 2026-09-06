@@ -140,8 +140,25 @@ describe("what the checkout asks for", () => {
     expect(section("3")).toMatch(/Apple Pay, Google Pay or Link/);
   });
 
-  it("bounds what our own code receives, which is the part that is still true", () => {
-    expect(claim(section("3"), /Our own code asks you for two things/)).toMatch(/the country you are in/i);
+  it("bounds what our own code receives, and counts it", () => {
+    // The count is asserted, not just the list. C3b added a third field, and a
+    // test that only looked for "the country you are in" would have passed a
+    // notice still telling a reader there were two.
+    const asked = claim(section("3"), /Our own code asks you for three things/);
+    expect(asked).toMatch(/your email address/i);
+    expect(asked).toMatch(/the country you are in/i);
+    expect(asked).toMatch(/the consent described in Refunds and Withdrawal/i);
+    expect(section("3")).not.toMatch(/asks you for two things/i);
+  });
+
+  it("says what the email address is for, and does not claim the confirmation is sent", () => {
+    // C3b collects the address; C9 sends the confirmation. Between the two, a
+    // notice implying otherwise would be the first surface on this site to
+    // say the s 55 duty is discharged -- `legal-consistency.test.ts` holds
+    // the other six to the same line.
+    const purpose = claim(section("3"), /order confirmation we owe you/);
+    expect(purpose).toMatch(/do not yet send/i);
+    expect(purpose).not.toMatch(/\bwe send you\b/i);
   });
 
   it("discloses the automated decision, which Article 13(2)(f) requires", () => {
@@ -165,8 +182,19 @@ describe("the payment record", () => {
     expect(section("4")).toMatch(/without ever passing through this site's code/i);
   });
 
-  it("says an order carries no name and no email", () => {
-    expect(claim(section("4"), /no name and no email address/)).toMatch(/never asked for either/i);
+  it("lists the email address among what an order holds, and still no name", () => {
+    // Until C3b this said "There is no name and no email address on it". The
+    // email half stopped being true the moment the checkout asked for one;
+    // the name half did not, and is asserted here rather than quietly dropped
+    // with it.
+    const held = claim(section("4"), /An order record holds/);
+    expect(held).toMatch(/the email address you gave/i);
+    expect(held).toMatch(/no name on it/i);
+    expect(section("4")).not.toMatch(/no name and no email address/i);
+  });
+
+  it("keeps the email address for as long as the order record, not silently longer", () => {
+    expect(claim(section("7"), /so is your email address/i)).toMatch(/kept with it and for as long/i);
   });
 
   it("gives the payment details a retention period, not silence", () => {
@@ -231,7 +259,7 @@ describe("bases and retention", () => {
     // paragraph unchanged. Each purpose is bound to its basis in one string.
     const bases = claim(section("7"), /performance of a contract/);
     expect(bases).toContain("giving you what you paid for is performance of a contract");
-    expect(bases).toContain("Keeping the accounting record is a legal obligation");
+    expect(bases).toContain("Keeping the accounting record, and confirming your order to you on a durable medium, are legal obligations");
     expect(bases).toMatch(/defending the site, and checking that a payment is not fraudulent, are our legitimate interests/);
   });
 

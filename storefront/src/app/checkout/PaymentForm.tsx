@@ -55,6 +55,8 @@ import {
   CONSENT_LABEL,
   CONSENT_REQUIRED_NOTICE,
   COUNTRY_LABEL,
+  EMAIL_HINT,
+  EMAIL_LABEL,
   PAY_LABEL,
   PAYING_LABEL,
   PAYMENT_NEEDS_SCRIPTING,
@@ -62,7 +64,7 @@ import {
 } from "../../content/checkout";
 import { payDisabled } from "../../lib/checkout-rules";
 import type { FetchJson, StoreFetchInit, StoreRegionCountry } from "../../lib/medusa-client";
-import { setCartCountry } from "../../lib/store-checkout";
+import { setCartCountry, setCartEmail } from "../../lib/store-checkout";
 import { completeCheckoutCart, createPaymentCollection, initiateStripePaymentSession } from "../../lib/store-payment";
 
 /** This route's own mount point (`src/app/api/store/[...path]/route.ts`), never the backend origin. */
@@ -201,6 +203,13 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
   // `handleSubmit` reads below is always one of `countries`' own rows, never
   // a placeholder string this file invented.
   const [countryCode, setCountryCode] = useState<string>(countries[0]?.iso_2 ?? "");
+  /**
+   * Where the s 55(1)-(2) confirmation goes. C3b.
+   *
+   * Empty by default and never prefilled: there is no account and nothing to
+   * remember a buyer by, so anything here would be a guess.
+   */
+  const [email, setEmail] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -228,6 +237,11 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
       if (countryCode.length === 0) {
         throw new Error("No country is available for this region.");
       }
+      // C3b, and before `setCartCountry` only because a rejected address
+      // should cost the buyer nothing: both run before `confirmPayment`
+      // below, so neither can leave a charged card on an order Medusa then
+      // refuses. `setCartEmail` throws on an address Medusa will not take.
+      await setCartEmail(fetchJson, cartId, email);
       await setCartCountry(fetchJson, cartId, countryCode);
 
       // `redirect: "if_required"` keeps a standard test-mode card on this
@@ -256,6 +270,28 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
 
   return (
     <form onSubmit={(event) => void handleSubmit(event)}>
+      {/* C3b. `type="email"` and `required` are the enforcing half here, and
+          unlike the consent box below they are enough: `requestSubmit()` runs
+          constraint validation, so there is no bypass of the kind that made
+          the consent gate need a second check in `handleSubmit`. The address
+          is validated for real by Medusa (`z.string().email()`), which
+          `setCartEmail` reads back. */}
+      <p className="field">
+        <label htmlFor="checkout-email">{EMAIL_LABEL}</label>
+        <input
+          id="checkout-email"
+          type="email"
+          value={email}
+          autoComplete="email"
+          required
+          aria-describedby="checkout-email-hint"
+          onChange={(event) => setEmail(event.target.value)}
+        />
+      </p>
+      <FinePrint>
+        <span id="checkout-email-hint">{EMAIL_HINT}</span>
+      </FinePrint>
+
       {/* Collects the one field the row asks for, sourced from `countries` --
           the region's own list, not free text -- and read by `setCartCountry`
           on submit. A certificate ships nowhere, so this stands in for a

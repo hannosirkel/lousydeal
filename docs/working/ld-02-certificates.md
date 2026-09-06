@@ -340,9 +340,10 @@ asserted against a fiction. The stub now keeps its lines.
 **Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/lib/store-checkout.ts`, `storefront/src/content/checkout.ts`,
 `storefront/src/content/legal/privacy.ts`,
-`storefront/tests/legal-privacy.test.ts`, and its own test.
+`storefront/tests/legal-privacy.test.ts`,
+`storefront/tests/checkout-email.test.ts`.
 
-- [ ] Collect a required email address, write it to the cart before
+- [x] Collect a required email address, write it to the cart before
       completion, and correct the privacy notice that says we hold none.
 
 **The email is required.** Without it there is no durable medium, and without
@@ -350,12 +351,40 @@ that the § 53(4) p 7¹ exclusion never bites — so an optional email would mea
 two classes of order with different withdrawal rights and a checkout that
 cannot tell the buyer which they are in. One class, one answer.
 
-**It falsifies the privacy notice, so the notice moves in the same row.**
-Constraint 9. Privacy §4 says today that an order record "holds its number,
-what you bought, what you paid, the currency, the country you selected, and the
-time. There is no name and no email address on it, because our own code never
-asked for either", and §8 rests on that to explain how an order is identified.
-Both stop being true the moment the field ships.
+**Every order this storefront could place was unaddressed.** Not "carried a
+default address" — nothing set `cart.email` at all, and Medusa carries that
+straight through (`complete-cart.js:446,505` passes `cart.email` and
+`cart.email || null` without requiring either). That is the state the § 55
+confirmation could never have been sent from, whatever C8 and C9 build.
+
+**Set before the card is charged**, not after. `setCartEmail` and
+`setCartCountry` both run ahead of `stripe.confirmPayment`, so an address
+Medusa refuses costs the buyer nothing. Medusa validates it for real
+(`email: z.string().email().nullish()`, `carts/validators.js:18`), and the
+function reads the value back — which is what separates "Medusa accepted it"
+from "the request did not error".
+
+**Five sentences in the privacy notice stopped being true**, and constraint 9
+is why the document is in this row's file list rather than a later one:
+
+| § | Was | Now |
+| --- | --- | --- |
+| 3 | "asks you for two things" | three, the address named first, and what it is for |
+| 4 | "There is no name and no email address on it" | the address is listed; the *name* half is still true and is kept rather than dropped with it |
+| 7 | "Keeping the accounting record is a legal obligation" | confirming the order on a durable medium is one too, and is the basis for holding the address |
+| 7 | silent on how long the address is held | part of the order record: seven years, said outright |
+| 8 | "Because we hold no name and no email address…" | identification rewritten around the address that now exists |
+
+**The field says the confirmation is not sent yet.** Between this row and C9 it
+would otherwise be the first surface on the site to imply the § 55 duty is
+discharged; `legal-consistency.test.ts` holds the other six to that line and
+this hint joins them.
+
+**What the tests cannot reach**, stated rather than papered over: `handleSubmit`
+needs a browser, a DOM and a live Stripe. So the field is asserted off real
+markup, `setCartEmail` against a stub, and the one link between them — that the
+address is set before the payment is confirmed — against the source, which is
+the instrument `legal-routes.test.ts` already uses for the same reason.
 
 #### C3c — The inscription
 
