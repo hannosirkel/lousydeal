@@ -24,6 +24,7 @@
 import { isIP } from "node:net";
 
 import { type Environment, ConfigError, optionalEnv, requireEnv } from "./env";
+import { type MerchantIdentity, readMerchantIdentity } from "./merchant";
 import {
   type DatabaseDriverOptions,
   resolveDatabaseDriverOptions,
@@ -59,6 +60,28 @@ export interface BackendRuntimeConfig {
    * per order. A row after C11 may tighten this to required, and should.
    */
   readonly smtp: SmtpRuntimeConfig | null;
+  /**
+   * The trader, as the § 55 confirmation must state it, or `null` where this
+   * deployment has not been told who it is.
+   *
+   * Nullable for a different reason from `smtp` above: mail is absent because
+   * C10 and C11 have not landed, while the identity is absent in any checkout
+   * Orange has not patched -- including a developer's. See `./merchant.ts`.
+   */
+  readonly merchant: MerchantIdentity | null;
+  /**
+   * This deployment's own public base URL, or `null`.
+   *
+   * The backend has no request to read a host from -- a subscriber runs on a
+   * queue -- so the one place the certificate's address and the § 56⁴ button's
+   * address can come from is configuration. The storefront needs no such value
+   * because it always has a request; C7's share row reads the host from one.
+   *
+   * Nullable like the two above, and checked with them: a confirmation needs a
+   * trader, something to send through, and a site to point at, and the
+   * subscriber names whichever is missing.
+   */
+  readonly siteBaseUrl: string | null;
 }
 
 /** What `notifications/smtp.ts` needs, read from the environment. */
@@ -151,6 +174,11 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
     },
     redis: readRedisRuntimeConfig(environment),
     smtp: readSmtpRuntimeConfig(environment),
+    merchant: readMerchantIdentity(environment),
+    // Trailing slash removed here rather than at every use: a configured
+    // `https://lousydeal.com/` would otherwise produce `//legal/withdraw`,
+    // which resolves but reads as a defect in a legal document.
+    siteBaseUrl: optionalEnv(environment, "SITE_BASE_URL")?.replace(/\/+$/, "") ?? null,
     stripe: {
       apiKey: requireEnv(environment, "STRIPE_SECRET_KEY"),
       webhookSecret: requireEnv(environment, "STRIPE_WEBHOOK_SECRET"),
