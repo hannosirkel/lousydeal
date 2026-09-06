@@ -84,7 +84,7 @@ export const TERMS: LegalDocument = {
       number: "4",
       heading: "How an order is made",
       body: [
-        "Displaying an item on this site is an invitation to order, not an offer. Your order is an offer to buy, and the contract is concluded when we accept it by confirming your order.",
+        "Displaying an item on this site is an invitation to order, not an offer. Your order is an offer to buy. We accept it when your payment succeeds, and the contract is concluded at that moment — which is also the moment supply begins under §5, because there is nothing to prepare and nothing to send.",
         "Before you pay, you are shown what you are buying, the total you will be charged, and the consent described in §6. That box is not ticked for you, and it is a condition of ordering: without it we cannot supply immediately, and the order does not proceed. Payment is processed by Stripe Payments Europe, Ltd. We do not receive or store your card details.",
       ],
     },
@@ -92,7 +92,8 @@ export const TERMS: LegalDocument = {
       number: "5",
       heading: "Delivery",
       body: [
-        "The certificate is digital content supplied immediately after payment: it is shown to you as soon as you have paid. There is nothing to ship and there is no delivery charge.",
+        "The certificate is digital content supplied immediately after payment: it is shown to you as soon as you have paid, at the moment §4 says the contract is concluded. There is nothing to ship and there is no delivery charge.",
+        "You view it in a web browser. There is no account to create, no software to install, no file to download and no technical protection measure applied to it: a web browser is the whole of what you need. It is not interoperable with anything, because there is nothing for it to work with.",
         "We owe you a confirmation on a durable medium no later than the moment supply begins, and we do not yet send one. §6 says what follows from that.",
       ],
     },
@@ -104,6 +105,7 @@ export const TERMS: LegalDocument = {
         "§ 53(4) p 7¹ of that Act removes the right for digital content not supplied on a physical medium, but only where supply began before the withdrawal period ended, you gave express prior consent to it beginning and acknowledged that you would thereby lose the right, and we gave you the confirmation required by § 55(1) and § 55(2) of the Act.",
         "The checkout asks for that consent, with the box unticked. We do not yet send that confirmation, so the third condition is not met for any order placed here and your 14-day right stands, whatever you answered at checkout. This is set out in full in Refunds and Withdrawal, which states rights you have rather than rights we grant.",
         "If we did not tell you about the right of withdrawal, its time limit and how to use it, § 56(1⁶) extends the period to 12 months after the ordinary 14 days; and if we tell you late but within those 12 months, you have 14 days from being told.",
+        "The withdrawal button § 56⁴ requires is in the footer below, called Withdraw from a contract, at /legal/withdraw.",
       ],
     },
     {

@@ -137,22 +137,19 @@ describe("how to withdraw", () => {
     expect(section("5")).toMatch(/even if it reaches us afterwards/i);
   });
 
-  it("declares the missing § 56⁴ button as our failure, not as the reader's limit", () => {
-    // In force 01.09.2026, four days before this row, and absent from the
-    // redaction the first draft read. There is no button; saying nothing would
-    // leave §5 reading as a complete account of the routes available.
+  it("says the § 56⁴ button exists, where it is, and what it cannot yet do", () => {
+    // In force 01.09.2026 and absent from the redaction the first draft read.
+    // It was gate item 7 -- a build task, not a copy one -- and V17 built it.
+    // § 54(1) p 13¹ makes its existence and location pre-contractual
+    // information, so saying where it is *is* the compliance.
     const s = section("5");
     expect(s).toContain("§ 56⁴");
     expect(s).toContain("Taganen lepingust");
-    expect(s).toMatch(/This site does not have one/);
-    // "That is our non-compliance" was itself a claim about the site that is
-    // not presently true: nothing is published, Stripe is in test mode, and no
-    // consumer contract has been concluded, so there is no breach yet -- only a
-    // certain one on opening. It errs against the trader rather than the buyer,
-    // which is why it was a minor and not a blocking finding, but it is the
-    // same category of defect as the one this row is fixing.
-    expect(s).toMatch(/When it opens for business without one, that is our failure/);
-    expect(s).toMatch(/not a restriction on you/i);
+    expect(s).toContain("/legal/withdraw");
+    expect(s).toContain("§ 54(1) p 13¹");
+    // And the honest half: no email exists, so no § 56⁴(4) receipt does.
+    expect(s).toMatch(/cannot yet do is send you the receipt/i);
+    expect(s).toMatch(/shortcoming of ours and not a limit on you/i);
   });
 });
 

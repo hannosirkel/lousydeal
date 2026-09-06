@@ -16,7 +16,8 @@
  * `src/app`, which is the half a content file cannot guarantee about itself.
  *
  * **The order is the order a reader needs them**, not alphabetical: what you
- * agreed to, how to undo it, what we do with your data, and who we are.
+ * agreed to, how to undo it, the button that undoes it, what we do with your
+ * data, and who we are.
  *
  * The labels are `brand.md` §4's, which names the column's four entries. They
  * are sentence case because §2 sets the register for everything that is not a
@@ -54,6 +55,11 @@ export const LEGAL_ROUTES: readonly LegalRoute[] = [
     href: "/legal/privacy",
     label: "Privacy",
     summary: "What this site collects, who else handles it, and for how long.",
+  },
+  {
+    href: "/legal/withdraw",
+    label: "Withdraw from a contract",
+    summary: "The § 56⁴ withdrawal button, reachable from every page for the whole period.",
   },
   {
     href: "/legal/imprint",
