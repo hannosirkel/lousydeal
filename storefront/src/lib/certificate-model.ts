@@ -31,12 +31,24 @@ export interface Certificate {
    */
   readonly serial: number;
   /**
-   * What the buyer chose to make public, or `null`. **Never the billing
-   * name** — §5 is explicit that billing identity is order data and appears
-   * nowhere public. Most buyers leave it empty, and an empty one has to look
-   * deliberate rather than unfinished.
+   * Who the certificate names, or `null`. **Never the billing name** — §5 is
+   * explicit that billing identity is order data and appears nowhere public.
+   *
+   * Most buyers leave it empty, and an empty one has to look deliberate
+   * rather than unfinished.
    */
-  readonly inscription: string | null;
+  readonly displayName: string | null;
+  /**
+   * The shareable line, or `null`.
+   *
+   * **Separate from {@link displayName}, and that is §5's requirement rather
+   * than a layout preference.** An operator must be able to "further sanitise,
+   * hide, or blank **either** field" later; one column would make blanking the
+   * dedication a rewrite of the name. They also occupy different places on the
+   * document — the bearer row and the quoted line beneath the ledger — so a
+   * single string would have to be split to be rendered anyway.
+   */
+  readonly dedication: string | null;
   /** The tier's own title, as the Store API returned it. */
   readonly tier: string;
   /** Major units, as everything else in this storefront carries them. */
@@ -54,10 +66,15 @@ export interface Certificate {
  * fabricated transaction total, and a certificate carries one. This is not at
  * a `/done-deals/` URL either: a specimen must never occupy an address a real
  * deal could have.
+ *
+ * **Both inscription fields empty**, because that is what most certificates
+ * will carry and it is the case the design has to survive. A specimen with a
+ * name and a dedication would be the flattering one.
  */
 export const SPECIMEN_CERTIFICATE: Certificate = {
   serial: 0,
-  inscription: null,
+  displayName: null,
+  dedication: null,
   tier: "Lousy Deal",
   amount: 5,
   currencyCode: "usd",

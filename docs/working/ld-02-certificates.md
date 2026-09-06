@@ -17,9 +17,9 @@ Until this slice does, every order keeps a 14-day right whatever the buyer
 ticked. That is recorded as gate item 11 and as LD-09's one deferral that became
 a hard precondition.
 
-**Execution.** Directly, not through `big-build`. Eighteen rows, one pull
-request each, across three repositories — sixteen as planned, with C3 split
-into three at execution for the reason recorded there.
+**Execution.** Directly, not through `big-build`. Nineteen rows, one pull
+request each, across three repositories — sixteen as planned, with C3 and
+C5 each split at execution for the reasons recorded there.
 
 ## Global constraints
 
@@ -105,7 +105,7 @@ order record the Privacy Policy already describes.
 | 1 | A completed order mints exactly one deal, with a sequential serial and an opaque slug | C1, C2 |
 | 2 | A replayed `order.placed` mints nothing further — proven by firing it twice | C2 |
 | 3 | The buyer can enter a display name and a dedication, is shown they are public, and is told what is filtered | C3c |
-| 4 | `/done-deals/{slug}` renders the certificate from stored data and carries no billing name | C4, C5 |
+| 4 | `/done-deals/{slug}` renders the certificate from stored data and carries no billing name | C4, C5a, C5b |
 | 5 | `/done-deals/{slug}/certificate.pdf` is a vector PDF with embedded fonts, produced without a browser | C6 |
 | 6 | The page has share links and a per-deal social card, and neither loads a third-party asset | C7 |
 | 7 | A confirmation email reaches the buyer, containing everything § 55(2) and § 54(1) require | C8, C9 |
@@ -503,31 +503,68 @@ is `string | undefined`, and passing it unguarded would have reached MikroORM as
 in the table answered to a request that named no deal. Vitest passed it,
 because Vitest does not typecheck. Found by running the build, not by reasoning.
 
-### C5 — `/done-deals/{slug}`
+### C5 — The certificate on real data, in two rows
+
+**Split at execution**, for the reason C3 was: the whole came to twelve files
+against §18's bound of ten, `brand.md` among them because the document
+described one inscription field where §5 gives two.
+
+| | |
+| --- | --- |
+| **C5a** | The certificate carries §5's two fields |
+| **C5b** | `/done-deals/{slug}`, and the layout registry |
+
+#### C5a — The certificate carries §5's two fields
+
+**Repository:** `lousydeal`.
+**Files:** `docs/current/brand.md`,
+`storefront/src/lib/certificate-model.ts`,
+`storefront/src/components/document/Certificate.tsx`,
+`storefront/src/app/globals.css`, `storefront/tests/certificate.test.ts`.
+
+- [x] Split the model's one `inscription` into `displayName` and `dedication`,
+      render the dedication as a quotation, and describe it in `brand.md`
+      before the surface renders it.
+
+**§5's requirement, not a layout preference.** An operator must be able to
+"further sanitise, hide, or blank **either** field" later; one column would
+make blanking the dedication a rewrite of the name. They are also different
+kinds of thing — the name is a fact about the document and belongs in the
+ledger; the dedication is somebody's voice — so a single string would have had
+to be split to be rendered anyway.
+
+**The dedication is the one element that disappears when empty.** Every ledger
+row holds its place, because a missing row is a document with something wrong
+with it. An empty quotation is not a deliberate blank; it is a pair of
+quotation marks around nothing.
+
+**The quotation marks are drawn by the stylesheet.** A buyer who types a quote
+character would otherwise be nested inside the document's own, and `q` would
+add locale-dependent marks — which a document made to be screenshotted and sent
+on must not do, for the same reason `brand.md` §4 gives about the ISO date.
+
+**`brand.md` moved first**, under constraint 12: it described one inscription
+where §5 gives two, and a surface that needs something the document does not
+give amends the document in the same pull request. Reviewing the copy as copy
+rather than finding it in a diff is the whole point of the rule.
+
+#### C5b — `/done-deals/{slug}`, and the layout registry
 
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/done-deals/[slug]/page.tsx`,
 `storefront/src/app/done-deals/[slug]/not-found.tsx`,
-`storefront/src/lib/certificate-model.ts`,
 `storefront/src/lib/store-deal.ts`,
-`storefront/src/components/document/Certificate.tsx`,
-`storefront/src/content/certificate.ts`,
-`storefront/tests/done-deals-page.test.ts`,
-`storefront/tests/certificate.test.ts`.
+`storefront/src/lib/certificate-layouts.ts`,
+`storefront/tests/done-deals-page.test.ts`.
 
-- [ ] Render the certificate from a real deal, with the layout dispatched on the
-      stored version, and 404 for an unknown slug.
-
-**The model gains its second inscription field.** LD-09's `Certificate` carries
-one; §5 and §16 carry two. The stored record keeps `display_name` and
-`dedication` separately — an operator must be able to blank one without
-touching the other, §5's moderation requirement — and the component takes both.
-The empty-pair case is already proven to render deliberately; the test extends
-to name-without-dedication and dedication-without-name.
+- [ ] Mount the certificate at its real route against a real record, dispatch
+      on the stored layout version, and 404 for an unknown slug.
 
 **Layout dispatch, not layout reading.** A registry keyed by version, with
 layout 1 as its only entry today, so adding layout 2 is a new entry rather than
-an edit to a rendered certificate. Constraint 7 in code.
+an edit to a rendered certificate. Constraint 7 in code — and the test that
+matters is that an unknown version does **not** fall back to layout 1, because
+a silent fallback would restyle a certificate somebody already owns.
 
 `noindex, nofollow` on the route: an unguessable URL that a crawler publishes is
 a guessable one.

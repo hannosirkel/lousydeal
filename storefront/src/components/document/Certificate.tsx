@@ -9,11 +9,17 @@
  *
  * **An empty inscription must look deliberate.** Most buyers leave it blank,
  * and §5 says the certificate has to look finished when they do — so the
- * bearer line reads `THE BEARER` rather than collapsing, and no row is
+ * bearer line reads `THE BEARER` rather than collapsing, and no *row* is
  * conditionally absent. "Empty" here means `null`, `""`, whitespace, or
  * anything §5's filter removes entirely: `??` alone caught only the first, and
  * an empty string left the bearer row blank with its leader running to the
  * edge, half the height of its neighbours.
+ *
+ * **The dedication is the one thing that is absent when empty**, and it is not
+ * a row. It is a quotation beneath the ledger, and a quotation with nothing in
+ * it is not a deliberate blank — it is a pair of quotation marks. `brand.md`
+ * §4 carries the rule; C5a is the row that put it there, because §5 gives the
+ * certificate two inscription fields and the document described only one.
  *
  * **The inscription is filtered here as well as at entry**, which is what §5
  * asks for in those words. A derivation that trusts what it was given is not a
@@ -43,6 +49,8 @@ export interface CertificateProps {
 }
 
 export function Certificate({ certificate, notice }: CertificateProps) {
+  const dedication = sanitiseInscription(certificate.dedication);
+
   return (
     <article className="certificate">
       <DoubleRule />
@@ -52,7 +60,7 @@ export function Certificate({ certificate, notice }: CertificateProps) {
       <p className="certificate-serial">{formatSerial(certificate.serial)}</p>
 
       <Ledger>
-        <LedgerRow label={CERTIFICATE_LABELS.bearer} value={sanitiseInscription(certificate.inscription) ?? NO_INSCRIPTION} />
+        <LedgerRow label={CERTIFICATE_LABELS.bearer} value={sanitiseInscription(certificate.displayName) ?? NO_INSCRIPTION} />
         <LedgerRow label={CERTIFICATE_LABELS.item} value={certificate.tier} />
         <LedgerRow
           label={CERTIFICATE_LABELS.wasted}
@@ -63,6 +71,16 @@ export function Certificate({ certificate, notice }: CertificateProps) {
             document whose whole point is being screenshotted and shared. */}
         <LedgerRow label={CERTIFICATE_LABELS.issued} value={<time dateTime={certificate.issuedOn}>{certificate.issuedOn}</time>} />
       </Ledger>
+
+      {/* Filtered here as well, and separately: §5 requires an operator to be
+          able to blank either field without touching the other, so each is
+          derived on its own. `dedication === null` removes the whole element
+          rather than leaving empty quotation marks. */}
+      {dedication === null ? null : (
+        <blockquote className="certificate-dedication">
+          <p>{dedication}</p>
+        </blockquote>
+      )}
 
       <StampMark lines={[...STAMP_LINES]} />
 
