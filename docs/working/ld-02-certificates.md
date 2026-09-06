@@ -599,11 +599,13 @@ a guessable one.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/done-deals/[slug]/certificate.pdf/route.ts`,
 `storefront/src/lib/certificate-pdf.ts`,
-`storefront/src/lib/pdf-layout-1.ts`,
-`storefront/package.json`, `package-lock.json`, `next.config.ts`,
-`storefront/tests/certificate-pdf.test.ts`.
+`storefront/src/lib/pdf-layout-1.ts`, `storefront/src/app/palette.ts`,
+`storefront/package.json`, `package-lock.json`,
+`storefront/next.config.ts`,
+`storefront/tests/certificate-pdf.test.ts`,
+`storefront/tests/third-party-disclosure.test.ts`.
 
-- [ ] Render the certificate as a vector PDF with embedded IBM Plex Mono,
+- [x] Render the certificate as a vector PDF with embedded IBM Plex Mono,
       served by the application, with no browser and no object storage.
 
 **PDFKit**, and the row states why rather than assuming. §5 forbids driving a
@@ -620,9 +622,49 @@ The PDF is not a screenshot of the page and no test asserts they match; each is
 tested for what its own medium requires. What both must satisfy is constraint
 13 and the layout registry.
 
-The test parses the produced bytes: `%PDF-` header, one page at the stated size,
-the font embedded rather than referenced, the serial present as text, and the
-billing name absent.
+The test parses the produced bytes — and parsing them properly is most of the
+row's test effort, because the words are not in the file. PDFKit embeds each
+font as a subset and writes glyph ids, so `Jane` is four two-byte indices into
+a subset built for that document. The helper walks the object graph to each
+font's `ToUnicode` CMap and decodes the runs through it, which is how any
+reader copies text out of a PDF. **Per font**: the document uses two cuts with
+two subsets and two glyph-id spaces, and merging their maps decoded the title
+correctly while turning the whole ledger into somebody else's letters.
+
+**Three assertions were wrong before they were right**, each because a PDF is
+not what it looks like from the outside:
+
+- `/Subtype /TrueType` — PDFKit emits `/Type0` with a `/CIDFontType2`
+  descendant, which is the composite form, not the simple one.
+- `/Image` absent — PDFKit writes `/ProcSet [/PDF /Text /ImageB /ImageC
+  /ImageI]` on every page, so the bare substring matches a document with no
+  image in it. `/Subtype /Image` is the real test.
+- the buffer's length as a proxy for content — which would pass against a page
+  of question marks, and did not survive being replaced.
+
+**`pdfkit` is the storefront's first new dependency since LD-01**, and
+`third-party-disclosure.test.ts` states the whole list precisely so that an
+addition is deliberate. It draws from a font buffer and coordinates: no socket,
+no environment, nobody contacted, so it adds no third party to Privacy §5.
+
+**`app/palette.ts` gains a second consumer.** A PDF has no cascade, exactly as
+Satori has none, and `tokens.test.ts` bans a hex literal anywhere else under
+`src` — so the file's "there are exactly two declared homes" note now says why
+the count of *renderers* is not the point.
+
+**An inscription the embedded font cannot set becomes `?`, visibly.** A browser
+falls back to another face; a PDF has only what it embedded, and an unmapped
+codepoint draws as `.notdef` — a gap that looks like the buyer typed a space.
+Measured on these files: Latin, Latin Extended, Greek, Cyrillic, punctuation
+and currency are present; CJK, emoji and the right-to-left scripts are not. A
+visible substitution beats an invisible hole; the real fix is a fallback font
+in the image, which is **not done and is recorded in the deferrals table**.
+
+**Verified by looking at it**, which is the only way this row's actual defect
+was ever going to be found: the first render put the closing rule at the page
+foot, leaving about 270 points of white between the clause and the rule — a
+document that stopped rather than one that finished. The rule now follows the
+content. §14, in one page.
 
 ### C7 — Share links, and the per-deal social card
 
@@ -870,6 +912,7 @@ loose ends.
 | Baldrick | LD-05 |
 | A second certificate layout | the row that redesigns one; C5 and C6 make it additive |
 | The deletion job for the seven-year accounting record | still unassigned — gate item 15 |
+| A fallback font, so a CJK or emoji inscription sets in the PDF rather than becoming `?` | unassigned; C6 records the measurement |
 | Deal milestones (§11) | LD-08, if wanted at all |
 | Closing the legal gate | the operator, with a qualified human reader |
 | Publishing — removing an Access policy, seeding a live Stripe key | after the legal gate and the print-on-demand provider |

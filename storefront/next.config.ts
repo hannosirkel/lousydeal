@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
   // this setting -- see `storefront/Dockerfile`, which copies
   // `.next/standalone` rather than the full `node_modules` tree.
   output: "standalone",
+  // PDFKit is required at runtime rather than bundled. It resolves its
+  // standard-14 font metrics from files inside its own package, and a bundler
+  // that inlines the module without them leaves a library that works until
+  // somebody asks for Helvetica. `src/lib/certificate-pdf.ts` never does ask
+  // -- it registers real fonts and only those -- so this is belt as well as
+  // braces, and it is the setting the package's own guidance names.
+  serverExternalPackages: ["pdfkit"],
 };
 
 export default nextConfig;

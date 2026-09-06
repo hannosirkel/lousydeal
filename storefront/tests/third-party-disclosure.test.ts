@@ -104,6 +104,14 @@ describe("what the pages load", () => {
   it("takes on no dependency that could become one", () => {
     // A tracker arrives here before it appears in a page. The list is short
     // enough to state, and stating it is what makes an addition deliberate.
+    //
+    // `pdfkit` is C6's, and it is the first addition since LD-01. It draws a
+    // PDF from a font buffer and coordinates: it opens no socket, reads no
+    // environment and contacts nobody, so it adds no third party to §5 of the
+    // Privacy Policy -- which is what this guard is really asking. Contract §5
+    // rules out the alternatives in as many words (no headless browser, no
+    // object storage), so the choice was between a drawing library and hand-
+    // written PDF syntax with a TrueType subsetter in it.
     const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
       dependencies: Record<string, string>;
     };
@@ -111,6 +119,7 @@ describe("what the pages load", () => {
       "@stripe/react-stripe-js",
       "@stripe/stripe-js",
       "next",
+      "pdfkit",
       "react",
       "react-dom",
     ]);

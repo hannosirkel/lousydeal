@@ -9,11 +9,18 @@
  * time. Satori renders in Node with no stylesheet and no cascade, so
  * `var(--paper)` reaches it as the string `var(--paper)` and paints nothing.
  *
+ * **C6 added a second such consumer**, and the reason generalises rather than
+ * being about Satori: `src/lib/pdf-layout-1.ts` draws into a PDF, which has no
+ * cascade either. Two declared homes, any number of renderers that cannot read
+ * the first one.
+ *
  * The duplication is therefore real and unavoidable. What makes it safe is that
  * `tokens.test.ts` compares every value here against the `:root` declaration it
  * mirrors, so the two homes cannot drift: changing one and not the other fails.
  *
- * Nothing else should import this. A component has the cascade.
+ * A component must not import this: a component has the cascade. A renderer
+ * that has no cascade — Satori, PDFKit — is the exception this file exists
+ * for.
  */
 
 export const PALETTE = {
