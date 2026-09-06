@@ -71,6 +71,12 @@ async function renderPage(deal: unknown, slug = "xbts2k3mmv3trv3n"): Promise<str
       throw new Error("NOT_FOUND");
     },
   }));
+  // C7: the share row builds its URL from the request's own host, because this
+  // storefront has no configured base URL and decision `002` is why it should
+  // not gain one.
+  vi.doMock("next/headers", () => ({
+    headers: async () => new Map([["host", "lousydeal.example"], ["x-forwarded-proto", "https"]]),
+  }));
 
   const { default: DoneDealPage } = await import("../src/app/done-deals/[slug]/page");
   return renderToStaticMarkup(await DoneDealPage({ params: Promise.resolve({ slug }) }));
@@ -131,9 +137,38 @@ describe("the certificate page", () => {
     await expect(renderPage({ ...RECORD, layout: 2 })).rejects.toThrow(/not in this build/);
   });
 
-  it("keeps the address out of a search index", async () => {
-    // An unguessable URL that a crawler publishes is a guessable URL.
-    const { metadata } = await import("../src/app/done-deals/[slug]/page");
+  it("keeps the address out of a search index, through the function that now names the title", async () => {
+    // An unguessable URL that a crawler publishes is a guessable URL. This was
+    // a static `metadata` export until C7 gave the title a serial; moving it
+    // into `generateMetadata` is exactly the kind of thing that gets dropped,
+    // so it is asserted through the function rather than off a constant.
+    vi.resetModules();
+    vi.doMock("../src/lib/store-session", () => ({
+      requireStoreClientConfig: () => ({ backendUrl: "http://backend.example", publishableKey: "pk" }),
+    }));
+    vi.doMock("../src/lib/medusa-client", () => ({ createStoreFetchJson: () => stub({}) }));
+    vi.doMock("../src/lib/store-deal", () => ({ getDeal: async () => RECORD }));
+
+    const { generateMetadata } = await import("../src/app/done-deals/[slug]/page");
+    const metadata = await generateMetadata({ params: Promise.resolve({ slug: "x" }) });
+
+    expect(metadata.robots).toEqual({ index: false, follow: false });
+    // The serial, so a shared link is distinguishable from every other one.
+    expect(metadata.title).toContain("#4,102");
+  });
+
+  it("titles a missing certificate without inventing a serial for it", async () => {
+    vi.resetModules();
+    vi.doMock("../src/lib/store-session", () => ({
+      requireStoreClientConfig: () => ({ backendUrl: "http://backend.example", publishableKey: "pk" }),
+    }));
+    vi.doMock("../src/lib/medusa-client", () => ({ createStoreFetchJson: () => stub({}) }));
+    vi.doMock("../src/lib/store-deal", () => ({ getDeal: async () => null }));
+
+    const { generateMetadata } = await import("../src/app/done-deals/[slug]/page");
+    const metadata = await generateMetadata({ params: Promise.resolve({ slug: "x" }) });
+
+    expect(metadata.title).not.toMatch(/#/);
     expect(metadata.robots).toEqual({ index: false, follow: false });
   });
 });

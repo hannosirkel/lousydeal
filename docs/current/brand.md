@@ -442,11 +442,40 @@ Form numbers: `FORM LD-404` and `FORM LD-5XX`. A form number for a page that
 is not a form is the joke a filing clerk would have made, which is the register
 §1 asks for.
 
+### The share row
+
+Under the certificate, outside its closing rule, headed `SHOW SOMEBODY`. Three
+links — X, Bluesky, an email — set as a centred row of links and not as
+buttons: this identity has no button that is not a control, and sharing is a
+link somebody follows.
+
+**They are anchors, and that is the whole design.** A share widget is a script
+from somebody else's server, on a page whose answer to "what do you load from
+elsewhere" is *nothing*. These load nothing, contact nobody until they are
+pressed, and carry `rel="noreferrer"` so that pressing one does not hand the
+destination the certificate's address before its owner has said anything. A
+line of fine print under the row says so, because a reader of this site's
+privacy notice would reasonably wonder.
+
+The words shared are the buyer's, in the first person and the past tense — *"I
+bought a certificate that confers nothing. It has a number."* A brand asking to
+be reposted is the register §2 rules out; somebody reporting what they did is
+not.
+
 ### Social images
 
 1200×630, generated from the same tokens: paper ground, ink type, one stamp-red
-figure, IBM Plex Mono. The home image renders the offer ledger. Certificate
-images arrive with LD-02, when there is a certificate to render.
+figure, IBM Plex Mono. The home image renders the offer ledger.
+
+**The certificate's card leads with the serial**, at display size and in stamp
+red — it is the one figure the card is for, and the reason a link is worth
+opening. Under it, three ledger rows: bearer, item, amount. Not the date, which
+is on the document and not the reason anybody clicks; and never a billing name,
+which no surface on this site has.
+
+Its alt text is the document's title and the serial, not the inscription. A
+card's alt is read aloud on somebody else's timeline, and the inscription is
+already in the picture.
 
 ## 5. Legal documents
 

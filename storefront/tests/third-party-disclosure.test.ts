@@ -40,10 +40,22 @@ const withoutComments = (text: string): string =>
 /**
  * Hosts that are allowed to appear as literals.
  *
- * None of them is a third party: two are the proxy's own placeholder bases for
- * URL parsing, and the loopback forms belong to tests and local development.
+ * Two are the proxy's own placeholder bases for URL parsing and the loopback
+ * forms belong to tests and local development; none of those is a third party.
+ *
+ * **`x.com` and `bsky.app` are, and they arrived with C7's share row.** They
+ * are the first external hosts this source has ever named — the list above
+ * them was empty of real ones — so they are added here deliberately rather
+ * than by widening the pattern. What makes them tolerable is the shape they
+ * appear in: `<a href>` and nothing else. The page loads nothing from either,
+ * the browser contacts neither until somebody presses a link, and both carry
+ * `rel="noreferrer"` so that pressing one does not hand over which certificate
+ * it came from. `tests/share-links.test.ts` asserts each of those.
+ *
+ * A fourth host is a decision, and this line is where it gets made.
  */
-const PERMITTED = /^https?:\/\/(?:h|store-api-proxy\.invalid|localhost|127\.0\.0\.1)(?:[:/]|$)/;
+const PERMITTED =
+  /^https?:\/\/(?:h|store-api-proxy\.invalid|localhost|127\.0\.0\.1|x\.com|bsky\.app)(?:[:/]|$)/;
 
 const privacyProse = PRIVACY.sections.flatMap((section) => section.body).join("\n");
 
