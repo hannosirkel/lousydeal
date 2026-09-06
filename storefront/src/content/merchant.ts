@@ -31,7 +31,7 @@ export type MerchantIdentity = RuntimeConfig["merchant"];
 /**
  * The placeholder vocabulary: the token a content file may write, the
  * configuration field behind it, and the label a gap wears when that field is
- * missing. One record, so there is one enumeration of the five fields rather
+ * missing. One record, so there is one enumeration of the six fields rather
  * than three that must agree.
  */
 export const MERCHANT_PLACEHOLDERS = {
@@ -40,6 +40,7 @@ export const MERCHANT_PLACEHOLDERS = {
   merchantEmail: { field: "email", label: "CONTACT ADDRESS" },
   merchantRegistryCode: { field: "registryCode", label: "REGISTRY CODE" },
   merchantVatNumber: { field: "vatNumber", label: "VAT NUMBER" },
+  merchantPhoneNumber: { field: "phoneNumber", label: "TELEPHONE NUMBER" },
 } as const satisfies Record<string, { field: keyof MerchantIdentity; label: string }>;
 
 export type MerchantPlaceholder = keyof typeof MERCHANT_PLACEHOLDERS;

@@ -154,6 +154,9 @@ The store is operated by:
 | Company | Aislopica OÜ |
 | Address | Pihlaka tn 2, Jüri alevik, Rae vald, Harju maakond, 75301, Estonia |
 | Contact | `baldrick@lousydeal.com` |
+| Telephone | `+372 51 35463` |
+| Registry code | `17584979` |
+| VAT number | `EE103022558` |
 
 These are the trader details a customer must be able to find, so they reach the
 imprint, the order confirmation, the invoice, the Stripe account, and the
@@ -161,19 +164,53 @@ sender identity on transactional email. They are public business-register facts
 and a role address, not a person's contact details, so committing them is a
 deliberate §2a decision rather than an oversight.
 
-Do **not** extend that decision. A director's name, a registry code, a VAT
-number, and a bank account are each their own decision.
+Do **not** extend that decision to a director's name or a bank account: those
+remain their own decisions and neither is published.
+
+**The registry code, the VAT number and the telephone number are now committed
+too — the operator, 2026-09-06.** They are added to the table above and the
+paragraph below records why the earlier rule was wrong rather than merely
+superseded.
+
+**The reference keeps these in the private inventory and injects them.**
+`orange/roles/argocd/templates/plepic-application.yaml.j2` patches all seven
+`MERCHANT_*` names onto `plepic-storefront` from `environment.merchant`, whose
+committed values are placeholders — `Example Games OÜ`, `12345678` — and whose
+real values live in the operator's private Ansible inventory. Lousy Deal now
+does the same, through the equivalent block in its own Application.
+
+It *also* carries real literals in `deploys/lousydeal/base/storefront.yaml`,
+because the reference does: that is the fallback the patch supersedes, and it
+is real rather than placeholder so that a manifest applied without Orange still
+publishes a lawful imprint. Its README argues the case: Article 6(1) CRD as
+amended by Directive (EU) 2019/2161 and VÕS § 54¹ oblige a trader to publish its
+name, registered address, contact address and telephone number, and Article
+5(1)(d) of Directive 2000/31/EC obliges it to name the register and its code
+within it — so each has exactly one correct value, the law's requirement is that
+it be **published**, and "a reserved placeholder in one of these fields is a
+legally required disclosure that is wrong rather than a secret withheld".
+
+**The rule this replaces cited that project and described the opposite of what
+it does.** It said the VAT number "reaches a page the way the reference delivers
+it — read server-side at runtime from `MERCHANT_VAT_NUMBER`
+(`plepic/storefront/src/config/runtime-config.ts:176`), never a literal in a
+repository". The citation is accurate and the inference is not: reading an
+environment variable at runtime is true of both projects, and says nothing about
+where the value is written. The reference writes it as a literal. Withholding a
+disclosure the law exists to compel protected nothing and left the imprint
+publishing `[REGISTRY CODE NOT CONFIGURED]` in both environments.
 
 **Aislopica OÜ is VAT registered** — the operator, 2026-08-30. This paragraph
 called the registration a legal-gate question (§23); that was about *performing*
 it, and it has been performed. §23 still owns the wording the number appears in.
 
-**The number itself is still not committed**, and the rule above is unchanged by
-the registration. It reaches a page the way the reference delivers it — read
-server-side at runtime from `MERCHANT_VAT_NUMBER`
-(`plepic/storefront/src/config/runtime-config.ts:176`, typed `string | null`),
-never a literal in a repository. That is global constraint 2, not a separate
-policy for this one field.
+**The number is `EE103022558` and it is committed**, above and in
+`deploys/lousydeal/base/storefront.yaml`. It still reaches a page the way every
+other trader detail does — read server-side at runtime from
+`MERCHANT_VAT_NUMBER`, typed `string | null` — because that is how the
+storefront reads configuration, not because the value is withheld from the
+repository. Global constraint 2 forbids baking a **per-environment** value into
+the artifact; there is one company, so none of these is per-environment.
 
 The §23 exclusion still holds either way: putting the entity into a template is
 build work; writing the terms it appears above is not.

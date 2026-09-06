@@ -15,6 +15,7 @@ const NO_MERCHANT: RuntimeConfig["merchant"] = {
   email: null,
   registryCode: null,
   vatNumber: null,
+  phoneNumber: null,
 };
 
 describe("getRuntimeConfig", () => {
@@ -31,6 +32,7 @@ describe("getRuntimeConfig", () => {
       MERCHANT_EMAIL: "trader@example.test",
       MERCHANT_REGISTRY_CODE: "10000000",
       MERCHANT_VAT_NUMBER: "EE100000000",
+      MERCHANT_PHONE_NUMBER: "+372 00 00000",
     });
 
     expect(config).toEqual({
@@ -42,6 +44,7 @@ describe("getRuntimeConfig", () => {
         email: "trader@example.test",
         registryCode: "10000000",
         vatNumber: "EE100000000",
+        phoneNumber: "+372 00 00000",
       },
     });
     expect(process.env.MEDUSA_BACKEND_URL).toBeUndefined();
@@ -51,7 +54,7 @@ describe("getRuntimeConfig", () => {
     expect(getRuntimeConfig({})).toEqual({
       medusa: { backendUrl: null, publishableKey: null },
       stripe: { publishableKey: null },
-      merchant: { legalName: null, address: null, email: null, registryCode: null, vatNumber: null },
+      merchant: { legalName: null, address: null, email: null, registryCode: null, vatNumber: null, phoneNumber: null },
     });
   });
 
@@ -82,6 +85,7 @@ describe("only a named, pinned subset of the runtime config is published to the 
       email: "trader@example.test",
       registryCode: "10000000",
       vatNumber: "EE100000000",
+      phoneNumber: "+372 00 00000",
     },
   };
 

@@ -23,6 +23,7 @@ const CONFIGURED: MerchantIdentity = {
   email: "trader@example.test",
   registryCode: "10000000",
   vatNumber: "EE100000000",
+  phoneNumber: "+372 00 00000",
 };
 
 const UNCONFIGURED: MerchantIdentity = {
@@ -31,6 +32,7 @@ const UNCONFIGURED: MerchantIdentity = {
   email: null,
   registryCode: null,
   vatNumber: null,
+  phoneNumber: null,
 };
 
 const text = (template: string, identity: MerchantIdentity) =>
@@ -54,7 +56,7 @@ describe("resolveText", () => {
     // when the vocabulary grows.
     const tokens = Object.keys(MERCHANT_PLACEHOLDERS).map((key) => `{${key}}`);
     expect(text(tokens.join(" "), CONFIGURED)).toBe(
-      "Example Trader OÜ Example tn 1, 10000 Tallinn, Estonia trader@example.test 10000000 EE100000000",
+      "Example Trader OÜ Example tn 1, 10000 Tallinn, Estonia trader@example.test 10000000 EE100000000 +372 00 00000",
     );
     expect(text(tokens.join(" "), UNCONFIGURED)).toBe(
       Object.values(MERCHANT_PLACEHOLDERS)
