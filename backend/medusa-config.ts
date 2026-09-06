@@ -50,18 +50,15 @@ export default defineConfig({
     http: {
       jwtSecret: runtime.http.jwtSecret,
       cookieSecret: runtime.http.cookieSecret,
-      // **Required by the type from Medusa 2.20.1, and defaulted by Medusa
-      // itself before and after.** `src/config/runtime.ts`'s header already
-      // recorded that `defineConfig` "silently defaults
-      // `STORE_CORS`/`ADMIN_CORS`/`AUTH_CORS`, unconditionally and including
-      // in production, so a later row may want them required too". 2.20.1 made
-      // the *type* require them without changing that runtime default
-      // (`define-config.js:433`, `process.env.STORE_CORS || DEFAULT_STORE_CORS`).
-      //
-      // So these three reproduce exactly what Medusa would have done, and
-      // change no behaviour: the same environment variables, the same
-      // fallbacks. What they change is that the values are now visible in this
-      // file rather than inside a dependency.
+      // **Required by `defineConfig`'s type, and defaulted by Medusa itself.**
+      // `src/config/runtime.ts` records why the compiler only started saying so
+      // at 2.20.1 -- the requirement is older than that, and the old lockfile
+      // hid it. Medusa still applies the same defaults it always did
+      // (`define-config.js:433-435`, `process.env.STORE_CORS ||
+      // DEFAULT_STORE_CORS` and friends), so these three reproduce exactly what
+      // it would have done: same variables, same fallbacks, no behaviour
+      // change. What they change is that the values are visible in this file
+      // rather than inside a dependency.
       //
       // **CORS is not load-bearing for this deployment**, which is why nothing
       // ever set it. A browser never calls the Store API directly: the

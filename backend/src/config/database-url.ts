@@ -240,20 +240,26 @@ export function resolveDatabaseUrl(environment: Environment): string {
  */
 export type DatabaseSslSetting = false | true | { readonly rejectUnauthorized: false };
 
-export interface DatabaseDriverOptions {
+/**
+ * **A `type`, not an `interface`, and that is the whole of the difference.**
+ *
+ * `defineConfig` types `databaseDriverOptions` as
+ * `Record<string, unknown> & { connection?: … }`. An `interface` is not
+ * assignable to a `Record` however well its members match, because TypeScript
+ * gives an implicit index signature only to type aliases of object literals --
+ * an interface can be augmented by a later declaration, so its keys are never
+ * known to be exhaustive. A type alias closes that door and gets the implicit
+ * signature for free.
+ *
+ * The alternative was declaring `readonly [key: string]: unknown` on the
+ * interface, which also compiles and is strictly worse: it opens the type to
+ * any key at all and gives up excess-property checking on fresh literals, so a
+ * future stray top-level `ssl` would stop being a compile error. This keeps
+ * the type closed.
+ */
+export type DatabaseDriverOptions = {
   readonly connection: { readonly ssl: DatabaseSslSetting };
-  /**
-   * An index signature, required from Medusa 2.20.1 and not before.
-   *
-   * `defineConfig` now types `databaseDriverOptions` as
-   * `Record<string, unknown> & { connection?: … }`, and a closed interface is
-   * not assignable to a `Record` however well its declared members match. This
-   * adds nothing at runtime and permits nothing new to be *set*: the only
-   * property this module ever writes is `connection`, and
-   * `resolveDatabaseDriverOptions` below is the only writer.
-   */
-  readonly [key: string]: unknown;
-}
+};
 
 /** libpq's vocabulary, restricted to the three modes this backend can mean. */
 const sslModes = ["disable", "require", "verify-full"] as const;

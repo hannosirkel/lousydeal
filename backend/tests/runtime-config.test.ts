@@ -85,22 +85,51 @@ describe("readBackendRuntimeConfig", () => {
     STRIPE_WEBHOOK_SECRET: "stripe-webhook-secret-value",
   };
 
+  it("lets the environment override each CORS setting, and does not cross them", () => {
+    // **The fallbacks above are only half the path.** Asserting them alone
+    // survives two mutations: dropping the env read entirely
+    // (`storeCors: DEFAULT_STORE_CORS`), and crossing the three variable names
+    // over the three fields. Both leave every other test green, because no
+    // other environment in this file sets any of them.
+    //
+    // Three distinct values, so a crossed pair cannot pass by coincidence.
+    const config = readBackendRuntimeConfig({
+      ...validEnvironment,
+      STORE_CORS: "https://store.example.test",
+      ADMIN_CORS: "https://admin.example.test",
+      AUTH_CORS: "https://auth.example.test",
+    });
+
+    expect(config.http.storeCors).toBe("https://store.example.test");
+    expect(config.http.adminCors).toBe("https://admin.example.test");
+    expect(config.http.authCors).toBe("https://auth.example.test");
+  });
+
+  it("treats an empty CORS value as unset, the way a projected Secret arrives", () => {
+    // `optionalEnv` maps empty and whitespace-only to absent, and Medusa's own
+    // `||` does the same for empty -- so this matches rather than diverges.
+    const config = readBackendRuntimeConfig({ ...validEnvironment, STORE_CORS: "  " });
+    expect(config.http.storeCors).toBe("http://localhost:8000");
+  });
+
   it("assembles the http secrets, the database connection, the Redis parts, the Stripe values and the mail configuration from the environment", () => {
     const config: BackendRuntimeConfig = readBackendRuntimeConfig(validEnvironment);
     expect(config).toEqual({
       http: {
         jwtSecret: "jwt-secret-value",
         cookieSecret: "cookie-secret-value",
-        // Medusa 2.20.1 made these three required in `defineConfig`'s type
-        // while still defaulting them itself. The values here are Medusa's own
-        // (`define-config.js:34,36`), so an unset environment produces exactly
-        // what it produced before the bump -- which is the whole claim, and is
-        // why they are asserted rather than left to a `toMatchObject`.
+        // `defineConfig`'s type requires these three and Medusa defaults them
+        // itself; `src/config/runtime.ts` records why the compiler only began
+        // saying so at 2.20.1, the requirement being older than that. The
+        // values here are Medusa's own (`define-config.js:34,36`), so an unset
+        // environment produces exactly what it produced before -- which is the
+        // whole claim, and is why they are asserted rather than left to a
+        // `toMatchObject`.
         storeCors: "http://localhost:8000",
         adminCors: "http://localhost:7000,http://localhost:7001,http://localhost:5173",
         // Medusa falls `authCors` back to the *admin* default, not an auth one
-        // (`define-config.js:432`). Asserted because it looks like a mistake
-        // and is not ours.
+        // (`define-config.js:434-435`). Asserted because it looks like a
+        // mistake and is not ours.
         authCors: "http://localhost:7000,http://localhost:7001,http://localhost:5173",
       },
       database: {
