@@ -788,14 +788,16 @@ notice the provider never being registered.
 ### C9 — The § 55 confirmation
 
 **Repository:** `lousydeal`.
-**Split at execution**, for the third time in this slice and for the ordinary
-reason: written as one row it came to 981 changed lines against §18's bound of
-800, and §18 gives the override to the operator rather than the author.
+**Split at execution**, and then split again. Written as one row it came to 981
+changed lines against §18's bound of 800; the remainder after C9a came to 865.
+§18 gives the override to the operator rather than the author, so the row was
+decomposed instead — which §18 invites in the same breath.
 
 | | |
 | --- | --- |
 | **C9a** | The trader identity and the site's own address, in the backend |
-| **C9b** | The § 55 confirmation itself |
+| **C9b** | The § 55 confirmation, as a document |
+| **C9c** | Sending it |
 
 #### C9a — The trader identity, in the backend
 
@@ -831,17 +833,65 @@ checkout Orange has not patched, including a developer's. Refusing to boot on
 it would make the backend unrunnable locally to protect an email that is not
 being sent.
 
-#### C9b — The § 55 confirmation
+#### C9b — The § 55 confirmation, as a document
 
 **Repository:** `lousydeal`.
 **Files:** `backend/src/content/confirmation.ts`,
 `backend/src/notifications/order-confirmation.ts`,
-`backend/src/subscribers/order-placed.ts`,
 `backend/tests/order-confirmation.test.ts`.
 
-- [ ] Send the buyer a confirmation on a durable medium containing everything
+- [x] Send the buyer a confirmation on a durable medium containing everything
       § 55(2) and § 54(1) require, with the certificate's link, promptly after
       the order is placed.
+
+**No `transactional-email.ts`.** The plan expected a shared wrapper, ported
+from the reference project, which has two transactional emails to share it
+between. This slice has one until C14 adds the withdrawal receipt, and a
+wrapper around a single caller is a layer whose shape is guessed rather than
+observed. C14 is where the second arrives and the common part becomes visible.
+
+**A confirmation is complete or it is not sent.** The storefront renders
+`[LEGAL NAME NOT CONFIGURED]` on a page under decision `004`, which is right
+there — saying "this is missing" beats a blank and the reader can come back. It
+is wrong in an email: § 55(2) is not satisfied by a confirmation that names no
+trader, a duty performed badly cannot be taken back, and one visibly not yet
+performed is recoverable from the order record. So an incomplete identity
+yields `null`, and the subscriber logs which part was missing, per order.
+
+**It does not say the right of withdrawal is gone.** Sending this is what makes
+the third condition *capable* of being met; whether it was met for a given
+order turns on facts the email cannot settle. A sentence asserting the right
+had lapsed would be the trader deciding a question in its own favour, and a
+test forbids one.
+
+**The model form is compared across workspaces.** Directive 2011/83/EU
+Annex I(B) fixes the wording and there is no package shared between the two, so
+the test reads `storefront/src/content/legal/refunds.ts` and requires every
+line to match. Two copies of a statutory text that disagree is worse than
+either.
+
+**The buyer's address is never logged.** It is the one piece of personal data
+this subscriber handles, and a log line is a place it would outlive the order
+record's own retention.
+
+#### C9c — Sending it
+
+**Repository:** `lousydeal`.
+**Files:** `backend/src/subscribers/order-placed.ts`, and its own test.
+
+- [ ] Send the built confirmation from `order.placed`, and say per order which
+      precondition was missing when it could not.
+
+**This row exists because C9b could otherwise be dead code.** Everything in
+C9b's test drives `buildOrderConfirmation` directly, and a subscriber that
+built the message and dropped it would pass all of it — the same lesson C8
+learned about the notification module never being registered. So the subscriber
+is driven with a fake container and the notification it creates is inspected.
+
+**Nothing is sent from either environment yet**, because all three
+preconditions are absent: C10 and C11 supply the mail transport, the trader
+identity and the base URL. Until then the subscriber logs, per order, which
+part is missing.
 
 **This is the row the publication gate is waiting on.** The content is not a
 receipt with a link; § 55(2) requires the confirmation to reproduce the
@@ -863,7 +913,10 @@ construction — the deal record is the source of truth and §5 forbids a storag
 outage that can take it offline.
 
 Both `text` and `html`, because a durable medium the recipient cannot read is
-not one.
+not one. The text body is the authoritative one, and a test asserts the HTML
+says the same things — an HTML body that quietly dropped a section would be the
+version most readers see while the text body still passed every other
+assertion.
 
 ### C10 — Mail egress and environment, in `deploys`
 
