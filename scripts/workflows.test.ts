@@ -261,7 +261,7 @@ function expectDigestGuardedAndEmittedUnchanged(script: string): void {
   ).toHaveLength(1);
 }
 
-/** A pinned scanner release, e.g. `v0.70.0`. */
+/** A pinned scanner release, e.g. `v0.74.0`. */
 const TRIVY_VERSION = /^v\d+\.\d+\.\d+$/;
 
 /** Every Trivy scan step in a workflow, paired with where it was found. */
@@ -325,13 +325,19 @@ const TRIVY_INPUTS = [
  * for that one name rather than being forced empty.
  *
  * The scanner version is pinned here for a narrower reason than "otherwise it
- * floats": the action is pinned by commit SHA, and at that SHA `version:`'s
- * own default in `action.yaml` is already `v0.70.0` -- the same value this
- * asserts -- so an *absent* `version:` is exactly as deterministic as this
- * pin, today. What an absent pin does not survive is the SHA-pinned action's
- * bundled default changing on some future edit to this file with nobody
- * re-checking it; an explicit `version:` is what makes that change visible
- * here rather than silent. A *floating* `version: latest`, unlike an absent
+ * floats": the action is pinned by commit SHA, so an *absent* `version:` would
+ * take that SHA's own `action.yaml` default and be deterministic too. What an
+ * absent pin does not survive is that default changing on some future edit to
+ * this file with nobody re-checking it; an explicit `version:` is what makes
+ * such a change visible here rather than silent.
+ *
+ * **That stopped being hypothetical.** This fixture read `v0.70.0`, which was
+ * also the action's bundled default at the pinned SHA, so the two agreed and
+ * the pin cost nothing to hold. Renovate then raised the *input* to `v0.74.0`
+ * without moving the action's SHA -- the scanner and the action version are
+ * separate things it tracks separately -- and this assertion is what stopped
+ * the release gate's strictness changing without anybody reading a diff. The
+ * two no longer necessarily agree, which is the case an explicit pin is for. A *floating* `version: latest`, unlike an absent
  * one, changes the gate's strictness independent of any edit to this file at
  * all, which is what pinning to a release shape (`TRIVY_VERSION`) guards
  * against. `vuln-type` is pinned for the same reason, not because omitting it
@@ -1711,7 +1717,7 @@ const BUILD_STEPS: ReadonlyArray<{ readonly [key: string]: YamlValue }> = [
       "vuln-type": "os,library",
       "severity": "CRITICAL",
       "scanners": "vuln",
-      "version": "v0.70.0",
+      "version": "v0.74.0",
     },
   },
   {
@@ -1726,7 +1732,7 @@ const BUILD_STEPS: ReadonlyArray<{ readonly [key: string]: YamlValue }> = [
       "vuln-type": "os,library",
       "severity": "CRITICAL",
       "scanners": "vuln",
-      "version": "v0.70.0",
+      "version": "v0.74.0",
     },
   },
   {
