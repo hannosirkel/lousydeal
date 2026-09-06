@@ -701,7 +701,7 @@ because V10 closed it; the numbering is kept so earlier references resolve.
 
 | # | Item | Raised |
 | --- | --- | --- |
-| 1 | No telephone number is published. § 54(1) p 2 requires one where available. | V9 |
+| 1 | ~~No telephone number is published.~~ **Closed by V16.** `+372 51 35463`, published in the imprint. | V9 |
 | 2 | ~~The model withdrawal form is not provided.~~ Closed by V10 §5.1. | V9 |
 | 3 | § 54(1) p 5 is unstated. | V9 |
 | 4 | ~~§ 54(1) p 18 is unstated.~~ Closed by V10 §7. | V9 |
@@ -931,6 +931,44 @@ keeps 720 hours, and the redaction stage drops secrets rather than addresses.
 
 The header cited two different measurement commits. It is `de0fb6a` now, and
 the document title follows `brand.md` §5.
+
+### V16 — The trader identity, published
+
+**Repositories:** `lousydeal` and `deploys`.
+
+The operator settled §2b's open decision on 2026-09-06 and the answer is the
+reference project's: **the registry code, the VAT number and the telephone
+number are committed, not withheld.**
+
+The argument is `deploys/plepic/README.md`'s. Article 6(1) CRD as amended by
+Directive (EU) 2019/2161 and VÕS § 54¹ oblige a trader to publish its name,
+registered address, contact address and telephone number; Article 5(1)(d) of
+Directive 2000/31/EC obliges it to name the register and its code within it. So
+each has exactly one correct value, the law's requirement is that it be
+*published*, and — in that README's words — "a reserved placeholder in one of
+these fields is a legally required disclosure that is wrong rather than a secret
+withheld".
+
+**The rule this replaces cited that project and described the opposite of what
+it does.** §2b said the VAT number "reaches a page the way the reference
+delivers it … never a literal in a repository", citing
+`plepic/storefront/src/config/runtime-config.ts:176`. That line is real and
+reads the environment variable exactly as described — but the reference writes
+the *value* as a literal in `deploys/plepic/base/storefront.yaml`. Reading an
+environment variable at runtime is true of both projects and says nothing about
+where the value is written. §2b has been amended, and it records the misreading
+rather than quietly replacing the rule.
+
+**A sixth merchant field exists now.** `MERCHANT_PHONE_NUMBER` reaches the
+resolver, the vocabulary and the imprint — closing gate item 1, which was
+§ 54(1) p 2's requirement that a trader publish a telephone number where it has
+one. `tests/legal-imprint.test.ts` derives its check from the vocabulary, so a
+seventh field must be either published or deliberately excluded rather than
+silently forgotten.
+
+Global constraint 2 is untouched: it forbids baking a **per-environment** value
+into the artifact, and there is one company, so none of these is
+per-environment.
 
 ### V12 — Footer links and the legal index
 

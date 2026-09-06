@@ -20,7 +20,7 @@
  * publishable key (Task 9/10), and the Stripe **publishable** key (C6, a
  * paid Stripe test-mode order reached through the storefront).
  *
- * The five `MERCHANT_*` fields are read here rather than written into content
+ * The six `MERCHANT_*` fields are read here rather than written into content
  * because decision `004` rules that a disclosure must be changeable by
  * configuration, not by a code change — see `src/content/merchant.ts` for the
  * substitution and `src/content/chrome.ts` for the templates that use it.
@@ -63,6 +63,7 @@ export interface RuntimeConfig {
     readonly email: string | null;
     readonly registryCode: string | null;
     readonly vatNumber: string | null;
+    readonly phoneNumber: string | null;
   };
 }
 
@@ -81,6 +82,7 @@ export function getRuntimeConfig(env: EnvRecord = process.env): RuntimeConfig {
       email: readEnv("MERCHANT_EMAIL", env) ?? null,
       registryCode: readEnv("MERCHANT_REGISTRY_CODE", env) ?? null,
       vatNumber: readEnv("MERCHANT_VAT_NUMBER", env) ?? null,
+      phoneNumber: readEnv("MERCHANT_PHONE_NUMBER", env) ?? null,
     },
   };
 }

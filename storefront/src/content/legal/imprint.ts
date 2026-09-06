@@ -34,14 +34,15 @@ export const IMPRINT: LegalDocument = {
         "Registry code: {merchantRegistryCode}",
         "Registered address: {merchantAddress}",
         "VAT number: {merchantVatNumber}",
+        "Telephone: {merchantPhoneNumber}",
       ],
     },
     {
       number: "2",
       heading: "How to reach us",
       body: [
-        "Write to {merchantEmail}.",
-        "There is no telephone number. A shop selling a certificate that confers nothing does not need a call centre, and the address above is the route we answer on.",
+        "Write to {merchantEmail}, or telephone {merchantPhoneNumber}.",
+        "Email is the route we answer on and the one to use if you want a reply you can keep. Nothing here is urgent enough to need a telephone, and we would rather have your question in writing than mishear it.",
       ],
     },
     {

@@ -37,6 +37,7 @@ const CONFIGURED: MerchantIdentity = {
   email: "trader@example.test",
   registryCode: "10000000",
   vatNumber: "EE100000000",
+  phoneNumber: "+372 00 00000",
 };
 
 const footerHtml = (merchant: MerchantIdentity) =>
@@ -109,7 +110,7 @@ describe("the footer", () => {
   it("still shows a named gap and the notice when nothing is configured", () => {
     // Decision 004 survives the restructuring: the columns must not have become
     // a place where an unconfigured field renders blank.
-    const html = footerHtml({ legalName: null, address: null, email: null, registryCode: null, vatNumber: null });
+    const html = footerHtml({ legalName: null, address: null, email: null, registryCode: null, vatNumber: null, phoneNumber: null });
     expect(html).toMatch(/\[[A-Z ]+ NOT CONFIGURED\]/);
     expect(html).not.toMatch(/\{[^}]*\}/);
   });

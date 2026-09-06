@@ -45,6 +45,7 @@ const CONFIGURED: MerchantIdentity = {
   email: "trader@example.test",
   registryCode: "10000000",
   vatNumber: "EE100000000",
+  phoneNumber: "+372 00 00000",
 };
 
 const UNCONFIGURED: MerchantIdentity = {
@@ -53,6 +54,7 @@ const UNCONFIGURED: MerchantIdentity = {
   email: null,
   registryCode: null,
   vatNumber: null,
+  phoneNumber: null,
 };
 
 const legalDir = fileURLToPath(new URL("../src/content/legal", import.meta.url));
