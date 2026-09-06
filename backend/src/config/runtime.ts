@@ -35,6 +35,36 @@ export interface BackendRuntimeConfig {
   readonly http: {
     readonly jwtSecret: string;
     readonly cookieSecret: string;
+    /**
+     * The three CORS settings, required by `defineConfig`'s type and defaulted
+     * by Medusa itself.
+     *
+ * **This was never new in 2.20.1, and the first version of this comment said
+ * it was.** `@medusajs/types@2.18.0` already declared `authCors`, `storeCors`
+ * and `adminCors` as required (`dist/common/config-module.d.ts:744,824,877`)
+ * and `databaseDriverOptions` as `Record<string, unknown> & …` (`:410`). What
+ * changed is npm's layout: the old lockfile placed `@medusajs/types` *only* at
+ * `node_modules/@medusajs/framework/node_modules/@medusajs/types`, where
+ * `@medusajs/utils` -- which is where `defineConfig` lives -- could not resolve
+ * it. With `skipLibCheck: true` (on in all three tsconfigs) its parameter type
+ * degraded and the requirements were invisible. The 2.20.1 lockfile hoists
+ * `@medusajs/types` to the root and the compiler finally sees them.
+ *
+ * So the backend's typecheck was silently vacuous for the whole of
+ * `defineConfig`'s input, and had been for as long as anybody had looked. That
+ * is the finding; the bump only exposed it.
+     *
+     * Read here rather than left to the dependency so the values are visible,
+     * and with Medusa's own fallbacks so nothing changes: `define-config.js`
+     * resolves each as `process.env.<NAME> || <its default>`. The header above
+     * anticipated the requirement — it noted that Medusa defaults all three
+     * unconditionally, "so a later row may want them required too". This is not
+     * that row: they stay optional, because nothing in this deployment reads
+     * them (see `medusa-config.ts` for why CORS is not load-bearing here).
+     */
+    readonly authCors: string;
+    readonly storeCors: string;
+    readonly adminCors: string;
   };
   readonly database: {
     readonly url: string;
@@ -158,6 +188,12 @@ export function readSmtpRuntimeConfig(environment: Environment): SmtpRuntimeConf
   };
 }
 
+/** `define-config.js:34`, verbatim. */
+const DEFAULT_STORE_CORS = "http://localhost:8000";
+
+/** `define-config.js:36`, verbatim. Medusa uses it for `adminCors` *and* `authCors` (`:434-435`). */
+const DEFAULT_ADMIN_CORS = "http://localhost:7000,http://localhost:7001,http://localhost:5173";
+
 /**
  * Every required value is read before this returns, so an absent one throws
  * here rather than from the field a caller later reads.
@@ -167,6 +203,14 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
     http: {
       jwtSecret: requireEnv(environment, "JWT_SECRET"),
       cookieSecret: requireEnv(environment, "COOKIE_SECRET"),
+      // Medusa's own defaults, read from `define-config.js:34,36,433-435` and
+      // not from memory -- the first draft of this line invented two of the
+      // three, which would have changed behaviour under the comment above
+      // claiming it did not. `authCors` genuinely falls back to
+      // `DEFAULT_ADMIN_CORS`; that is Medusa's doing, not a copy-paste here.
+      storeCors: optionalEnv(environment, "STORE_CORS") ?? DEFAULT_STORE_CORS,
+      adminCors: optionalEnv(environment, "ADMIN_CORS") ?? DEFAULT_ADMIN_CORS,
+      authCors: optionalEnv(environment, "AUTH_CORS") ?? DEFAULT_ADMIN_CORS,
     },
     database: {
       url: resolveDatabaseUrl(environment),

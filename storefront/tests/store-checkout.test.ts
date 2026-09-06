@@ -12,6 +12,7 @@
  */
 
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import { readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
@@ -285,7 +286,16 @@ describe("the hooks namespace admits exactly the registered webhook path, and no
  * and its exclusion is asserted directly below instead.
  */
 function medusaApiNamespaces(): readonly string[] {
-  const apiDir = join(dirname(createRequire(import.meta.url).resolve("@medusajs/medusa/package.json")), "dist/api");
+  // **Resolved from the backend's own `package.json`, not from this file.**
+  // `@medusajs/medusa` is the backend workspace's dependency and the
+  // storefront's `node_modules` has no path to it; it was reachable from here
+  // only because npm happened to hoist it to the repository root. At 2.20.1
+  // the lockfile nests it under `backend/node_modules` instead -- a hoisting
+  // decision, deterministic from the lockfile, and nothing this test should
+  // have been relying on. Anchoring the require to the workspace that declares
+  // the dependency is correct however npm lays it out.
+  const backendPackage = fileURLToPath(new URL("../../backend/package.json", import.meta.url));
+  const apiDir = join(dirname(createRequire(backendPackage).resolve("@medusajs/medusa/package.json")), "dist/api");
   return readdirSync(apiDir).filter((name) => statSync(join(apiDir, name)).isDirectory());
 }
 

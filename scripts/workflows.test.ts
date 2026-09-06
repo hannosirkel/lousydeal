@@ -1593,7 +1593,7 @@ const VALIDATE_STEPS: ReadonlyArray<{ readonly [key: string]: YamlValue }> = [
     "name": "Set up Node",
     "uses": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
     "with": {
-      "node-version": "24.18.1"
+      "node-version": "24.20.0"
     }
   },
   {

@@ -28,7 +28,7 @@
 # `storefront/src/config/runtime-config.ts`.
 
 # node:24.18.1-trixie-slim
-FROM node:24.18.1-trixie-slim@sha256:ac39e4b5fcb2b1b34b20364fd58b2e898f3bb80731ee6f62a7536f9df3d6aadc AS build
+FROM node:24.20.0-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0 AS build
 
 WORKDIR /src
 
@@ -50,7 +50,7 @@ COPY storefront/ storefront/
 RUN NODE_ENV=production npm run build --workspace storefront
 
 # node:24.18.1-trixie-slim
-FROM node:24.18.1-trixie-slim@sha256:ac39e4b5fcb2b1b34b20364fd58b2e898f3bb80731ee6f62a7536f9df3d6aadc AS runtime
+FROM node:24.20.0-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0 AS runtime
 
 LABEL org.opencontainers.image.description="Lousy Deal storefront"
 LABEL org.opencontainers.image.licenses=UNLICENSED
