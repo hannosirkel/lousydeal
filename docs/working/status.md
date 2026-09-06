@@ -25,24 +25,30 @@ operator, and they are not the same kind of thing.
 
 ### 1. The legal gate (§23)
 
-**Eighteen items, four of them closed**, are recorded in the gate list at the foot of
-[`ld-09-visual-identity.md`](./ld-09-visual-identity.md), and §23 makes closing
-them an operator gate that a qualified human reader closes. Four documents are
-drafted and every provision in them is cited to the redaction of the Law of
-Obligations Act in force on 2026-09-05; that is drafting, not advice, and this
-initiative does not treat it as advice.
+**Eighteen items, ten of them closed**, are recorded in the gate list at the
+foot of [`ld-09-visual-identity.md`](./ld-09-visual-identity.md), and §23 makes
+closing them an operator gate that a qualified human reader closes. Four
+documents are drafted and every provision in them is cited to the redaction of
+the Law of Obligations Act in force on 2026-09-06; that is drafting, not advice,
+and this initiative does not treat it as advice.
 
-Three of the eighteen are worth naming here because they are not questions of
-wording:
+**Eight remain, and only two are work.** LD-02's § 55 confirmation (11) and a
+deletion job for the seven-year accounting record (15) are build tasks in
+slices that have not started. The other six — 8, 10, 12, 13, 17, 18 — are
+judgement, and two of them are where a pragmatic reading and a supervisory
+authority's may diverge most:
 
-- **No § 56⁴ withdrawal button exists.** In force since 01.09.2026, and a build
-  task rather than a copy one.
-- **LD-02 is a hard precondition for publishing.** Without the § 55 confirmation
-  the digital-content exception's third condition is never met, so the 14-day
-  right stands for every order — which every surface now says.
-- **Stripe's `__stripe_mid` is a 365-day device identifier** set under this
-  site's own domain. The privacy notice states the position taken and does not
-  pretend the ePrivacy question is settled.
+- **8 · The consent is a condition of ordering.** There is no way to buy
+  without giving up the right, and § 56²(9) voids a term that hinders its
+  exercise.
+- **17 · `__stripe_mid` is a 365-day device identifier** on this site's own
+  domain, for fingerprinting, with no consent asked. The notice states the
+  position taken; it does not resolve the ePrivacy question.
+
+**The § 56⁴ withdrawal button exists**, at `/legal/withdraw`, in the footer of
+every page and working with scripting off. What it cannot do is send the
+§ 56⁴(4) receipt, because nothing here sends email — which is LD-02's, and is
+the same reason item 11 is open.
 
 ### 2. Six merchant values in the private inventory
 
