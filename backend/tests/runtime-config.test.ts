@@ -99,6 +99,11 @@ describe("readBackendRuntimeConfig", () => {
       // to send through. `readSmtpRuntimeConfig` is what makes that safe --
       // see its own tests below for the partial-configuration refusal.
       smtp: null,
+      // C9. `null` for the same shape of reason and a different cause: mail is
+      // absent until C10/C11, the identity is absent in any deployment Orange
+      // has not patched.
+      merchant: null,
+      siteBaseUrl: null,
       stripe: {
         apiKey: "stripe-secret-key-value",
         webhookSecret: "stripe-webhook-secret-value",

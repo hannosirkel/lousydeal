@@ -108,7 +108,7 @@ order record the Privacy Policy already describes.
 | 4 | `/done-deals/{slug}` renders the certificate from stored data and carries no billing name | C4, C5a, C5b |
 | 5 | `/done-deals/{slug}/certificate.pdf` is a vector PDF with embedded fonts, produced without a browser | C6 |
 | 6 | The page has share links and a per-deal social card, and neither loads a third-party asset | C7 |
-| 7 | A confirmation email reaches the buyer, containing everything § 55(2) and § 54(1) require | C8, C9 |
+| 7 | A confirmation email reaches the buyer, containing everything § 55(2) and § 54(1) require | C8, C9a, C9b |
 | 8 | Both environments send mail, with credentials from OpenBao and egress restricted to the submission host | C10, C11 |
 | 9 | The public counter reports real deals and nothing else | C12 |
 | 10 | No document still says a confirmation is not sent | C13 |
@@ -788,10 +788,55 @@ notice the provider never being registered.
 ### C9 — The § 55 confirmation
 
 **Repository:** `lousydeal`.
-**Files:** `backend/src/notifications/order-confirmation.ts`,
-`backend/src/notifications/transactional-email.ts`,
+**Split at execution**, for the third time in this slice and for the ordinary
+reason: written as one row it came to 981 changed lines against §18's bound of
+800, and §18 gives the override to the operator rather than the author.
+
+| | |
+| --- | --- |
+| **C9a** | The trader identity and the site's own address, in the backend |
+| **C9b** | The § 55 confirmation itself |
+
+#### C9a — The trader identity, in the backend
+
+**Repository:** `lousydeal`.
+**Files:** `backend/src/config/merchant.ts`, `backend/src/config/runtime.ts`,
+`backend/tests/merchant-identity.test.ts`,
+`backend/tests/runtime-config.test.ts`.
+
+- [x] Read the six `MERCHANT_*` values and `SITE_BASE_URL` in the backend, and
+      decide what an absent one means.
+
+**Neither was in the plan, and § 55(2) is why both are needed.** The
+confirmation must carry the § 54(1) information; a link to `/legal/terms` is
+the trader saying "it is somewhere you can reach", which is what § 54(1) asks
+for *before* the contract and not what § 55(2) asks for after it. So the six
+values the storefront already renders are read here too, from the same variable
+names and the same private inventory — decision `004`'s mechanism, a second
+reader rather than a second source.
+
+`SITE_BASE_URL` is new to this repository. The storefront never needed one
+because it always has a request — C7's share row reads the host from one — and
+a subscriber runs on a queue.
+
+**All six or nothing.** The consequence lands in C9b, where an incomplete
+identity yields no confirmation at all rather than one naming no trader; this
+is where "incomplete" is decided, and a reader that returned five fields and a
+hole would move that decision somewhere nobody is looking.
+
+**It does not throw where it is absent, unlike the mail configuration.** The
+difference is what an absence means: half a mail configuration is a mistake
+nobody makes on purpose, while an absent identity is the ordinary state of any
+checkout Orange has not patched, including a developer's. Refusing to boot on
+it would make the backend unrunnable locally to protect an email that is not
+being sent.
+
+#### C9b — The § 55 confirmation
+
+**Repository:** `lousydeal`.
+**Files:** `backend/src/content/confirmation.ts`,
+`backend/src/notifications/order-confirmation.ts`,
 `backend/src/subscribers/order-placed.ts`,
-`backend/src/content/confirmation.ts`,
 `backend/tests/order-confirmation.test.ts`.
 
 - [ ] Send the buyer a confirmation on a durable medium containing everything
