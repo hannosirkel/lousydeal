@@ -35,6 +35,21 @@ export interface BackendRuntimeConfig {
   readonly http: {
     readonly jwtSecret: string;
     readonly cookieSecret: string;
+    /**
+     * The three CORS settings, required by `defineConfig`'s type from Medusa
+     * 2.20.1 and defaulted by Medusa itself both before and after.
+     *
+     * Read here rather than left to the dependency so the values are visible,
+     * and with Medusa's own fallbacks so nothing changes: `define-config.js`
+     * resolves each as `process.env.<NAME> || <its default>`. The header above
+     * anticipated this — it noted that Medusa defaults all three
+     * unconditionally, "so a later row may want them required too". This is not
+     * that row: they stay optional, because nothing in this deployment reads
+     * them (see `medusa-config.ts` for why CORS is not load-bearing here).
+     */
+    readonly authCors: string;
+    readonly storeCors: string;
+    readonly adminCors: string;
   };
   readonly database: {
     readonly url: string;
@@ -158,6 +173,12 @@ export function readSmtpRuntimeConfig(environment: Environment): SmtpRuntimeConf
   };
 }
 
+/** `define-config.js:34`, verbatim. */
+const DEFAULT_STORE_CORS = "http://localhost:8000";
+
+/** `define-config.js:36`, verbatim. Medusa uses it for `adminCors` *and* `authCors` (`:432`). */
+const DEFAULT_ADMIN_CORS = "http://localhost:7000,http://localhost:7001,http://localhost:5173";
+
 /**
  * Every required value is read before this returns, so an absent one throws
  * here rather than from the field a caller later reads.
@@ -167,6 +188,14 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
     http: {
       jwtSecret: requireEnv(environment, "JWT_SECRET"),
       cookieSecret: requireEnv(environment, "COOKIE_SECRET"),
+      // Medusa's own defaults, read from `define-config.js:34,36,430-435` and
+      // not from memory -- the first draft of this line invented two of the
+      // three, which would have changed behaviour under the comment above
+      // claiming it did not. `authCors` genuinely falls back to
+      // `DEFAULT_ADMIN_CORS`; that is Medusa's doing, not a copy-paste here.
+      storeCors: optionalEnv(environment, "STORE_CORS") ?? DEFAULT_STORE_CORS,
+      adminCors: optionalEnv(environment, "ADMIN_CORS") ?? DEFAULT_ADMIN_CORS,
+      authCors: optionalEnv(environment, "AUTH_CORS") ?? DEFAULT_ADMIN_CORS,
     },
     database: {
       url: resolveDatabaseUrl(environment),

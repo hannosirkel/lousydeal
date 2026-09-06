@@ -242,6 +242,17 @@ export type DatabaseSslSetting = false | true | { readonly rejectUnauthorized: f
 
 export interface DatabaseDriverOptions {
   readonly connection: { readonly ssl: DatabaseSslSetting };
+  /**
+   * An index signature, required from Medusa 2.20.1 and not before.
+   *
+   * `defineConfig` now types `databaseDriverOptions` as
+   * `Record<string, unknown> & { connection?: … }`, and a closed interface is
+   * not assignable to a `Record` however well its declared members match. This
+   * adds nothing at runtime and permits nothing new to be *set*: the only
+   * property this module ever writes is `connection`, and
+   * `resolveDatabaseDriverOptions` below is the only writer.
+   */
+  readonly [key: string]: unknown;
 }
 
 /** libpq's vocabulary, restricted to the three modes this backend can mean. */

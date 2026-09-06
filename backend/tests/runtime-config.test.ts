@@ -88,7 +88,21 @@ describe("readBackendRuntimeConfig", () => {
   it("assembles the http secrets, the database connection, the Redis parts, the Stripe values and the mail configuration from the environment", () => {
     const config: BackendRuntimeConfig = readBackendRuntimeConfig(validEnvironment);
     expect(config).toEqual({
-      http: { jwtSecret: "jwt-secret-value", cookieSecret: "cookie-secret-value" },
+      http: {
+        jwtSecret: "jwt-secret-value",
+        cookieSecret: "cookie-secret-value",
+        // Medusa 2.20.1 made these three required in `defineConfig`'s type
+        // while still defaulting them itself. The values here are Medusa's own
+        // (`define-config.js:34,36`), so an unset environment produces exactly
+        // what it produced before the bump -- which is the whole claim, and is
+        // why they are asserted rather than left to a `toMatchObject`.
+        storeCors: "http://localhost:8000",
+        adminCors: "http://localhost:7000,http://localhost:7001,http://localhost:5173",
+        // Medusa falls `authCors` back to the *admin* default, not an auth one
+        // (`define-config.js:432`). Asserted because it looks like a mistake
+        // and is not ours.
+        authCors: "http://localhost:7000,http://localhost:7001,http://localhost:5173",
+      },
       database: {
         url: "postgres://medusa:db-secret-value@db.internal:5432/lousydeal",
         driverOptions: { connection: { ssl: false } },
