@@ -117,6 +117,65 @@ export async function setCartEmail(fetchJson: FetchJson, cartId: string, email: 
   return cart.email;
 }
 
+/**
+ * The metadata keys the backend reads an inscription back out of.
+ *
+ * The same two strings as `backend/src/modules/deal/inscription.ts`'s
+ * `DEAL_INSCRIPTION_METADATA`, written again because there is no package
+ * shared between the workspaces. Prefixed, because cart metadata is a shared
+ * bag: Medusa writes to it, a payment provider may, and an unprefixed
+ * `dedication` is a name somebody else can reasonably take.
+ */
+export const INSCRIPTION_METADATA = {
+  displayName: "lousydeal_display_name",
+  dedication: "lousydeal_dedication",
+} as const;
+
+interface StoreCartMetadataResponse {
+  readonly cart?: { readonly metadata?: unknown };
+}
+
+/**
+ * Writes §5's two inscription fields onto the cart, from where Medusa carries
+ * them onto the order and C2's subscriber reads them at issuance.
+ *
+ * **Sends what the buyer typed, not what this page showed them.** The preview
+ * beside the field runs the render-side filter so a buyer sees what will be
+ * public before paying, but the value that travels is the raw one: the pass
+ * that decides what is *stored* runs in the backend, at issuance, because this
+ * endpoint is public and accepts arbitrary metadata
+ * (`carts/validators.js:11`). Filtering here as well would make the two look
+ * agreed when only one of them is load-bearing.
+ *
+ * **A blank field sends `null`, not `""`.** §5 wants one no-inscription state
+ * and the certificate has one; an empty string would be a second, arriving at
+ * the backend as a value to be trimmed away rather than as an absence.
+ *
+ * The whole `metadata` object is replaced by this call, which is Medusa's
+ * behaviour for the field and not something worked around here: nothing else
+ * in this storefront writes cart metadata, so there is nothing to preserve.
+ */
+export async function setCartInscription(
+  fetchJson: FetchJson,
+  cartId: string,
+  inscription: { readonly displayName: string; readonly dedication: string },
+): Promise<void> {
+  const value = (raw: string): string | null => {
+    const trimmed = raw.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  };
+
+  await fetchJson<StoreCartMetadataResponse>(`/store/carts/${encodeURIComponent(cartId)}`, {
+    method: "POST",
+    body: JSON.stringify({
+      metadata: {
+        [INSCRIPTION_METADATA.displayName]: value(inscription.displayName),
+        [INSCRIPTION_METADATA.dedication]: value(inscription.dedication),
+      },
+    }),
+  });
+}
+
 export interface CartCountry {
   readonly countryCode: string;
   /**
