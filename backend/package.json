@@ -15,15 +15,15 @@
     "test:smoke": "vitest run --config vitest.smoke.config.mts"
   },
   "dependencies": {
-    "@medusajs/admin-sdk": "2.18.0",
-    "@medusajs/framework": "2.18.0",
-    "@medusajs/medusa": "2.18.0",
+    "@medusajs/admin-sdk": "2.20.1",
+    "@medusajs/framework": "2.20.1",
+    "@medusajs/medusa": "2.20.1",
     "nodemailer": "10.0.0",
     "redis": "6.2.1"
   },
   "devDependencies": {
     "@types/nodemailer": "8.0.1",
-    "pg": "^8.16.3",
+    "pg": "^8.23.0",
     "ts-node": "^10.9.2"
   }
 }
