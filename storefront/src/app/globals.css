@@ -303,6 +303,23 @@ small {
 /* The index is a list of documents, each a link over its own summary. The
    summary is not a link: two targets for one destination reads as a repeat to
    anyone tabbing through. */
+/* The withdrawal record: what was entered, as a ledger rather than a form. */
+.withdrawal-record {
+  margin: 0 0 var(--space-4);
+}
+
+.withdrawal-record dt {
+  color: var(--ink-soft);
+  font-size: var(--size-small);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.withdrawal-record dd {
+  margin: 0 0 var(--space-3);
+  overflow-wrap: anywhere;
+}
+
 .legal-index {
   margin: 0 0 var(--space-4);
   padding: 0;

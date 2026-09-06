@@ -130,6 +130,7 @@ export const PRIVACY: LegalDocument = {
         "The cart cookie ends with your browser session. Stripe's last 30 minutes and a year, as §2 says.",
         "Estonian accounting law requires us to keep the record of an order for seven years from the end of the financial year it falls in, and we keep it no longer than that. The payment details described in §4 are part of that record and are kept with it.",
         "The request lines described in §2 are kept for 30 days.",
+        "Cloudflare keeps its own record of the requests it carries, under its own retention and not ours. We do not control how long it holds them, and §5 says what it sees.",
         "If you write to us we keep the message and your address for two years after the last message in the conversation, so that we can find it again if you come back about the same order.",
       ],
     },

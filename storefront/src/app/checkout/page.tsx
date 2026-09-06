@@ -37,7 +37,14 @@ import { DocumentFrame } from "../../components/document/DocumentFrame";
 import { FinePrint } from "../../components/document/FinePrint";
 import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
 import { getRuntimeConfig } from "../../config/runtime-config";
-import { CART_EMPTY_NOTICE, CART_LABELS, CHECKOUT_DOCUMENT, PRICE_NOTICE, RETURN_LABEL } from "../../content/checkout";
+import {
+  CART_EMPTY_NOTICE,
+  CART_LABELS,
+  CHECKOUT_DOCUMENT,
+  ORDER_SUMMARY_LINES,
+  PRICE_NOTICE,
+  RETURN_LABEL,
+} from "../../content/checkout";
 import { createStoreFetchJson, getDefaultRegion } from "../../lib/medusa-client";
 import { formatMoney } from "../../lib/money";
 import { getCheckoutCart } from "../../lib/store-checkout";
@@ -92,6 +99,15 @@ export default async function CheckoutPage() {
           <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currencyCode)} />
         </Ledger>
         <FinePrint>{PRICE_NOTICE}</FinePrint>
+        {/* § 62²(2): the § 54(1) p 4, 10 and 11 information, immediately
+            before the order is transmitted. p 6, the total with taxes, is the
+            ledger row above. The subsection's sanction is that a buyer is not
+            bound by an order made without it. */}
+        {ORDER_SUMMARY_LINES.map((line) => (
+          <p key={line} className="notice">
+            {line}
+          </p>
+        ))}
         <PaymentForm cartId={cart.id} stripePublishableKey={stripe.publishableKey} countries={region.countries ?? []} />
       </DocumentFrame>
     </main>

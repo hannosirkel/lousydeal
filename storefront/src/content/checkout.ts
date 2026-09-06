@@ -61,7 +61,30 @@ export const CONSENT_LABEL =
 /** Shown in place of the pay control until the box is ticked. */
 export const CONSENT_REQUIRED_NOTICE = "Payment cannot begin until that box is ticked.";
 
-export const PAY_LABEL = "Pay";
+/**
+ * § 62²(3): where transmitting the order means pressing a button, that button
+ * must be legible and marked *only* with "tellimus koos maksekohustusega" or
+ * wording just as unambiguous that ordering incurs an obligation to pay.
+ * "Pay" was arguably enough; this is the statute's own formulation, and the
+ * subsection's sanction for getting it wrong is that the consumer is not bound
+ * by the order at all.
+ */
+export const PAY_LABEL = "Order with obligation to pay";
+
+/**
+ * § 62²(2): immediately before the order is transmitted, clearly and
+ * prominently, the § 54(1) information at points 4, 6, 10 and 11 — the main
+ * characteristics, the total price with taxes, any minimum duration of the
+ * buyer's obligations, and the term of a continuing contract.
+ *
+ * The total is the ledger row above this. The other three are here. Points 10
+ * and 11 are answered rather than omitted: nothing here continues, and saying
+ * so is shorter than making a reader infer it from silence.
+ */
+export const ORDER_SUMMARY_LINES: readonly string[] = [
+  "You are ordering one numbered digital certificate. It is shown to you as soon as you have paid, it confers nothing, and it is the whole of what you receive.",
+  "This is a single purchase. There is no subscription, no renewal, no minimum term and nothing to cancel later.",
+];
 export const PAYING_LABEL = "Paying";
 
 /** The one place the loading cursor belongs: a state inside a rendered page. */

@@ -44,8 +44,13 @@ const footerHtml = (merchant: MerchantIdentity) =>
   renderToStaticMarkup(createElement(Footer, { merchant }));
 
 describe("the routes", () => {
-  it("lists four documents, which is what brand.md §4 names", () => {
-    expect(LEGAL_ROUTES).toHaveLength(4);
+  it("lists the four documents brand.md §4 names, and the withdrawal function", () => {
+    // Four until V17. § 56⁴ requires the withdrawal button to be "permanently
+    // and easily reachable throughout the withdrawal period", which on this
+    // site means the same footer column the documents are in -- so it is a
+    // legal route like the others rather than a page linked from one of them.
+    expect(LEGAL_ROUTES).toHaveLength(5);
+    expect(LEGAL_ROUTES.map((route) => route.href)).toContain("/legal/withdraw");
   });
 
   it.each(LEGAL_ROUTES)("$href has a page file behind it", ({ href }) => {
