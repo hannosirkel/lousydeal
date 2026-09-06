@@ -555,16 +555,41 @@ rather than finding it in a diff is the whole point of the rule.
 `storefront/src/app/done-deals/[slug]/not-found.tsx`,
 `storefront/src/lib/store-deal.ts`,
 `storefront/src/lib/certificate-layouts.ts`,
+`storefront/src/lib/certificate-model.ts`,
 `storefront/tests/done-deals-page.test.ts`.
 
-- [ ] Mount the certificate at its real route against a real record, dispatch
+- [x] Mount the certificate at its real route against a real record, dispatch
       on the stored layout version, and 404 for an unknown slug.
 
 **Layout dispatch, not layout reading.** A registry keyed by version, with
 layout 1 as its only entry today, so adding layout 2 is a new entry rather than
 an edit to a rendered certificate. Constraint 7 in code — and the test that
 matters is that an unknown version does **not** fall back to layout 1, because
-a silent fallback would restyle a certificate somebody already owns.
+a silent fallback would restyle a certificate somebody already owns. The state
+is reachable: roll an older image over a newer one and every deal issued in
+between carries a version that image has never heard of.
+
+**`Certificate.layout` widens from `1` to `number`.** It was the literal while
+the only source was the specimen. The source is now a database row, which can
+carry a version this build has never seen, and narrowing that at the type level
+would be the compiler asserting something only the registry can check.
+
+**Two allowlists, on both sides of one wire.** C4's projection publishes eight
+fields; `getDeal` reads exactly those eight by name rather than spreading. The
+duplication is deliberate — constraint 13 is an absence, and an absence needs
+guarding wherever it could reappear. The test answers with `customer_name`,
+`email` and `order_id` and asserts the record's key set is unchanged.
+
+**A 404 is an answer; every other status is a failure.** `cart/page.tsx` set
+that precedent and this follows it. Answering a 503 as "no such deal" would
+tell somebody their certificate had been withdrawn because a database was
+briefly unreachable.
+
+**The route has its own `not-found.tsx`**, because the root one's copy is about
+a page and the person reading this was sent a link. It names both reasons an
+address can be empty — never issued, or withdrawn — and confirms neither, which
+is the line C4 draws for the same reason. Its first draft claimed "this is not
+a mistyped one", which is false: a mistyped link is the commonest cause.
 
 `noindex, nofollow` on the route: an unguessable URL that a crawler publishes is
 a guessable one.

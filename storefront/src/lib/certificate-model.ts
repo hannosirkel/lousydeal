@@ -8,13 +8,13 @@
  * a reissue — so everything below is what a stored deal record yields, not
  * what it stores.
  *
- * **The layout is recorded, not yet dispatched on.** §5 wants an issued
- * certificate to keep the layout it was issued under, so a redesign is
- * additive. Recording the number is the half this row can do; nothing reads it
- * yet, and until something does, a layout 2 could still restyle every layout 1
- * certificate. The row that adds a second layout is the row that has to branch
- * on this field, and LD-02 — which issues the first real certificate — is
- * where the field starts carrying weight.
+ * **The layout is dispatched on**, as of C5b. §5 wants an issued certificate to
+ * keep the layout it was issued under, so a redesign is additive; LD-09 could
+ * only record the number, because nothing rendered from a stored record. Now
+ * `./certificate-layouts` resolves the component from the field, and refuses a
+ * version it does not know rather than falling back to the current one — a
+ * fallback would restyle a certificate somebody already owns, which is the one
+ * thing §5 forbids.
  */
 
 import { groupThousands } from "./money";
@@ -56,7 +56,21 @@ export interface Certificate {
   readonly currencyCode: string;
   /** ISO date. Rendered, never parsed into a locale format that moves. */
   readonly issuedOn: string;
-  readonly layout: typeof CERTIFICATE_LAYOUT_V1;
+  /**
+   * The layout this certificate was issued under, and therefore the one it is
+   * rendered with for life. §5: a redesign is additive and never restyles a
+   * certificate somebody already owns.
+   *
+   * **`number`, not `typeof CERTIFICATE_LAYOUT_V1`.** It was the literal `1`
+   * while the only source was the specimen below. C5b made the source a
+   * database row, which can carry any number the schema allows — including one
+   * this build has never heard of, if an older image is rolled back over a
+   * newer one. Narrowing that to `1` at the type level would be the compiler
+   * asserting something only the registry can check, so
+   * `./certificate-layouts` checks it instead and refuses what it does not
+   * know.
+   */
+  readonly layout: number;
 }
 
 /**
