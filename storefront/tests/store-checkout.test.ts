@@ -25,6 +25,7 @@ import {
   type StoreApiFetch,
 } from "../src/app/api/store/[...path]/route";
 import { STORE_PUBLISHABLE_KEY_HEADER, type FetchJson, type StoreFetchInit } from "../src/lib/medusa-client";
+import { isSingleCertificate } from "../src/lib/checkout-rules";
 import { getCheckoutCart, setCartCountry } from "../src/lib/store-checkout";
 import { addLineToCart, createCart } from "../src/lib/store-cart";
 import {
@@ -539,12 +540,54 @@ function stubStoreApi(overrides: Record<string, unknown> = {}): FetchJson {
 describe("getCheckoutCart", () => {
   it("reads the cart's own total, unconverted", async () => {
     const cart = await getCheckoutCart(stubStoreApi(), "cart_fixture");
-    expect(cart).toEqual({ id: "cart_fixture", currencyCode: "usd", total: 25 });
+    expect(cart).toEqual({ id: "cart_fixture", currencyCode: "usd", total: 25, quantities: [] });
   });
 
   it("refuses a cart the stub answers with no numeric total", async () => {
     const fetchJson = stubStoreApi({ total: "25" });
     await expect(getCheckoutCart(fetchJson, "cart_fixture")).rejects.toThrow(/incomplete cart/);
+  });
+
+  it("carries one quantity per line, in the order the API returned them", async () => {
+    const fetchJson = stubStoreApi({ items: [{ id: "a", quantity: 1 }, { id: "b", quantity: 3 }] });
+    expect((await getCheckoutCart(fetchJson, "cart_fixture")).quantities).toEqual([1, 3]);
+  });
+
+  it("keeps an unreadable line as NaN rather than dropping it", async () => {
+    // C3a. Dropping it would turn a two-line cart into a one-line cart and let
+    // `isSingleCertificate` pass something it must refuse -- the exact failure
+    // this path exists to prevent, reached by being tidy. NaN is never 1, so
+    // the rule stays closed.
+    const fetchJson = stubStoreApi({ items: [{ id: "a", quantity: 1 }, { id: "b" }] });
+    const { quantities } = await getCheckoutCart(fetchJson, "cart_fixture");
+
+    expect(quantities).toHaveLength(2);
+    expect(Number.isNaN(quantities[1])).toBe(true);
+    expect(isSingleCertificate(quantities)).toBe(false);
+  });
+
+  it("reports no quantities for a cart with no lines, rather than refusing it", async () => {
+    // A cart legitimately has no lines between being created and being added
+    // to. The checkout page has its own document for that state; it is not an
+    // incomplete response.
+    expect((await getCheckoutCart(stubStoreApi({ items: [] }), "cart_fixture")).quantities).toEqual([]);
+  });
+});
+
+describe("isSingleCertificate", () => {
+  // §16 gives a deal one `order_id` and no line reference, so an order for two
+  // things has no single tier and no single price to certify. C2's subscriber
+  // issues nothing for such an order; this is what stops the checkout offering
+  // to take the money for one.
+  it("accepts exactly one line of exactly one", () => {
+    expect(isSingleCertificate([1])).toBe(true);
+  });
+
+  it("refuses an empty cart, a second line, and a quantity above one", () => {
+    expect(isSingleCertificate([])).toBe(false);
+    expect(isSingleCertificate([1, 1])).toBe(false);
+    expect(isSingleCertificate([2])).toBe(false);
+    expect(isSingleCertificate([Number.NaN])).toBe(false);
   });
 });
 
@@ -708,7 +751,15 @@ describe("completeCheckoutCart", () => {
  */
 describe("the cart-to-paid-order flow, against one stubbed backend", () => {
   it("creates a cart, adds a tier, shows its total, and completes it to a paid order", async () => {
-    const state: { total: number; completed: boolean } = { total: 25, completed: false };
+    // C3a: the stub keeps its lines, so the GET below answers with the line
+    // the POST above created. Before, the GET returned a cart with no items
+    // at all -- which passed while nothing read them, and would have let the
+    // checkout's one-certificate rule be asserted against a fiction.
+    const state: { total: number; completed: boolean; items: { id: string; variant_id: string; quantity: number; unit_price: number }[] } = {
+      total: 25,
+      completed: false,
+      items: [],
+    };
 
     const fetchJson: FetchJson = (async <T>(path: string, init?: StoreFetchInit): Promise<T> => {
       if (path === "/store/carts" && init?.method === "POST") {
@@ -716,16 +767,11 @@ describe("the cart-to-paid-order flow, against one stubbed backend", () => {
       }
       if (path === "/store/carts/cart_e2e/line-items" && init?.method === "POST") {
         const body = JSON.parse(String(init.body)) as { variant_id: string; quantity: number };
-        return {
-          cart: {
-            id: "cart_e2e",
-            currency_code: "usd",
-            items: [{ id: "item_e2e", variant_id: body.variant_id, quantity: body.quantity, unit_price: state.total }],
-          },
-        } as T;
+        state.items.push({ id: "item_e2e", variant_id: body.variant_id, quantity: body.quantity, unit_price: state.total });
+        return { cart: { id: "cart_e2e", currency_code: "usd", items: state.items } } as T;
       }
       if (path === "/store/carts/cart_e2e" && (init?.method ?? "GET") === "GET") {
-        return { cart: { id: "cart_e2e", currency_code: "usd", total: state.total } } as T;
+        return { cart: { id: "cart_e2e", currency_code: "usd", total: state.total, items: state.items } } as T;
       }
       if (path === "/store/payment-collections" && init?.method === "POST") {
         return { payment_collection: { id: "paycol_e2e", payment_sessions: [] } } as T;
@@ -752,7 +798,10 @@ describe("the cart-to-paid-order flow, against one stubbed backend", () => {
     expect(line.unitPrice).toBe(25);
 
     const checkoutCart = await getCheckoutCart(fetchJson, cart.id);
-    expect(checkoutCart).toEqual({ id: "cart_e2e", currencyCode: "usd", total: 25 });
+    expect(checkoutCart).toEqual({ id: "cart_e2e", currencyCode: "usd", total: 25, quantities: [1] });
+    // C3a: the state the checkout page requires before it will render a pay
+    // control at all.
+    expect(isSingleCertificate(checkoutCart.quantities)).toBe(true);
 
     const paymentCollectionId = await createPaymentCollection(fetchJson, checkoutCart.id);
     const session = await initiateStripePaymentSession(fetchJson, paymentCollectionId);

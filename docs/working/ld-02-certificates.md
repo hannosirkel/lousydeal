@@ -17,8 +17,9 @@ Until this slice does, every order keeps a 14-day right whatever the buyer
 ticked. That is recorded as gate item 11 and as LD-09's one deferral that became
 a hard precondition.
 
-**Execution.** Directly, not through `big-build`. Sixteen rows, one pull request
-each, across three repositories.
+**Execution.** Directly, not through `big-build`. Eighteen rows, one pull
+request each, across three repositories — sixteen as planned, with C3 split
+into three at execution for the reason recorded there.
 
 ## Global constraints
 
@@ -72,7 +73,7 @@ be executed.
 
 | Fact | Where | Consequence for this slice |
 | --- | --- | --- |
-| The checkout collects **no email address** | `storefront/src/app/checkout/PaymentForm.tsx` | Medusa carries `cart.email` through to `order.email` and tolerates `null` (`@medusajs/core-flows/dist/cart/workflows/complete-cart.js:446,505`). There is nowhere to send a confirmation. C3 adds the field. |
+| The checkout collects **no email address** | `storefront/src/app/checkout/PaymentForm.tsx` | Medusa carries `cart.email` through to `order.email` and tolerates `null` (`@medusajs/core-flows/dist/cart/workflows/complete-cart.js:446,505`). There is nowhere to send a confirmation. C3b adds the field. |
 | The checkout collects **no inscription** | same | §5's two fields do not exist at entry. `inscription.ts` filters at render only. |
 | `certificate-model.ts` carries **one** `inscription` field | `storefront/src/lib/certificate-model.ts` | §5 and §16 want two — display name and dedication ≤120. C5 reconciles: two stored, one derived for the render. |
 | `SPECIMEN_CERTIFICATE` is serial 0, at `/design/certificate` | same | Stays. It is not at a `/done-deals/` URL and must not move to one. |
@@ -103,7 +104,7 @@ order record the Privacy Policy already describes.
 | --- | --- | --- |
 | 1 | A completed order mints exactly one deal, with a sequential serial and an opaque slug | C1, C2 |
 | 2 | A replayed `order.placed` mints nothing further — proven by firing it twice | C2 |
-| 3 | The buyer can enter a display name and a dedication, is shown they are public, and is told what is filtered | C3 |
+| 3 | The buyer can enter a display name and a dedication, is shown they are public, and is told what is filtered | C3c |
 | 4 | `/done-deals/{slug}` renders the certificate from stored data and carries no billing name | C4, C5 |
 | 5 | `/done-deals/{slug}/certificate.pdf` is a vector PDF with embedded fonts, produced without a browser | C6 |
 | 6 | The page has share links and a per-deal social card, and neither loads a third-party asset | C7 |
@@ -247,14 +248,14 @@ from reasoning about it:
   issuance in the backend, not only in the checkout form**; a filter in front
   of a public API filters nothing. C3's text below is amended accordingly. C2
   validates shape only (string, trimmed, length-capped), which is safe because
-  nothing renders a stored inscription until C5 and C3 lands first.
+  nothing renders a stored inscription until C5 and C3c lands first.
 - **An order can be for more than one certificate.** `addToCart` appends to
   whatever cart the cookie names and Medusa merges a repeated variant into one
   line of quantity two, while §16 gives the deal one `order_id` and no line
   reference. The subscriber therefore issues only for exactly one line of
   quantity one and otherwise logs and issues nothing — printing a single tier
   and price for a two-item order would be a fabricated transaction, which
-  `AGENTS.md` forbids. **C3 owns making that unreachable.** It is not reachable
+  `AGENTS.md` forbids. **C3a owns making that unreachable**, and did. It is not reachable
   by a customer today: both environments are gated and no live payment key
   exists.
 
@@ -270,46 +271,124 @@ real module service returned serials 1 and 2 with distinct slugs
 (`xbts2k3mmv3trv3n`, `rzfm61snnj1gnx9f`), a replay of the first returned the
 identical id, serial and slug, and the table held two rows.
 
-### C3 — The checkout: an email address, and the two inscription fields
+### C3 — The checkout, in three rows
+
+**Split at execution.** C2's two findings each added work to what was one row,
+and the whole of it came to twelve files against §18's bound of ten — with
+`privacy.ts` among them, because the notice states in as many words that no
+email address is held. §18 invites decomposing where useful, and these three
+are each independently reviewable and independently rejectable:
+
+| | |
+| --- | --- |
+| **C3a** | One certificate per order |
+| **C3b** | The email address, and the notice that has to stop saying we hold none |
+| **C3c** | The inscription: two fields, filtered on both sides of the boundary |
+
+#### C3a — One certificate per order
+
+**Repository:** `lousydeal`.
+**Files:** `storefront/src/lib/cart-actions.ts`,
+`storefront/src/lib/store-cart.ts`, `storefront/src/lib/store-checkout.ts`,
+`storefront/src/lib/checkout-rules.ts`,
+`storefront/src/app/checkout/page.tsx`, `storefront/src/content/checkout.ts`,
+`storefront/tests/cart-actions.test.ts`,
+`storefront/tests/store-checkout.test.ts`,
+`storefront/tests/checkout-single-certificate.test.ts`.
+
+- [x] Make `addToCart` replace rather than append, and refuse to offer payment
+      for a cart that is not exactly one line of quantity one.
+
+§16 gives the deal one `order_id` and no line reference, so an order for two
+things has no single tier and no single price to certify. C2's subscriber
+issues nothing for such an order rather than print a transaction that did not
+happen — and an order that takes money and yields no certificate is the worst
+outcome available, so the checkout must not offer to take one.
+
+**Two checks, and the second is not redundant.** `addToCart` keeps the cart out
+of the state; `checkout/page.tsx` refuses to render a pay control if it is in
+it anyway. `POST /store/carts/:id/line-items` is public, so the state is
+reachable by anyone who wants it, and a cart made before this row shipped can
+still be in it.
+
+**Replacing is also what the buyer means.** The three tiers are a choice
+between things that deliver the same nothing (§4.1); pressing "add" on a second
+one is changing your mind, not ordering a pair.
+
+**Two pre-existing defects fell out of it**, both in the branch that reuses the
+cookie's cart:
+
+- **A cart id that no longer resolves threw out of the Server Action**, so a
+  visitor got an error page for pressing a button. Nothing expires a cart here,
+  but a restored database, a cookie carried between environments or a
+  hand-edited value all produce one.
+- **A completed cart was reused, which made a second purchase impossible.**
+  Nothing clears the cart cookie at checkout and nothing could — it is
+  `httpOnly`, so the Client Component that knows the order succeeded cannot
+  reach it. Its lines can no longer be changed, so every add failed. Now a
+  completed cart is replaced with a new one.
+
+**The end-to-end stub in `store-checkout.test.ts` was not faithful**, and this
+row's first failure exposed it: its `GET /store/carts/:id` answered with a cart
+carrying no `items` at all, however many the test had just added. That passed
+while nothing read them, and would have let the one-certificate rule be
+asserted against a fiction. The stub now keeps its lines.
+
+#### C3b — The email address
 
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
-`storefront/src/lib/store-checkout.ts`, `storefront/src/lib/inscription.ts`,
-`storefront/src/content/checkout.ts`,
-`storefront/src/components/document/OrderForm.tsx`,
-`storefront/tests/checkout-inscription.test.ts`,
-`storefront/tests/inscription.test.ts`.
+`storefront/src/lib/store-checkout.ts`, `storefront/src/content/checkout.ts`,
+`storefront/src/content/legal/privacy.ts`,
+`storefront/tests/legal-privacy.test.ts`, and its own test.
 
-- [ ] Collect a required email address and the two optional inscription fields,
-      filter them at entry — **in the backend, at issuance** — show the buyer
-      what will be public, hold the order to one certificate, and write all
-      three to the cart before completion.
+- [ ] Collect a required email address, write it to the cart before
+      completion, and correct the privacy notice that says we hold none.
 
 **The email is required.** Without it there is no durable medium, and without
 that the § 53(4) p 7¹ exclusion never bites — so an optional email would mean
 two classes of order with different withdrawal rights and a checkout that
 cannot tell the buyer which they are in. One class, one answer.
 
+**It falsifies the privacy notice, so the notice moves in the same row.**
+Constraint 9. Privacy §4 says today that an order record "holds its number,
+what you bought, what you paid, the currency, the country you selected, and the
+time. There is no name and no email address on it, because our own code never
+asked for either", and §8 rests on that to explain how an order is identified.
+Both stop being true the moment the field ships.
+
+#### C3c — The inscription
+
+**Repository:** `lousydeal`.
+**Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
+`storefront/src/lib/inscription.ts`, `storefront/src/content/checkout.ts`,
+`backend/src/modules/deal/inscription.ts`, a shared fixture, and both suites'
+tests.
+
+- [ ] Collect the two optional inscription fields, filter them at entry — **in
+      the backend, at issuance** — and show the buyer what will be public
+      before they pay.
+
 **Entry-side filtering is the half §5 asks for that does not exist.**
 `sanitiseInscription` already strips markup, URLs, bare domains, addresses and
-telephone numbers at render. This row applies the same rule at entry and shows
-the buyer the result before they pay, because a filter that silently eats what
-someone typed is worse than one that says so.
+telephone numbers at render.
 
 **Amended by C2: the entry-side filter belongs in the backend.** The plan first
 put it in the checkout form alone. C2 found that the endpoint carrying the
 inscription — `POST /store/carts/:id` — is public and accepts arbitrary
 metadata, so the storefront form is not a boundary and filtering there protects
-nothing. The filter runs in `backend/src/modules/deal/inscription.ts` at
-issuance, where the trust boundary actually is. The checkout keeps a copy for
-what it shows the buyer *before* they pay, which is a disclosure duty rather
-than a security one, and its test pins the two to the same specification.
+nothing. The filter runs in `backend/src/modules/deal/inscription.ts`, where
+the trust boundary is. The checkout keeps its own for what it shows the buyer
+*before* they pay, which is a disclosure duty rather than a security one.
 
-**Also amended by C2: one certificate per order.** `addToCart` appends, so a
-visitor can reach checkout with two tiers, or one tier twice. §16 gives the
-deal one `order_id` and no line reference, and C2's subscriber refuses to issue
-for anything but a single line of quantity one. This row is where that stops
-being a refusal and becomes impossible.
+**Two implementations, one specification.** There is no package shared between
+the two workspaces, and §5 asks for a pass at entry and a pass at render
+anyway. A committed fixture of input/expected pairs is run by both suites, so
+a divergence fails on whichever side moved.
+
+**Dedication is capped at 120 characters**, §5's figure, counted after
+filtering rather than before. The display name is capped at 60 — C2's number,
+not the contract's; see there.
 
 **Dedication is capped at 120 characters**, §5's figure, counted after
 filtering rather than before. The display name is capped at 60 — C2's number,

@@ -28,6 +28,18 @@ export interface CheckoutCart {
   readonly currencyCode: string;
   /** The cart's total, exactly as the Store API returns it -- not converted, not recomputed. */
   readonly total: number;
+  /**
+   * One quantity per line, in the order the API returned them. C3a.
+   *
+   * Quantities and not the lines: the only question the checkout asks of them
+   * is `isSingleCertificate`, and a view carrying titles, prices and variant
+   * ids would invite a second copy of the cart page's rendering to grow here.
+   *
+   * An empty array for a cart with no lines, which is a state the page has its
+   * own document for -- not an error this function refuses on, because a cart
+   * legitimately has no lines between being created and being added to.
+   */
+  readonly quantities: readonly number[];
 }
 
 interface StoreCartTotalResponse {
@@ -35,10 +47,18 @@ interface StoreCartTotalResponse {
     readonly id?: unknown;
     readonly currency_code?: unknown;
     readonly total?: unknown;
+    readonly items?: unknown;
   };
 }
 
-/** Reads the cart's own total. Refuses rather than guesses if the API answers with anything less than all three fields. */
+/** A line's quantity, or `null` if the response's line is not one this can read. */
+function lineQuantity(item: unknown): number | null {
+  if (typeof item !== "object" || item === null) return null;
+  const quantity = (item as { quantity?: unknown }).quantity;
+  return typeof quantity === "number" && Number.isFinite(quantity) ? quantity : null;
+}
+
+/** Reads the cart's own total and its line quantities. Refuses rather than guesses if the API answers with anything less than all three of id, currency and total. */
 export async function getCheckoutCart(fetchJson: FetchJson, cartId: string): Promise<CheckoutCart> {
   const { cart } = await fetchJson<StoreCartTotalResponse>(`/store/carts/${encodeURIComponent(cartId)}`);
   if (
@@ -49,7 +69,14 @@ export async function getCheckoutCart(fetchJson: FetchJson, cartId: string): Pro
   ) {
     throw new Error(`Medusa returned an incomplete cart for ${cartId}`);
   }
-  return { id: cart.id, currencyCode: cart.currency_code, total: cart.total };
+
+  // A line whose quantity is unreadable is kept as `NaN` rather than dropped.
+  // Dropping it would turn a two-line cart into a one-line cart and let
+  // `isSingleCertificate` pass something it should refuse -- the failure this
+  // whole path exists to prevent, arrived at by being tidy.
+  const quantities = Array.isArray(cart.items) ? cart.items.map((item) => lineQuantity(item) ?? Number.NaN) : [];
+
+  return { id: cart.id, currencyCode: cart.currency_code, total: cart.total, quantities };
 }
 
 export interface CartCountry {
