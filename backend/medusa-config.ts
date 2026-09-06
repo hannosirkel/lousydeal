@@ -24,12 +24,19 @@
  * `src/config/payment.ts` for why its provider id is derived rather than
  * written down here.
  *
- * The Lousy Deal module is C1's wiring, and the only one of the four resolved
- * by a local path -- see `src/config/deal.ts`.
+ * The Lousy Deal module is C1's wiring, and one of the two resolved by a local
+ * path -- see `src/config/deal.ts`.
+ *
+ * The notification module is C8's, and it is the only one that may be absent:
+ * `notificationModule` answers `null` where a deployment has no mail
+ * configured, and `modules` is filtered rather than carrying a hole. See
+ * `src/config/notification.ts` and `readSmtpRuntimeConfig` for why mail is the
+ * one optional thing here.
  */
 import { defineConfig } from "@medusajs/framework/utils";
 
 import { dealModule } from "./src/config/deal";
+import { notificationModule } from "./src/config/notification";
 import { stripePaymentModule } from "./src/config/payment";
 import { redisEventBusModule, redisLockingModule, redisWorkflowEngineModule } from "./src/config/redis";
 import { readBackendRuntimeConfig } from "./src/config/runtime";
@@ -51,5 +58,9 @@ export default defineConfig({
     redisLockingModule(runtime.redis),
     stripePaymentModule(runtime.stripe),
     dealModule(),
-  ],
+    notificationModule(runtime.smtp),
+    // `notificationModule` is the one entry that can be `null`, and dropping it
+    // here rather than inside `defineConfig` keeps the absence visible in this
+    // list instead of hidden behind a call that sometimes does nothing.
+  ].filter((module) => module !== null),
 });

@@ -18,9 +18,11 @@
     "@medusajs/admin-sdk": "2.18.0",
     "@medusajs/framework": "2.18.0",
     "@medusajs/medusa": "2.18.0",
+    "nodemailer": "10.0.0",
     "redis": "6.2.1"
   },
   "devDependencies": {
+    "@types/nodemailer": "8.0.1",
     "pg": "^8.16.3",
     "ts-node": "^10.9.2"
   }

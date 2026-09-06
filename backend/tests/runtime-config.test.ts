@@ -85,7 +85,7 @@ describe("readBackendRuntimeConfig", () => {
     STRIPE_WEBHOOK_SECRET: "stripe-webhook-secret-value",
   };
 
-  it("assembles the http secrets, the database connection, the Redis parts and the Stripe values from the environment", () => {
+  it("assembles the http secrets, the database connection, the Redis parts, the Stripe values and the mail configuration from the environment", () => {
     const config: BackendRuntimeConfig = readBackendRuntimeConfig(validEnvironment);
     expect(config).toEqual({
       http: { jwtSecret: "jwt-secret-value", cookieSecret: "cookie-secret-value" },
@@ -94,6 +94,11 @@ describe("readBackendRuntimeConfig", () => {
         driverOptions: { connection: { ssl: false } },
       },
       redis: { host: "redis.internal", port: 6379, password: "redis-secret-value" },
+      // C8. `null` and not absent: a deployment with no mail configured boots,
+      // because C10 and C11 are the rows that give both environments something
+      // to send through. `readSmtpRuntimeConfig` is what makes that safe --
+      // see its own tests below for the partial-configuration refusal.
+      smtp: null,
       stripe: {
         apiKey: "stripe-secret-key-value",
         webhookSecret: "stripe-webhook-secret-value",
