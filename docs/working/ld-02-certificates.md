@@ -669,14 +669,16 @@ content. §14, in one page.
 ### C7 — Share links, and the per-deal social card
 
 **Repository:** `lousydeal`.
-**Files:** `storefront/src/app/done-deals/[slug]/opengraph-image.tsx`,
+**Files:** `docs/current/brand.md`,
+`storefront/src/app/done-deals/[slug]/opengraph-image.tsx`,
+`storefront/src/app/done-deals/[slug]/page.tsx`,
 `storefront/src/components/document/ShareRow.tsx`,
-`storefront/src/content/certificate.ts`,
-`storefront/tests/opengraph.test.ts`,
-`storefront/tests/third-party-disclosure.test.ts`,
-`storefront/tests/share-links.test.ts`.
+`storefront/src/content/certificate.ts`, `storefront/src/app/globals.css`,
+`storefront/tests/share-links.test.ts`,
+`storefront/tests/done-deals-page.test.ts`,
+`storefront/tests/third-party-disclosure.test.ts`.
 
-- [ ] Give the certificate page share links and its own 1200×630 card, without
+- [x] Give the certificate page share links and its own 1200×630 card, without
       loading anything from a third party.
 
 LD-09's `opengraph-image.tsx` is the pattern, including `await connection()` to
@@ -684,14 +686,42 @@ force dynamic rendering — the defect V13 shipped and had to fix was a card
 baked at build time with no store reachable, and a per-deal card cannot be
 prerendered at all.
 
-**Share links are anchors, not widgets.** No script, no iframe, no button that
-phones anyone. An `<a>` to a share intent sends nothing until the visitor
-clicks it, which is why it adds no processor to the Privacy Policy — the row
-states that reasoning and confirms the third-party guard covers or is extended
-to cover anchor hosts.
+**Share links are anchors, not widgets.** No script, no iframe, no image, no
+button that phones anyone. An `<a>` sends nothing until somebody presses it.
+Each carries `rel="noopener noreferrer"` — the second half being this site's
+own posture rather than the security rule: without it the destination learns
+the certificate's address from the `Referer` header before its owner has said
+anything.
 
-The card carries the serial and the inscription. It does not carry the billing
-name, and `third-party-disclosure.test.ts` gains the assertion.
+**These are the first external links this source has ever carried.** `grep
+'href="http' storefront/src` was empty before this row. So they were added to
+`PERMITTED` in `third-party-disclosure.test.ts` — a guard that already existed
+and which this row found by tripping it — rather than by widening a pattern. A
+fourth destination is now a decision somebody makes on that line.
+
+**No processor is added to the Privacy Policy**, and the reason is stated on
+the page rather than only in a document: the row's own fine print says nothing
+reaches any destination until the reader presses a link, and that the page
+loads nothing from them either way.
+
+**The URL comes from the request's own host**, not a configured base URL.
+There is none in this storefront and adding one would put an
+environment-specific value where `next build` could see it, which decision
+`002` forbids.
+
+**`generateMetadata` replaces the static export**, because the title now
+carries the serial — a link that unfurls identically for every certificate is
+one nobody can tell apart. `noindex` had to move with it, which is exactly the
+kind of thing that gets dropped, so the test asserts it through the function.
+
+**`brand.md` gained both surfaces**, under constraint 12: it described no share
+row at all, and its social-images section said only that certificate images
+would arrive with LD-02.
+
+**Verified against the built server**: the card renders at 1200×630 with the
+serial in stamp red, `og:title` and `og:image` are attached, `noindex` survives,
+all three links carry the encoded address, and an unknown slug answers 404 for
+the card as well as the page.
 
 ### C8 — SMTP: the transport
 

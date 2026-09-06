@@ -824,6 +824,37 @@ a.button.is-secondary:hover {
   margin: 0 auto var(--space-5);
 }
 
+/* ---- The share row --------------------------------------------------- */
+
+/* Under the certificate and clearly not part of it: the document ends at its
+   closing rule, and this is the page speaking rather than the certificate. */
+.share-row {
+  max-width: var(--measure-narrow);
+  margin: var(--space-6) auto 0;
+  text-align: center;
+}
+
+.share-row-label {
+  margin: 0 0 var(--space-3);
+  font-size: var(--size-body);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* A row of links, not buttons. `brand.md` §4: this identity has no button that
+   is not a control, and sharing is a link somebody follows. */
+.share-row-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
 /* The loading indicator: a block cursor, drawn rather than set. U+25AE is not
    in this typeface, so a glyph would be tofu -- see `src/fonts/plex-mono.ts`. */
 .cursor {
