@@ -37,6 +37,18 @@ export const DEAL_STATUSES = ["issued", "hidden"] as const;
 
 export type DealStatus = (typeof DEAL_STATUSES)[number];
 
+/**
+ * The layout a deal issued today is issued under.
+ *
+ * **The storefront has its own copy of this number and that is correct.** It
+ * is not shared state: the storefront must render an issued certificate by
+ * dispatching on the `layout_version` the *row* carries, never by comparing it
+ * to whatever the current constant happens to be. The two would only ever have
+ * to agree if a renderer asked "is this the current layout?", which is the one
+ * question §5 forbids it to ask.
+ */
+export const CURRENT_CERTIFICATE_LAYOUT = 1;
+
 export const LousyDeal = model
   .define("lousy_deal", {
     id: model.id().primaryKey(),

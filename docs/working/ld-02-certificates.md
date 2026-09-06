@@ -196,23 +196,79 @@ C2's guarantee, proven at the level that enforces it.
 
 **Repository:** `lousydeal`.
 **Files:** `backend/src/subscribers/order-placed.ts`,
-`backend/src/modules/deal/service.ts`, `backend/tests/deal-issuance.test.ts`.
+`backend/src/modules/deal/issue.ts`, `.../inscription.ts`, `.../service.ts`,
+`.../models/lousy-deal.ts`, `backend/tests/deal-issuance.test.ts`.
 
-- [ ] Mint a deal from `order.placed`, reading the inscription from the order,
+- [x] Mint a deal from `order.placed`, reading the inscription from the order,
       and return the existing deal rather than a second one when the event is
       replayed.
 
 The reference project's `subscribers/order-placed.ts` is the shape. Medusa's
 Redis event bus is at-least-once and the Stripe webhook is retried by Stripe
-independently, so a replay is expected traffic rather than an error path. The
-service catches the unique-violation on `order_id`, re-reads, and returns the
-deal that already exists — the test fires the subscriber twice with the same
-order and asserts one row, one serial, one slug.
+independently, so a replay is expected traffic rather than an error path.
+
+**Read first, then insert, then read again**, rather than the plan's original
+"catch the unique-violation and re-read". The correction is that there is
+nothing recognisable to catch: Medusa's `dbErrorMapper`
+(`@medusajs/utils/dist/dal/mikro-orm/db-error-mapper.js:20-30`) rewrites a
+Postgres 23505 into a `MedusaError` reading `"Lousy deal with order_id: …,
+already exists."`, so the SQLSTATE is gone before a caller sees it and matching
+that sentence would tie issuance to Medusa's phrasing. The discriminator is
+instead *does the deal now exist* — the same question the error was answering,
+and true however it is worded. An error that leaves no deal behind is rethrown.
+
+The read-first step is not only an optimisation: without it a retry storm burns
+a serial per delivery, and the test asserts the create count, not just the row
+count, because both are 1 either way.
 
 **Issuance never throws into the subscriber.** A failed issuance must not
 retry-loop the event bus forever; it logs and leaves the order intact, because
 an order that took money and has no certificate is recoverable by hand and an
 event storm is not.
+
+**A slug collision is not retried**, and the arithmetic is why: 16 characters
+over a 30-character alphabet is ~78 bits, and at a million deals the chance any
+two collide is around 10^-11. A retry loop for that is code no test can reach.
+
+**`issued_at` is the order's own creation time, not the clock at issuance.** A
+subscriber can run long after the order it is about — a backlog, a redelivery,
+a replay after an outage — and a certificate dated by whenever the worker
+caught up is wrong on its face. It also makes a replay produce the identical
+record rather than a differently-dated one.
+
+**Two findings that change later rows**, both from reading Medusa rather than
+from reasoning about it:
+
+- **Cart metadata is attacker-controlled.** The storefront writes the
+  inscription through `POST /store/carts/:id`, whose validator is
+  `metadata: z.record(z.string(), z.unknown()).nullish()`
+  (`@medusajs/medusa/dist/api/store/carts/validators.js:11`) — public, and
+  accepting any value under any key. So **§5's entry-side filter has to run at
+  issuance in the backend, not only in the checkout form**; a filter in front
+  of a public API filters nothing. C3's text below is amended accordingly. C2
+  validates shape only (string, trimmed, length-capped), which is safe because
+  nothing renders a stored inscription until C5 and C3 lands first.
+- **An order can be for more than one certificate.** `addToCart` appends to
+  whatever cart the cookie names and Medusa merges a repeated variant into one
+  line of quantity two, while §16 gives the deal one `order_id` and no line
+  reference. The subscriber therefore issues only for exactly one line of
+  quantity one and otherwise logs and issues nothing — printing a single tier
+  and price for a two-item order would be a fabricated transaction, which
+  `AGENTS.md` forbids. **C3 owns making that unreachable.** It is not reachable
+  by a customer today: both environments are gated and no live payment key
+  exists.
+
+**60 characters for the display name is this row's number, not the
+contract's.** §5 says "short" and gives 120 only for the dedication. 60 is what
+fits the certificate's `BEARER` row on one line at 390px. `brand.md` should
+adopt or replace it.
+
+**Verified against a real PostgreSQL**, because one assumption underneath all
+of this is not unit-testable: that `createLousyDeals` returns the
+sequence-assigned serial rather than an unsaved row. Two orders through the
+real module service returned serials 1 and 2 with distinct slugs
+(`xbts2k3mmv3trv3n`, `rzfm61snnj1gnx9f`), a replay of the first returned the
+identical id, serial and slug, and the table held two rows.
 
 ### C3 — The checkout: an email address, and the two inscription fields
 
@@ -225,7 +281,8 @@ event storm is not.
 `storefront/tests/inscription.test.ts`.
 
 - [ ] Collect a required email address and the two optional inscription fields,
-      filter them at entry, show the buyer what will be public, and write all
+      filter them at entry — **in the backend, at issuance** — show the buyer
+      what will be public, hold the order to one certificate, and write all
       three to the cart before completion.
 
 **The email is required.** Without it there is no durable medium, and without
@@ -235,12 +292,28 @@ cannot tell the buyer which they are in. One class, one answer.
 
 **Entry-side filtering is the half §5 asks for that does not exist.**
 `sanitiseInscription` already strips markup, URLs, bare domains, addresses and
-telephone numbers at render. This row applies the same function at entry and
-shows the buyer the result before they pay, because a filter that silently eats
-what someone typed is worse than one that says so.
+telephone numbers at render. This row applies the same rule at entry and shows
+the buyer the result before they pay, because a filter that silently eats what
+someone typed is worse than one that says so.
+
+**Amended by C2: the entry-side filter belongs in the backend.** The plan first
+put it in the checkout form alone. C2 found that the endpoint carrying the
+inscription — `POST /store/carts/:id` — is public and accepts arbitrary
+metadata, so the storefront form is not a boundary and filtering there protects
+nothing. The filter runs in `backend/src/modules/deal/inscription.ts` at
+issuance, where the trust boundary actually is. The checkout keeps a copy for
+what it shows the buyer *before* they pay, which is a disclosure duty rather
+than a security one, and its test pins the two to the same specification.
+
+**Also amended by C2: one certificate per order.** `addToCart` appends, so a
+visitor can reach checkout with two tiers, or one tier twice. §16 gives the
+deal one `order_id` and no line reference, and C2's subscriber refuses to issue
+for anything but a single line of quantity one. This row is where that stops
+being a refusal and becomes impossible.
 
 **Dedication is capped at 120 characters**, §5's figure, counted after
-filtering rather than before.
+filtering rather than before. The display name is capped at 60 — C2's number,
+not the contract's; see there.
 
 The fields go to `cart.metadata` through the same `POST /store/carts/:id` that
 already sets the country, and Medusa copies cart metadata to the order.
