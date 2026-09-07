@@ -20,7 +20,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { CONSENT_LABEL } from "../src/content/checkout";
+import { CONSENT_LABEL, EMAIL_HINT } from "../src/content/checkout";
 import { WITHDRAWAL_NOTICE } from "../src/content/deal";
 import { TERMS_OF_OFFER } from "../src/content/home";
 import { IMPRINT } from "../src/content/legal/imprint";
@@ -51,6 +51,11 @@ const SURFACES: ReadonlyArray<readonly [string, string]> = [
   // and a guard is only as wide as its list.
   ["the home page's offer terms", TERMS_OF_OFFER.join("\n")],
   ["the checkout consent box", CONSENT_LABEL],
+  // C13 found this one the same way Gate E found the home page: it makes the
+  // claim, it sits beside a field the buyer fills in before paying, and it was
+  // not on the list. `checkout.ts`'s own comment said this guard "enforces it
+  // across all seven" while being one of the surfaces it did not reach.
+  ["the checkout email hint", EMAIL_HINT],
 ];
 
 /** Surfaces that discuss the § 55 confirmation at all. */
@@ -60,7 +65,7 @@ describe("the surfaces this applies to", () => {
   it("includes every legal document and every pre-contractual surface", () => {
     // A cross-document guard that silently stops covering a document is the
     // failure it was written to prevent.
-    expect(SURFACES).toHaveLength(7);
+    expect(SURFACES).toHaveLength(8);
     for (const [name, text] of SURFACES) expect(`${name}: ${String(text.length > 0)}`).toBe(`${name}: true`);
   });
 
@@ -71,20 +76,28 @@ describe("the surfaces this applies to", () => {
 });
 
 describe("what every surface says about the confirmation", () => {
-  it.each(mentionsTheConfirmation)("%s does not assert that we send it", (_name, text) => {
-    // Any determiner, and the passive. The version this replaces matched
-    // `(?:it|you|the confirmation)` and let "we send that confirmation by
-    // email" through.
-    expect(text).not.toMatch(/\bwe send\b(?![^.]*\bnot\b)[^.]*\bconfirmation\b/i);
-    expect(text).not.toMatch(/\bconfirmation\b[^.]*\b(?:is|are|will be)\s+sent\b/i);
-    expect(text).not.toMatch(/\ba confirmation is sent\b/i);
+  /**
+   * **These two rules are the inverse of the ones C13 replaced**, and the
+   * inversion happened in the pull request that made the old claim untrue.
+   *
+   * Until C9 there was no confirmation, so every surface had to say so and a
+   * guard forbade any of them claiming otherwise. C10 and C11 put a mail
+   * transport and credentials on both deployments; a real message now goes out
+   * for every order. Leaving the old guards in place would have made the suite
+   * enforce a falsehood across seven documents, which is worse than no guard
+   * at all -- so they are turned round rather than deleted, and this comment is
+   * the record of why.
+   */
+  it.each(mentionsTheConfirmation)("%s does not assert that we withhold it", (_name, text) => {
+    expect(text).not.toMatch(/do(?:es)? not (?:yet )?send/i);
+    expect(text).not.toMatch(/\bno confirmation is (?:sent|given)\b/i);
   });
 
-  it.each(mentionsTheConfirmation)("%s says we do not send it yet", (_name, text) => {
-    // The positive half, and the one that matters: a surface may not simply go
-    // quiet about the third condition. Being silent is how §5 of the Terms
-    // stayed wrong while §6 was being corrected.
-    expect(text).toMatch(/do(?:es)? not (?:yet )?send|not yet send/i);
+  it.each(mentionsTheConfirmation)("%s says we send it", (_name, text) => {
+    // The positive half, and still the one that matters: a surface may not go
+    // quiet about the third condition. Silence is how §5 of the Terms stayed
+    // wrong while §6 was being corrected.
+    expect(text).toMatch(/\bwe (?:do )?send\b|\bwe send it\b/i);
   });
 });
 
@@ -97,6 +110,24 @@ describe("what every surface says about the right", () => {
     // else the conditional is the only honest form too.
     const offending = text.split(/(?<=\.)\s+/).filter((sentence) => assertsTheLoss.test(sentence));
     expect(`${name}: ${offending.join(" | ")}`).toBe(`${name}: `);
+  });
+
+  it.each(SURFACES)("%s does not claim the exception applies to an order", (name, text) => {
+    // The replacement for the old "the third condition is not met" guards, and
+    // the reason C13 could not simply flip every sentence to its opposite.
+    // Sending the confirmation makes the third condition *capable* of being
+    // met; whether it was met for a given order turns on timing this site
+    // cannot settle -- supply begins the instant payment succeeds, and the
+    // email follows it. A surface asserting the condition satisfied would be
+    // the trader deciding that question in its own favour, which is exactly
+    // what the documents promise not to do.
+    const claimsTheException =
+      /\b(?:third condition (?:is|was) (?:met|satisfied)|§ 53\(4\) p 7¹ (?:applies|has removed)|right (?:is|was) (?:therefore )?(?:excluded|removed))\b/i;
+    const offending = text.split(/(?<=\.)\s+/).filter((sentence) => claimsTheException.test(sentence));
+    // The Terms promise the opposite in as many words; that sentence names the
+    // provision to disclaim it, so it is allowed to and nothing else is.
+    const allowed = offending.filter((sentence) => !/\bwill not refuse\b/i.test(sentence));
+    expect(`${name}: ${allowed.join(" | ")}`).toBe(`${name}: `);
   });
 
   it("states the 12-month extension wherever the 14 days are explained", () => {

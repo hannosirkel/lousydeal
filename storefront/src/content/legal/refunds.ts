@@ -134,7 +134,7 @@ export const REFUNDS: LegalDocument = {
       body: [
         "§ 53(4) p 7¹ removes the right of withdrawal for digital content that is not supplied on a physical medium. It does so only where all three of the following are true.",
         "First, supply began before the withdrawal period ended. Second, you gave express prior consent to it beginning, and acknowledged that you would thereby lose the right. Third, we gave you the confirmation required by § 55(1) and § 55(2).",
-        "If any one of those is missing, your 14-day right stands. As things are today the third is missing for every order, for the reason §4 gives, and so the right stands whatever you answered at checkout.",
+        "If any one of those is missing, your 14-day right stands. We send the confirmation the third requires, so the question is no longer whether it exists but whether it reached you in time — which is a matter of fact, and §4 says what we do with it.",
         "The corresponding European provision is Article 16(m) of Directive 2011/83/EU.",
       ],
     },
@@ -144,7 +144,8 @@ export const REFUNDS: LegalDocument = {
       body: [
         "Before you pay, the checkout asks you to tick a box that is not ticked for you: that you request supply of the digital certificate to begin immediately, and that you acknowledge you will lose your right of withdrawal once supply has begun. It is a condition of ordering. If you do not tick it we cannot supply immediately, and the order does not proceed.",
         "If you do tick it, we owe you a confirmation on a durable medium, no later than the moment supply begins. § 55(1) sets that timing, and § 55(2) sets its contents: the pre-contractual information listed in § 54(1), unless we already gave it to you on a durable medium before the contract was concluded, and our confirmation that you gave the consent described above.",
-        "We do not send that confirmation yet. Until we do, the third condition in §3 is not met for any order placed here, and your right under §2 is intact. We would rather write that down than let you infer from a clause about us that you had lost something you still have.",
+        "We send that confirmation. It goes by email as soon as your certificate exists — which is also the moment supply begins, so it follows supply rather than preceding it.",
+        "Whether that satisfies § 55(1) for your order is not a question we will answer in our own favour. If you withdraw, we will not refuse on the ground that the third condition in §3 was met. We would rather write that down than let you infer from a clause about us that you had lost something you may still have.",
       ],
     },
     {

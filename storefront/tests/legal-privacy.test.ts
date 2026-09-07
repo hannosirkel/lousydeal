@@ -151,14 +151,28 @@ describe("what the checkout asks for", () => {
     expect(section("3")).not.toMatch(/asks you for two things/i);
   });
 
-  it("says what the email address is for, and does not claim the confirmation is sent", () => {
-    // C3b collects the address; C9 sends the confirmation. Between the two, a
-    // notice implying otherwise would be the first surface on this site to
-    // say the s 55 duty is discharged -- `legal-consistency.test.ts` holds
-    // the other six to the same line.
+  it("says what the email address is for, and that the confirmation is sent", () => {
+    // C3b collected the address and C9 built the confirmation; between the
+    // two, this required the notice to say the duty was *not* discharged, and
+    // forbade any claim that it was. C10 and C11 gave both deployments a
+    // transport, so the old wording became the falsehood this guard existed to
+    // prevent -- inverted here, in the change that made it false.
+    //
+    // The lawful basis is the half worth pinning. A statutory confirmation is
+    // sent under a legal obligation, never consent, and Article 13(1)(c)
+    // requires the basis to be stated rather than implied. S7 carries the
+    // list; this checks S3 points at it rather than leaving a reader to guess.
     const purpose = claim(section("3"), /order confirmation we owe you/);
-    expect(purpose).toMatch(/do not yet send/i);
-    expect(purpose).not.toMatch(/\bwe send you\b/i);
+    expect(purpose).toMatch(/we send it/i);
+    expect(purpose).not.toMatch(/do not (?:yet )?send/i);
+    expect(purpose).toMatch(/legal obligation/i);
+    // Not a lookahead around "consented to": the disclaimer here reads "a
+    // legal obligation rather than anything you consented to", so what
+    // qualifies the phrase comes *before* it and no lookahead can see that.
+    // The claim worth forbidding is consent offered as the basis, so forbid
+    // that directly.
+    expect(purpose).not.toMatch(/\b(?:with|on the basis of|because of) your consent\b|\bbecause you consented\b/i);
+    expect(section("7")).toMatch(/legal obligations/i);
   });
 
   it("discloses the automated decision, which Article 13(2)(f) requires", () => {

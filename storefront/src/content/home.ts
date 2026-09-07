@@ -94,7 +94,7 @@ export const TERMS_OF_OFFER: readonly string[] = [
   "You receive a numbered digital certificate and nothing else of value. That is the product, not a caveat.",
   "It is supplied immediately after payment.",
   "The price shown is the price charged. It includes VAT where VAT applies, and nothing is added at checkout.",
-  "At checkout you are asked to consent to that immediate supply, and to acknowledge that you would thereby lose the 14-day right of withdrawal. The box is not ticked for you, and losing that right also takes a confirmation we do not yet send.",
+  "At checkout you are asked to consent to that immediate supply, and to acknowledge that you would thereby lose the 14-day right of withdrawal. The box is not ticked for you. We send the confirmation that losing the right also takes, and we still do not treat the right as gone.",
 ];
 
 /**

@@ -54,16 +54,20 @@ export const EMAIL_LABEL = "Email address";
 /**
  * Why the address is asked for, said before it is given rather than after.
  *
- * **It states the duty and the failure in one breath**, because every other
- * surface on this site does and `tests/legal-consistency.test.ts` enforces it
- * across all seven. § 55(1) requires a confirmation on a durable medium no
- * later than the moment supply begins; we do not yet send one; the buyer's
- * 14-day right therefore survives whatever the consent box says. A field
- * captioned "we'll email your confirmation" would be the first place on this
- * site to imply otherwise.
+ * **It states the duty and what discharging it does not settle**, because
+ * every other surface on this site does. § 55(1) requires a confirmation on a
+ * durable medium no later than the moment supply begins, and C9 through C11
+ * made this deployment send one -- so the hint says it is sent. What it must
+ * not say is that the 14-day right is therefore gone: supply here begins the
+ * instant payment succeeds and the confirmation follows it, which is a
+ * question of fact the trader does not get to answer in its own favour.
+ *
+ * This comment claimed `tests/legal-consistency.test.ts` "enforces it across
+ * all seven" while `EMAIL_HINT` was not one of the seven that guard collected.
+ * C13 added it, so the claim is true now and there are eight.
  */
 export const EMAIL_HINT =
-  "Your order confirmation goes here. We owe you one on a durable medium and do not yet send it, which is why your 14-day right of withdrawal still stands — Refunds and Withdrawal explains that in full.";
+  "Your order confirmation goes here. We owe you one on a durable medium and we send it — which does not by itself settle whether your 14-day right of withdrawal is gone, and we do not treat it as gone. Refunds and Withdrawal explains that in full.";
 
 /** §5's two inscription fields, both optional. C3c. */
 export const INSCRIPTION_LABELS = {
