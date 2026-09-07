@@ -83,3 +83,60 @@ export async function getDeal(fetchJson: FetchJson, slug: string): Promise<Certi
     issuedOn: deal.issued_at,
   };
 }
+
+/** The three figures §11 names, as the counter renders them. */
+export interface DealTotals {
+  readonly count: number;
+  readonly amount: number | null;
+  readonly currencyCode: string | null;
+  readonly latestSerial: number | null;
+}
+
+interface StoreTotalsResponse {
+  readonly totals?: {
+    readonly count?: unknown;
+    readonly amount?: unknown;
+    readonly currency_code?: unknown;
+    readonly latest_serial?: unknown;
+  };
+}
+
+const optionalNumber = (value: unknown): number | null =>
+  typeof value === "number" && Number.isFinite(value) ? value : null;
+
+/**
+ * The counter's figures, or `null` if they could not be read.
+ *
+ * **`null` and zero are different answers, and this is the whole point of the
+ * signature.** Zero deals is a fact about the shop; an unreachable store is a
+ * fact about the network. A counter that renders `0` when it could not ask
+ * would be publishing a transaction total it has not got — which §11 forbids
+ * in as many words and `AGENTS.md` forbids more sharply. So a failure yields
+ * `null`, and the page omits the counter entirely rather than guessing at it.
+ *
+ * Every error is caught, not only a 404. There is no status for which
+ * inventing a number is better than showing none.
+ */
+export async function getDealTotals(fetchJson: FetchJson): Promise<DealTotals | null> {
+  let response: StoreTotalsResponse;
+  try {
+    response = await fetchJson<StoreTotalsResponse>("/store/deals/totals");
+  } catch (error) {
+    // Logged rather than swallowed: a permanently broken counter and a
+    // momentarily unreachable one look identical on the page, so the
+    // difference has to be somewhere. The storefront's only other log lines
+    // are the proxy's and the social image's, for the same reason.
+    console.error("the deal totals could not be read", error);
+    return null;
+  }
+
+  const totals = response.totals;
+  if (typeof totals?.count !== "number" || !Number.isFinite(totals.count)) return null;
+
+  return {
+    count: totals.count,
+    amount: optionalNumber(totals.amount),
+    currencyCode: typeof totals.currency_code === "string" ? totals.currency_code : null,
+    latestSerial: optionalNumber(totals.latest_serial),
+  };
+}

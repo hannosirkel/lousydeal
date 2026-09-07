@@ -36,8 +36,10 @@ import {
   TERMS_OF_OFFER_TITLE,
 } from "../content/home";
 import { addToCart } from "../lib/cart-actions";
+import { Counter } from "../components/document/Counter";
 import { createStoreFetchJson, listTiers } from "../lib/medusa-client";
 import { formatMoney } from "../lib/money";
+import { getDealTotals } from "../lib/store-deal";
 import { requireStoreClientConfig } from "../lib/store-session";
 import { cheapest, NO_VALUE, tierRowData } from "../lib/tier-rows";
 
@@ -45,6 +47,10 @@ export default async function HomePage() {
   await connection();
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const tiers = await listTiers(fetchJson);
+  // `null` when the figures could not be read, which is not the same answer as
+  // zero -- see `getDealTotals`. The counter is omitted rather than rendered
+  // with a number nobody measured.
+  const totals = await getDealTotals(fetchJson);
 
 
   const offer = cheapest(tiers);
@@ -94,6 +100,17 @@ export default async function HomePage() {
 
         <Rule />
         <TierTable rows={rows} />
+
+        {/* After the offer and before the terms: the record is evidence about
+            the offer, and a reader who has just seen the price is the one it
+            means something to. Omitted entirely when `totals` is null -- see
+            `getDealTotals` for why that is not the same as rendering zero. */}
+        {totals === null ? null : (
+          <>
+            <Rule />
+            <Counter totals={totals} />
+          </>
+        )}
 
         <Rule />
         <h2>{TERMS_OF_OFFER_TITLE}</h2>

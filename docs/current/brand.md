@@ -269,10 +269,24 @@ carries `No items of record. Nothing is currently offered.` in place of the
 offer, the table and the terms — an empty invoice band above terms for a
 product nobody can buy is a rendering artefact, not a document.
 
-**No counter.** The prompt asked for `TOTAL VOLUNTARILY WASTED`. There is no
-order data to compute it from, and `AGENTS.md` is explicit that a public counter
-reports real orders or does not ship. It arrives with LD-02, wired to real
-orders, or it does not arrive.
+**The counter, headed `RECORD TO DATE`.** A ledger block between the offer and
+the terms — `DEALS DONE`, `AMOUNT WASTED` in stamp red, `LATEST DEAL` as a
+serial. It arrived with LD-02 wired to real orders, which is the condition the
+paragraph that stood here set.
+
+**Not `TOTAL VOLUNTARILY WASTED`,** which the prompt asked for. §2 rules out
+the register: a shop telling its customers how much they have squandered is the
+second-person cajoling that section forbids. A ledger heading states and does
+not editorialise, and the figures are funnier without help.
+
+**Zero shows.** Most of this shop's life will be spent there, and the row reads
+`Nothing yet. You could be the first, which is worse.` A counter that appears
+only once it is impressive is one lying about its floor.
+
+**It disappears rather than guessing.** Where the figures cannot be read at
+all, the whole block is omitted — `0` and "could not ask" are different claims,
+and only one is a fact about the shop. `AGENTS.md` forbids publishing a
+transaction total; a zero nobody measured is one.
 
 ### Tier page — `/deal/[handle]`, `FORM LD-2`, a quotation
 

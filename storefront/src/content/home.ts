@@ -96,3 +96,31 @@ export const TERMS_OF_OFFER: readonly string[] = [
   "The price shown is the price charged. It includes VAT where VAT applies, and nothing is added at checkout.",
   "At checkout you are asked to consent to that immediate supply, and to acknowledge that you would thereby lose the 14-day right of withdrawal. The box is not ticked for you, and losing that right also takes a confirmation we do not yet send.",
 ];
+
+/**
+ * The counter. C12, and `brand.md` §4's deferral discharged: "it arrives with
+ * LD-02, wired to real orders, or it does not arrive".
+ *
+ * **`RECORD TO DATE`, not `TOTAL VOLUNTARILY WASTED`.** The prompt asked for
+ * the second and `brand.md` §2 rules out the register it is written in — a
+ * shop shouting about how much its customers have squandered is the
+ * second-person cajoling that section forbids. A ledger heading states; it does
+ * not editorialise. The joke is in the figures.
+ */
+export const COUNTER_TITLE = "Record to date";
+
+export const COUNTER_LABELS = {
+  count: "Deals done",
+  amount: "Amount wasted",
+  latest: "Latest deal",
+} as const;
+
+/**
+ * Shown when the shop has sold nothing.
+ *
+ * **Zero is an honest number and the counter shows it**, rather than hiding
+ * until the figures flatter. A counter that appears only once it is impressive
+ * is a counter lying about its floor, and this one will read `0` for as long
+ * as that is true.
+ */
+export const COUNTER_NONE_YET = "Nothing yet. You could be the first, which is worse.";
