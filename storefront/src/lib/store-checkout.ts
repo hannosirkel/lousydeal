@@ -21,6 +21,7 @@
  * independent view of overlapping Medusa shapes rather than sharing one.
  */
 
+import { GIFT_METADATA } from "./gift";
 import type { FetchJson } from "./medusa-client";
 
 export interface CheckoutCart {
@@ -136,12 +137,18 @@ interface StoreCartMetadataResponse {
 }
 
 /**
- * Writes §5's two inscription fields onto the cart, from where Medusa carries
- * them onto the order and C2's subscriber reads them at issuance.
+ * Writes §6's four gift fields onto the cart, beside the inscription.
+ *
+ * **One call with the inscription, not two.** Medusa replaces the whole
+ * `metadata` object on each `POST /store/carts/:id`, so a second call would
+ * erase the first's keys — the inscription would arrive at issuance as an
+ * absence rather than as what the buyer typed. That is why this takes both
+ * and `setCartInscription` is gone: two writers of one field is the bug, not
+ * the shape.
  *
  * **Sends what the buyer typed, not what this page showed them.** The preview
- * beside the field runs the render-side filter so a buyer sees what will be
- * public before paying, but the value that travels is the raw one: the pass
+ * beside each field runs the render-side filter so a buyer sees what will
+ * appear before paying, but the value that travels is the raw one: the pass
  * that decides what is *stored* runs in the backend, at issuance, because this
  * endpoint is public and accepts arbitrary metadata
  * (`carts/validators.js:11`). Filtering here as well would make the two look
@@ -151,26 +158,41 @@ interface StoreCartMetadataResponse {
  * and the certificate has one; an empty string would be a second, arriving at
  * the backend as a value to be trimmed away rather than as an absence.
  *
- * The whole `metadata` object is replaced by this call, which is Medusa's
- * behaviour for the field and not something worked around here: nothing else
- * in this storefront writes cart metadata, so there is nothing to preserve.
+ * **A closed gift block sends four nulls.** Not four absent keys, and not four
+ * empty strings: `readGift` decides a gift on whether a usable address
+ * survived, and `null` is the state that says "no gift" without needing to be
+ * trimmed away first.
  */
-export async function setCartInscription(
+export async function setCartInscriptionAndGift(
   fetchJson: FetchJson,
   cartId: string,
-  inscription: { readonly displayName: string; readonly dedication: string },
+  fields: {
+    readonly displayName: string;
+    readonly dedication: string;
+    readonly gift: {
+      readonly recipientName: string;
+      readonly recipientEmail: string;
+      readonly senderName: string;
+      readonly message: string;
+    } | null;
+  },
 ): Promise<void> {
   const value = (raw: string): string | null => {
     const trimmed = raw.trim();
     return trimmed.length > 0 ? trimmed : null;
   };
+  const gift = fields.gift;
 
   await fetchJson<StoreCartMetadataResponse>(`/store/carts/${encodeURIComponent(cartId)}`, {
     method: "POST",
     body: JSON.stringify({
       metadata: {
-        [INSCRIPTION_METADATA.displayName]: value(inscription.displayName),
-        [INSCRIPTION_METADATA.dedication]: value(inscription.dedication),
+        [INSCRIPTION_METADATA.displayName]: value(fields.displayName),
+        [INSCRIPTION_METADATA.dedication]: value(fields.dedication),
+        [GIFT_METADATA.recipientName]: gift === null ? null : value(gift.recipientName),
+        [GIFT_METADATA.recipientEmail]: gift === null ? null : value(gift.recipientEmail),
+        [GIFT_METADATA.senderName]: gift === null ? null : value(gift.senderName),
+        [GIFT_METADATA.message]: gift === null ? null : value(gift.message),
       },
     }),
   });
