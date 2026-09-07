@@ -25,6 +25,20 @@ export interface IssuedDeal {
   readonly order_id: string;
   readonly serial: number;
   readonly public_slug: string;
+  /**
+   * §6's gift metadata, **as stored** rather than as passed in.
+   *
+   * Here and not only on {@link DealIssuanceInput} because the send has to be
+   * decided from the row. On a replay the input is rebuilt from the order and
+   * the insert never happens, so a caller that asked its own input whether a
+   * gift was owed would send a second message every time the event was
+   * redelivered. Asking the row is the same move `issueDeal` makes when it
+   * reads the deal back instead of parsing the error.
+   */
+  readonly gift_recipient_email: string | null;
+  readonly gift_recipient_name: string | null;
+  readonly gift_sender_name: string | null;
+  readonly gift_message: string | null;
 }
 
 /**
@@ -40,6 +54,20 @@ export interface DealStore {
   createLousyDeals(data: Record<string, unknown>): Promise<IssuedDeal>;
 }
 
+/**
+ * Who a gift goes to, and what it says.
+ *
+ * §6 asks for a recipient name, a recipient email, an optional sender name and
+ * an optional message. Only the address is required here: the send has nowhere
+ * to go without it, and the other three are §6's own optionals.
+ */
+export interface DealGift {
+  readonly recipientEmail: string;
+  readonly recipientName: string | null;
+  readonly senderName: string | null;
+  readonly message: string | null;
+}
+
 /** Everything the certificate is made of, as the order carried it. */
 export interface DealIssuanceInput {
   readonly orderId: string;
@@ -49,6 +77,17 @@ export interface DealIssuanceInput {
   /** §5's two inscription fields, already filtered. `null` where the buyer left one blank. */
   readonly displayName: string | null;
   readonly dedication: string | null;
+  /**
+   * §6's gift metadata, already filtered, or `null` throughout for an ordinary
+   * purchase.
+   *
+   * One optional object rather than four optional fields, because the four are
+   * not independent: a recipient name without an address is a gift that cannot
+   * be delivered, and a caller that could express it would eventually write
+   * it. `recipientEmail` is required inside the object for the same reason the
+   * column is what makes a deal a gift.
+   */
+  readonly gift: DealGift | null;
   /**
    * The order's own creation time, not the clock at issuance.
    *
@@ -110,6 +149,14 @@ export async function issueDeal(
       currency_code: input.currencyCode,
       display_name: input.displayName,
       dedication: input.dedication,
+      // Written whether or not this is a gift, so an ordinary purchase stores
+      // four explicit nulls rather than four absent keys. A row whose gift
+      // columns are missing rather than null reads identically today and
+      // differently the moment anything filters on them.
+      gift_recipient_email: input.gift?.recipientEmail ?? null,
+      gift_recipient_name: input.gift?.recipientName ?? null,
+      gift_sender_name: input.gift?.senderName ?? null,
+      gift_message: input.gift?.message ?? null,
       // Frozen here and never updated: §5's rule that a redesign is additive
       // and never restyles a certificate somebody already owns.
       layout_version: CURRENT_CERTIFICATE_LAYOUT,
