@@ -1168,8 +1168,76 @@ counter clears them.
 **Files:** `docs/working/ld-02-certificates.md`, `docs/working/status.md`,
 `docs/current/brand.md`.
 
-- [ ] Write the completion report, move the resume point, and record every
+- [x] Write the completion report, move the resume point, and record every
       deferral with its reason.
+
+## Completion report
+
+**LD-02 is complete.** Sixteen rows, `C1` to `C16`, across three repositories.
+A real order on the test environment pays, issues a numbered deal, sends the
+VÕS § 55(1)–(2) confirmation, renders the certificate at `/done-deals/{slug}`
+and produces a one-page A4 PDF; a withdrawal through the § 56⁴ function records
+and receives its § 56⁴(4) receipt, with scripting disabled.
+
+### What the rows found that the plan did not predict
+
+**Three of the fifteen build rows landed a correction to something already
+merged**, which is constraint 9 working rather than failing.
+
+- `C13` found two surfaces the plan's file list did not name — the offer page's
+  withdrawal notice, and the checkout's `EMAIL_HINT`. The second was making the
+  § 55 claim beside the field a buyer fills in before paying, and was not in
+  `legal-consistency.test.ts`'s list while `checkout.ts` claimed that guard
+  "enforces it across all seven". It is on the list now; there are eight.
+- `C13` also falsified the Terms header's "Four clauses describe mechanisms
+  that do not exist yet". All four now exist, each verified in the tree.
+- `C15` found that the backend image published since the Medusa 2.20.1 bump
+  could not run Medusa at all: that lockfile nests eighty packages under the
+  backend workspace and `backend/Dockerfile` copied one tree. Production was
+  never at risk — the predeploy Job failing at wave `-10` is what kept the
+  image out of wave `0` — but every deploy had been blocked since it merged.
+
+**The defect that mattered most was invisible to the whole suite.** `amount()`
+in the order-placed subscriber accepted a number or a numeric string; Medusa
+hands money over as a `BigNumber`. Every paid order was skipped with
+`total=none` — no deal, no certificate, no confirmation — while 1,318 tests
+passed. Every fixture supplied a plain number, and nothing in the repository
+had ever asked Medusa for an order. §14's claim that a passing unit suite is
+not visual acceptance turned out to understate the case: it was not acceptance
+of any kind.
+
+### Deferrals, each with its reason
+
+| Deferred | Why, and to whom |
+| --- | --- |
+| Gift metadata and the gift flow | LD-03. Nothing here models a gift. |
+| Merch, and Printful as a named processor | LD-04. No account exists yet. |
+| Baldrick | LD-05. |
+| A second certificate layout | The row that redesigns one. `C5` and `C6` made it additive: `layout_version` is stored per deal and dispatched on. |
+| The deletion job for the seven-year accounting record | Unassigned, gate item 15. It is the one open gate item that is work rather than judgement. |
+| A fallback font, so a CJK or emoji inscription sets rather than becoming `?` | Unassigned. `C6` recorded the measurement; the §5 filter does not strip these, so the defect is reachable today by a buyer who types one. |
+| Deal milestones (§11) | LD-08, if wanted at all. |
+| A shared `transactional-email.ts` | Not built. `C14` gave this slice a second transactional message, which is the point at which a wrapper becomes observable rather than guessed — but the two share a `ConfirmationMessage` type and little else, and a wrapper around that is a layer with nothing in it. |
+| A withdrawal table | Deliberate, and named in `C14`. The plan's file list for that row is a route and a message, no model. The trader's copy of the receipt is the record, which is why it is sent even when the consumer's cannot be. |
+| A CI step that runs the built container | Raised in `C15` and declined by the operator. Nothing in the pipeline executes the image, which is why a Medusa-less backend reached `main` invisibly; the next bump can do the same. |
+| Closing the legal gate | The operator, with a qualified human reader. §23. |
+| Publishing | After the legal gate and the print-on-demand provider. Live Stripe keys are 37-character placeholders today, so the live environment cannot take a payment — which is the state §23 asks for. |
+
+### Left behind in the test environment
+
+Two test-mode orders and one withdrawal are real rows in the test database, so
+that environment's counter reads a real `1` rather than zero. They are Stripe
+test-mode transactions. A row that wants a clean counter clears them; nothing
+depends on them.
+
+### The one thing this slice cannot report on itself
+
+`C15` sent two § 55 confirmations and one § 56⁴(4) receipt to a real address.
+Whether they arrived, are readable, and landed in an inbox rather than a spam
+folder is the operator's to judge — and so is the DKIM signature, which only
+the received copy carries. The `451 4.7.1` that the first send met was a DKIM
+milter that was not answering, corrected by the operator mid-slice; a send
+after that correction was queued as `250 2.0.0 Ok`.
 
 ## What this slice does not do
 
