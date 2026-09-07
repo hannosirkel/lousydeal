@@ -164,6 +164,10 @@ export default async function orderPlaced({
       currencyCode,
       displayName: inscription.displayName,
       dedication: inscription.dedication,
+      // `null` until G2 reads §6's four fields out of the order metadata. The
+      // column exists from this row so the migration is one change rather than
+      // two, and so `issueDeal` has one shape rather than a shape per row.
+      gift: null,
       issuedAt,
     };
 

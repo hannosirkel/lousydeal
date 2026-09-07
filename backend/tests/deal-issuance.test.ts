@@ -28,7 +28,16 @@ const INPUT = {
   currencyCode: "usd",
   displayName: null,
   dedication: null,
+  gift: null,
   issuedAt: new Date("2026-09-06T10:00:00.000Z"),
+};
+
+/** §6's four fields, as G2 will have filtered them. */
+const GIFT = {
+  recipientEmail: "recipient@example.test",
+  recipientName: "A. Recipient",
+  senderName: "A. Buyer",
+  message: "Someone spent $25 so you would not have to",
 };
 
 /** A store with the one constraint that matters: `order_id` is unique. */
@@ -54,7 +63,22 @@ function fakeStore(): DealStore & {
       const orderId = String(data.order_id);
       if (rows.has(orderId)) throw new Error("Lousy deal with order_id: already exists.");
       serial += 1;
-      const row = { ...data, id: `deal_${String(serial)}`, order_id: orderId, serial, public_slug: String(data.public_slug) };
+      // The gift columns are named rather than left to the spread, so the
+      // fake reports what the database would: a column that was written, with
+      // the value it was written with, and `null` where it was not. A spread
+      // alone satisfies the runtime and leaves the type lying about the row.
+      const text = (value: unknown): string | null => (typeof value === "string" ? value : null);
+      const row = {
+        ...data,
+        id: `deal_${String(serial)}`,
+        order_id: orderId,
+        serial,
+        public_slug: String(data.public_slug),
+        gift_recipient_email: text(data.gift_recipient_email),
+        gift_recipient_name: text(data.gift_recipient_name),
+        gift_sender_name: text(data.gift_sender_name),
+        gift_message: text(data.gift_message),
+      };
       rows.set(orderId, row);
       return row;
     },
@@ -88,6 +112,66 @@ describe("issuing a deal", () => {
     expect(Object.keys(written ?? {})).not.toContain("serial");
     expect(deal.serial).toBe(1);
     expect(deal.public_slug).toMatch(new RegExp(`^[${SLUG_ALPHABET}]{${SLUG_LENGTH}}$`));
+  });
+
+  it("writes §6's four gift fields when the order was a gift", async () => {
+    const store = fakeStore();
+    const deal = await issueDeal(store, { ...INPUT, gift: GIFT });
+
+    expect(store.written[0]).toMatchObject({
+      gift_recipient_email: "recipient@example.test",
+      gift_recipient_name: "A. Recipient",
+      gift_sender_name: "A. Buyer",
+      gift_message: "Someone spent $25 so you would not have to",
+    });
+    // Read back off the row, which is what G5 will decide the send from.
+    expect(deal.gift_recipient_email).toBe("recipient@example.test");
+  });
+
+  it("writes four explicit nulls for an ordinary purchase, not four absent keys", async () => {
+    // A row whose gift columns are *missing* reads identically to one whose
+    // columns are null today, and differently the moment anything filters on
+    // them. Writing them makes the ordinary case a stated fact rather than an
+    // omission.
+    const store = fakeStore();
+    await issueDeal(store, INPUT);
+    const written = store.written[0] ?? {};
+
+    for (const column of ["gift_recipient_email", "gift_recipient_name", "gift_sender_name", "gift_message"]) {
+      expect(Object.keys(written), column).toContain(column);
+      expect(written[column], column).toBeNull();
+    }
+  });
+
+  it("writes the address alone when §6's three optional fields are blank", async () => {
+    // §6 makes recipient name, sender name and message optional. Only the
+    // address is load-bearing, because the send has nowhere to go without it.
+    const store = fakeStore();
+    await issueDeal(store, {
+      ...INPUT,
+      gift: { recipientEmail: "recipient@example.test", recipientName: null, senderName: null, message: null },
+    });
+
+    expect(store.written[0]).toMatchObject({
+      gift_recipient_email: "recipient@example.test",
+      gift_recipient_name: null,
+      gift_sender_name: null,
+      gift_message: null,
+    });
+  });
+
+  it("returns the stored gift on a replay rather than the input's", async () => {
+    // **The reason `IssuedDeal` carries the gift at all.** On a replay the
+    // insert never happens and the input is rebuilt from the order, so a
+    // caller that asked its own input whether a message was owed would send a
+    // second one on every redelivery. G5 asks the row.
+    const store = fakeStore();
+    const first = await issueDeal(store, { ...INPUT, gift: GIFT });
+    const replay = await issueDeal(store, { ...INPUT, gift: GIFT });
+
+    expect(store.creates).toBe(1);
+    expect(replay.id).toBe(first.id);
+    expect(replay.gift_recipient_email).toBe("recipient@example.test");
   });
 
   it("dates the certificate from the order, not from the clock at issuance", async () => {

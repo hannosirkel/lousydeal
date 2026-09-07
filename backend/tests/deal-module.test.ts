@@ -73,6 +73,13 @@ describe("the deal model", () => {
         "currency_code",
         "display_name",
         "dedication",
+        // §6's gift metadata, which §16 names on the deal. Four and no
+        // `is_gift`: the address is what makes a deal a gift, and a boolean
+        // beside it is a second source that can disagree with the first.
+        "gift_recipient_name",
+        "gift_recipient_email",
+        "gift_sender_name",
+        "gift_message",
         "layout_version",
         "status",
         "issued_at",
@@ -103,6 +110,31 @@ describe("the deal model", () => {
     for (const required of ["order_id", "serial", "public_slug", "tier", "amount_paid", "currency_code", "layout_version", "status", "issued_at"]) {
       expect(fields[required]?.nullable, required).toBe(false);
     }
+  });
+
+  it("makes every gift field optional, because most deals are not gifts", () => {
+    // The ordinary purchase is the common case and has to be a representable
+    // state rather than four empty strings standing in for one.
+    for (const field of ["gift_recipient_name", "gift_recipient_email", "gift_sender_name", "gift_message"]) {
+      expect(fields[field]?.nullable, field).toBe(true);
+    }
+  });
+
+  it("does not make a gift a status, or a boolean", () => {
+    // Two things this model deliberately does not have.
+    //
+    // `is_gift` would be a second source of truth beside the address, and two
+    // fields that can disagree is a state nobody meant. The address is what
+    // makes a deal a gift: the send has nowhere to go without it, and §6's
+    // other three fields are optional.
+    //
+    // A `gift` status would fold §6 into moderation. `DEAL_STATUSES` answers
+    // "has an operator taken this down"; whether a certificate was a gift is
+    // orthogonal, and merging them would make hiding a gift and hiding a
+    // purchase different operations.
+    expect(Object.keys(fields)).not.toContain("is_gift");
+    expect(Object.keys(fields)).not.toContain("gift");
+    expect(DEAL_STATUSES).toEqual(["issued", "hidden"]);
   });
 
   it("can hide a certificate without deleting it, and without a new serial", () => {

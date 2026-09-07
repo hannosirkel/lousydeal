@@ -108,6 +108,40 @@ export const LousyDeal = model
     dedication: model.text().nullable(),
 
     /**
+     * §6's gift metadata, which §16 names on the deal and nowhere else.
+     *
+     * **Four nullable columns and no boolean.** A deal is a gift when
+     * `gift_recipient_email` is present, and there is deliberately no
+     * `is_gift` beside it: two fields that can disagree is a state nobody
+     * meant, and the address is the one field a gift cannot lack — the other
+     * three are optional under §6 and the send has nowhere to go without it.
+     *
+     * **Not a status.** `DEAL_STATUSES` is `issued` and `hidden`, which is
+     * moderation. Whether a certificate was a gift is orthogonal to whether an
+     * operator has taken it down, and folding one into the other would make
+     * hiding a gift and hiding a purchase different operations.
+     *
+     * **The recipient's name and address live here rather than only on the
+     * order** because the deal is what the send is derived from: the row that
+     * sends the gift message reads the deal it just issued, and asking two
+     * sources whether a message is owed is how a replay sends twice. The same
+     * argument `issue.ts` makes for reading the deal back rather than the
+     * error.
+     *
+     * **None of these is public.** LD-03's constraint 4, settled by the
+     * operator on 2026-09-07: the certificate publishes §5's `display_name`
+     * and `dedication`, which a buyer types about themselves. A third party's
+     * name on an indexable page, supplied by somebody else, is a different
+     * thing. `api/store/deals/[slug]/route.ts` projects an allowlist of eight
+     * fields and its test asserts that set exactly; these four must never join
+     * it, and G6 is the row that proves they have not.
+     */
+    gift_recipient_name: model.text().nullable(),
+    gift_recipient_email: model.text().nullable(),
+    gift_sender_name: model.text().nullable(),
+    gift_message: model.text().nullable(),
+
+    /**
      * Frozen at issuance and never updated. §5: an issued certificate keeps
      * the layout it was issued under, so a redesign is additive and never
      * restyles a certificate somebody already owns. The row that renders from
