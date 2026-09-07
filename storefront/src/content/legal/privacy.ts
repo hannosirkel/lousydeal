@@ -94,6 +94,7 @@ export const PRIVACY: LegalDocument = {
         "The email address is where the order confirmation we owe you goes, and we send it: § 55(1) requires that confirmation on a durable medium, and an email is one. Sending it is a legal obligation rather than anything you consented to, which is why §7 lists it there and nothing here asks for consent. §4 says what happens to the address and §7 how long it is kept.",
         "The payment itself happens inside a frame that Stripe serves and controls, which we place on our checkout page. Stripe decides what that frame asks for. Today it asks for your card details, and depending on how you pay it may also ask for your name, your email address, your telephone number or a billing address — and if you pay with Apple Pay, Google Pay or Link, those services hand Stripe what they hold about you. None of it is typed into anything we wrote, and none of it reaches us except as §4 describes.",
         "Stripe's script also collects signals about the device and browser you are paying from. It uses them to judge whether a payment is fraudulent, and that judgement is made automatically: a payment can be declined by it without a person looking. If that happens to you and you think it is wrong, write to {merchantEmail} and a person will look.",
+        "If you buy it as a gift, the checkout also asks for the recipient's email address and optionally their name, a name for you, and a short message. We use the address to send them the certificate once, and we do not write to them again. §6 is addressed to them, and you should know that giving us somebody else's address is you telling us we may write to them.",
         "You do not have to give any of this. It is what a card payment requires, so if you would rather not, the consequence is simply that you cannot buy anything here. Nothing else on the site is affected.",
       ],
     },
@@ -117,6 +118,17 @@ export const PRIVACY: LegalDocument = {
     },
     {
       number: "6",
+      heading: "If somebody sent you a certificate as a gift",
+      body: [
+        "This section is about you rather than about the person who bought it. You did not buy anything from us, you have no contract with us, and you did not give us your address — the buyer typed it in.",
+        "We hold what they typed: your email address, and your name if they gave one. We used them to send you one message with the certificate in it, and for nothing else. You are not on a list, there is nothing to unsubscribe from, and we are not going to write to you again.",
+        "Article 14 of the GDPR covers data obtained from somebody other than the person it is about. It requires us to tell you the things in this section, and Article 14(3)(b) requires it at the latest when we first write to you — so the message itself says the short version and points here for the rest. Our identity and contact details are in the Imprint; the basis is our legitimate interest in giving the buyer the gift they paid for, and yours in receiving what was bought for you.",
+        "The address is kept with the order it belongs to, which Estonian accounting law requires us to keep for seven years — §8 says so for the buyer and it is the same record. We would rather say that plainly than imply a shorter life for it.",
+        "You can ask what we hold, ask for it to be corrected or deleted, or object to us holding it at all. Write to {merchantEmail} and say which certificate it was, since we have no account to look you up by. §9 is the rest of your rights, and they are yours in the same way they are the buyer's.",
+      ],
+    },
+    {
+      number: "7",
       heading: "Where it is, and what leaves the European Economic Area",
       body: [
         "Your data is processed in the European Economic Area. The servers that run this shop and its database are within it.",
@@ -124,19 +136,21 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
-      number: "7",
+      number: "8",
       heading: "On what basis, and for how long",
       body: [
         "Taking your order and giving you what you paid for is performance of a contract. Keeping the accounting record, and confirming your order to you on a durable medium, are legal obligations. Operating and defending the site, and checking that a payment is not fraudulent, are our legitimate interests and Stripe's. Nothing on this site runs on consent, which is why nothing on it asks you for any.",
+        "Sending a gift certificate to the person a buyer named is our legitimate interest in delivering what they paid for, and theirs in receiving it — §6 says so to them directly. It is not consent either: the recipient was never asked, which is exactly why Article 14 applies rather than Article 13.",
         "The cart cookie ends with your browser session. Stripe's last 30 minutes and a year, as §2 says.",
         "Estonian accounting law requires us to keep the record of an order for seven years from the end of the financial year it falls in, and we keep it no longer than that. The payment details described in §4 are part of that record, and so is your email address; both are kept with it and for as long.",
+        "A gift recipient's address and name are part of the same order record and are kept for the same seven years. That is longer than sending one message needs, and we say so rather than implying otherwise: separating them from the order would mean keeping a second record of who was sent what, which is more data about that person and not less.",
         "The request lines described in §2 are kept for 30 days.",
         "Cloudflare keeps its own record of the requests it carries, under its own retention and not ours. We do not control how long it holds them, and §5 says what it sees.",
         "If you write to us we keep the message and your address for two years after the last message in the conversation, so that we can find it again if you come back about the same order.",
       ],
     },
     {
-      number: "8",
+      number: "9",
       heading: "Your rights",
       body: [
         "You may ask what we hold about you, ask for it to be corrected, ask for it to be deleted, ask us to stop or limit what we do with it, ask for a copy in a portable form, or object to processing we do on the basis of our legitimate interests. Write to {merchantEmail}.",

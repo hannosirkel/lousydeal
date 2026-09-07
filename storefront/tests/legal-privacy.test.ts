@@ -172,7 +172,7 @@ describe("what the checkout asks for", () => {
     // The claim worth forbidding is consent offered as the basis, so forbid
     // that directly.
     expect(purpose).not.toMatch(/\b(?:with|on the basis of|because of) your consent\b|\bbecause you consented\b/i);
-    expect(section("7")).toMatch(/legal obligations/i);
+    expect(section("8")).toMatch(/legal obligations/i);
   });
 
   it("discloses the automated decision, which Article 13(2)(f) requires", () => {
@@ -208,11 +208,11 @@ describe("the payment record", () => {
   });
 
   it("keeps the email address for as long as the order record, not silently longer", () => {
-    expect(claim(section("7"), /so is your email address/i)).toMatch(/kept with it and for as long/i);
+    expect(claim(section("8"), /so is your email address/i)).toMatch(/kept with it and for as long/i);
   });
 
   it("gives the payment details a retention period, not silence", () => {
-    expect(claim(section("7"), /payment details/)).toMatch(/kept with it/i);
+    expect(claim(section("8"), /payment details/)).toMatch(/kept with it/i);
   });
 });
 
@@ -246,15 +246,15 @@ describe("who else handles it", () => {
 
 describe("where it goes", () => {
   it("states EEA processing without an exception clause", () => {
-    const where = claim(section("6"), /European Economic Area/);
+    const where = claim(section("7"), /European Economic Area/);
     expect(where).toMatch(/processed in the European Economic Area/i);
     expect(where).not.toMatch(NEGATED);
   });
 
   it("names the safeguards and how to get a copy, per Article 13(1)(f)", () => {
-    expect(section("6")).toContain("EU–US Data Privacy Framework");
-    expect(section("6")).toMatch(/standard contractual clauses/i);
-    expect(claim(section("6"), /send you a copy/)).toContain("{merchantEmail}");
+    expect(section("7")).toContain("EU–US Data Privacy Framework");
+    expect(section("7")).toMatch(/standard contractual clauses/i);
+    expect(claim(section("7"), /send you a copy/)).toContain("{merchantEmail}");
   });
 
   it("names no hosting provider", () => {
@@ -271,23 +271,23 @@ describe("bases and retention", () => {
     // All three bases live in one paragraph, so locating the paragraph proves
     // nothing -- swapping them round leaves every phrase present and the
     // paragraph unchanged. Each purpose is bound to its basis in one string.
-    const bases = claim(section("7"), /performance of a contract/);
+    const bases = claim(section("8"), /performance of a contract/);
     expect(bases).toContain("giving you what you paid for is performance of a contract");
     expect(bases).toContain("Keeping the accounting record, and confirming your order to you on a durable medium, are legal obligations");
     expect(bases).toMatch(/defending the site, and checking that a payment is not fraudulent, are our legitimate interests/);
   });
 
   it("runs the accounting period from the end of the financial year", () => {
-    expect(claim(section("7"), /seven years/)).toMatch(/from the end of the financial year/i);
+    expect(claim(section("8"), /seven years/)).toMatch(/from the end of the financial year/i);
   });
 
   it("gives a period for every category, the log one now being measurable", () => {
     // Gate D established the number this row's predecessor said was unknowable:
     // the platform's Loki keeps 30 days, and its redaction stage drops secrets
     // rather than addresses. A criterion is no longer the honest answer.
-    expect(claim(section("7"), /request lines/)).toMatch(/30 days/);
-    expect(claim(section("7"), /cart cookie/)).toMatch(/ends with your browser session/i);
-    expect(claim(section("7"), /if you write to us/i)).toMatch(/two years after the last message/i);
+    expect(claim(section("8"), /request lines/)).toMatch(/30 days/);
+    expect(claim(section("8"), /cart cookie/)).toMatch(/ends with your browser session/i);
+    expect(claim(section("8"), /if you write to us/i)).toMatch(/two years after the last message/i);
     expect(prose).not.toMatch(/as long as it is useful/i);
   });
 
@@ -302,7 +302,7 @@ describe("bases and retention", () => {
 
 describe("rights and remedy", () => {
   it("lists the rights and names the Estonian authority", () => {
-    const rights = section("8");
+    const rights = section("9");
     for (const right of ["corrected", "deleted", "portable", "object"]) {
       expect(rights).toMatch(new RegExp(right, "i"));
     }
@@ -326,8 +326,38 @@ describe("the register", () => {
   });
 
   it("describes no feature belonging to a slice that has not started", () => {
-    for (const absent of ["gift", "t-shirt", "newsletter", "subscription", "Printful"]) {
+    // **"gift" was on this list until G7.** LD-03 built it, so the policy has
+    // to describe it -- a privacy notice silent about a third party's address
+    // it holds is the failure this guard was aimed at, pointing the other way.
+    // Inverted below rather than deleted.
+    for (const absent of ["t-shirt", "newsletter", "subscription", "Printful"]) {
       expect(`${absent}: ${String(prose.toLowerCase().includes(absent.toLowerCase()))}`).toBe(`${absent}: false`);
     }
+  });
+
+  it("describes the recipient's data, because we hold it and they never gave it", () => {
+    const gifts = section("6");
+
+    // Article 14 applies precisely because the data did not come from the
+    // person it is about, and the policy has to say so in those terms.
+    expect(gifts).toContain("Article 14");
+    expect(gifts).toMatch(/you did not give us your address/i);
+    expect(gifts).toMatch(/the buyer typed it in/i);
+
+    // Basis, retention and rights: the three a reader needs and the three a
+    // notice most often omits.
+    expect(gifts).toMatch(/legitimate interest/i);
+    expect(gifts).toMatch(/seven years/i);
+    expect(gifts).toMatch(/ask what we hold|ask for it to be corrected or deleted/i);
+
+    // And the promise that makes the rest bearable.
+    expect(gifts).toMatch(/not going to write to you again/i);
+  });
+
+  it("gives the gift its basis in §8, beside the others", () => {
+    // A basis stated only in the section addressed to the recipient would be
+    // missing from the list a supervisory authority reads first.
+    expect(section("8")).toMatch(/sending a gift certificate/i);
+    expect(section("8")).toMatch(/not consent either/i);
   });
 });

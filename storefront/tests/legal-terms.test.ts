@@ -168,29 +168,29 @@ describe("inscriptions", () => {
 
 describe("liability and law", () => {
   it("limits liability without limiting what law forbids limiting", () => {
-    expect(section("9")).toMatch(/intentional or grossly negligent/i);
-    expect(section("9")).toMatch(/death or personal injury/i);
-    expect(section("9")).toMatch(/cannot be limited by law/i);
+    expect(section("10")).toMatch(/intentional or grossly negligent/i);
+    expect(section("10")).toMatch(/death or personal injury/i);
+    expect(section("10")).toMatch(/cannot be limited by law/i);
   });
 
   it("caps contractual liability only, and says what the cap does not reach", () => {
-    expect(section("9")).toContain("liability for a breach of these terms is limited to the amount you paid");
+    expect(section("10")).toContain("liability for a breach of these terms is limited to the amount you paid");
     // A contract cannot cap Article 82 damages, and this site publishes a
     // buyer-supplied inscription on a public page.
-    expect(section("9")).toContain("Article 82");
+    expect(section("10")).toContain("Article 82");
   });
 
   it("chooses Estonian law without displacing a consumer's home protections", () => {
-    expect(section("10")).toContain("Estonian law governs");
-    expect(section("10")).toMatch(/mandatory rules of the country where you live/i);
+    expect(section("11")).toContain("Estonian law governs");
+    expect(section("11")).toMatch(/mandatory rules of the country where you live/i);
   });
 });
 
 describe("disputes", () => {
   it("names the Estonian authority and its committee", () => {
-    expect(section("11")).toContain("Consumer Disputes Committee");
-    expect(section("11")).toContain("tarbijavaidluste komisjon");
-    expect(section("11")).toContain("Endla 10A, 10122 Tallinn");
+    expect(section("12")).toContain("Consumer Disputes Committee");
+    expect(section("12")).toContain("tarbijavaidluste komisjon");
+    expect(section("12")).toContain("Endla 10A, 10122 Tallinn");
   });
 
   it("warns that the committee's threshold is above every price here", () => {
@@ -198,21 +198,21 @@ describe("disputes", () => {
     // dearest tier is below that. Offering a route that will not carry the
     // claim, without saying so, is the kind of unhelpful helpfulness §23 is
     // about.
-    expect(section("11")).toContain("at least 30 euros");
-    expect(section("11")).toMatch(/every item sold here costs less/i);
+    expect(section("12")).toContain("at least 30 euros");
+    expect(section("12")).toMatch(/every item sold here costs less/i);
   });
 
   it("does not tell an EU consumer a forum is closed to them", () => {
     // Sources conflict on whether the Committee takes cross-border disputes.
     // Asserting the narrow reading would deny a right that may exist.
-    expect(section("11")).not.toMatch(/only.*resident in Estonia/i);
-    expect(section("11")).toContain("European Consumer Centre");
-    expect(section("11")).toMatch(/courts remain open/i);
+    expect(section("12")).not.toMatch(/only.*resident in Estonia/i);
+    expect(section("12")).toContain("European Consumer Centre");
+    expect(section("12")).toMatch(/courts remain open/i);
   });
 
   it("gives the committee's own contact, not the authority's switchboard", () => {
-    expect(section("11")).toContain("avaldus@komisjon.ee");
-    expect(section("11")).not.toContain("info@ttja.ee");
+    expect(section("12")).toContain("avaldus@komisjon.ee");
+    expect(section("12")).not.toContain("info@ttja.ee");
   });
 
   it("links no dispute platform that no longer exists", () => {
@@ -232,11 +232,30 @@ describe("the register", () => {
   });
 
   it("describes no feature belonging to a slice that has not started", () => {
-    // Gifting is LD-03 and merch is LD-04. A term about a feature nobody can
-    // use is noise a lawyer has to read and a buyer has to disregard.
-    expect(prose.toLowerCase()).not.toContain("gift");
+    // Merch is LD-04. A term about a feature nobody can use is noise a lawyer
+    // has to read and a buyer has to disregard.
+    //
+    // **Gifting was on this list until G7**, and the header said "the row that
+    // builds gifting writes its clause". LD-03 built it, so §8 is that clause
+    // and the guard is inverted below rather than deleted -- the claim it made
+    // is now false and a guard asserting a false thing is worse than none.
     expect(prose.toLowerCase()).not.toContain("t-shirt");
     expect(prose.toLowerCase()).not.toContain("subscription");
+  });
+
+  it("carries the gifting clause, and says who holds the contract", () => {
+    const gifting = section("8");
+    // The one thing this clause exists to make unambiguous. A reader who
+    // thought gifting spent their withdrawal right would be wrong, and a
+    // recipient who thought they had a contract would be wrong the other way.
+    expect(gifting).toMatch(/the contract is still yours/i);
+    expect(gifting).toMatch(/you are the consumer/i);
+    expect(gifting).toMatch(/the recipient has a certificate; you have the contract/i);
+    expect(gifting).toContain("§6");
+
+    // And the constraint the operator settled: nothing about the recipient is
+    // printed or published.
+    expect(gifting).toMatch(/never printed on the certificate and are never published/i);
   });
 
   it("makes exactly the forward-looking claims its header enumerates", () => {

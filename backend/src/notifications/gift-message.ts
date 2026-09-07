@@ -32,6 +32,8 @@ import {
   GIFT_HEADINGS,
   GIFT_KEEP,
   GIFT_LABELS,
+  GIFT_NOTICE,
+  GIFT_TRADER,
   GIFT_OPENING,
   GIFT_SUBJECT,
   GIFT_WHAT,
@@ -67,8 +69,26 @@ const formatSerial = (serial: number): string => `#${serial.toLocaleString("en-U
 export function buildGiftMessage(
   gift: GiftMessageInput,
   merchant: MerchantIdentity | null,
+  siteBaseUrl: string,
 ): ConfirmationMessage | null {
   if (merchant === null) return null;
+
+  /** `{merchantEmail}` and friends, the way the confirmation resolves them. */
+  const fill = (line: string): string =>
+    line.replace(/\{(\w+)\}/g, (token, name: string) => {
+      const values: Record<string, string> = {
+        merchantLegalName: merchant.legalName,
+        merchantAddress: merchant.address,
+        merchantEmail: merchant.email,
+        merchantRegistryCode: merchant.registryCode,
+        merchantVatNumber: merchant.vatNumber,
+        merchantPhoneNumber: merchant.phoneNumber,
+        siteBaseUrl,
+      };
+      const value = values[name];
+      if (value === undefined) throw new Error(`unknown placeholder ${token} in the gift message`);
+      return value;
+    });
 
   // **The recipient's name goes in the body, not the heading.** Headings are
   // upper-cased in the text part, the way the confirmation's are, and
@@ -102,6 +122,11 @@ export function buildGiftMessage(
     ],
   ]);
   sections.push([GIFT_HEADINGS.keep, [...GIFT_KEEP]]);
+  // Article 14(3)(b): at the latest at the first communication, which this is.
+  // G4 shipped without either of these — the message took the trader identity
+  // and used it only as a null-guard, so it went out unsigned.
+  sections.push([GIFT_HEADINGS.notice, GIFT_NOTICE.map(fill)]);
+  sections.push([GIFT_HEADINGS.trader, GIFT_TRADER.map(fill)]);
 
   const text = sections
     .map(([heading, lines]) => [heading.toUpperCase(), "", ...lines].join("\n"))

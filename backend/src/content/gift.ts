@@ -36,6 +36,8 @@ export const GIFT_HEADINGS = {
   message: "They said",
   what: "What it is",
   keep: "It is yours",
+  notice: "Why you got this, and what we hold",
+  trader: "Who sent it",
 } as const;
 
 export const GIFT_LABELS = {
@@ -74,6 +76,36 @@ export const GIFT_WHAT = [
  * than the support message, and it is true without reciting a single right
  * they do not hold.
  */
+/**
+ * The Article 14 notice, and the identity behind it.
+ *
+ * **G4 left this out and G7 found it.** That row built a message that took the
+ * trader identity as an argument and used it only as a null-guard, so the
+ * recipient received an unsigned message from an unidentified controller. GDPR
+ * Article 14(1)(a) requires the controller's identity, and Article 14(3)(b)
+ * requires the information at the latest at the first communication — which
+ * this message is. A message that named nobody also simply reads like spam.
+ *
+ * **The position, stated so a reader can disagree with it.** The full
+ * Article 14(1)–(2) list is longer than this message should be, so it is given
+ * here in outline and in full at `{siteBaseUrl}/legal/privacy`, which §6 of
+ * that policy addresses to this reader specifically. Article 12(1) permits
+ * that: the information must be accessible, not exhaustively recited in the
+ * first sentence. Whether that is the right reading is §23's question and not
+ * this file's.
+ */
+export const GIFT_NOTICE = [
+  "We have your name and address because the person who bought this typed them in. We used them to send you this message and for nothing else, we have not added you to anything, and we are not going to write to you again.",
+  "You can ask us what we hold about you, ask for it to be corrected or deleted, or object to us holding it at all. Write to {merchantEmail}. What we keep, for how long, and on what basis is at {siteBaseUrl}/legal/privacy — §6 there is about you rather than about the buyer.",
+] as const;
+
+/** Who sent it. Article 14(1)(a), and the difference between a message and spam. */
+export const GIFT_TRADER = [
+  "{merchantLegalName}, {merchantAddress}",
+  "Registry code {merchantRegistryCode} · VAT {merchantVatNumber}",
+  "{merchantEmail} · {merchantPhoneNumber}",
+] as const;
+
 export const GIFT_KEEP = [
   "Nobody will ask you for anything. We have your address because the person who bought this typed it in, we used it to send you this, and we are not going to write to you again.",
   "If something is wrong with it, the person who bought it is the one who can sort it out with us — they made the purchase and we deal with them.",
