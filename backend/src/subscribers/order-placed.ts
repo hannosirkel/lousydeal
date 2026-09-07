@@ -42,9 +42,43 @@ interface QueriedOrder {
 }
 
 /** Medusa carries money as a `BigNumber`-backed value that serialises to a number here; anything else is not an amount. */
+/**
+ * A money value from Medusa, as a number.
+ *
+ * **Medusa hands money over as a `BigNumber` instance, not a number.** This
+ * accepted a number or a numeric string, so `typeof value === "object"` fell
+ * through to `null` and every real order was skipped with `total=none` -- no
+ * deal issued, no certificate, no § 55 confirmation, for an order that had
+ * taken the money. It passed every test in this repository because the tests
+ * supply plain numbers, and it passed C6's and C7's end-to-end runs because
+ * those drive `buildOrderConfirmation` and the renderer directly rather than
+ * the subscriber. C15's Gate E order is what found it: `order_01M1XYA5…` paid
+ * $5 and produced nothing.
+ *
+ * Measured against the running backend rather than inferred:
+ * `query.graph({entity: "order", fields: ["total"]})` returns an object whose
+ * `constructor.name` is `BigNumber`, whose own keys are `numeric_`, `raw_` and
+ * `bignumber_`, and whose `numeric`, `valueOf()` and `toJSON()` are each the
+ * number `5`. `String()` gives `5.0000000000000000000`, which is why the
+ * string branch below reads `numeric`/`valueOf` rather than reformatting.
+ *
+ * The object branch is deliberately narrow: `Number([])` is `0` and
+ * `Number(null)` is `0`, either of which would arrive here as a plausible
+ * amount rather than as a refusal, so neither an array nor `null` reaches the
+ * conversion.
+ */
 function amount(value: unknown): number | null {
-  const numeric = typeof value === "string" ? Number(value) : value;
-  return typeof numeric === "number" && Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
+  const accept = (numeric: number): number | null =>
+    Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
+
+  if (typeof value === "number") return accept(value);
+  if (typeof value === "string") return accept(Number(value));
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const numeric = (value as { readonly numeric?: unknown }).numeric;
+  if (typeof numeric === "number") return accept(numeric);
+  const valued = (value as { valueOf(): unknown }).valueOf();
+  return typeof valued === "number" ? accept(valued) : null;
 }
 
 function text(value: unknown): string | null {

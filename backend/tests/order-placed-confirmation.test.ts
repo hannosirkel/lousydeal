@@ -12,6 +12,8 @@
  * there is no request to be handed one by.
  */
 
+import { BigNumber } from "@medusajs/framework/utils";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { MERCHANT_ENVIRONMENT_VARIABLES, type MerchantIdentity } from "../src/config/merchant";
@@ -86,7 +88,16 @@ describe("the subscriber", () => {
   };
 
   /** Runs the subscriber for one order and reports what it did. */
-  async function run(environment: Record<string, string>, orderEmail: string | null = "buyer@example.test") {
+  async function run(
+    environment: Record<string, string>,
+    orderEmail: string | null = "buyer@example.test",
+    // A wrapper object, not a bare `total` with a default: a default parameter
+    // fires on an explicitly passed `undefined` as well as an omitted one, and
+    // one of the refusal cases below is exactly an order whose total is
+    // undefined. Key presence is what distinguishes them.
+    money: { readonly total: unknown } | null = null,
+  ) {
+    const orderTotal = money === null ? new BigNumber(25) : money.total;
     const original = { ...process.env };
     const notifications: Record<string, unknown>[] = [];
     const errors: string[] = [];
@@ -101,7 +112,7 @@ describe("the subscriber", () => {
         id: "order_01",
         email: orderEmail,
         currency_code: "usd",
-        total: 25,
+        total: orderTotal,
         created_at: "2026-09-06T10:00:00.000Z",
         metadata: {},
         items: [{ title: "Lousy Deal Pro", detail: { quantity: 1 } }],
@@ -143,6 +154,48 @@ describe("the subscriber", () => {
 
     return { notifications, errors, infos };
   }
+
+  describe("the shape money arrives in", () => {
+    /**
+     * **This is the test C15's Gate E order should not have had to be.**
+     *
+     * `amount()` accepted a number or a numeric string, and every fixture in
+     * this repository supplied a number -- so the whole suite passed while the
+     * subscriber skipped every real order with `total=none`, issuing no deal,
+     * no certificate and no § 55 confirmation for an order that had taken the
+     * money. Measured against the running backend: `query.graph` returns
+     * `total` as a `BigNumber` instance whose own keys are `numeric_`, `raw_`
+     * and `bignumber_`.
+     *
+     * The real class, imported from `@medusajs/framework/utils`, not a stub
+     * shaped like it -- a hand-rolled object is what a test would agree with
+     * while Medusa handed over something else.
+     */
+    it.each([
+      ["a BigNumber, which is what Medusa actually sends", new BigNumber(25), 25],
+      ["a plain number", 25, 25],
+      ["a numeric string", "25", 25],
+      ["a BigNumber of zero", new BigNumber(0), 0],
+    ])("reads a total from %s", async (_name, total, expected) => {
+      const { notifications, errors } = await run(ENVIRONMENT, "buyer@example.test", { total });
+      expect(errors).toEqual([]);
+      expect(notifications).toHaveLength(1);
+      const text = String((notifications[0]?.content as { text?: string })?.text ?? "");
+      expect(text).toContain(`$${expected.toFixed(2)}`);
+    });
+    it.each([
+      ["null", null],
+      ["undefined", undefined],
+      ["an array, which Number() would otherwise read as 0", []],
+      ["a plain object with no numeric value", { nope: true }],
+      ["a negative amount", -1],
+    ])("refuses to issue a deal on %s rather than inventing one", async (_name, total) => {
+      const { errors, notifications } = await run(ENVIRONMENT, "buyer@example.test", { total });
+      expect(notifications).toEqual([]);
+      expect(errors.join(" ")).toMatch(/deal issuance skipped/);
+      expect(errors.join(" ")).toContain("total=none");
+    });
+  });
 
   it("creates one email notification carrying the built confirmation", async () => {
     const { notifications, errors } = await run(ENVIRONMENT);
@@ -211,7 +264,7 @@ describe("the subscriber", () => {
                     id: "order_01",
                     email: "buyer@example.test",
                     currency_code: "usd",
-                    total: 25,
+                    total: new BigNumber(25),
                     created_at: "2026-09-06T10:00:00.000Z",
                     metadata: {},
                     items: [{ title: "Lousy Deal Pro", detail: { quantity: 1 } }],
