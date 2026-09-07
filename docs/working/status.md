@@ -8,13 +8,33 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-09-07 |
-| Current slice | **LD-02 — Certificates, complete.** Sixteen rows, `C1` to `C16`. LD-01 closed by the operator 2026-09-06; LD-09 complete. |
-| Next action | Choose the next slice. LD-02's completion report is at the foot of [`ld-02-certificates.md`](./ld-02-certificates.md); the legal gate below is unchanged and is still the operator's. |
+| Current slice | **LD-03 — Gifting**, planned, not started. LD-02 complete 2026-09-07; LD-01 closed by the operator 2026-09-06; LD-09 complete. |
+| Next action | Execute [`ld-03-gifting.md`](./ld-03-gifting.md) from `G1`. The legal gate below is unchanged and is still the operator's. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
 
 ## Next action, in full
+
+**LD-03 is the current slice**, planned in
+[`ld-03-gifting.md`](./ld-03-gifting.md): nine rows in `lousydeal` only, letting
+a buyer pay for a certificate somebody else receives. No `deploys` or `orange`
+change — it adds no secret, no environment value and no network destination, and
+reuses the mail transport LD-02 built.
+
+**Two decisions were settled by the operator on 2026-09-07 before planning.**
+The recipient's name does not appear on the public certificate — the public
+fields stay §5's `display_name` and `dedication`, which the buyer types about
+themselves. And a buyer's withdrawal does not automatically revoke a gift
+certificate; the § 56⁴(4) receipt reaches a person who decides.
+
+**The sharpest open question is G7's.** A gift means processing a third party's
+name and address, supplied by somebody else, to send one message. GDPR
+Article 14 requires informing a data subject whose data was not obtained from
+them; Article 14(5) exempts disproportionate effort, and whether the gift
+message is itself that notice is arguable. The row states the position and
+cites the provisions; §23 reserves whether it is right to the operator and a
+qualified human reader.
 
 **LD-01 was closed by the operator on 2026-09-06** and **LD-09 is complete** —
 sixteen rows, `V0` to `V15`, merged as pull requests 71 to 83 in this repository
