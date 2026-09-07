@@ -332,8 +332,11 @@ A handle no tier has is a **404**, not an empty quotation — a document headed
 
 The tier name in the home page's table links here.
 
-**No gift toggle.** Gifting is LD-03 and has no backend. A toggle that does
-nothing is a lie in a control, which is worse than an absent feature.
+**No gift toggle here.** This said "gifting is LD-03 and has no backend. A
+toggle that does nothing is a lie in a control, which is worse than an absent
+feature." LD-03 built the backend, so the objection is spent — but the control
+did not land on this page. It is at the checkout, where the buyer is already
+being asked things, rather than on a page whose one job is to describe a tier.
 
 ### Cart — `ORDER SUMMARY`
 
@@ -383,6 +386,61 @@ An empty document offers a way on: `NO ITEMS OF RECORD` above a secondary
 While the payment session is being created the page shows the blinking cursor
 with the hidden word `Preparing payment`. That is the state §4's loading row
 means: one inside a rendered page, never a route boundary.
+
+### Gift block — a disclosure inside `PAYMENT AUTHORISATION`
+
+`<details>`, closed, summarised `Send this to somebody else`. Inside it: the
+recipient's email address, their name, a name for the buyer, and a short
+message — the address required and the other three not, because §6 makes only
+the address load-bearing.
+
+**Closed is the decision, not the default.** Most orders are not gifts, and
+four fields a buyer has to read past to reach the pay button would tax every
+ordinary purchase for the sake of the occasional one. `<details>` also opens
+without scripting and is a control screen readers already announce, which a div
+with a click handler is not.
+
+The notice above the fields does one thing the rest of the checkout does not:
+it distinguishes these four from the two directly above them. §5's pair is
+public and printed; these are private and emailed. A buyer who put the
+recipient's name into `NAME ON THE CERTIFICATE` expecting privacy has been
+misled by the page, and that is the failure this copy exists to prevent.
+
+The preview beneath the message is the inscription preview's twin, headed
+`WHAT THEY WILL READ`. Its empty state is `No message` — **not** the
+certificate's `The bearer`, which names who a certificate is made out to and
+under this heading would claim the recipient reads those words.
+
+### Mail — three documents, and none of them is a page
+
+Nothing here had a specification until three transactional messages existed.
+They are documents in the same sense the pages are, and they are read in clients
+this identity does not control.
+
+**Plain text is the authoritative half.** Each message is built as sections —
+an upper-cased heading, a blank line, then lines — and the HTML says the same
+things in the same order. A reader who sees only one of them has the whole
+document. No images, no web fonts, no tracking pixel, no layout that a narrow
+client can break: an email that needs the network to be legible is not a durable
+medium.
+
+**Headings are upper-cased and names are not.** A person's name in a heading
+would be shouted, and `McDonald` would print as `MCDONALD`. So the greeting is
+impersonal and the name is the first line of the body.
+
+The three:
+
+- **`Your lousy deal #N`** — the § 55(1)–(2) confirmation, to the buyer. The
+  longest of the three by a distance, because § 55(2) requires the § 54(1)
+  information reproduced rather than linked. It gains one line when the order
+  was a gift and loses none.
+- **`We received your withdrawal`** — the § 56⁴(4) receipt, to whoever used the
+  withdrawal function, and separately to the trader, who is the only record
+  LD-02 keeps of it.
+- **`<name> bought you a lousy deal`** — the gift, to somebody who did not ask
+  to hear from us. It opens `Someone spent $5.00 on absolutely nothing for
+  you.`, carries no right the reader does not hold, offers nothing to buy, and
+  ends with who sent it and why we have their address.
 
 ### Certificate — the most designed surface
 
