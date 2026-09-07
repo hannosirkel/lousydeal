@@ -192,6 +192,42 @@ export default async function orderPlaced({
 }
 
 /**
+ * The idempotency keys Medusa's notification module dedupes on.
+ *
+ * **This is what makes a redelivered event send nothing further**, and it is
+ * the answer to the question LD-03's plan told G5 to decide on evidence rather
+ * than in advance: no new column, no `sent_at`, no second source of truth.
+ * `CreateNotificationDTO` carries an `idempotency_key`, and
+ * `@medusajs/notification/dist/services/notification-module-service.js:39-75`
+ * enforces it inside a transaction — it lists the notifications already
+ * holding these keys and creates only the ones absent, so a second delivery
+ * creates nothing and sends nothing.
+ *
+ * Better than a column would have been, for a reason worth stating: the
+ * exclusion is keyed on `status === FAILURE`, so a send that *failed* is
+ * retried on the next delivery while one that succeeded is not. A column
+ * written after a successful send would have had the same effect; a column
+ * written before it would have swallowed the retry.
+ *
+ * **`deal.id`, not the order id.** The deal is minted once per order by C2's
+ * read-first/insert/read-again, so its id is the stable thing a replay
+ * recovers. It is also what a human debugging a missing message has in front
+ * of them.
+ *
+ * **The race window is real and is not closed here.** That module's own source
+ * carries `// TODO: At this point we should probably take a lock with the
+ * idempotency keys so we don't have race conditions.` — two deliveries
+ * arriving at the same instant can both pass the list and both send. The
+ * database's unique index makes that impossible for *issuance*; nothing makes
+ * it impossible for a send. What this closes is the ordinary case, which is
+ * sequential redelivery after a worker restart or a Stripe retry.
+ */
+const notificationKey = {
+  confirmation: (dealId: string) => `lousydeal:order-confirmation:${dealId}`,
+  gift: (dealId: string) => `lousydeal:gift-message:${dealId}`,
+} as const;
+
+/**
  * Sends the VOS § 55(1)-(2) confirmation, or says why it did not.
  *
  * **The one thing it must never do is send a deficient one.** § 55(2) requires
@@ -281,6 +317,9 @@ async function sendConfirmation({
       channel: "email",
       template: "order-confirmation",
       content: message,
+      // A redelivered `order.placed` must not send a second § 55
+      // confirmation. Nothing stopped that before this row.
+      idempotency_key: notificationKey.confirmation(deal.id),
     });
     // The address is not logged. It is the one piece of personal data this
     // subscriber handles, and a log line is a place it would outlive the
@@ -366,6 +405,9 @@ async function sendGift({
       channel: "email",
       template: "gift-message",
       content: gift,
+      // §16: "Stripe/webhook retries must not generate duplicate
+      // certificates, Printful orders, or gifts."
+      idempotency_key: notificationKey.gift(deal.id),
     });
     // Neither address is logged. The recipient's is a third party's, which
     // makes it the one piece of personal data in this slice that its subject
