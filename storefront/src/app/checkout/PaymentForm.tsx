@@ -60,6 +60,12 @@ import {
   EMAIL_LABEL,
   INSCRIPTION_LABELS,
   INSCRIPTION_NOTICE,
+  GIFT_CONFIRMATION_NOTE,
+  GIFT_LABELS,
+  GIFT_NOTICE,
+  GIFT_PREVIEW_EMPTY,
+  GIFT_PREVIEW_LABEL,
+  GIFT_SUMMARY,
   INSCRIPTION_PREVIEW_LABEL,
   PAY_LABEL,
   PAYING_LABEL,
@@ -68,9 +74,10 @@ import {
 } from "../../content/checkout";
 import { NO_INSCRIPTION } from "../../content/certificate";
 import { payDisabled } from "../../lib/checkout-rules";
+import { GIFT_LIMITS, previewGiftText } from "../../lib/gift";
 import { INSCRIPTION_LIMITS, sanitiseInscription } from "../../lib/inscription";
 import type { FetchJson, StoreFetchInit, StoreRegionCountry } from "../../lib/medusa-client";
-import { setCartCountry, setCartEmail, setCartInscription } from "../../lib/store-checkout";
+import { setCartCountry, setCartEmail, setCartInscriptionAndGift } from "../../lib/store-checkout";
 import { completeCheckoutCart, createPaymentCollection, initiateStripePaymentSession } from "../../lib/store-payment";
 
 /** This route's own mount point (`src/app/api/store/[...path]/route.ts`), never the backend origin. */
@@ -226,6 +233,25 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
    */
   const [displayName, setDisplayName] = useState("");
   const [dedication, setDedication] = useState("");
+  /**
+   * §6's four gift fields. G3.
+   *
+   * Held raw for §5's reason, and read only when the disclosure is open: a
+   * buyer who typed a recipient, changed their mind and closed the block has
+   * not ordered a gift, and the closed block sends four nulls.
+   *
+   * `giftOpen` mirrors the `<details>` element rather than driving it. The
+   * element opens on its own without scripting; this state exists so
+   * `handleSubmit` knows whether the block was open, and so the preview
+   * beneath the message renders. Reading `open` off the DOM at submit time
+   * would work too and would be one more thing that only works with a
+   * reference.
+   */
+  const [giftOpen, setGiftOpen] = useState(false);
+  const [giftRecipientName, setGiftRecipientName] = useState("");
+  const [giftRecipientEmail, setGiftRecipientEmail] = useState("");
+  const [giftSenderName, setGiftSenderName] = useState("");
+  const [giftMessage, setGiftMessage] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -258,7 +284,20 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
       // below, so neither can leave a charged card on an order Medusa then
       // refuses. `setCartEmail` throws on an address Medusa will not take.
       await setCartEmail(fetchJson, cartId, email);
-      await setCartInscription(fetchJson, cartId, { displayName, dedication });
+      // One call, not two: Medusa replaces the whole `metadata` object on
+      // each write, so a second would erase the first's keys.
+      await setCartInscriptionAndGift(fetchJson, cartId, {
+        displayName,
+        dedication,
+        gift: giftOpen
+          ? {
+              recipientName: giftRecipientName,
+              recipientEmail: giftRecipientEmail,
+              senderName: giftSenderName,
+              message: giftMessage,
+            }
+          : null,
+      });
       await setCartCountry(fetchJson, cartId, countryCode);
 
       // `redirect: "if_required"` keeps a standard test-mode card on this
@@ -353,6 +392,100 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
       <FinePrint>
         <span aria-live="polite">{sanitiseInscription(dedication) ?? ""}</span>
       </FinePrint>
+
+      {/* G3. §6's gift block, closed by default because most orders are not
+          gifts and four fields before the pay button would tax every ordinary
+          purchase for the sake of the occasional one.
+
+          `<details>` rather than a checkbox and a conditional render: it opens
+          without JavaScript, screen readers already announce it, and it needs
+          no state to work. `onToggle` records what the element did rather than
+          driving it -- `handleSubmit` has to know whether the block was open,
+          and a buyer who typed a recipient and then closed it has not ordered
+          a gift.
+
+          The surrounding checkout does require scripting, because of the card
+          form. This block adds no dependency of its own; it does not claim the
+          gift flow degrades. */}
+      <details
+        className="gift"
+        onToggle={(event) => setGiftOpen((event.currentTarget as HTMLDetailsElement).open)}
+      >
+        <summary>{GIFT_SUMMARY}</summary>
+        {/* Before the fields, not after: what is public, what is not, and that
+            somebody else will be emailed. A buyer who put the recipient's name
+            into the certificate's own field expecting privacy has been misled
+            by this page. */}
+        <FinePrint>
+          <span id="checkout-gift-notice">{GIFT_NOTICE}</span>
+        </FinePrint>
+        {/* `required` only inside an open block: the constraint applies when
+            the element is open, and a closed one submits nothing. `type="email"`
+            is the enforcing half, the way it is on the buyer's own address --
+            `requestSubmit()` runs constraint validation, so an open block
+            cannot reach `handleSubmit` without one. */}
+        <p className="field">
+          <label htmlFor="checkout-gift-email">{GIFT_LABELS.recipientEmail}</label>
+          <input
+            id="checkout-gift-email"
+            type="email"
+            value={giftRecipientEmail}
+            maxLength={GIFT_LIMITS.recipientEmail}
+            autoComplete="off"
+            required={giftOpen}
+            aria-describedby="checkout-gift-notice"
+            onChange={(event) => setGiftRecipientEmail(event.target.value)}
+          />
+        </p>
+        <p className="field">
+          <label htmlFor="checkout-gift-recipient">{GIFT_LABELS.recipientName}</label>
+          <input
+            id="checkout-gift-recipient"
+            type="text"
+            value={giftRecipientName}
+            maxLength={GIFT_LIMITS.recipientName}
+            autoComplete="off"
+            aria-describedby="checkout-gift-notice"
+            onChange={(event) => setGiftRecipientName(event.target.value)}
+          />
+        </p>
+        <p className="field">
+          <label htmlFor="checkout-gift-sender">{GIFT_LABELS.senderName}</label>
+          <input
+            id="checkout-gift-sender"
+            type="text"
+            value={giftSenderName}
+            maxLength={GIFT_LIMITS.senderName}
+            autoComplete="off"
+            aria-describedby="checkout-gift-notice"
+            onChange={(event) => setGiftSenderName(event.target.value)}
+          />
+        </p>
+        <p className="field">
+          <label htmlFor="checkout-gift-message">{GIFT_LABELS.message}</label>
+          <input
+            id="checkout-gift-message"
+            type="text"
+            value={giftMessage}
+            maxLength={GIFT_LIMITS.message}
+            autoComplete="off"
+            aria-describedby="checkout-gift-notice"
+            onChange={(event) => setGiftMessage(event.target.value)}
+          />
+        </p>
+        {/* The same disclosure §5 gets, for the same reason: a buyer who typed
+            a URL sees it vanish here rather than discovering later that we
+            removed it from a message they thought they had sent. */}
+        <Ledger>
+          <LedgerRow
+            label={GIFT_PREVIEW_LABEL}
+            value={previewGiftText(giftMessage, GIFT_LIMITS.message) ?? GIFT_PREVIEW_EMPTY}
+          />
+        </Ledger>
+        <FinePrint>
+          <span>{GIFT_CONFIRMATION_NOTE}</span>
+        </FinePrint>
+      </details>
 
       {/* Collects the one field the row asks for, sourced from `countries` --
           the region's own list, not free text -- and read by `setCartCountry`

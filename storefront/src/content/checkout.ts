@@ -91,6 +91,76 @@ export const INSCRIPTION_NOTICE =
 export const INSCRIPTION_PREVIEW_LABEL = "What will appear";
 
 /**
+ * §6's gift block, behind a disclosure the buyer has to open.
+ *
+ * **Closed by default, and that is the decision.** Most orders are not gifts,
+ * and four fields a buyer has to read past to reach the pay button would tax
+ * every ordinary purchase for the sake of the occasional one. `brand.md`
+ * forbade a gift toggle on the ground that "a toggle that does nothing is a
+ * lie in a control"; this is the row that gives it something to do, so the
+ * objection is spent rather than overruled.
+ *
+ * **`<details>` rather than a checkbox and a conditional.** It opens without
+ * JavaScript, it is a control screen readers already understand, and it needs
+ * no state in `PaymentForm.tsx`. The surrounding checkout does require
+ * scripting -- it is the one route on this site that does, because of the card
+ * form -- so this is not a claim that the gift flow degrades. It is that the
+ * disclosure adds no new dependency on scripting of its own.
+ */
+export const GIFT_SUMMARY = "Send this to somebody else";
+
+export const GIFT_LABELS = {
+  recipientName: "Their name (optional)",
+  recipientEmail: "Their email address",
+  senderName: "Your name, as they should see it (optional)",
+  message: "A short message (optional)",
+} as const;
+
+/**
+ * What happens to these four, said before they are typed.
+ *
+ * **It has to distinguish them from §5's two, which are the opposite.** A
+ * buyer who put the recipient's name into `NAME ON THE CERTIFICATE` expecting
+ * privacy, or their own into the gift block expecting it to be printed, has
+ * been misled by this page. So the notice says which is public and which is
+ * not, in that order, rather than describing only itself.
+ *
+ * **It says a stranger will be emailed.** §23 wants a buyer to know what their
+ * money does, and a person who did not realise somebody else would receive
+ * mail has been surprised by us.
+ */
+export const GIFT_NOTICE =
+  "The certificate is emailed to the address you give here, once you have paid. None of these four is printed on the certificate or published anywhere — the two fields above are the public ones. Links, domain names, email addresses and telephone numbers are removed from the message, the same way they are from the inscription.";
+
+/** Shown beside the message, the way `INSCRIPTION_PREVIEW_LABEL` is. */
+export const GIFT_PREVIEW_LABEL = "What they will read";
+
+/**
+ * The empty state for that preview.
+ *
+ * **Not `NO_INSCRIPTION`**, which is the certificate's own placeholder and
+ * reads "The bearer". That is the right words under `WHAT WILL APPEAR`, where
+ * it names who the certificate is made out to, and nonsense under `WHAT THEY
+ * WILL READ`, where it claims the recipient will read the words "The bearer".
+ *
+ * Found by rendering the block at 390px and looking at it, which is the only
+ * way this kind of defect is ever found: every assertion about the preview
+ * passed while it said the wrong thing.
+ */
+export const GIFT_PREVIEW_EMPTY = "No message";
+
+/**
+ * Said where the buyer can still act on it.
+ *
+ * The § 55 confirmation goes to the buyer and the certificate goes to the
+ * recipient; LD-03's constraint 5 is that the recipient gets no part of the
+ * contract. A buyer who expects to receive the certificate themselves and does
+ * not is a support message, and this sentence is cheaper than the reply.
+ */
+export const GIFT_CONFIRMATION_NOTE =
+  "Your own confirmation still comes to the address above, and it names where the certificate went.";
+
+/**
  * The price disclosure, above the pay control rather than below it.
  *
  * Decision `009`: the advertised price is what every buyer is charged, EU or

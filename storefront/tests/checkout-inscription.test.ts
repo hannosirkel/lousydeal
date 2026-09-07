@@ -10,7 +10,7 @@
  *
  * **What this file cannot reach** is the same boundary `checkout-email.test.ts`
  * names: `handleSubmit` needs a browser, a DOM and a live Stripe. The fields
- * and the preview are asserted off real markup, `setCartInscription` against a
+ * and the preview are asserted off real markup, the cart writer against a
  * stub, and the link between them against the source.
  */
 
@@ -23,7 +23,8 @@ import { NO_INSCRIPTION } from "../src/content/certificate";
 import { INSCRIPTION_LABELS, INSCRIPTION_NOTICE, INSCRIPTION_PREVIEW_LABEL } from "../src/content/checkout";
 import { INSCRIPTION_LIMITS } from "../src/lib/inscription";
 import type { FetchJson, StoreFetchInit } from "../src/lib/medusa-client";
-import { INSCRIPTION_METADATA, setCartInscription } from "../src/lib/store-checkout";
+import { GIFT_METADATA } from "../src/lib/gift";
+import { INSCRIPTION_METADATA, setCartInscriptionAndGift } from "../src/lib/store-checkout";
 
 vi.mock("@stripe/react-stripe-js", () => ({
   Elements: ({ children }: { children: unknown }) => children,
@@ -102,7 +103,15 @@ describe("the preview", () => {
   });
 });
 
-describe("setCartInscription", () => {
+describe("setCartInscriptionAndGift", () => {
+  /**
+   * **One writer, because Medusa replaces the whole `metadata` object.**
+   * G3 merged `setCartInscription` into this. Two calls would have meant the
+   * second erasing the first's keys, and the inscription arriving at issuance
+   * as an absence rather than as what the buyer typed -- a bug that would have
+   * shown up only on gift orders, and only in the certificate rather than in
+   * anything this suite watches.
+   */
   function stub(): { fetchJson: FetchJson; body: () => unknown; path: () => string } {
     let seenBody: unknown;
     let seenPath = "";
@@ -117,15 +126,23 @@ describe("setCartInscription", () => {
   it("writes both fields under the keys the backend reads", () => {
     const { fetchJson, body, path } = stub();
 
-    return setCartInscription(fetchJson, "cart_1", {
+    return setCartInscriptionAndGift(fetchJson, "cart_1", {
       displayName: "Jane Example",
       dedication: "worth every cent",
+      gift: null,
     }).then(() => {
       expect(path()).toBe("/store/carts/cart_1");
       expect(body()).toEqual({
         metadata: {
           [INSCRIPTION_METADATA.displayName]: "Jane Example",
           [INSCRIPTION_METADATA.dedication]: "worth every cent",
+          // Four explicit nulls, not four absent keys: `readGift` decides a
+          // gift on whether a usable address survived, and `null` says "no
+          // gift" without needing to be trimmed away first.
+          [GIFT_METADATA.recipientName]: null,
+          [GIFT_METADATA.recipientEmail]: null,
+          [GIFT_METADATA.senderName]: null,
+          [GIFT_METADATA.message]: null,
         },
       });
     });
@@ -138,14 +155,19 @@ describe("setCartInscription", () => {
     // public, so a filter on this side protects nothing anyway.
     const { fetchJson, body } = stub();
 
-    return setCartInscription(fetchJson, "cart_1", {
+    return setCartInscriptionAndGift(fetchJson, "cart_1", {
       displayName: "<script>alert(1)</script>",
       dedication: "buy at evil.example.com",
+      gift: null,
     }).then(() => {
       expect(body()).toEqual({
         metadata: {
           [INSCRIPTION_METADATA.displayName]: "<script>alert(1)</script>",
           [INSCRIPTION_METADATA.dedication]: "buy at evil.example.com",
+          [GIFT_METADATA.recipientName]: null,
+          [GIFT_METADATA.recipientEmail]: null,
+          [GIFT_METADATA.senderName]: null,
+          [GIFT_METADATA.message]: null,
         },
       });
     });
@@ -154,18 +176,26 @@ describe("setCartInscription", () => {
   it("sends null for a blank field, so there is one no-inscription state and not two", () => {
     const { fetchJson, body } = stub();
 
-    return setCartInscription(fetchJson, "cart_1", { displayName: "", dedication: "   " }).then(() => {
+    return setCartInscriptionAndGift(fetchJson, "cart_1", {
+      displayName: "",
+      dedication: "   ",
+      gift: null,
+    }).then(() => {
       expect(body()).toEqual({
         metadata: {
           [INSCRIPTION_METADATA.displayName]: null,
           [INSCRIPTION_METADATA.dedication]: null,
+          [GIFT_METADATA.recipientName]: null,
+          [GIFT_METADATA.recipientEmail]: null,
+          [GIFT_METADATA.senderName]: null,
+          [GIFT_METADATA.message]: null,
         },
       });
     });
   });
 
   it("is called before the card is charged", () => {
-    const writes = source.indexOf("setCartInscription(fetchJson, cartId");
+    const writes = source.indexOf("setCartInscriptionAndGift(fetchJson, cartId");
     const confirms = source.indexOf("stripe.confirmPayment");
 
     expect(writes).toBeGreaterThan(-1);
