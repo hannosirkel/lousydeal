@@ -7,9 +7,9 @@ does not.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-06 |
-| Current slice | **LD-02 — Certificates**, planned, not started. LD-01 closed by the operator 2026-09-06; LD-09 complete. |
-| Next action | Execute [`ld-02-certificates.md`](./ld-02-certificates.md) from `C1`. Two operator items below run alongside it. |
+| Updated | 2026-09-07 |
+| Current slice | **LD-02 — Certificates, complete.** Sixteen rows, `C1` to `C16`. LD-01 closed by the operator 2026-09-06; LD-09 complete. |
+| Next action | Choose the next slice. LD-02's completion report is at the foot of [`ld-02-certificates.md`](./ld-02-certificates.md); the legal gate below is unchanged and is still the operator's. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -21,13 +21,21 @@ sixteen rows, `V0` to `V15`, merged as pull requests 71 to 83 in this repository
 and 35 in `deploys`. The plan and its record are
 [`ld-09-visual-identity.md`](./ld-09-visual-identity.md).
 
-**LD-02 is the current slice**, planned in
+**LD-02 is complete**, recorded in
 [`ld-02-certificates.md`](./ld-02-certificates.md): sixteen rows across three
 repositories, issuing a deal for a real order, addressing it at
 `/done-deals/{slug}`, rendering it as a page and a vector PDF, and sending the
-§ 55 confirmation the publication gate is waiting on. The transactional mail
-credentials were supplied on 2026-09-06 and are held in the operator's key
-store; they reach OpenBao in `C11` and no repository.
+§ 55 confirmation the publication gate was waiting on. The transactional mail
+credentials were supplied on 2026-09-06, seeded to OpenBao by `C11`, and reach
+no repository.
+
+**It has been driven end to end.** C15's Gate E paid for a certificate on the
+test environment with a Stripe test card, and the order issued a deal, sent the
+confirmation, rendered the certificate and produced the PDF. That order also
+found the one defect that mattered: `amount()` in the order-placed subscriber
+rejected the `BigNumber` Medusa hands money over as, so every paid order had
+been producing nothing while 1,318 tests passed. Fixed, mutation-checked, and
+the fixtures now carry the real class.
 
 Two things are still waiting on the operator, and they are not the same kind of
 thing.
@@ -55,11 +63,16 @@ authority's may diverge most:
   position taken; it does not resolve the ePrivacy question.
 
 **The § 56⁴ withdrawal button exists**, at `/legal/withdraw`, in the footer of
-every page and working with scripting off. What it cannot do is send the
-§ 56⁴(4) receipt, because nothing here sends email — which is LD-02's, and is
-the same reason item 11 is open.
+every page and working with scripting off. `C14` made its confirmation control
+transmit: it records the withdrawal and sends the § 56⁴(4) receipt on a durable
+medium, still with no JavaScript, verified against the deployed site.
 
-### 2. Six merchant values in the private inventory
+**Gate item 11 is closed** — the § 55 confirmation is built and sending. Items
+12 and 13 are narrowed by `C13` and remain open. Seven items remain, and only
+one of them is work: the deletion job for the seven-year accounting record
+(15), still unassigned.
+
+### 2. Six merchant values in the private inventory — supplied
 
 **Not secrets, and not OpenBao.** §2b's open decision was settled on 2026-09-06
 and the answer is the reference project's: the trader identity is injected by
@@ -67,10 +80,12 @@ Orange's Application from `argocd_lousydeal_environments[*].merchant`, whose
 committed values are placeholders and whose real values live in the operator's
 private Ansible inventory.
 
-So the remaining action is: put the real six — legal name, address, email,
-telephone, registry code, VAT number — under that key in the private
-`orange.yml`. Until then both environments render `Example Trader OÜ` and the
-rest of the placeholders.
+**This is done.** The real six — legal name, address, email, telephone,
+registry code, VAT number — are under that key in the private `orange.yml` for
+both environments, added while deploying `C11`, and the deployed test
+environment renders `Aislopica OÜ` rather than the placeholder. The private
+inventory is gitignored and machine-local, so this is recorded here rather than
+committed anywhere.
 
 `deploys/lousydeal/base/storefront.yaml` carries the real values as a fallback
 the patch supersedes, for the reason `deploys/plepic`'s does: a manifest applied
@@ -80,13 +95,21 @@ without Orange should still publish a lawful imprint rather than a page of gaps.
 server with all six configured, it renders no gap and no incompleteness notice —
 the first time that has been true.
 
-### What LD-02 still needs from the operator
+### What LD-02 needed from the operator, and what is left
 
-Named in full in that plan's `OWNER MUST FILL`. The blocking one is the SMTP
-submission host, port, TLS servername and destination CIDR for each environment.
-Those are inventory values, not secrets, and they belong in the private
-`orange.yml` beside the merchant block above — `C10` and `C11` cannot be
-verified against a running deployment without them.
+The SMTP submission host, port, TLS servername and destination CIDR are in the
+private `orange.yml` for both environments, and mail is sending from both.
+
+Two items in that plan's `OWNER MUST FILL` are still open and neither blocks
+anything built: the retention period for the inscription as distinct from the
+order, and whether a buyer may ask for a certificate link again. There are no
+accounts (§12), so today the confirmation email is the only copy of that URL.
+
+**One acceptance item is the operator's and cannot be automated.** C15 sent two
+§ 55 confirmations and one § 56⁴(4) receipt to a real address. Whether they
+arrived, are readable, and landed in an inbox rather than a spam folder is a
+human judgement — and the DKIM signature, which only the received copy shows,
+is part of it.
 
 ## Operator items
 
@@ -97,15 +120,16 @@ What is actually held, as against what the contract expects in §2b.
 | Domain `lousydeal.com` | yes | DNS not yet published |
 | Company identity, Aislopica OÜ | yes | §2b |
 | Stripe test-mode keys | yes | `.keys/stripe-lousydeal-test` in the Orange checkout, provider-first per `006` |
-| Merchant identity in the private `orange.yml` | **no** | placeholders render until it is there; §2b settled 2026-09-06, and these are inventory values rather than secrets |
+| Merchant identity in the private `orange.yml` | **yes** | added 2026-09-07 while deploying `C11`; the test environment renders `Aislopica OÜ` |
 | Stripe live keys | no | not before the publication gate, by design |
 | Printful account and sandbox | no | request before LD-04 |
 | SMTP transactional credentials | **yes** | supplied 2026-09-06, live and test; in the Orange key store, seeded to OpenBao by `C11` |
-| SMTP submission host, port, servername and destination CIDR | **no** | inventory values, per environment; blocks `C10` and `C11` from being verified against a deployment |
+| SMTP submission host, port, servername and destination CIDR | **yes** | added 2026-09-07; mail verified sending from both environments |
 | Cloudflare Access policy for `test.lousydeal.com` | yes | measured 2026-09-05: all three hostnames answer 302 to Access |
 
-The runtime credentials the deployment reads are seeded; the two merchant
-fields above are not. The path is §2b, step 1 to 6.
+Every runtime credential the deployment reads is seeded, and every inventory
+value LD-02 needed is in place. What remains on this list is Stripe live keys
+and Printful, both deliberately after the publication gate.
 
 ## Deployment
 
