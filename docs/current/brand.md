@@ -259,10 +259,18 @@ document.
    **That fourth line used to say the right "is waived at checkout by an
    express consent the buyer gives", and that was wrong.** VÕS § 53(4) p 7¹
    removes the right only once the trader has *also* given the § 55(1)–(2)
-   confirmation on a durable medium — LD-02's order-confirmation email. Until
-   that exists, the right is not waived, and a page saying it is overstates
-   what the buyer gave up. The line now says what the checkout asks; it does
-   not report an outcome.
+   confirmation on a durable medium. The line says what the checkout asks; it
+   does not report an outcome.
+
+   **LD-02 built that confirmation and it is sent** — C9 wrote it, C10 and C11
+   gave both deployments a transport, and C15's Gate E order received one. That
+   does not change this line. Sending the confirmation makes the third
+   condition *capable* of being met; whether it was met for a given order turns
+   on timing the site cannot settle, since supply here begins the instant
+   payment succeeds and the confirmation follows it. C13 rewrote the four legal
+   documents to say the confirmation is sent and to decline to conclude that
+   the right is therefore gone, and a cross-surface test forbids any surface
+   claiming otherwise.
 
 The document is titled `PURCHASE ORDER`, and when the store offers nothing it
 carries `No items of record. Nothing is currently offered.` in place of the
@@ -422,8 +430,10 @@ It must be screenshot-worthy at 390px, because that is where it will be shared.
 typed model at `/design/certificate` from a specimen record, serial `#0`,
 carrying the extra fine print `Specimen. No deal bears this number.` The public
 route is `lousydeal.com/done-deals/{slug}` per contract §5 — an opaque,
-non-enumerable slug, never the serial — and LD-02 mounts this same component
-there against real data. The prompt's `/deal/nr/[publicId]` is not the agreed
+non-enumerable slug, never the serial — and LD-02 mounted this same component
+there against real data: C15's Gate E order rendered
+`/done-deals/6hvn0jbfw32g1dr8` from a paid order, as a page and as a one-page
+A4 PDF. The prompt's `/deal/nr/[publicId]` is not the agreed
 URL and is not used. The specimen route carries `noindex, nofollow`: a design
 surface is not a page a search engine should hold, and Access will not always
 be the thing keeping it out.
