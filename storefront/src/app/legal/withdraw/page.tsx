@@ -15,6 +15,17 @@
  * a cookie or a session: there is nothing to protect — the consumer is
  * volunteering these to us — and a stateless step means a reload does not lose
  * the form.
+ *
+ * **C14 made the third step transmit.** It was a GET that recorded nothing,
+ * which was right while there was no mail to send. It is now a Server Action
+ * that posts to `POST /store/withdrawals`, and Next.js runs one with scripting
+ * off — the form degrades to a plain POST to this URL. The two earlier steps
+ * are still GET because they still transmit nothing, and a step with an effect
+ * must not be re-runnable by a reload or a link prefetch.
+ *
+ * The action redirects back here with `record=` naming which of three things
+ * happened, so what a buyer reads about their own withdrawal is decided by
+ * what the server actually did rather than by what the page hoped.
  */
 
 import type { Metadata } from "next";
@@ -33,7 +44,10 @@ import {
   WITHDRAWAL_DONE_TITLE,
   WITHDRAWAL_FIELDS,
   WITHDRAWAL_INTRO,
+  WITHDRAWAL_RECORD_LINES,
+  WITHDRAWAL_RECORD_STATES,
 } from "../../../content/withdrawal";
+import { submitWithdrawal } from "./actions";
 
 export const metadata: Metadata = { title: WITHDRAWAL_DOCUMENT.title };
 
@@ -53,6 +67,16 @@ export default async function WithdrawPage({
     contractDetails: one(params[WITHDRAWAL_FIELDS.contract.name]),
     contactAddress: one(params[WITHDRAWAL_FIELDS.contact.name]),
   };
+  const receivedAt = one(params.at);
+  // Anything that is not one of the three known states is treated as the
+  // weakest of them. A hand-edited URL claiming `record=sent` should not make
+  // this page assert a receipt exists, and the honest default when we cannot
+  // tell is that we may hold nothing.
+  const record = one(params.record);
+  const recordState: keyof typeof WITHDRAWAL_RECORD_LINES =
+    record === WITHDRAWAL_RECORD_STATES.sent || record === WITHDRAWAL_RECORD_STATES.received
+      ? record
+      : WITHDRAWAL_RECORD_STATES.unrecorded;
 
   return (
     <main>
@@ -70,11 +94,23 @@ export default async function WithdrawPage({
                   <dd>{one(params[field.name])}</dd>
                 </div>
               ))}
+              {/* The server's own receipt time, not the browser's clock: this
+                  is what § 56¹(1)'s 14 days are counted from, and the two
+                  copies of the record have to agree. Absent when the request
+                  never reached us, which is the one case where we have no
+                  time to state. */}
+              {receivedAt.length > 0 ? (
+                <div>
+                  <dt>Received</dt>
+                  <dd>{`${receivedAt.slice(0, 10)} ${receivedAt.slice(11, 16)} UTC`}</dd>
+                </div>
+              ) : null}
             </dl>
             <Rule />
             {WITHDRAWAL_DONE_LINES.map((line) => (
               <p key={line}>{line}</p>
             ))}
+            <p>{WITHDRAWAL_RECORD_LINES[recordState]}</p>
           </>
         ) : step === "confirm" ? (
           <>
@@ -88,9 +124,12 @@ export default async function WithdrawPage({
               ))}
             </dl>
             {/* § 56⁴(3): the confirmation control, and the only one that
-                transmits. GET so the record is a URL the buyer can keep. */}
-            <form action="/legal/withdraw" method="GET">
-              <input type="hidden" name="step" value="done" />
+                transmits. A Server Action rather than a GET, because C14 gave
+                it an effect -- it posts the withdrawal and sends the § 56⁴(4)
+                receipt. Next.js degrades this to a plain POST with scripting
+                off, and the action redirects to a GET, so the record is still
+                a URL the buyer can keep and a reload cannot re-send it. */}
+            <form action={submitWithdrawal}>
               {Object.values(WITHDRAWAL_FIELDS).map((field) => (
                 <input key={field.name} type="hidden" name={field.name} value={one(params[field.name])} />
               ))}
