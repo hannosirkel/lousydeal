@@ -954,7 +954,7 @@ nowhere else. `inventory-example` gets example values, never the real ones.
 `storefront/src/app/page.tsx`, `storefront/src/content/home.ts`,
 `storefront/tests/counter.test.ts`.
 
-- [ ] Publish the deal count, the nominal total and the latest serial, computed
+- [x] Publish the deal count, the nominal total and the latest serial, computed
       from real deals, on the home page.
 
 LD-09 deferred this here in those words: "wired to real orders". §11 permits it
@@ -963,6 +963,33 @@ not ship. So it aggregates the deal table and nothing else, there is no floor,
 no offset and no seeded starting value, and the test asserts an empty table
 renders zero rather than being hidden. **Zero is an honest number** and a
 counter that hides at zero is a counter that lies about its floor.
+
+**The distinction the row turns on is that zero and unreachable are different
+claims.** Zero deals is a fact about the shop; a store that could not be
+reached is a fact about the network. `getDealTotals` answers `null` for every
+failure — not only a 404, since there is no status for which inventing a number
+beats showing none — and the page omits the whole block rather than rendering a
+total nobody measured. A test drives the home page both ways.
+
+**A hidden certificate counts.** §5 lets an operator hide one without a new
+serial and without reissuing; that is a decision about a page, not a claim the
+money was never taken. Excluding it would understate real orders and make the
+count disagree with the serial sequence, which is the same offence as
+overstating in the other direction.
+
+**The latest serial is the maximum, not the count.** They are equal today and
+need not stay so: a rolled-back insert consumes a sequence number, so one gap
+makes them differ. Reporting either as the other overstates something.
+
+**`RECORD TO DATE`, not the prompt's `TOTAL VOLUNTARILY WASTED`.** `brand.md`
+§2 rules out that register — a shop telling customers how much they have
+squandered is the second-person cajoling it forbids — and `brand.md` §4 is
+amended in this row, since it carried the "no counter" deferral this discharges.
+
+**It reads every deal row.** At the volumes a counter like this is for that is
+cheap, and the honest thing is to name the bound rather than imply there is
+none: the row that finds this slow should replace it with a SQL aggregate, and
+the number that makes it slow is thousands, not hundreds.
 
 ### C13 — The four documents catch up
 
