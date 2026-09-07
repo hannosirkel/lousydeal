@@ -328,8 +328,36 @@ accident.
 **Repository:** `lousydeal`.
 **Files:** the findings, in this document; `docs/working/status.md`.
 
-- [ ] Review every row against the contract, buy a gift on the test
+- [x] Review every row against the contract, buy a gift on the test
       environment, and read both messages.
+
+#### Gate D — the review against the contract
+
+**Constraint 1 holds and was cheap to hold.** This slice added no secret, no
+environment value and no network destination — the first since LD-01 to touch
+one repository. Checked by value anyway: no live Stripe prefix, and neither
+address used in Gate E appears anywhere in the tree. The one `sk_live_` hit is
+a comment in `payment-provider-config.test.ts` describing what a key looks
+like.
+
+**Constraint 5 holds, and is enforced rather than intended.** `content/gift.ts`
+contains exactly one mention of § 54, § 55, withdrawal or consent, and it is
+the comment saying why none of them is in the message. `gift-message.test.ts`
+asserts each absence against the confirmation's own constants, so a later edit
+that copies a section across fails rather than ships.
+
+**Constraint 7 holds.** Four `createNotifications` calls exist in the whole
+backend: the § 55 confirmation, the gift, and the § 56⁴(4) receipt's two
+copies. Nothing schedules, queues, retries or re-sends to a recipient — no
+`cron`, no reminder, no "your friend hasn't opened it". The only `setTimeout`
+in `backend/src` is the Redis preflight's deadline.
+
+**Constraint 4 is G6's and was proven there** against data that exists, on both
+sides of the wire and on the rendered output, by key and by value — including
+that a gift and an ordinary purchase render byte-identical HTML.
+
+**§16's idempotency is G5's**, proven by firing the event three times and
+counting two messages, and by two mutations.
 
 Gate E is executed against a rendered site, at 390px and desktop, with
 scripting disabled where the surface claims to work without it. LD-02's Gate E
