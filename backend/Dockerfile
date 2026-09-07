@@ -188,14 +188,41 @@ RUN test -x /usr/local/bin/corepack \
 RUN groupadd --gid 10001 lousydeal \
   && useradd --uid 10001 --gid 10001 --home-dir /nonexistent --no-create-home lousydeal
 
-# The one dependency tree `npm ci --omit=dev --workspace backend
-# --include-workspace-root` (`:88`) produces for this repository hoists to a
-# single workspace-level `node_modules` -- confirmed by `ls backend/node_modules`
-# reporting nothing after that exact install, unlike the reference
-# implementation, whose conflicting transitive versions force a second, nested
-# tree under its own backend workspace. One copy is therefore enough here.
-# "Workspace-level" and not "flat": the tree still nests where a version
-# conflict forces it, for example `/node_modules/@medusajs/admin-bundler/node_modules/vite`.
+# **Two trees, not one.** This said, until Medusa 2.20.1, that `npm ci
+# --omit=dev --workspace backend --include-workspace-root` (`:88`) hoists
+# everything to a single workspace-level `node_modules` -- "confirmed by `ls
+# backend/node_modules` reporting nothing after that exact install, unlike the
+# reference implementation, whose conflicting transitive versions force a
+# second, nested tree under its own backend workspace. One copy is therefore
+# enough here."
+#
+# That was measured and it was true at 2.18.0. The 2.20.1 bump falsified it:
+# the lockfile now places 80 packages under `backend/node_modules`, including
+# `@medusajs/medusa`, `@medusajs/framework`, every module, and `@medusajs/cli`
+# -- which owns the `medusa` binary every script in `backend/package.json`
+# invokes. Exactly one `@medusajs` package still holds the root slot,
+# `@medusajs/types`. This repository is now the shape the sentence above
+# ascribed only to the reference.
+#
+# Copying one tree therefore shipped an image with no Medusa in it at all.
+# It still built -- the build stage installs with dev dependencies and gets
+# the nested tree -- and it still started far enough to run `redis:preflight`,
+# which is plain `node`. It failed at the next word: `sh: 1: medusa: not
+# found`. Nothing in CI runs the built container, so this reached `main` and
+# was caught only when the predeploy Job hit its backoff limit in the cluster.
+#
+# The two trees cannot be merged into one. `cookie` (0.7.2 root / 1.1.1
+# backend), `react-hook-form` (7.49.1 / 7.83.0) and `vite` (8.2.2 / 7.3.6)
+# genuinely differ between them, which is why npm nested in the first place;
+# flattening would silently give one consumer the other's version.
+#
+# So each tree is copied to the position that mirrors where it sits at build
+# time. `/app` is this workspace's root in the image the way `/src/backend` is
+# at build time, so `/src/backend/node_modules` becomes `/app/node_modules`
+# and `/src/node_modules` stays `/node_modules`. Node then resolves from
+# `/app` upward and finds the same two trees in the same order the source
+# layout gives them, and `npm run` puts `/app/node_modules/.bin` on PATH,
+# which is what makes `medusa` a word again.
 #
 # `--chown=10001:10001`, not a root-owned tree with a handful of directories
 # chowned after the fact: `medusa db:migrate` -- the predeploy Job's own
@@ -225,6 +252,13 @@ COPY --from=runtime-dependencies --chown=10001:10001 /src/node_modules /node_mod
 WORKDIR /app
 
 COPY --from=build /src/backend/.medusa/server ./
+
+# After the line above, not before: `.medusa/server` is `medusa build`'s own
+# output directory and this copy must not be something that copy can land on
+# top of. Same `--chown` and the same reason -- `medusa db:migrate` mkdirs a
+# `dist/migrations` inside each module's own package directory, and every
+# module that does so now lives in this tree rather than the root one.
+COPY --from=runtime-dependencies --chown=10001:10001 /src/backend/node_modules /app/node_modules
 
 RUN mkdir -p /app/static && chown 10001:10001 /app/static
 
