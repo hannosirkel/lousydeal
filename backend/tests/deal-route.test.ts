@@ -28,6 +28,26 @@ const STORED: StoredDeal = {
   issued_at: new Date("2026-09-06T10:32:17.482Z"),
 };
 
+/**
+ * The same row as a real gift, with §6's four columns populated.
+ *
+ * **Typed through `Record` rather than `StoredDeal`**, deliberately.
+ * `StoredDeal` is the route's own narrow view and does not declare the gift
+ * columns — but `listLousyDeals` returns the whole row at runtime, so this is
+ * what the projection is actually handed. A fixture that could not carry the
+ * private columns would make every assertion below vacuous, which is exactly
+ * the mistake LD-02's Gate E made with the billing name: it looked for
+ * something that did not exist and found it absent.
+ */
+const GIFT_VALUES = {
+  gift_recipient_email: "recipient@example.test",
+  gift_recipient_name: "A. Recipient",
+  gift_sender_name: "A. Buyer",
+  gift_message: "Happy birthday",
+} as const;
+
+const STORED_GIFT = { ...STORED, ...GIFT_VALUES } as unknown as StoredDeal;
+
 /** A response that records what the handler did to it. */
 function fakeResponse() {
   const sent: { status: number; body: unknown } = { status: 200, body: undefined };
@@ -120,6 +140,64 @@ describe("the public projection", () => {
     // survives the trip to the renderer.
     expect(publicDeal({ ...STORED, layout_version: 1 }).layout_version).toBe(1);
     expect(publicDeal({ ...STORED, layout_version: 7 }).layout_version).toBe(7);
+  });
+});
+
+describe("a gift reaches no public surface", () => {
+  /**
+   * LD-03's constraint 4, enforced rather than intended.
+   *
+   * The recipient's name and address are a third party's, supplied by somebody
+   * else, and the operator settled on 2026-09-07 that they are never
+   * published. `lousy_deal` carries them; this endpoint must not.
+   *
+   * **Every assertion here runs against a row that actually holds them.**
+   * That is the whole point of the row: LD-02's Gate E checked the rendered
+   * certificate for a billing name against an order that had none, so it
+   * proved nothing. This proves something.
+   */
+  it("publishes none of §6's four columns, from a row that carries all four", () => {
+    const published = publicDeal(STORED_GIFT);
+
+    for (const column of Object.keys(GIFT_VALUES)) {
+      expect(Object.keys(published), column).not.toContain(column);
+    }
+    // And by value, not only by key name: a column renamed on the way out
+    // would pass the check above and leak the same data.
+    const serialised = JSON.stringify(published);
+    for (const [column, value] of Object.entries(GIFT_VALUES)) {
+      expect(serialised, column).not.toContain(value);
+    }
+  });
+
+  it("publishes the same eight fields for a gift as for an ordinary purchase", () => {
+    // A gift is an order like any other. If these key sets ever differ, the
+    // endpoint has started telling a stranger which certificates were gifts.
+    expect(Object.keys(publicDeal(STORED_GIFT)).sort()).toEqual(Object.keys(publicDeal(STORED)).sort());
+  });
+
+  it("answers a gift's slug with nothing a recipient did not already have", async () => {
+    // Through the route rather than the projection, because a handler that
+    // reached past `publicDeal` would pass every assertion above.
+    const { status, body } = await get("xbts2k3mmv3trv3n", [STORED_GIFT]);
+
+    expect(status).toBe(200);
+    const serialised = JSON.stringify(body);
+    for (const value of Object.values(GIFT_VALUES)) {
+      expect(serialised).not.toContain(value);
+    }
+  });
+
+  it("does not let a gift be told apart from a purchase by its shape", async () => {
+    // Not the same object -- the slugs differ -- but the same keys, at every
+    // level. A response that carried `gift: null` for one and nothing for the
+    // other would be a disclosure by omission.
+    const gift = await get("xbts2k3mmv3trv3n", [STORED_GIFT]);
+    const plain = await get("xbts2k3mmv3trv3n", [STORED]);
+
+    const shape = (body: unknown): string[] =>
+      Object.keys((body as { deal: Record<string, unknown> }).deal).sort();
+    expect(shape(gift.body)).toEqual(shape(plain.body));
   });
 });
 
