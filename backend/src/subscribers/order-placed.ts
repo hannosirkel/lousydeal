@@ -18,6 +18,7 @@ import { ContainerRegistrationKeys, Modules, OrderWorkflowEvents } from "@medusa
 
 import { readBackendRuntimeConfig } from "../config/runtime";
 import { DEAL_MODULE } from "../modules/deal";
+import { readGift } from "../modules/deal/gift";
 import { readInscription } from "../modules/deal/inscription";
 import type { DealIssuanceInput, IssuedDeal } from "../modules/deal/issue";
 import { buildOrderConfirmation } from "../notifications/order-confirmation";
@@ -164,10 +165,11 @@ export default async function orderPlaced({
       currencyCode,
       displayName: inscription.displayName,
       dedication: inscription.dedication,
-      // `null` until G2 reads §6's four fields out of the order metadata. The
-      // column exists from this row so the migration is one change rather than
-      // two, and so `issueDeal` has one shape rather than a shape per row.
-      gift: null,
+      // §6's four fields, from the same metadata bag the inscription comes
+      // out of and behind the same trust boundary: the endpoint that wrote
+      // them is public. `null` when the order was not a gift, which is
+      // decided by whether a usable recipient address survived.
+      gift: readGift(order.metadata),
       issuedAt,
     };
 
