@@ -1,0 +1,104 @@
+{
+  "note": [
+    "The one specification for §6's gift fields. `backend/tests/gift.test.ts` and",
+    "`storefront/tests/gift.test.ts` both read this file, so a rule that changes in",
+    "one workspace and not the other fails on the side that did not move.",
+    "",
+    "`addresses` is the half unique to gifting: the recipient's address is validated",
+    "rather than sanitised, because §5's filter exists to remove things that look",
+    "like addresses and running it here would reject every valid input.",
+    "",
+    "`text` reuses §5's filter through `sanitiseInscription`, so the cases here are",
+    "the ones that matter *for a gift* rather than a second copy of",
+    "`inscription-cases.json`. The argument is not publicity — none of these fields",
+    "is published — but that this slice sends attacker-supplied text to an",
+    "arbitrary address over our own DKIM signature."
+  ],
+  "addresses": [
+    { "why": "an ordinary address", "input": "recipient@example.test", "valid": true },
+    { "why": "surrounding whitespace is trimmed, not rejected", "input": "  recipient@example.test  ", "valid": true },
+    { "why": "a plus tag is a real address and a common one", "input": "a+gift@example.test", "valid": true },
+    { "why": "a subdomain", "input": "a@mail.example.test", "valid": true },
+    { "why": "no at sign", "input": "recipient.example.test", "valid": false },
+    { "why": "no domain dot, so not routable", "input": "recipient@localhost", "valid": false },
+    { "why": "nothing before the at sign", "input": "@example.test", "valid": false },
+    { "why": "nothing after it", "input": "recipient@", "valid": false },
+    { "why": "two addresses; a comma is how a second recipient arrives", "input": "a@example.test, b@example.test", "valid": false },
+    { "why": "a semicolon, the other separator", "input": "a@example.test;b@example.test", "valid": false },
+    { "why": "angle brackets, which is how a header is injected", "input": "<a@example.test>", "valid": false },
+    { "why": "a display name in front of it, same reason", "input": "A. Recipient <a@example.test>", "valid": false },
+    { "why": "an embedded newline, the classic header injection", "input": "a@example.test\nBcc: c@example.test", "valid": false },
+    { "why": "an embedded carriage return", "input": "a@example.test\r\nBcc: c@example.test", "valid": false },
+    { "why": "internal whitespace", "input": "a @example.test", "valid": false },
+    { "why": "empty", "input": "", "valid": false },
+    { "why": "whitespace only", "input": "   ", "valid": false }
+  ],
+  "text": [
+    {
+      "why": "an ordinary message survives intact",
+      "input": "Someone spent five dollars so you would not have to",
+      "output": "Someone spent five dollars so you would not have to"
+    },
+    {
+      "why": "a URL is what makes this a spam vector, and it goes",
+      "input": "Claim your prize at https://evil.test/now",
+      "output": "Claim your prize at"
+    },
+    {
+      "why": "a bare domain goes too, since it is a link a reader will type",
+      "input": "See evil.test for details",
+      "output": "See for details"
+    },
+    {
+      "why": "an address in the body would be a reply-to we did not choose",
+      "input": "Write to me at attacker@evil.test",
+      "output": "Write to me at"
+    },
+    {
+      "why": "a telephone number goes; §5's rule, and a gift is no different",
+      "input": "Call me on +372 5555 0100",
+      "output": "Call me on"
+    },
+    {
+      "why": "markup goes, because the message reaches an HTML body",
+      "input": "Happy birthday <b>friend</b>",
+      "output": "Happy birthday friend"
+    },
+    {
+      "why": "a script element goes with its contents, not just its tags",
+      "input": "Hello <script>alert(1)</script> friend",
+      "output": "Hello friend"
+    },
+    {
+      "why": "a message that was entirely a URL leaves nothing, and null is the no-message state",
+      "input": "https://evil.test",
+      "output": null
+    },
+    {
+      "why": "a quantity keeps its digits; §5's Gate D finding, and it applies here",
+      "input": "1 000 000 regrets",
+      "output": "1 000 000 regrets"
+    },
+    {
+      "why": "a name is ordinary text",
+      "input": "A. Recipient",
+      "output": "A. Recipient"
+    },
+    {
+      "why": "empty is the no-message state, not an empty message",
+      "input": "",
+      "output": null
+    },
+    {
+      "why": "whitespace only, same",
+      "input": "   ",
+      "output": null
+    }
+  ],
+  "limits": [
+    { "field": "recipientName", "limit": 60 },
+    { "field": "recipientEmail", "limit": 254 },
+    { "field": "senderName", "limit": 60 },
+    { "field": "message", "limit": 120 }
+  ]
+}
