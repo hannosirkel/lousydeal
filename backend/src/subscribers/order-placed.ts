@@ -331,7 +331,17 @@ async function sendConfirmation({
     );
   }
 
-  await sendGift({ container, logger, deal, orderId, total, issuedOn, certificateUrl, merchant: runtime.merchant });
+  await sendGift({
+    container,
+    logger,
+    deal,
+    orderId,
+    total,
+    issuedOn,
+    certificateUrl,
+    merchant: runtime.merchant,
+    siteBaseUrl: runtime.siteBaseUrl,
+  });
 }
 
 /**
@@ -361,6 +371,7 @@ async function sendGift({
   issuedOn,
   certificateUrl,
   merchant,
+  siteBaseUrl,
 }: {
   container: SubscriberArgs<OrderPlacedEvent>["container"];
   logger: { info(message: string): void; error(message: string): void };
@@ -370,6 +381,7 @@ async function sendGift({
   issuedOn: string;
   certificateUrl: string;
   merchant: MerchantIdentity | null;
+  siteBaseUrl: string;
 }): Promise<void> {
   // **`typeof`, not `=== null`.** The column is nullable, so `null` is the
   // ordinary no-gift value -- but a store that projects a narrower row, or a
@@ -391,6 +403,7 @@ async function sendGift({
       message: deal.gift_message,
     },
     merchant,
+    siteBaseUrl,
   );
 
   if (gift === null) {

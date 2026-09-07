@@ -50,9 +50,15 @@
  * Nothing here may outlive an unpublished site: §23's gate precedes
  * publication and this document does not close it.
  *
- * **Gifting is not mentioned.** LD-03 has no backend, and a term about a
- * feature nobody can use is noise a lawyer would have to read and a buyer
- * would have to disregard. The row that builds gifting writes its clause.
+ * **§8 is gifting, and G7 is the row that wrote it.** This said "gifting is not
+ * mentioned … the row that builds gifting writes its clause", which was right
+ * while LD-03 had no backend. It has one now, so the clause is here and the
+ * sections after it moved down by one.
+ *
+ * Its one job is to say who holds what. The buyer is the consumer and keeps
+ * every right including the 14 days; the recipient has a certificate and no
+ * contract. A clause that let a reader think otherwise would be worse than the
+ * silence it replaces.
  */
 
 import type { LegalDocument } from "./types";
@@ -130,13 +136,24 @@ export const TERMS: LegalDocument = {
     },
     {
       number: "8",
+      heading: "Buying one as a gift",
+      body: [
+        "You may have the certificate sent to somebody else. The checkout asks for their email address, and optionally their name, a name for you and a short message. We send them one message with the certificate in it and we do not write to them again.",
+        "The contract is still yours. You are the consumer, you paid, and every right in §6 above is yours and not theirs — including the 14 days. The recipient has a certificate; you have the contract. If you withdraw, we settle it with you.",
+        "The recipient's name and address are never printed on the certificate and are never published. The two fields that do appear are the ones you fill in about the certificate itself, and the checkout says which is which before you pay.",
+        "By giving us somebody else's address you are telling us that you may. We have no way to check, and they receive nothing from us beyond that one message, but it goes out because you asked for it.",
+        "Your message to them is filtered the way §7's inscription is, and for a sharper reason: it is text we send to an address on somebody else's say-so. Links, domain names, email addresses and telephone numbers are removed.",
+      ],
+    },
+    {
+      number: "9",
       heading: "Availability and changes",
       body: [
         "We may change what is offered, and we may change these terms. A change applies to orders placed after it is published and never to an order already placed. The date at the foot of this document is when it last changed.",
       ],
     },
     {
-      number: "9",
+      number: "10",
       heading: "Our liability",
       body: [
         "We are liable to you as Estonian law requires. Nothing in these terms limits our liability for intentional or grossly negligent conduct, for death or personal injury, or for anything else that cannot be limited by law.",
@@ -144,14 +161,14 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      number: "10",
+      number: "11",
       heading: "Governing law",
       body: [
         "Estonian law governs these terms. If you are a consumer, that does not deprive you of the protection of the mandatory rules of the country where you live.",
       ],
     },
     {
-      number: "11",
+      number: "12",
       heading: "Complaints and disputes",
       body: [
         "Write to {merchantEmail} first. We would rather hear it than not.",

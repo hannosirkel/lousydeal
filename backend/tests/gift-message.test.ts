@@ -39,8 +39,10 @@ const GIFT: GiftMessageInput = {
   message: "Happy birthday",
 };
 
+const SITE = "https://lousydeal.example";
+
 const build = (overrides: Partial<GiftMessageInput> = {}) =>
-  buildGiftMessage({ ...GIFT, ...overrides }, MERCHANT);
+  buildGiftMessage({ ...GIFT, ...overrides }, MERCHANT, SITE);
 
 describe("what the recipient reads", () => {
   it("opens with the premise, and states the amount", () => {
@@ -110,6 +112,37 @@ describe("what the recipient reads", () => {
   });
 });
 
+describe("the Article 14 notice G7 added", () => {
+  it("names the controller, which G4 shipped without", () => {
+    // `buildGiftMessage` took the trader identity and used it only as a
+    // null-guard, so the message went out unsigned. Article 14(1)(a) wants the
+    // controller's identity, and an unsigned message also simply reads like
+    // spam.
+    const text = build()?.text ?? "";
+    for (const value of [MERCHANT.legalName, MERCHANT.address, MERCHANT.email, MERCHANT.registryCode]) {
+      expect(text, value).toContain(value);
+    }
+  });
+
+  it("says where the address came from and that it is used once", () => {
+    const text = build()?.text ?? "";
+    expect(text).toMatch(/the person who bought this typed them in/i);
+    expect(text).toMatch(/not going to write to you again/i);
+  });
+
+  it("points at the policy for the rest, which Article 12(1) permits", () => {
+    // The full Article 14(1)-(2) list is longer than this message should be.
+    // Whether a link discharges it is §23's question; the position is stated
+    // rather than assumed.
+    expect(build()?.text).toContain(`${SITE}/legal/privacy`);
+  });
+
+  it("tells the recipient how to object, in the message itself", () => {
+    expect(build()?.text).toMatch(/ask us what we hold|ask for it to be corrected or deleted/i);
+    expect(build()?.text).toContain(MERCHANT.email);
+  });
+});
+
 describe("what the recipient must not read", () => {
   it("recites no right of withdrawal, because they hold none", () => {
     // LD-03's constraint 5. Telling a stranger about a right they do not have
@@ -165,7 +198,7 @@ describe("the trader identity", () => {
     // One step past `buildOrderConfirmation`'s reason: a message from nobody,
     // to somebody who did not ask for it, naming no trader, is what a spam
     // filter is for.
-    expect(buildGiftMessage(GIFT, null)).toBeNull();
+    expect(buildGiftMessage(GIFT, null, SITE)).toBeNull();
   });
 });
 
