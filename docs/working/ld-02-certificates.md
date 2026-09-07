@@ -1093,6 +1093,75 @@ is not visual acceptance, and this slice adds two artifacts — a PDF and an ema
 confirmation email arrives, in an inbox, readable, not in a spam folder. The row
 sends one to a real address and says which.
 
+#### Gate E — the rendered site, driven with a real order
+
+Executed against the test environment carrying this branch, reached through an
+SSH tunnel via Meeme — the inventory provisions Meeme to reach the test
+storefront and this host is deliberately not on that list, so no ingress rule
+was widened to run the gate. The live environment could not be used and should
+not have been: its Stripe values are 37-character placeholders rather than
+keys, so it cannot take a payment at all.
+
+**The order found the defect this gate exists for.** The first real payment,
+`order_01M1XYA5KM3C6JD359112ERJSF`, succeeded and produced nothing: no deal, no
+certificate, no § 55 confirmation, and `lousy_deal` with zero rows. `amount()`
+in the order-placed subscriber accepted a number or a numeric string, and
+Medusa hands money over as a `BigNumber` instance — so `typeof value ===
+"object"` fell through to `null` and every paid order was skipped with
+`total=none`.
+
+Every test in the repository passed throughout. Every fixture supplied a plain
+number, C6's and C7's end-to-end runs drive `buildOrderConfirmation` and the
+renderer directly rather than the subscriber, and C8's and C9's tests use a
+fake container whose order is a literal. Nothing had ever asked Medusa for an
+order. Fixed and mutation-checked in its own pull request; the fixtures now
+carry the real `BigNumber` class rather than a stub shaped like one.
+
+**§14's claim is vindicated exactly as written.** A passing unit suite was not
+acceptance: 1,318 tests agreed with each other while the product did not work.
+
+With the fix deployed, the same journey completes end to end.
+
+| Step | Result |
+| --- | --- |
+| Pay | `order_01M1Y1CQT7CW3S95G96W12FFV8`, Stripe test card, consent box ticked |
+| Issue | `deal #2 issued`, `amount_paid=5`, status `issued` |
+| Mail | `§ 55 confirmation sent`, to a real address |
+| Open the link | `/done-deals/6hvn0jbfw32g1dr8` renders serial, bearer, item, amount, date |
+| Download the PDF | 200, `application/pdf`, 12,760 bytes, one A4 page |
+| The counter | `Deals done 1 · Amount wasted $5.00 · Latest deal #1`, computed from rows |
+
+**No page carries the billing name.** Checked on the rendered certificate
+rather than in the type: the buyer's address appears nowhere inside `<main>`,
+and every occurrence on the page is the merchant's own § 54(1) contact in the
+footer. The order id, the Stripe intent and the card digits are absent from
+both the HTML and the PDF. The inscription and dedication are present in both,
+which is the half that must be there.
+
+**The PDF was rendered and looked at**, because that is what found C6's defect.
+C6's fix holds: the closing rule sits under the disclaimer rather than at the
+page foot with white above it. The remaining blank is unused page below a
+closed document, which is right.
+
+**390px and desktop: no horizontal overflow on any of the six surfaces** —
+offer, certificate, terms, refunds, withdraw, imprint.
+
+**Scripting disabled: every surface still renders**, and the § 56⁴ withdrawal
+still transmits. The confirmation control posts `multipart/form-data` with no
+JavaScript at all, returns 200 after one redirect, and the page reports
+`record=sent` with the server's own receipt time — `Received 2026-09-07 13:42
+UTC`. The backend logged `§ 56⁴(4) receipt sent` and `POST /store/withdrawals
+201`.
+
+**One thing no machine can accept on a human's behalf**, and this row does not
+pretend otherwise: whether the confirmation arrived, in an inbox, readable, and
+not in a spam folder. Two § 55 confirmations and one § 56⁴(4) receipt were sent
+to `baldrick@lousydeal.com` during this gate. The operator reports on them.
+
+Two test orders and one withdrawal remain in the test environment's database.
+They are test-mode Stripe transactions and real rows; a row that wants a clean
+counter clears them.
+
 ### C16 — The record
 
 **Repository:** `lousydeal`.
