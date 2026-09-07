@@ -66,6 +66,24 @@ export const CONFIRMATION_LABELS = {
  * a buyer who later wants to exercise a right needs to recognise the document
  * that carries it.
  */
+/**
+ * One line, added to `What you bought` when the order was a gift. G4.
+ *
+ * **The confirmation gains a line and loses none.** § 55(2) requires the
+ * § 54(1) information and the consent recital whatever the order was for; a
+ * confirmation that became a gift message because the buyer ticked a box would
+ * breach it. So this sits inside the existing section rather than replacing
+ * anything.
+ *
+ * **It names the address, because that is what the buyer can still act on.**
+ * A mistyped recipient is the one error this email can catch in time, and
+ * "sent to the recipient" would not let them notice. The address is the
+ * buyer's own input being read back to them, not new personal data disclosed
+ * to a third party — they typed it.
+ */
+export const CONFIRMATION_GIFT = (recipientAddress: string): string =>
+  `You bought this as a gift. The certificate has been sent to ${recipientAddress}, with your message if you wrote one. Your own right of withdrawal is unaffected and is set out below — the recipient has the certificate, and you have the contract.`;
+
 export const CONFIRMATION_OPENING =
   "This is the confirmation of your order, on a durable medium, that § 55 of the Estonian Law of Obligations Act requires us to send you. Keep it: it is the record of what you bought and of the rights you have.";
 

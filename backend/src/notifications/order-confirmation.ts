@@ -27,6 +27,7 @@ import {
   CONFIRMATION_CONSENT,
   CONFIRMATION_FORM_INTRO,
   CONFIRMATION_FORM_LINES,
+  CONFIRMATION_GIFT,
   CONFIRMATION_HEADINGS,
   CONFIRMATION_LABELS,
   CONFIRMATION_OPENING,
@@ -45,6 +46,14 @@ export interface ConfirmationDeal {
   readonly total: string;
   readonly issuedOn: string;
   readonly certificateUrl: string;
+  /**
+   * Where the certificate went, when the order was a gift. `null` otherwise.
+   *
+   * The buyer's own input read back to them, so they can catch a mistyped
+   * address while it still matters — not new personal data disclosed to
+   * anybody, since they typed it.
+   */
+  readonly giftRecipientAddress: string | null;
 }
 
 export interface ConfirmationMessage {
@@ -115,6 +124,10 @@ export function buildOrderConfirmation(
         `${CONFIRMATION_LABELS.issued}: ${deal.issuedOn}`,
         `${CONFIRMATION_LABELS.certificate}: ${deal.certificateUrl}`,
         CONFIRMATION_WHAT,
+        // G4. Present only on a gift, and additive: § 55(2) requires the
+        // § 54(1) information whatever the order was for, so this joins the
+        // section rather than replacing anything in it.
+        ...(deal.giftRecipientAddress === null ? [] : [CONFIRMATION_GIFT(deal.giftRecipientAddress)]),
       ],
     ],
     [CONFIRMATION_HEADINGS.paid, [`${CONFIRMATION_LABELS.total}: ${deal.total}`, CONFIRMATION_PAID]],

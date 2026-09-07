@@ -43,6 +43,8 @@ const DEAL: ConfirmationDeal = {
   total: "$25.00",
   issuedOn: "2026-09-06",
   certificateUrl: "https://lousydeal.example/done-deals/xbts2k3mmv3trv3n",
+  /** Not a gift. G4's line appears only when this is an address. */
+  giftRecipientAddress: null,
 };
 
 const SITE = "https://lousydeal.example";

@@ -16,11 +16,13 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework";
 import { ContainerRegistrationKeys, Modules, OrderWorkflowEvents } from "@medusajs/framework/utils";
 
+import type { MerchantIdentity } from "../config/merchant";
 import { readBackendRuntimeConfig } from "../config/runtime";
 import { DEAL_MODULE } from "../modules/deal";
 import { readGift } from "../modules/deal/gift";
 import { readInscription } from "../modules/deal/inscription";
 import type { DealIssuanceInput, IssuedDeal } from "../modules/deal/issue";
+import { buildGiftMessage } from "../notifications/gift-message";
 import { buildOrderConfirmation } from "../notifications/order-confirmation";
 
 interface OrderPlacedEvent {
@@ -237,20 +239,31 @@ async function sendConfirmation({
     return;
   }
 
+  // Formatted once, here, and handed to both messages. `Intl` in this process
+  // and not in the certificate: `money.ts` refuses it because a shared
+  // screenshot outlives the runtime that made it and two runtimes may carry
+  // different ICU data. An email is formatted once and never re-formatted by a
+  // reader's. Both messages print the same string for the same reason a buyer
+  // and a recipient comparing them should see one number.
+  const total = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: (text(order.currency_code) ?? "usd").toUpperCase(),
+  }).format(amount(order.total) ?? 0);
+  const issuedOn = new Date(String(order.created_at)).toISOString().slice(0, 10);
+  const certificateUrl = `${runtime.siteBaseUrl}/done-deals/${deal.public_slug}`;
+
   const message = buildOrderConfirmation(
     {
       serial: deal.serial,
       tier: text(order.items?.[0]?.title) ?? "",
-      // `Intl` here and not in the certificate: `money.ts` refuses it because a
-      // shared screenshot outlives the runtime that made it, and two runtimes
-      // may carry different ICU data. An email is formatted once, by this
-      // process, and never re-formatted by a reader's.
-      total: new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: (text(order.currency_code) ?? "usd").toUpperCase(),
-      }).format(amount(order.total) ?? 0),
-      issuedOn: new Date(String(order.created_at)).toISOString().slice(0, 10),
-      certificateUrl: `${runtime.siteBaseUrl}/done-deals/${deal.public_slug}`,
+      total,
+      issuedOn,
+      certificateUrl,
+      // **Read off the deal, not off the input.** On a replay the insert never
+      // happened and this function's input was rebuilt from the order; the row
+      // is the record of what was actually stored. G1 put the gift on
+      // `IssuedDeal` for exactly this.
+      giftRecipientAddress: deal.gift_recipient_email,
     },
     runtime.merchant,
     runtime.siteBaseUrl,
@@ -276,6 +289,91 @@ async function sendConfirmation({
   } catch (error) {
     logger.error(
       `§ 55 confirmation failed for order ${orderId}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  await sendGift({ container, logger, deal, orderId, total, issuedOn, certificateUrl, merchant: runtime.merchant });
+}
+
+/**
+ * Sends the gift message, if the order was a gift.
+ *
+ * **After the buyer's confirmation and never instead of it.** The § 55
+ * confirmation is a legal duty on a deadline; this is a courtesy. The reverse
+ * order would mean a stranger heard about the purchase before the buyer got
+ * the document the law owes them, and a gift failure must never prevent the
+ * confirmation — which is why the caller awaits this outside the confirmation's
+ * own `try`.
+ *
+ * **Decided from the row, not from the input.** `deal.gift_recipient_email` is
+ * what was stored; on a replay the insert never happened and any input was
+ * rebuilt from the order. G1 put the gift on `IssuedDeal` for this.
+ *
+ * **It never throws**, for the subscriber's own reason: Medusa retries a
+ * subscriber that rejects, and a defect failing on every delivery is an event
+ * storm rather than a logged failure.
+ */
+async function sendGift({
+  container,
+  logger,
+  deal,
+  orderId,
+  total,
+  issuedOn,
+  certificateUrl,
+  merchant,
+}: {
+  container: SubscriberArgs<OrderPlacedEvent>["container"];
+  logger: { info(message: string): void; error(message: string): void };
+  deal: IssuedDeal;
+  orderId: string;
+  total: string;
+  issuedOn: string;
+  certificateUrl: string;
+  merchant: MerchantIdentity | null;
+}): Promise<void> {
+  // **`typeof`, not `=== null`.** The column is nullable, so `null` is the
+  // ordinary no-gift value -- but a store that projects a narrower row, or a
+  // fake in a test, hands back `undefined`, and `undefined !== null` would
+  // send a gift message for an order that was not one. Caught by
+  // `order-placed-confirmation.test.ts`, whose fake deal predates these
+  // columns: it counted two notifications where one was owed.
+  const recipient = deal.gift_recipient_email;
+  if (typeof recipient !== "string" || recipient.length === 0) return;
+
+  const gift = buildGiftMessage(
+    {
+      serial: deal.serial,
+      total,
+      issuedOn,
+      certificateUrl,
+      recipientName: deal.gift_recipient_name,
+      senderName: deal.gift_sender_name,
+      message: deal.gift_message,
+    },
+    merchant,
+  );
+
+  if (gift === null) {
+    logger.error(`no gift message sent for order ${orderId}: the message could not be built`);
+    return;
+  }
+
+  try {
+    const notification = container.resolve(Modules.NOTIFICATION);
+    await notification.createNotifications({
+      to: recipient,
+      channel: "email",
+      template: "gift-message",
+      content: gift,
+    });
+    // Neither address is logged. The recipient's is a third party's, which
+    // makes it the one piece of personal data in this slice that its subject
+    // never gave us.
+    logger.info(`gift message sent for order ${orderId}`);
+  } catch (error) {
+    logger.error(
+      `gift message failed for order ${orderId}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }
