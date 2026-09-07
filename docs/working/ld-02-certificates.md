@@ -1049,9 +1049,40 @@ re-runs the scripting-off path.
 **Repository:** `lousydeal`.
 **Files:** the findings, in this document.
 
-- [ ] Review every row against the contract, then drive the built site with a
+- [x] Review every row against the contract, then drive the built site with a
       real order end to end: pay, receive the mail, open the link, download the
       PDF, and check that no page carries the billing name.
+
+#### Gate D — the review against the contract
+
+**Constraint 1 holds: no mail credential reached either public repository.**
+Checked by value rather than by pattern — every value in the operator's three
+key files, searched against both public repositories' working trees *and* their
+full history with `git log -S`. None of the twenty secret values appears in
+either. The submission host and the TLS servername appear in neither.
+
+Two matches did come back and both are collisions worth recording rather than
+defects. The mail usernames are `lousydeal_shop` and `lousydeal_test`, and
+`lousydeal_test` is also this application's PostgreSQL database name, committed
+in `deploys/lousydeal/overlays/test/kustomization.yaml`. A username is not a
+secret and nothing is disclosed by it — but the collision is the reason C11's
+envelope address was inferred wrongly and took a server-side fix to settle, so
+it is written down here rather than left to be rediscovered.
+
+**§23 holds: no live Stripe key exists in either repository, tree or history.**
+The one `sk_live_` hit in history is prose in `ld-01-foundation.md` describing a
+hypothetical leak; the one `whsec_` in the tree is `whsec_store_smoke` in
+`scripts/store-smoke`. Confirmed independently at the other end: the live
+environment's `stripePublishableKey` and `stripeSecretKey` are 37-character
+placeholders and not Stripe keys at all, so the live environment cannot take a
+payment. Only `lousydeal-test` holds real keys, and both are `pk_test_`/
+`sk_test_`.
+
+**Constraint 13 holds: the billing name is never public.** The deal endpoint
+projects an allowlist of eight fields and its test asserts the key set exactly;
+`store-deal.ts` names the same eight field by field on the reading side; and
+`certificate-model.ts` carries the rule in the type it renders from. No billing
+or customer name reaches any of the three.
 
 Gate E is executed against a rendered site, at 390px and desktop, with scripting
 disabled where the surface claims to work without it. §14: a passing unit suite
