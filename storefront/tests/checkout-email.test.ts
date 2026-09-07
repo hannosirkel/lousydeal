@@ -70,14 +70,22 @@ describe("the email field", () => {
     expect(html).toContain('id="checkout-email-hint"');
   });
 
-  it("does not tell the buyer a confirmation is sent, because none is", () => {
-    // C3b collects the address; C9 sends the confirmation. Between the two,
-    // this would be the first surface on the site to imply the § 55 duty is
-    // discharged. `legal-consistency.test.ts` holds the other six to the same
-    // line.
-    expect(EMAIL_HINT).toMatch(/do not yet send/i);
-    expect(EMAIL_HINT).not.toMatch(/\bwe send you\b|\bwe will send\b|\bwe'll send\b/i);
-    expect(EMAIL_HINT).toMatch(/14-day right of withdrawal still stands/i);
+  it("tells the buyer the confirmation is sent, without settling the right", () => {
+    // Inverted by C13, in the change that made the old wording false. This
+    // required "do not yet send" while C9's message had no transport to leave
+    // by; C10 and C11 gave both deployments one, so the hint beside the field
+    // a buyer fills in before paying would otherwise have been the last
+    // surface on the site still saying the § 55 duty was undischarged.
+    //
+    // **`EMAIL_HINT` was not in `legal-consistency.test.ts`'s list** while
+    // `checkout.ts` claimed that guard "enforces it across all seven". C13 put
+    // it there, so this file and that one now hold the same surface to the
+    // same line rather than only appearing to.
+    expect(EMAIL_HINT).toMatch(/we send it/i);
+    expect(EMAIL_HINT).not.toMatch(/do not (?:yet )?send/i);
+    // Sending it is not the same as the right being gone, and this is the
+    // surface a buyer reads before paying rather than after.
+    expect(EMAIL_HINT).toMatch(/we do not treat it as gone/i);
   });
 
   it("is set on the cart before the card is charged", () => {

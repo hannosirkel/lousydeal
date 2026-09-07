@@ -107,7 +107,13 @@ describe("delivery and withdrawal", () => {
     expect(withdrawal).toContain("express prior consent");
     expect(withdrawal).toContain("acknowledged");
     expect(withdrawal).toContain("§ 55(1)");
-    expect(withdrawal).toContain("the third condition is not met for any order placed here and your 14-day right stands");
+    // C13 inverted this. It read "the third condition is not met for any order
+    // placed here and your 14-day right stands", which was true only while no
+    // confirmation was sent. What replaces it is not the opposite claim: the
+    // clause has to say the confirmation is sent *and* decline to conclude that
+    // the exception therefore bites.
+    expect(withdrawal).toContain("we do send that confirmation");
+    expect(withdrawal).toContain("will not refuse");
   });
 
   it("does not tell a buyer the right is already gone", () => {
@@ -240,14 +246,19 @@ describe("the register", () => {
     const forward = [
       "We owe you a confirmation on a durable medium",
       "we gave you the confirmation required by",
-      "We do not yet send that confirmation",
       "both when you submit them",
       "Refunds and Withdrawal",
     ];
     for (const phrase of forward) expect(prose).toContain(phrase);
 
-    const header = readFileSync(new URL("../src/content/legal/terms.ts", import.meta.url), "utf8").slice(0, 2000);
-    expect(header).toContain("Four clauses describe mechanisms that do not exist yet");
+    // "We do not yet send that confirmation" was on this list. C13 removed it
+    // from the list and from the document in the same change, because it is
+    // now false: C9 built the message and C10 and C11 gave both deployments a
+    // transport. The clause it belonged to states the act instead.
+    expect(prose).not.toContain("We do not yet send that confirmation");
+
+    const header = readFileSync(new URL("../src/content/legal/terms.ts", import.meta.url), "utf8").slice(0, 2400);
+    expect(header).toContain("No clause here describes a mechanism that does not exist");
     for (const owner of ["LD-02", "V10"]) expect(header).toContain(owner);
   });
 

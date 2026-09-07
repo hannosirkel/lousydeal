@@ -50,4 +50,4 @@ export const NO_UPGRADES_LINE = "This is the worst deal available. There is noth
  * as a repeat to anyone tabbing through.
  */
 export const WITHDRAWAL_NOTICE =
-  "This is digital content supplied immediately. At checkout you are asked to consent to supply beginning at once, and to acknowledge that you would thereby lose the 14-day right of withdrawal. The box is not ticked for you. Losing that right also takes a confirmation we do not yet send, so today it survives the box. Why, in full:";
+  "This is digital content supplied immediately. At checkout you are asked to consent to supply beginning at once, and to acknowledge that you would thereby lose the 14-day right of withdrawal. The box is not ticked for you. We send the confirmation that losing the right also takes, and we still do not treat the right as gone. Why, in full:";

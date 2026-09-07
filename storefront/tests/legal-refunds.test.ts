@@ -65,16 +65,25 @@ describe("the exception", () => {
     expect(s).toContain("§ 55(1)");
   });
 
-  it("says in the present tense that the third condition is not met", () => {
-    // This is the finding the row exists to answer. The first draft wrote "We
+  it("says the confirmation is sent without concluding the right is gone", () => {
+    // **This is the inverse of the guard it replaces, and the inversion is the
+    // point of C13.** The old one required §3 to say "today the third is
+    // missing for every order" and §4 "We do not send that confirmation yet".
+    // Both were true until C9 built the message and C10 and C11 gave the
+    // deployments a transport; leaving them would have made this suite enforce
+    // a falsehood in a legal document.
+    //
+    // The original finding it guarded against still stands, though, and is
+    // why this is not simply the opposite assertion. The first draft wrote "We
     // send it by email" in §4, unqualified, and left §3 conditional -- so a
-    // reader taking the two together concluded the right was gone. The
-    // confirmation is LD-02's and does not exist.
+    // reader taking the two together concluded the right was gone. §4 must
+    // therefore say both things: that the confirmation is sent, and that
+    // whether it satisfies § 55(1) is not a question answered in our favour.
     expect(section("3")).toContain("your 14-day right stands");
-    expect(section("3")).toMatch(/today the third is missing for every order/i);
-    expect(section("4")).toMatch(/We do not send that confirmation yet/);
-    // And no sentence anywhere may assert the confirmation as a present fact.
-    expect(prose).not.toMatch(/\bwe send (?:it|you|the confirmation) by email\b/i);
+    expect(section("3")).toMatch(/we send the confirmation the third requires/i);
+    expect(section("4")).toMatch(/We send that confirmation/);
+    expect(section("4")).toMatch(/not a question we will answer in our own favour/i);
+    expect(section("4")).toMatch(/we will not refuse/i);
   });
 
   it("cites the European provision as well as the Estonian one", () => {

@@ -13,19 +13,27 @@
  * `storefront/src`, which includes this file. So the terms say what governs a
  * price rather than what one is.
  *
- * **Four clauses describe mechanisms that do not exist yet.** Gate D found two
- * more than the first draft named, which is the argument for listing them
- * where they can be counted:
+ * **No clause here describes a mechanism that does not exist.** This said
+ * "Four clauses describe mechanisms that do not exist yet" and listed them so
+ * they could be counted, which is what makes the list checkable now that LD-02
+ * has closed every one:
  *
- *   §5  the order confirmation we owe and do not send, and the email address
- *       it would go to — the checkout collects none. Both are LD-02's. The
- *       clause states the obligation and the failure rather than the act.
- *   §6  its reliance on that confirmation, which is the third condition
- *       § 53(4) p 7¹ requires. Also LD-02's.
- *   §7  the entry-side inscription filter — LD-02's checkout field. The
- *       render-side filter the same clause describes does exist:
- *       `src/lib/inscription.ts`, shipped with the certificate.
- *   §6  the cross-reference to Refunds and Withdrawal, which is V10's route.
+ *   §5  the order confirmation and the email address it goes to. C3b added the
+ *       field, C9 built the message, and C10 and C11 gave both deployments a
+ *       transport and credentials. The clause states the act now, and the
+ *       timing, because the timing is what the third condition turns on.
+ *   §6  its reliance on that confirmation. Sending it makes § 53(4) p 7¹'s
+ *       third condition *capable* of being met; §6 says why that is not the
+ *       same as it having been met.
+ *   §7  the entry-side inscription filter — C3c's checkout fields, sharing
+ *       `src/lib/inscription.ts` with the render-side filter character for
+ *       character.
+ *   §6  the cross-reference to Refunds and Withdrawal, V10's route.
+ *
+ * A fifth would need adding here and to `tests/legal-terms.test.ts`, which
+ * counts them. The list is kept rather than deleted because a document that
+ * once described four absent things is worth being able to prove no longer
+ * does.
  *
  * **V10's Gate D corrected two clauses here**, because a row that finds a
  * neighbouring document wrong owns the correction:
@@ -94,7 +102,8 @@ export const TERMS: LegalDocument = {
       body: [
         "The certificate is digital content supplied immediately after payment: it is shown to you as soon as you have paid, at the moment §4 says the contract is concluded. There is nothing to ship and there is no delivery charge.",
         "You view it in a web browser. There is no account to create, no software to install, no file to download and no technical protection measure applied to it: a web browser is the whole of what you need. It is not interoperable with anything, because there is nothing for it to work with.",
-        "We owe you a confirmation on a durable medium no later than the moment supply begins, and we do not yet send one. §6 says what follows from that.",
+        "We owe you a confirmation on a durable medium no later than the moment supply begins. § 55(1) sets that timing, and we send it: an email goes out as soon as your certificate exists, carrying what § 55(2) requires it to carry.",
+        "Because supply here is the certificate existing, that email follows supply by moments rather than preceding it. §6 says what we do about that.",
       ],
     },
     {
@@ -103,7 +112,8 @@ export const TERMS: LegalDocument = {
       body: [
         "Under § 56(1) of the Estonian Law of Obligations Act (võlaõigusseadus), a consumer may withdraw from a distance contract within 14 days without giving a reason.",
         "§ 53(4) p 7¹ of that Act removes the right for digital content not supplied on a physical medium, but only where supply began before the withdrawal period ended, you gave express prior consent to it beginning and acknowledged that you would thereby lose the right, and we gave you the confirmation required by § 55(1) and § 55(2) of the Act.",
-        "The checkout asks for that consent, with the box unticked. We do not yet send that confirmation, so the third condition is not met for any order placed here and your 14-day right stands, whatever you answered at checkout. This is set out in full in Refunds and Withdrawal, which states rights you have rather than rights we grant.",
+        "The checkout asks for that consent, with the box unticked, and we do send that confirmation. Whether all three conditions were met for your order is a question of fact, and the third turns on timing: on this site supply begins the instant your payment succeeds, and the confirmation follows it.",
+        "We do not answer that question in our own favour. If you tell us you are withdrawing, we will not refuse on the ground that § 53(4) p 7¹ has removed your right. This is set out in full in Refunds and Withdrawal, which states rights you have rather than rights we grant.",
         "If we did not tell you about the right of withdrawal, its time limit and how to use it, § 56(1⁶) extends the period to 12 months after the ordinary 14 days; and if we tell you late but within those 12 months, you have 14 days from being told.",
         "The withdrawal button § 56⁴ requires is in the footer below, called Withdraw from a contract, at /legal/withdraw.",
       ],
