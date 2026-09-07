@@ -16,12 +16,22 @@
  * The Estonian is kept in parentheses so a reader looking for the statutory
  * phrase finds it.
  *
- * **What this cannot do is send the § 56⁴(4) receipt.** That needs email,
- * which is LD-02's, so the confirmation page renders the statement, the date
- * and the time and tells the buyer to keep it — and says plainly that we will
- * confirm by email once we can. § 56(2⁵) puts the burden of proving withdrawal
- * on the consumer, so a page they can save is worth more to them than a
- * reassurance they cannot keep.
+ * **C14 sends the § 56⁴(4) receipt.** This said "what this cannot do is send
+ * the § 56⁴(4) receipt", which was true while there was no mail; C9 through
+ * C11 gave both deployments a transport, and the confirmation control now
+ * posts to `POST /store/withdrawals`, which acknowledges on a durable medium.
+ *
+ * The page still renders the statement, the date and the time, and still tells
+ * the buyer to keep it. That is not redundant with the email: § 56(2⁵) puts
+ * the burden of proving withdrawal on the consumer, and two records they hold
+ * are better than one — particularly when one of them depends on our mail
+ * server.
+ *
+ * **Which is why there are three closing wordings and not one.** The receipt
+ * can be sent, or the withdrawal received and the receipt not sent, or the
+ * request not have reached us at all. § 56(2¹) makes the withdrawal effective
+ * when the consumer sent it in every one of those cases, so none of the three
+ * may suggest it failed — but only the first may claim a receipt exists.
  */
 
 export const WITHDRAWAL_DOCUMENT = {
@@ -53,10 +63,37 @@ export const WITHDRAWAL_CONFIRM_INTRO =
 export const WITHDRAWAL_DONE_TITLE = "Withdrawal recorded";
 
 export const WITHDRAWAL_DONE_LINES = [
-  "Keep this page. Under § 56(2⁵) it is for you to show that you withdrew, and this is the record of it — print it, or save it as a PDF from your browser.",
+  "Keep this page. Under § 56(2⁵) it is for you to show that you withdrew, and this is a record of it — print it, or save it as a PDF from your browser.",
   "Your withdrawal takes effect from the moment you sent it, not the moment we read it: § 56(2¹) makes a notice timely if it was sent inside the 14 days.",
-  "We do not yet send a confirmation by email, though § 56(2⁴) says we should. Until we do, this page is the confirmation, and writing to us is what gets a person to answer.",
 ] as const;
+
+/**
+ * Which of the three things happened, named rather than inferred.
+ *
+ * The action puts one of these in the URL and the page reads it. They are
+ * values in a query string, so they are stable words rather than prose.
+ */
+export const WITHDRAWAL_RECORD_STATES = {
+  /** Received, and the § 56⁴(4) receipt is on its way. */
+  sent: "sent",
+  /** Received by us, but the receipt could not be sent. */
+  received: "received",
+  /** The request did not reach us. Effective anyway — § 56(2¹). */
+  unrecorded: "unrecorded",
+} as const;
+
+/**
+ * The closing line for each state.
+ *
+ * **None of them says the withdrawal failed**, because under § 56(2¹) none of
+ * them did: the notice was sent. What differs is what *we* can be said to
+ * hold, and the third is the one that has to be honest about holding nothing.
+ */
+export const WITHDRAWAL_RECORD_LINES = {
+  sent: "We have sent a confirmation to the address above, as § 56⁴(4) requires. If it has not arrived in a few minutes, check the spam folder and then write to us.",
+  received: "We received this, and § 56⁴(4) says we owe you a confirmation by email. Ours did not go out just now, so this page is the record until it does — keep it, and write to us if you would rather have the confirmation in your hand.",
+  unrecorded: "We could not reach our own system to record this, so we may not hold it. Your withdrawal still counts — § 56(2¹) fixes it at the moment you sent it, and this page is your evidence of that — but please also write to us so a person sees it.",
+} as const;
 
 /** The label on every page that has to say where the button is — § 54(1) p 13¹. */
 export const WITHDRAWAL_ROUTE_LABEL = "Withdraw from a contract";
