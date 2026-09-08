@@ -337,7 +337,7 @@ and carry no token. It knows nothing about mugs.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/modules/printful/catalogue.ts` and its test.
 
-- [ ] Write the mapping down once, as data, and guard it.
+- [x] Write the mapping down once, as data, and guard it.
 
 Four products, their variants, their Printful catalogue ids, their techniques,
 their placements, their print files, their costs and their shelf prices — as one
