@@ -1230,14 +1230,20 @@ that environment's counter reads a real `1` rather than zero. They are Stripe
 test-mode transactions. A row that wants a clean counter clears them; nothing
 depends on them.
 
-### The one thing this slice cannot report on itself
+### The one thing this slice could not report on itself, now answered
 
 `C15` sent two § 55 confirmations and one § 56⁴(4) receipt to a real address.
 Whether they arrived, are readable, and landed in an inbox rather than a spam
-folder is the operator's to judge — and so is the DKIM signature, which only
-the received copy carries. The `451 4.7.1` that the first send met was a DKIM
-milter that was not answering, corrected by the operator mid-slice; a send
-after that correction was queued as `250 2.0.0 Ok`.
+folder was the operator's to judge, and so was the DKIM signature, which only
+the received copy carries.
+
+**The operator confirmed on 2026-09-08 that they arrived.** That closes gate
+item 11 in fact as well as in code: the § 55 confirmation is not merely built
+and accepted by a mail server, it reaches the person it is owed to.
+
+The `451 4.7.1` that the first send met was a DKIM milter that was not
+answering, corrected by the operator mid-slice; a send after that correction was
+queued as `250 2.0.0 Ok`, and delivery is now confirmed on both sides of it.
 
 ## What this slice does not do
 

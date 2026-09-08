@@ -143,11 +143,14 @@ anything built: the retention period for the inscription as distinct from the
 order, and whether a buyer may ask for a certificate link again. There are no
 accounts (§12), so today the confirmation email is the only copy of that URL.
 
-**One acceptance item is the operator's and cannot be automated.** C15 sent two
-§ 55 confirmations and one § 56⁴(4) receipt to a real address. Whether they
-arrived, are readable, and landed in an inbox rather than a spam folder is a
-human judgement — and the DKIM signature, which only the received copy shows,
-is part of it.
+**The one acceptance item that could not be automated is closed.** C15 sent two
+§ 55 confirmations and one § 56⁴(4) receipt, and G9 sent a gift message to a
+real Gmail account. The operator confirmed on 2026-09-08 that they arrived.
+
+The Gmail delivery is the one worth keeping: unsolicited, from a domain the
+recipient had never corresponded with, about a purchase they did not make — the
+worst case a transactional sender has — and it landed rather than being filed as
+spam. The DKIM signing corrected during LD-02 is working.
 
 ## Operator items
 
