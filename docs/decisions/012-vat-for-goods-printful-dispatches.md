@@ -70,6 +70,59 @@ So this record follows Printful's guidance for what Printful does, which is the
 part a supplier can speak to, and settles the merchant's own position from the
 statute.
 
+**And Printful's other article says the same thing outright**, which removes the
+tension rather than leaving it as a judgement call. [*How do I comply with VAT
+regulations when selling to EU
+customers?*](https://help.printful.com/hc/en-us/articles/360014008620-How-do-I-comply-with-VAT-regulations-when-selling-to-EU-customers)
+— same help centre, same disclaimer — has a section headed "Once you're
+VAT-registered":
+
+> "When you're registered for VAT, you'll need to:
+>
+> - Collect VAT on orders going to EU member states.
+> - Check invoicing and reporting rules in the country where you're registered.
+> - File VAT returns and pay VAT to your local tax authorities (deducting any
+>   VAT you've paid on your supply chain).
+> - Show VAT charges clearly at checkout for your customers."
+>
+> "Since July 1, 2021, the EU-wide distance selling threshold is EUR 10,000. If
+> your total cross-border EU sales exceed this: you'll need to register for
+> VAT under the Union scheme (OSS) or in the specific EU country where you
+> sell."
+
+**This trader is VAT-registered in Estonia.** So by Printful's own account it
+collects VAT on its EU sales, files its own returns, and takes OSS above
+€10,000 — which is the scheme above. The first article's "you usually don't need
+to register separately" is addressed to the case the second article sets out
+under "You haven't reached your country's sales threshold", where an
+*unregistered* seller lets Printful's VAT stand as the only VAT in the chain.
+That is not this trader.
+
+**Two operational facts fall out of the second article**, and both are money:
+
+> "After you've registered as a VAT payer, submit your VAT ID to Printful. Once
+> approved, VAT will be charged based on where the order is fulfilled and
+> shipped."
+>
+> "If you submit a valid VAT ID from an EU country where you're registered,
+> we'll apply 0% VAT on orders fulfilled in that same EU country and shipped to
+> customers in other EU destinations. However, if orders are fulfilled and
+> delivered within the same EU country … VAT will be charged at that country's
+> local rate under the OSS scheme."
+
+The zero rate is conditional on **fulfilment happening in the country of
+registration**. Printful has no Estonian facility, so an Estonian VAT ID may
+never reach the 0% case at all, and Printful's VAT stays on every invoice. That
+is precisely the cost of goods this record already sends P4 to measure — and it
+raises the stakes on measuring it rather than assuming a reverse charge that may
+never apply.
+
+Printful also assumes the merchant can deduct "any VAT you've paid on your
+supply chain". An Estonian registration does not deduct Latvian VAT on the
+Estonian return; that needs a Directive 2008/9 reclaim, which is not worth
+filing at this volume. So the deduction Printful assumes is, here, not
+available.
+
 ## The scheme
 
 | | What | How it is handled |
