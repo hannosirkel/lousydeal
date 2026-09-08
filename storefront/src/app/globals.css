@@ -891,3 +891,98 @@ a.button.is-secondary:hover {
     animation: none !important;
   }
 }
+
+/* ---- Baldrick -------------------------------------------------------- */
+
+/* **A document, not a bubble.** §6 keeps out the card, the radius, the shadow
+   and the avatar; what is left is a speaker and a line, ruled off from the
+   page the way every other block here is. The transcript reads as a minute of
+   a meeting nobody wanted to attend, which is the correct register for it. */
+.baldrick {
+  max-width: var(--measure-narrow);
+  margin: var(--space-7) auto 0;
+  padding-top: var(--space-4);
+  border-top: var(--rule-width) solid var(--ink);
+}
+
+.baldrick-heading {
+  margin: 0 0 var(--space-4);
+  font-size: var(--size-small);
+  font-weight: 400;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.baldrick-transcript {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Speaker above line, both flush left. A conversation set as two columns of
+   opposed bubbles is the thing this is not. */
+.baldrick-message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+}
+
+.baldrick-speaker {
+  font-size: var(--size-fine);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.baldrick-line {
+  font-size: var(--size-body);
+  line-height: var(--leading-body);
+}
+
+/* The visitor's own words, set back from his. The only distinction between
+   the two speakers beyond the label, and it is indentation rather than colour
+   so it survives being printed. */
+.baldrick-message[data-speaker="visitor"] {
+  padding-left: var(--space-5);
+}
+
+.baldrick-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.baldrick-ask {
+  display: flex;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+.baldrick-ask input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The standing disclaimer, in fine print because it is fine print -- not
+   because it is unimportant. It is the sentence that keeps the Privacy Policy
+   true, so it is never hidden and never conditional. */
+.baldrick-disclaimer {
+  margin: var(--space-3) 0 0;
+  font-size: var(--size-fine);
+  line-height: var(--leading-body);
+  color: var(--ink-soft);
+}
+
+/* At 390px the send control and the input stop competing for one line. The
+   quick replies already wrap. */
+@media (width < 480px) {
+  .baldrick-ask {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
