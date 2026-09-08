@@ -7,20 +7,38 @@ does not.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-07 |
-| Current slice | **LD-05 — Baldrick**, planned, not started. LD-03 complete 2026-09-08; LD-02 complete 2026-09-07; LD-01 closed by the operator 2026-09-06; LD-09 complete. |
-| Next action | Execute [`ld-05-baldrick.md`](./ld-05-baldrick.md) from `B1`. A fable review on 2026-09-08 amended the plan before execution; its findings are in the plan. The legal gate below is unchanged and is still the operator's. |
+| Updated | 2026-09-08 |
+| Current slice | **LD-05 — Baldrick, complete 2026-09-08.** LD-03 complete 2026-09-08; LD-02 complete 2026-09-07; LD-01 closed by the operator 2026-09-06; LD-09 complete. |
+| Next action | **Plan LD-06 — the surcharge codes** (§9). It inherits one written liability: `storefront/src/content/baldrick.ts` says a discount code exists and is not finished, which LD-06 makes false, so under LD-05's constraint 9 an LD-06 row must carry that file. LD-04 stays deferred until a Printful account exists. The legal gate below is unchanged and is still the operator's. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
 
 ## Next action, in full
 
-**LD-05 is the current slice**, planned in
-[`ld-05-baldrick.md`](./ld-05-baldrick.md): eight rows in `lousydeal` only,
+**LD-05 is complete**, recorded in
+[`ld-05-baldrick.md`](./ld-05-baldrick.md): nine rows in `lousydeal` only,
 building the deterministic sales and support character §8 asks for. No LLM, no
 network call, no stored conversation — every reply is a string this repository
-ships, chosen by rules it can test.
+ships, chosen by rules it can test. Merged as pull requests 126 to 136.
+
+**Its acceptance is a transcript, and the transcript is in the plan.** No
+assertion covers whether a conversation reads like one, so B7 held a real ten-turn
+exchange against a production build in Chromium, from the keyboard only, and put
+the result in the record for the operator to read.
+
+**Gate E found a defect that only a rendered site could show.** Interrupting him
+mid-reply discarded the rest of what he had already decided to say, leaving
+questions in the transcript with no answers under them. Stopping a turn now
+returns the lines it did not reach, and a new question flushes them rather than
+dropping them — the same rule the reduced-motion path already followed, which
+collapses the wait and never the content.
+
+**Gate D found that the intent list had been closed too early.** Twenty-seven
+realistic questions were fed through the matcher and nine went somewhere
+indefensible, the worst being that "are you a real person" reached the fallback.
+Five intents were added, each with a recorded reason, and the routing table is
+now a standing test.
 
 **LD-04 is deferred, not skipped.** It needs a Printful account and sandbox,
 which the operator items below record as not held. Building a fulfillment
