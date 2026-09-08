@@ -9,7 +9,7 @@ does not.
 | --- | --- |
 | Updated | 2026-09-07 |
 | Current slice | **LD-05 — Baldrick**, planned, not started. LD-03 complete 2026-09-08; LD-02 complete 2026-09-07; LD-01 closed by the operator 2026-09-06; LD-09 complete. |
-| Next action | Execute [`ld-05-baldrick.md`](./ld-05-baldrick.md) from `B1`. The legal gate below is unchanged and is still the operator's. |
+| Next action | Execute [`ld-05-baldrick.md`](./ld-05-baldrick.md) from `B1`. A fable review on 2026-09-08 amended the plan before execution; its findings are in the plan. The legal gate below is unchanged and is still the operator's. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -17,7 +17,7 @@ no rendered Secret. It is public, like the rest of the repository.
 ## Next action, in full
 
 **LD-05 is the current slice**, planned in
-[`ld-05-baldrick.md`](./ld-05-baldrick.md): seven rows in `lousydeal` only,
+[`ld-05-baldrick.md`](./ld-05-baldrick.md): eight rows in `lousydeal` only,
 building the deterministic sales and support character §8 asks for. No LLM, no
 network call, no stored conversation — every reply is a string this repository
 ships, chosen by rules it can test.
