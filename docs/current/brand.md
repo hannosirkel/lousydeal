@@ -697,17 +697,31 @@ acceptance.
 
 A single list, so a later surface does not have to re-derive it. Two entries
 carry amendments, both made by LD-05's B1 and both marked: this list is meant
-to be argued with in the open rather than edited quietly.
+to be argued with in the open rather than edited quietly. One of those two was
+then **withdrawn by LD-05's B7**, also marked, for the reason that entry gives.
 
 - no raster image anywhere except generated social images;
 - no second typeface, no second accent colour, no dark mode;
 - no border radius, no shadow, no gradient, no card;
 - no icon, illustration, mascot or photograph;
-- no animation beyond a 120ms colour change, the loading cursor, and
-  **Baldrick's pause indicator** (amended by LD-05's B1). That indicator is the
-  second animation this identity has ever admitted, and it is admitted because
-  a deterministic bot that answered instantly would read as a lookup table
-  rather than as a character — which it is, but the joke needs the beat. It is
+- no animation beyond a 120ms colour change and the loading cursor.
+
+  **B1 amended this to admit a third, for Baldrick's pause indicator. B7
+  withdrew that amendment, because the indicator turned out to be the loading
+  cursor.** B5b reached for a second animation, found the blinking block
+  already in `globals.css` with its own `prefers-reduced-motion` exception
+  already argued, and used it. Nothing was added, so nothing needed admitting —
+  and this list is shorter for it, which is the direction it is supposed to
+  move in.
+
+  B1's amendment was also wrong on its own terms: it called the indicator "the
+  second animation this identity has ever admitted" while the sentence above it
+  named two already. A list that counts itself incorrectly is a list nobody is
+  reading, which is the argument for withdrawing rather than renumbering.
+
+  The reasoning B1 gave still holds and is why the beat exists at all: a
+  deterministic bot that answered instantly would read as a lookup table rather
+  than as a character — which it is, but the joke needs the beat. The blink is
   a CSS animation so that `globals.css`'s `prefers-reduced-motion` rule
   flattens it; the *pauses between his messages* are JavaScript timers and that
   rule cannot reach them, so LD-05's presenter reads the preference itself and

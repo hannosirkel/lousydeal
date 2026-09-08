@@ -477,6 +477,119 @@ assertion covers that.
 Ten turns, including a fallback, an abandoned flow, and a question he cannot
 answer. A transcript a human can read is the only acceptance this slice has.
 
+## Gate D: what the review found
+
+Executed by running the slice against the contract's Baldrick section, LD-05's
+own eleven constraints, and `brand.md` §6 — and, for the intent layer, by
+feeding twenty-seven realistic questions through `matchIntent` and reading
+where each landed rather than reasoning about the patterns. Nine went somewhere
+indefensible.
+
+### 1. He could not say what he was
+
+`are you a real person`, `are you a bot`, `who are you` and `what is baldrick`
+all reached the fallback, which answers "I did not understand that. I am not
+going to guess." That is the widget declining the one question where leaving a
+wrong impression is not a joke. The standing disclaimer under the input already
+says nothing reaches a person — but being asked directly and not answering
+undoes it, because a visitor reasonably reads a non-answer as evasion.
+
+**Fixed.** An `identity` intent, and a step that answers plainly: "No. I am a
+list of sentences somebody typed out in advance." The disclaimer is repeated in
+his own words rather than pointed at.
+
+### 2. The one sentence constraint 8 names by name
+
+Constraint 8 says a person typing "my certificate never arrived" must not walk
+away believing they have reported it. `it never arrived`, `where is my
+certificate` and `I have not received my certificate` all reached the fallback.
+The disclaimer covered the belief; nothing covered the answer.
+
+**Fixed.** `support` widened to the words people actually use for a thing that
+has not turned up. It points at the Imprint, which is where a person reads.
+
+### 3. A capability the contract names and the slice did not have
+
+The contract's Baldrick section says he "can explain licensing". Five licensing
+questions reached the fallback, and no customer-facing surface on this site
+mentions a licence at all.
+
+**Fixed**, and in the direction the absence implies: `Nobody has mentioned a
+licence to me. What you get is a certificate.` He names *Terms of service* and
+stops, which is what his own guards require of him.
+
+### 4. An asymmetry rather than a decision
+
+LD-02 shipped inscriptions and LD-03 shipped gifting. Gifting had an intent;
+inscriptions had none, so `can I have it in a different name` reached the
+fallback. Nobody decided that — the intent list was written before the older
+feature was in view.
+
+**Fixed.** An `inscription` intent, placed after `gift` because "can I put my
+friend's name on it" is a gift question with an inscription in it.
+
+### 5. A confident answer to a different question
+
+`\bpay\b` in the `price` pattern sent `what happens after I pay` to `price`,
+which replies "The price is written on the page you came from." Wrong, and
+worse than the fallback: the fallback admits it did not follow.
+
+**Fixed.** `price` gave up the bare `\bpay\b`; `what_do_i_get` gained "what
+happens after". The cost is that payment-method questions now reach the
+fallback, which is **a bound this row takes deliberately** — inventing an
+intent for shipping, invoices and card types would mean writing answers nobody
+has checked, and the fallback names what he does know about.
+
+### 6. Two words nobody uses
+
+`can my company buy these` reached the fallback. The enterprise pattern had
+`business plan` and `corporate` and no possessive form.
+
+**Fixed.**
+
+### 7. Rudeness with a different cause
+
+`hello` reached the fallback. Telling somebody who said hello that you did not
+understand them is not laziness. A `pleasantry` intent answers it and stops:
+"Hello." / "That is the small talk finished." It is anchored to a bare
+greeting, so "hello can I get a refund" is still a refund question.
+
+### 8. `brand.md` §6 claimed an amendment that did not happen
+
+B1 amended the animation rule to admit a third animation for Baldrick's pause
+indicator. B5b then reached for one, found the blinking block already in
+`globals.css` with its `prefers-reduced-motion` exception already argued, and
+used it. **Nothing was added, so nothing needed admitting.** B1's sentence was
+also wrong on its own terms — it called the indicator "the second animation
+this identity has ever admitted" while the line above it named two already.
+
+**Fixed** by withdrawing the amendment rather than renumbering it, marked as
+such. The list is shorter than it was, which is the direction it should move.
+
+### 9. §11, in a line this row wrote
+
+A Gate D draft of the `pleasantry` pool read "Hello. You are the first person
+to say that today, probably." Hedged, unverifiable, and a claim about other
+visitors — §11's subject exactly, written by the row whose job was finding that
+class of defect, and passed by four guards written for it.
+
+**Fixed**, and the guard widened in the same commit: the existing patterns all
+name a population, and this one named a *rank*, which is the same fabrication
+with the population left implied.
+
+### Recorded rather than fixed
+
+- **"Unlock otherwise unavailable products"**, from the contract's Baldrick
+  section, has no referent: the only thing §10 has him unlock is Enterprise,
+  which §10 itself defers out of V1. His `enterprise` step says there is none,
+  which is the truthful state.
+- **The contract's example line** — "Certainly. I've applied BALDRICK20. Your
+  price is now 20% higher." — is not what he says, and will not be until LD-06
+  ships the codes. Saying it today would claim an applied code that does not
+  exist and a price change that did not happen, which §11 forbids and which
+  outranks an illustration. B4's copy says the code exists and is unfinished.
+  This is the same forward liability `content/baldrick.ts` records for LD-06.
+
 ## What this slice does not do
 
 | Not done | Belongs to |

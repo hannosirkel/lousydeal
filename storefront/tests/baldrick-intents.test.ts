@@ -14,18 +14,26 @@ import { BALDRICK_INTENTS, matchIntent, matchingIntents } from "../src/lib/baldr
 import { conversationSeed, draw, generator, hashUtterances } from "../src/lib/baldrick/pool";
 
 describe("the intents this slice recognises", () => {
-  it("is §8's list, closed", () => {
+  it("is §8's list, closed, plus the five B7 produced reasons for", () => {
     // A closed set, asserted as one. §8 calls them "possible intents", so the
-    // set is a decision; an eleventh should require changing this line.
+    // set is a decision; an eleventh required changing this line, and B7's
+    // Gate D changed it -- by running twenty-seven realistic questions through
+    // `matchIntent` and reading where each went. `intents.ts` records the
+    // reason for each addition; this line is what makes adding a sixth a
+    // decision somebody has to take on purpose.
     expect([...BALDRICK_INTENTS]).toEqual([
       "enterprise",
       "subscription",
       "gift",
+      "inscription",
       "discount",
       "price",
       "refund",
       "complaint",
+      "identity",
+      "licensing",
       "support",
+      "pleasantry",
       "what_do_i_get",
       "fallback",
     ]);
@@ -59,6 +67,84 @@ describe("what a message is taken to mean", () => {
   it("ignores case and spacing, because a person typing does", () => {
     for (const message of ["REFUND", "  refund  ", "Refund\tplease"]) {
       expect(matchIntent(message), message).toBe("refund");
+    }
+  });
+});
+
+/**
+ * **The questions B7's Gate D actually asked him, and where each landed.**
+ *
+ * Gate D ran twenty-seven realistic questions through `matchIntent` and read
+ * the output rather than reasoning about the patterns. Nine went somewhere
+ * indefensible. This table is those nine plus the ones that were already
+ * right, kept as a table because a fix nobody guards is a fix the next row
+ * undoes without noticing.
+ *
+ * Each row is a defect that existed, not a hypothetical.
+ */
+describe("what Gate D found, held so it cannot come back", () => {
+  it.each([
+    // The one that had to be fixed. Answering "I did not understand that" to
+    // somebody asking whether they are talking to a person is the widget
+    // declining the only question where a wrong impression is not a joke.
+    ["are you a real person", "identity"],
+    ["are you a bot", "identity"],
+    ["who are you", "identity"],
+    ["what is baldrick", "identity"],
+
+    // Constraint 8 names this sentence as the case that must not go wrong, and
+    // it reached the fallback.
+    ["it never arrived", "support"],
+    ["where is my certificate", "support"],
+    ["I have not received my certificate", "support"],
+
+    // The contract's Baldrick section says he "can explain licensing".
+    ["what licence do I get", "licensing"],
+    ["can I use this commercially", "licensing"],
+    ["can I resell it", "licensing"],
+
+    // LD-02 shipped inscriptions; LD-03's gifting had an intent and the older
+    // feature had none.
+    ["can I have it in a different name", "inscription"],
+    ["can I put my friend's name on it", "inscription"],
+
+    // `\bpay\b` sent this to `price`, which answered with where the price is
+    // written -- a confident answer to a different question.
+    ["what happens after I pay", "what_do_i_get"],
+
+    // Possessive rather than nominal, which is how people actually ask.
+    ["can my company buy these", "enterprise"],
+
+    // Telling somebody who said hello that you did not understand them is not
+    // laziness, it is rudeness with a different cause.
+    ["hello", "pleasantry"],
+    ["hi", "pleasantry"],
+  ] as const)("reads %j as %s", (message, intent) => {
+    expect(matchIntent(message)).toBe(intent);
+  });
+
+  it("keeps the pleasantry to a bare greeting", () => {
+    // Anchored at both ends on purpose: a greeting with a question after it is
+    // the question.
+    //
+    // **The first two cases here passed on priority order, not on the anchor.**
+    // `refund` and `support` are declared before `pleasantry`, so they win
+    // whatever the greeting pattern does — unanchoring it entirely left both
+    // green. Found by mutation. The third case is the one that exercises the
+    // anchor, because `what_do_i_get` is the only intent declared after it.
+    expect(matchIntent("hello can I get a refund")).toBe("refund");
+    expect(matchIntent("hi, where is my certificate")).toBe("support");
+    expect(matchIntent("hi what do I get")).toBe("what_do_i_get");
+    expect(matchIntent("hello, what is this")).toBe("what_do_i_get");
+  });
+
+  it("still falls back where falling back is the honest answer", () => {
+    // **The bound this row takes deliberately.** Payment methods, shipping and
+    // invoices are real questions with no copy behind them, and inventing an
+    // intent for each would mean writing answers nobody has checked. The
+    // fallback names what he does know about, which is the truthful reply.
+    for (const message of ["how do I pay", "do you ship", "do you do VAT invoices", "is there a physical version"]) {
+      expect(matchIntent(message), message).toBe("fallback");
     }
   });
 });

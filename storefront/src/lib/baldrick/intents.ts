@@ -20,21 +20,50 @@
  */
 
 /**
- * §8's ten, and no eleventh without a reason.
+ * §8's ten, plus four B7's Gate D produced reasons for.
  *
  * The contract lists them as "possible intents", so the set is a decision
  * rather than a transcription: these are the questions a person actually
- * arrives with on a site that sells one thing.
+ * arrives with on a site that sells one thing. B2 closed it at ten and wrote
+ * "no eleventh without a reason". Gate D then ran twenty-seven realistic
+ * questions through {@link matchIntent} and read where each went, which is the
+ * reason B2 asked for. Four are recorded here rather than in a commit message,
+ * because the next person to consider an intent should see why these four
+ * cleared a bar the rest did not:
+ *
+ *  - **`identity`.** "are you a real person", "are you a bot" and "who are
+ *    you" all reached the fallback, which answers "I did not understand that".
+ *    That is the widget declining to answer the one question where leaving a
+ *    wrong impression is not a joke. The disclaimer under the input says it
+ *    already; being asked directly and not answering undoes that.
+ *  - **`support` widened, not added.** "it never arrived" and "where is my
+ *    certificate" reached the fallback — the exact sentence LD-05's constraint
+ *    8 names as the case that must not go wrong.
+ *  - **`licensing`.** The contract's own Baldrick section says he "can explain
+ *    licensing". Five licensing questions reached the fallback.
+ *  - **`inscription`.** LD-02 shipped it and LD-03's gifting has an intent;
+ *    the older feature had none, which was an asymmetry rather than a
+ *    decision.
+ *  - **`pleasantry`.** "hello" reached the fallback, and telling somebody who
+ *    said hello that you did not understand them is not laziness, it is
+ *    rudeness with a different cause.
+ *
+ * Five, not four: `pleasantry` is the one that is about register rather than
+ * coverage, and it is listed last for that reason.
  */
 export const BALDRICK_INTENTS = [
   "enterprise",
   "subscription",
   "gift",
+  "inscription",
   "discount",
   "price",
   "refund",
   "complaint",
+  "identity",
+  "licensing",
   "support",
+  "pleasantry",
   "what_do_i_get",
   "fallback",
 ] as const;
@@ -72,15 +101,39 @@ export type BaldrickIntent = (typeof BALDRICK_INTENTS)[number];
  * `fallback` has no pattern. It is what is left.
  */
 const PATTERNS: ReadonlyArray<readonly [Exclude<BaldrickIntent, "fallback">, RegExp]> = [
-  ["enterprise", /\benterprise|\bb2b\b|\bbusiness (?:plan|account|tier)|\bcorporate\b/],
+  // "can my company buy these" reached the fallback until Gate D. The words a
+  // person actually uses for this are possessive, not nominal.
+  ["enterprise", /\benterprise|\bb2b\b|\bbusiness (?:plan|account|tier)|\bcorporate\b|\b(?:my|our) company\b|\bfor (?:my|our) business\b|\bin bulk\b|\bfor (?:a |our )?team\b/],
   ["subscription", /\bsubscri|\brecurring\b|\brenew|\bmonthly\b|\bannual|\bcancel (?:my )?(?:plan|membership)/],
   ["gift", /\bgift|\bpresent\b|\bfor (?:a|my) friend\b|\bsend (?:it|this|one) to\b|\bsomebody else\b|\bsomeone else\b/],
+  // After `gift`, deliberately: "can I put my friend's name on it" is a gift
+  // question with an inscription in it, and the gift flow explains both.
+  ["inscription", /\binscription|\bpersonalis|\bpersonaliz|\bcustomis|\bcustomiz|\bengrav|\bname on\b|\bdifferent name\b|\bprinted on\b|\bwrite (?:something|a message) on\b/],
   ["discount", /\bdiscount|\bcode\b|\bcoupon|\bvoucher|\bpromo|\bcheaper\b|\bdeal on\b|\boffer\b|\bsale\b/],
-  ["price", /\bprice|\bcost|\bhow much|\bexpensive|\bcheap\b|\bpay\b|\bcharge/],
+  // **`\bpay\b` was removed by Gate D.** It sent "what happens after I pay" to
+  // `price`, which answered "the price is on the page you came from" — a
+  // confident answer to a different question, which is worse than the
+  // fallback. Payment-method questions now reach the fallback, which says what
+  // he does know about; that is a bound this row takes deliberately rather
+  // than a gap it missed.
+  ["price", /\bprice|\bcost|\bhow much|\bexpensive|\bcheap\b|\bcharge/],
   ["refund", /\brefund|\bmoney back\b|\bcancel (?:my )?order\b|\bwithdraw|\breturn (?:it|this|my)\b/],
   ["complaint", /\bcomplain|\bterrible\b|\brubbish\b|\bawful\b|\bscam\b|\bripped? off\b|\bfraud|\bangry\b|\bdisappointed\b/],
-  ["support", /\bhelp\b|\bsupport\b|\bproblem\b|\bbroken\b|\bnot work|\bcontact\b|\bhuman\b|\bsomeone\b|\bemail you\b/],
-  ["what_do_i_get", /\bwhat (?:do|will) i (?:get|receive)\b|\bwhat is (?:this|it)\b|\bwhat am i buying\b|\bwhat does it do\b|\bpointless\b|\bworth\b/],
+  // Before `licensing` and `support`, because it is the narrowest of the three
+  // and because getting it wrong is the one miss that is not funny.
+  ["identity", /\bare you (?:a )?(?:real|human|person|bot|robot|an? ai)|\bwho are you\b|\bwhat are you\b|\bare you real\b|\bis this a (?:bot|robot|person|human)\b|\byour name\b|\bbaldrick\b/],
+  ["licensing", /\blicen[sc]|\bcommercial(?:ly)?\b|\bresell\b|\bresale\b|\bcopyright|\bintellectual property\b|\ballowed to do with\b|\bcan i use (?:it|this)\b/],
+  // **Widened by Gate D**, which found "it never arrived" and "where is my
+  // certificate" reaching the fallback. Constraint 8 names that exact sentence
+  // as the case a chat box must not fumble, and the fallback is not an answer
+  // to it.
+  ["support", /\bhelp\b|\bsupport\b|\bproblem\b|\bbroken\b|\bnot work|\bcontact\b|\bhuman\b|\bsomeone\b|\bemail you\b|\bnever (?:arrived|came|turned up)\b|\bnot (?:arrived|come)\b|\bwhere is my\b|\bhave ?n(?:o|')t (?:got|received|had)\b|\bhave not (?:got|received|had)\b|\bdid ?n(?:o|')t (?:get|receive|arrive)\b|\bmissing\b/],
+  // Last before `what_do_i_get`, and narrow: a bare greeting and nothing else.
+  // Anything with a question in it should reach the question's intent.
+  ["pleasantry", /^(?:hello|hi|hey|yo|good (?:morning|afternoon|evening)|hiya|greetings)\b[\s.!?]*$/],
+  // Gained "what happens after I pay" when `price` gave up `\bpay\b`: what
+  // arrives after payment is what you get, not what it costs.
+  ["what_do_i_get", /\bwhat (?:do|will) i (?:get|receive)\b|\bwhat is (?:this|it)\b|\bwhat am i buying\b|\bwhat does it do\b|\bpointless\b|\bworth\b|\bwhat happens (?:next|after)\b|\bafter i pay\b/],
 ];
 
 /**
