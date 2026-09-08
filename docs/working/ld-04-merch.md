@@ -672,23 +672,32 @@ and checkout content, a turnover counter, tests.
 
 - [ ] Implement decision `012`, and count the thing that decides when it changes.
 
-Decision [`012`](../decisions/012-vat-for-goods-printful-dispatches.md) settles
-the scheme: Estonian VAT while cross-border EU turnover is under €10,000, Union
-OSS after that, no registration in Latvia, Spain, the UK or Northern Ireland
-because those are Printful's own obligations on its invoice to us, Printful's
-IOSS for EU imports under €150, and **no country blocked**.
+Decision [`013`](../decisions/013-the-vat-arrangement.md) is the arrangement and
+this row implements it: everything filed in Estonia — the KMD and a Union OSS
+return — plus the small-enterprise scheme's `EX` number for supplies located in
+Latvia. **No other country's registration is taken and no country is blocked.**
+Spain's fulfil-and-deliver-inside-Spain case and the United Kingdom are recorded
+there as decisions rather than coverage; the UK is settled on a first-sale basis
+and blocks nothing.
 
 This row builds three things, none of which is a tax filing:
 
-1. **A counter for cross-border EU turnover.** The threshold is a fact about
-   turnover and the one way to get it wrong is to pass it without noticing. It
-   is measured, not estimated — §11's rule applies to a number the operator will
-   act on as much as to one a visitor reads.
-2. **The pre-contractual sentence for buyers outside the EU**, saying they may
-   owe local import charges. § 54(1) requires it before the ordering process
+1. **Two counters**, measured rather than estimated — §11's rule applies to a
+   number the operator acts on as much as to one a visitor reads. Union turnover
+   against the small-enterprise ceiling of €100,000, and Latvian supplies
+   against €50,000. Crossing the first must reach EMTA within 15 working days
+   and costs the scheme for the following year, so it is watched rather than
+   discovered.
+2. **A destination VAT rate per member state**, because the reported figure is
+   computed backwards out of a tax-inclusive price at the buyer's rate, and
+   **the shipping quote grossed up** by it — Art 78(b) puts transport inside the
+   taxable amount, so passing Printful's charge through ungrossed loses about a
+   fifth of it every time.
+3. **The pre-contractual sentence for buyers outside the EU and the UK**, saying
+   they may owe local import charges. § 54(1) requires it before the ordering process
    begins, and it is the honest form of `PRICE_NOTICE`'s "the amount shown is
    the amount charged" — which P10 also has to reconcile.
-3. **The cost line P4 was missing.** Printful charges its own VAT on orders it
+4. **The cost line P4 was missing.** Printful charges its own VAT on orders it
    fulfils in Latvia, Spain, the UK and Northern Ireland. An Estonian
    registration does not recover that through the Estonian return, and a
    Directive 2008/9 reclaim is not worth filing at this volume, so it is simply

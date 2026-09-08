@@ -1,8 +1,10 @@
 # 012. VAT for goods Printful dispatches
 
 **Date:** 2026-09-08.
-**Status:** the scheme is settled; **two choices remain open for the operator**
-— Spain and the United Kingdom — and one question is for EMTA.
+**Status:** superseded as the operative document by
+[`013`](./013-the-vat-arrangement.md), which records what the operator settled.
+This record keeps the reasoning, the provisions and the verification — read it
+for *why*, and `013` for *what is done*.
 **Supersedes nothing.** [`009`](./009-merchant-absorbs-the-vat.md) stands for the
 certificate; this record covers the goods LD-04 adds, which 009 said would
 reopen it.
@@ -245,11 +247,15 @@ collect through EMTA.
 Accepting either is **non-compliance rather than a grey area**, and this record
 says so plainly so that accepting it is a decision and not an oversight.
 
-Three supporting details could not be checked against EU law, Estonian law or
-EMTA, and are therefore held as plausible rather than established: that Spain
-needs no fiscal representative from an EU business; that HMRC can collect
-through EMTA under the EU–UK agreement; and that Printful requires its own IOSS
-number rather than accepting a merchant's.
+Two supporting details could not be checked against EU law, Estonian law or
+EMTA, and are held as plausible rather than established: that Spain needs no
+fiscal representative from an EU business, and that HMRC can collect through
+EMTA under the EU–UK agreement.
+
+A third — that Printful requires its own IOSS number rather than accepting a
+merchant's — **the operator has corrected: Printful does not require one.** It
+was Fable's inference from a related article and it was wrong, which is the
+reason unverified details get labelled rather than absorbed.
 
 ## Two things this creates that are not filings
 
