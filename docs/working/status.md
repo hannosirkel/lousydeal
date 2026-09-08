@@ -8,13 +8,36 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-09-07 |
-| Current slice | **LD-03 — Gifting, complete.** Nine rows, `G0` to `G9`. LD-02 complete 2026-09-07; LD-01 closed by the operator 2026-09-06; LD-09 complete. |
-| Next action | Choose the next slice — LD-04 (Printful and merch) or LD-05 (Baldrick). LD-03's completion report is at the foot of [`ld-03-gifting.md`](./ld-03-gifting.md); the legal gate below is unchanged and is still the operator's. |
+| Current slice | **LD-05 — Baldrick**, planned, not started. LD-03 complete 2026-09-08; LD-02 complete 2026-09-07; LD-01 closed by the operator 2026-09-06; LD-09 complete. |
+| Next action | Execute [`ld-05-baldrick.md`](./ld-05-baldrick.md) from `B1`. A fable review on 2026-09-08 amended the plan before execution; its findings are in the plan. The legal gate below is unchanged and is still the operator's. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
 
 ## Next action, in full
+
+**LD-05 is the current slice**, planned in
+[`ld-05-baldrick.md`](./ld-05-baldrick.md): eight rows in `lousydeal` only,
+building the deterministic sales and support character §8 asks for. No LLM, no
+network call, no stored conversation — every reply is a string this repository
+ships, chosen by rules it can test.
+
+**LD-04 is deferred, not skipped.** It needs a Printful account and sandbox,
+which the operator items below record as not held. Building a fulfillment
+provider against an API nobody has called would be guessing at its shape, which
+is the one thing this codebase's method rules out.
+
+**The slice opens by amending the identity, which is why B1 is first.**
+`brand.md` §6 forbids client-side JavaScript outside three named exceptions and
+forbids animation beyond a colour change and the loading cursor. §8 asks for
+typing indicators, pauses and messages arriving one at a time. LD-09 anticipated
+the collision — "Baldrick arrives in LD-05 and needs his own voice section,
+written then" — and the operator settled it on 2026-09-08 in favour of a real
+chat widget with the identity amended to admit it.
+
+**With scripting off Baldrick is not rendered at all**, rather than rendered
+dead. He gates only Enterprise, which §10 defers out of V1, so no purchase path
+depends on him and every one of them still works without scripting.
 
 **LD-03 is complete**, recorded in
 [`ld-03-gifting.md`](./ld-03-gifting.md): nine rows in `lousydeal` only, letting
