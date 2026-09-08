@@ -19,6 +19,7 @@
 
 import { connection } from "next/server";
 
+import { Baldrick } from "../components/baldrick/Baldrick";
 import { DocumentFrame } from "../components/document/DocumentFrame";
 import { FinePrint } from "../components/document/FinePrint";
 import { Ledger, LedgerRow } from "../components/document/LedgerRow";
@@ -118,6 +119,13 @@ export default async function HomePage() {
           <FinePrint key={line}>{line}</FinePrint>
         ))}
       </DocumentFrame>
+      {/* **After the document, inside `main`.** He arrives with hydration, so
+          anything he sat above would move when he appeared -- and the thing
+          above him here is the control that starts a purchase. Below the whole
+          document he shifts nothing that matters. `tests/baldrick-reach.test.ts`
+          holds the list of pages this appears on, and the longer list it does
+          not. */}
+      <Baldrick />
     </main>
   );
 }

@@ -898,8 +898,16 @@ a.button.is-secondary:hover {
    and the avatar; what is left is a speaker and a line, ruled off from the
    page the way every other block here is. The transcript reads as a minute of
    a meeting nobody wanted to attend, which is the correct register for it. */
+/* **The sheet's measure, not the narrow one**, changed in B6 by looking at him
+   under a real purchase order rather than in a harness. B5b picked
+   `--measure-narrow` because the transcript is prose that gets read; on the
+   page he is not a document of his own but a block below one, and `.sheet`'s
+   own comment settles which rule wins -- one measure for the letterhead, the
+   content and the trader line, "so all three share an edge". At 640 against
+   the sheet's 720 his left edge sat forty pixels inside every rule above him,
+   on a site whose whole identity is aligned edges. */
 .baldrick {
-  max-width: var(--measure-narrow);
+  max-width: var(--measure-document);
   margin: var(--space-7) auto 0;
   padding-top: var(--space-4);
   border-top: var(--rule-width) solid var(--ink);
