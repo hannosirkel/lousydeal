@@ -27,7 +27,13 @@ import {
 } from "../src/app/api/store/[...path]/route";
 import { STORE_PUBLISHABLE_KEY_HEADER, type FetchJson, type StoreFetchInit } from "../src/lib/medusa-client";
 import { cartNeedsAddress, isPayableCart } from "../src/lib/checkout-rules";
-import { getCheckoutCart, setCartCountry, setCartShippingAddress } from "../src/lib/store-checkout";
+import {
+  getCheckoutCart,
+  listCartShippingOptions,
+  setCartCountry,
+  setCartShippingAddress,
+  setCartShippingMethod,
+} from "../src/lib/store-checkout";
 import { addLineToCart, createCart } from "../src/lib/store-cart";
 import {
   completeCheckoutCart,
@@ -688,6 +694,81 @@ describe("isPayableCart", () => {
     // as a certificate would refuse carts that are fine; counting two of them
     // as certificates would refuse every cart.
     expect(isPayableCart([line("lousy-deal"), line(null), line(null)], TIERS)).toBe(true);
+  });
+});
+
+describe("listCartShippingOptions", () => {
+  const answer = (options: unknown): FetchJson =>
+    (async <T,>(path: string): Promise<T> => {
+      expect(path).toBe("/store/shipping-options?cart_id=cart_ship");
+      return { shipping_options: options } as T;
+    }) as FetchJson;
+
+  it("reads the calculated price, which is what our provider returned", async () => {
+    // Medusa is the one that calls Printful, through P7a's provider, when this
+    // endpoint calculates a price. Going straight to Printful from a browser
+    // would need the token in a browser and would produce a number the cart
+    // does not know about, which is the same as having no price.
+    expect(
+      await listCartShippingOptions(answer([{ id: "so_1", name: "Printful", calculated_price: { calculated_amount: 663 } }]), "cart_ship"),
+    ).toEqual([{ id: "so_1", name: "Printful", amount: 663 }]);
+  });
+
+  it("falls back to a flat amount where an option has one", async () => {
+    expect(await listCartShippingOptions(answer([{ id: "so_2", name: "Flat", amount: 500 }]), "cart_ship")).toEqual([
+      { id: "so_2", name: "Flat", amount: 500 },
+    ]);
+  });
+
+  it("drops an option Medusa could not price", async () => {
+    // `calculatePrice` throws rather than inventing a figure, and Medusa
+    // reports that as an option with no price. Offering it to a buyer would be
+    // offering a control that cannot be used.
+    expect(
+      await listCartShippingOptions(answer([{ id: "so_3", name: "Broken" }, { id: "so_4", calculated_price: {} }]), "cart_ship"),
+    ).toEqual([]);
+  });
+
+  it("returns nothing for a cart with no options, rather than refusing", async () => {
+    // A certificate-only cart has none, and that is not an error.
+    expect(await listCartShippingOptions(answer([]), "cart_ship")).toEqual([]);
+    expect(await listCartShippingOptions(answer(undefined), "cart_ship")).toEqual([]);
+  });
+});
+
+describe("setCartShippingMethod", () => {
+  it("attaches the option and reads the new total back", async () => {
+    let seen: unknown;
+    const fetchJson: FetchJson = (async <T,>(path: string, init?: StoreFetchInit): Promise<T> => {
+      expect(path).toBe("/store/carts/cart_ship/shipping-methods");
+      seen = init?.body === undefined ? undefined : JSON.parse(init.body);
+      return {
+        cart: { total: 2163, shipping_methods: [{ shipping_option_id: "so_1", amount: 663 }] },
+      } as T;
+    }) as FetchJson;
+
+    expect(await setCartShippingMethod(fetchJson, "cart_ship", "so_1")).toEqual({ total: 2163, shippingAmount: 663 });
+    expect(seen).toEqual({ option_id: "so_1" });
+  });
+
+  it("refuses when Medusa attached nothing, rather than reporting a total that excludes postage", async () => {
+    // Until a method is on the cart the total is the goods alone. A completed
+    // order there takes the buyer's money without the postage in it, and the
+    // merchant pays the difference.
+    const fetchJson: FetchJson = (async <T,>(): Promise<T> => ({ cart: { total: 1500, shipping_methods: [] } }) as T) as FetchJson;
+    await expect(setCartShippingMethod(fetchJson, "cart_ship", "so_1")).rejects.toThrow(/did not attach shipping option/);
+  });
+
+  it("refuses when a different option came back", async () => {
+    const fetchJson: FetchJson = (async <T,>(): Promise<T> =>
+      ({ cart: { total: 1500, shipping_methods: [{ shipping_option_id: "so_other", amount: 1 }] } }) as T) as FetchJson;
+    await expect(setCartShippingMethod(fetchJson, "cart_ship", "so_1")).rejects.toThrow(/did not attach shipping option/);
+  });
+
+  it("refuses when Medusa returned no total", async () => {
+    const fetchJson: FetchJson = (async <T,>(): Promise<T> =>
+      ({ cart: { shipping_methods: [{ shipping_option_id: "so_1", amount: 663 }] } }) as T) as FetchJson;
+    await expect(setCartShippingMethod(fetchJson, "cart_ship", "so_1")).rejects.toThrow(/no total/);
   });
 });
 

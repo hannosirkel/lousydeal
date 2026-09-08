@@ -329,6 +329,92 @@ export async function setCartShippingAddress(
   };
 }
 
+/** One shipping option Medusa offers this cart, with the price our provider calculated. */
+export interface CartShippingOption {
+  readonly id: string;
+  readonly name: string;
+  /** Minor units, VAT-inclusive — `shipping.ts` grosses Printful's quote up. */
+  readonly amount: number;
+}
+
+interface StoreShippingOptionsResponse {
+  readonly shipping_options?: ReadonlyArray<{
+    readonly id?: unknown;
+    readonly name?: unknown;
+    readonly amount?: unknown;
+    readonly calculated_price?: { readonly calculated_amount?: unknown } | null;
+  }>;
+}
+
+/**
+ * What it would cost to post this cart, asked of Medusa rather than of Printful.
+ *
+ * **Medusa is the one that calls Printful**, through P7a's provider, when this
+ * endpoint calculates a price. Going straight to Printful from the browser
+ * would need the token in a browser, and would produce a number the cart does
+ * not know about — which is the same as not having a price at all.
+ *
+ * **An option with no price is dropped.** `calculatePrice` throws rather than
+ * inventing a figure, and Medusa reports that as an option it could not price.
+ * An unpriced option offered to a buyer is a control that cannot be used.
+ */
+export async function listCartShippingOptions(
+  fetchJson: FetchJson,
+  cartId: string,
+): Promise<readonly CartShippingOption[]> {
+  const { shipping_options } = await fetchJson<StoreShippingOptionsResponse>(
+    `/store/shipping-options?cart_id=${encodeURIComponent(cartId)}`,
+  );
+
+  return (shipping_options ?? []).flatMap((option): CartShippingOption[] => {
+    const id = typeof option.id === "string" && option.id.length > 0 ? option.id : null;
+    const raw = option.calculated_price?.calculated_amount ?? option.amount;
+    const amount = typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+    if (id === null || amount === null) return [];
+    return [{ id, name: typeof option.name === "string" && option.name.length > 0 ? option.name : id, amount }];
+  });
+}
+
+interface StoreShippingMethodResponse {
+  readonly cart?: {
+    readonly total?: unknown;
+    readonly shipping_methods?: ReadonlyArray<{ readonly shipping_option_id?: unknown; readonly amount?: unknown }>;
+  };
+}
+
+/**
+ * Puts a shipping method on the cart, so Stripe collects the postage.
+ *
+ * The point of the whole shipping half: until this runs, the cart's total is
+ * the goods alone and a completed order would have taken the buyer's money
+ * without the postage in it — which the merchant would then pay.
+ *
+ * Reads back rather than assuming: a method Medusa did not attach is a method
+ * that is not being charged for.
+ */
+export async function setCartShippingMethod(
+  fetchJson: FetchJson,
+  cartId: string,
+  optionId: string,
+): Promise<{ readonly total: number; readonly shippingAmount: number }> {
+  const { cart } = await fetchJson<StoreShippingMethodResponse>(
+    `/store/carts/${encodeURIComponent(cartId)}/shipping-methods`,
+    { method: "POST", body: JSON.stringify({ option_id: optionId }) },
+  );
+
+  const attached = (cart?.shipping_methods ?? []).find((method) => method.shipping_option_id === optionId);
+  if (attached === undefined) {
+    throw new Error(`Medusa did not attach shipping option ${optionId} to cart ${cartId}`);
+  }
+  if (typeof cart?.total !== "number") {
+    throw new Error(`Medusa returned no total for cart ${cartId} after adding shipping`);
+  }
+  return {
+    total: cart.total,
+    shippingAmount: typeof attached.amount === "number" ? attached.amount : 0,
+  };
+}
+
 export async function setCartCountry(fetchJson: FetchJson, cartId: string, countryCode: string): Promise<CartCountry> {
   const { cart } = await fetchJson<StoreCartAddressResponse>(`/store/carts/${encodeURIComponent(cartId)}`, {
     method: "POST",

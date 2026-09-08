@@ -111,6 +111,23 @@ describe("the pay control's rule", () => {
     expect(payDisabled({ stripeReady: true, submitting: true, consented: true })).toBe(true);
   });
 
+  it("is off until the postage is settled, for a cart that has any", () => {
+    // **LD-04 P7.** Until a shipping method is on the cart the total is the
+    // goods alone, so paying would take the buyer's money without the postage
+    // in it -- and the merchant would pay the difference on every order.
+    const ready = { stripeReady: true, submitting: false, consented: true } as const;
+    expect(payDisabled({ ...ready, shippingSettled: false })).toBe(true);
+    expect(payDisabled({ ...ready, shippingSettled: true })).toBe(false);
+  });
+
+  it("defaults to settled, so a certificate-only cart is unaffected", () => {
+    // A certificate posts nothing. The parameter is optional precisely so that
+    // every existing caller keeps its meaning: a gate that silently became
+    // stricter would be a gate nobody reviewed, and the certificate path is
+    // what constraint 4 forbids this slice from changing.
+    expect(payDisabled({ stripeReady: true, submitting: false, consented: true })).toBe(false);
+  });
+
   it("renders as a real disabled button, which a link cannot be", () => {
     const off = renderToStaticMarkup(createElement(Button, { type: "submit", disabled: true, children: "Pay" }));
     expect(off).toContain('type="submit"');
