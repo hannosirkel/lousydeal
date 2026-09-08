@@ -328,8 +328,36 @@ accident.
 **Repository:** `lousydeal`.
 **Files:** the findings, in this document; `docs/working/status.md`.
 
-- [ ] Review every row against the contract, buy a gift on the test
+- [x] Review every row against the contract, buy a gift on the test
       environment, and read both messages.
+
+#### Gate D — the review against the contract
+
+**Constraint 1 holds and was cheap to hold.** This slice added no secret, no
+environment value and no network destination — the first since LD-01 to touch
+one repository. Checked by value anyway: no live Stripe prefix, and neither
+address used in Gate E appears anywhere in the tree. The one `sk_live_` hit is
+a comment in `payment-provider-config.test.ts` describing what a key looks
+like.
+
+**Constraint 5 holds, and is enforced rather than intended.** `content/gift.ts`
+contains exactly one mention of § 54, § 55, withdrawal or consent, and it is
+the comment saying why none of them is in the message. `gift-message.test.ts`
+asserts each absence against the confirmation's own constants, so a later edit
+that copies a section across fails rather than ships.
+
+**Constraint 7 holds.** Four `createNotifications` calls exist in the whole
+backend: the § 55 confirmation, the gift, and the § 56⁴(4) receipt's two
+copies. Nothing schedules, queues, retries or re-sends to a recipient — no
+`cron`, no reminder, no "your friend hasn't opened it". The only `setTimeout`
+in `backend/src` is the Redis preflight's deadline.
+
+**Constraint 4 is G6's and was proven there** against data that exists, on both
+sides of the wire and on the rendered output, by key and by value — including
+that a gift and an ordinary purchase render byte-identical HTML.
+
+**§16's idempotency is G5's**, proven by firing the event three times and
+counting two messages, and by two mutations.
 
 Gate E is executed against a rendered site, at 390px and desktop, with
 scripting disabled where the surface claims to work without it. LD-02's Gate E
@@ -342,6 +370,112 @@ inferred from one inbox. The operator holds both.
 
 **The clean-up is part of the row.** LD-02 left two orders and a withdrawal in
 the test database and recorded it. This row either clears them or says why not.
+
+#### Gate E — a real gift, to two addresses
+
+Executed against the test environment carrying G1–G8, reached through the same
+SSH tunnel via Meeme that C15 used, so no ingress rule was widened to run it.
+A real Stripe test-mode payment, driven through the built checkout with the
+gift disclosure opened and §6's four fields filled.
+
+**The buyer and the recipient are different people, which is the point.** The
+plan's `OWNER MUST FILL` asked for a second real address and the operator
+supplied one on 2026-09-07. So "the buyer got the confirmation and the
+recipient got the certificate" is observed in two inboxes rather than inferred
+from one.
+
+| Step | Result |
+| --- | --- |
+| Pay, gift block open | `order_01M1YW4KR81CNRMXJ3JSN74RTE` |
+| Issue | `deal #4`, all four gift columns populated |
+| The buyer's mail | `§ 55 confirmation sent` |
+| The recipient's mail | `gift message sent`, to the address the buyer typed |
+| The counter | `Deals done 4 · Amount wasted $20.00 · Latest deal #4` |
+
+**Constraint 4 verified against artefacts that could have leaked.** The
+recipient's address, their name, the sender's name and the message appear in
+none of the rendered HTML, the PDF's extracted text, or the PDF's raw bytes.
+The certificate carries the buyer's own inscription, `Gate E` and `LD-03
+acceptance`, which is the pair §5 makes public.
+
+**G5's idempotency has production evidence as well as a unit test.** Both
+notifications are stored with their keys and `status=success` —
+`lousydeal:order-confirmation:01M1YW4…` and `lousydeal:gift-message:01M1YW4…` —
+so the module's own filter excludes a redelivery. Notifications sent before G5
+carry `key=NONE`, which is the defect that row closed, visible in the table.
+
+**390px and desktop, no horizontal overflow** on the Terms, the Privacy Policy
+or the gift's certificate. Both rewritten documents render with scripting
+disabled and both carry the gifting clause. The gift block itself was rendered
+and looked at in G3, which is where its `No message` empty state was found.
+
+**Three payment attempts failed before one succeeded**, with Stripe's generic
+`Please try again`. The same happened in C15. It is recorded rather than
+diagnosed: it is test-mode Stripe behaviour on a repeated card, not this
+application, and nothing in the logs shows a request reaching the backend.
+
+**What no machine can accept on a human's behalf.** One § 55 confirmation went
+to the buyer's address and one gift message to a real Gmail account. Whether
+they arrived, are readable, and landed in an inbox rather than a spam folder is
+the operator's to judge — and Gmail is stricter about an unsigned message than
+the earlier sends' destination was, so this is also the first real test of the
+DKIM signing corrected during LD-02.
+
+## Completion report
+
+**LD-03 is complete.** Nine rows, `G0` to `G9`, in `lousydeal` only — no
+`deploys` or `orange` change, because the slice added no secret, no environment
+value and no network destination.
+
+### What the rows found that the plan did not predict
+
+**Three rows corrected something already merged**, which is constraint 8
+working rather than failing.
+
+- `G4` shipped a gift message that took the trader identity as an argument and
+  used it only as a null-guard, so every recipient got an unsigned message from
+  an unidentified controller. `G7` found it and fixed it; Article 14(1)(a)
+  wants the controller named, and a message from nobody reads like spam.
+- `G4` also put the recipient's name in a section heading, which the text part
+  upper-cases: `McDonald` would have printed `MCDONALD`. Found by reading the
+  output rather than by a test.
+- `G5` found that nothing had ever stopped a redelivered `order.placed`
+  re-sending the § 55 confirmation. Issuance was idempotent since C2 and said
+  nothing about the send.
+
+**Two guards were inverted, in the changes that made them false**, and one
+existing test caught a defect it was not written for: the subscriber's
+`recipient === null` check, which let `undefined` through and sent a gift
+message for every ordinary order. `order-placed-confirmation.test.ts` counted
+two notifications where one was owed — the same file that caught LD-02's
+`BigNumber` defect.
+
+### Decisions the plan left open, and how they were settled
+
+| Question | Answer |
+| --- | --- |
+| A shared `transactional-email.ts` at three callers | No. `G4` looked at what the three actually share — a type, an escaper, a resolver, about twelve lines — and each resolves different tokens. The escaper is duplicated three times and the file says so. |
+| Does the send need its own timestamp? | No. `CreateNotificationDTO`'s `idempotency_key` is enforced by the module in a transaction, and its exclusion is keyed on `status === FAILURE`, so a failed send still retries. A column would have had to choose between those. |
+| Does the gift message state the amount? | Yes, settled by the operator: `Someone spent $5.00 on absolutely nothing for you.` |
+| A second shared filter for §6's fields | No. `G2` imported §5's rather than copying it: what these fields need is exactly §5's rule, and `inscription-filter.test.ts` already holds that block equal across the workspaces. |
+
+### Deferrals, each with its reason
+
+| Deferred | Why |
+| --- | --- |
+| Scheduled gift delivery | §6 permits deferring it unless exceptionally cheap. It needs a scheduler this deployment does not have and a story for a send that fails at 3am. |
+| Revoking a gift when the buyer withdraws | Settled by the operator: nothing automatic. LD-02 keeps no withdrawal table, and acting on an unauthenticated form submission would let anyone take a stranger's certificate down. |
+| Any second message to a recipient | Constraint 7. One message, no reminders, no "unopened" nudge. |
+| Rate-limiting the gift send | Not built, and `G2` says so in the code. One visitor can send one message per completed order, which costs them the price of a certificate. That is the control; a free send would need more. |
+| Closing the race window on the send | `G5`. Medusa's own module carries a `TODO` about locking idempotency keys; two simultaneous deliveries can both pass its list. The unique index makes that impossible for issuance and nothing makes it impossible for a send. |
+| Letting a recipient claim or re-inscribe the certificate | There are no accounts (§12) and the inscription is frozen at issuance (§5). |
+| Whether the Article 14 position is right | The operator, with a qualified human reader. §23. `G7` states it and cites the provisions rather than settling it. |
+
+### Left behind in the test environment
+
+Four deals now, one of them a gift, and one withdrawal. They are Stripe
+test-mode transactions and real rows; that environment's counter reads a real
+`4`. A row that wants a clean counter clears them.
 
 ## What this slice does not do
 
