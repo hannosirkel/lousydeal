@@ -41,6 +41,15 @@ export interface CheckoutCart {
    * legitimately has no lines between being created and being added to.
    */
   readonly quantities: readonly number[];
+  /**
+   * The same lines, with what each one is.
+   *
+   * LD-04 P6a: the cart may now hold a certificate and a mug, so "how many
+   * lines" stopped being enough to decide whether the cart is payable. A line
+   * is a certificate when its `product_handle` is one the tier model declares;
+   * `null` where Medusa gave none, which its own line item permits.
+   */
+  readonly lines: ReadonlyArray<{ readonly quantity: number; readonly handle: string | null }>;
 }
 
 interface StoreCartTotalResponse {
@@ -59,6 +68,12 @@ function lineQuantity(item: unknown): number | null {
   return typeof quantity === "number" && Number.isFinite(quantity) ? quantity : null;
 }
 
+/** A line's product handle, or `null` — Medusa's line item permits none. */
+function lineHandle(item: unknown): string | null {
+  const handle = (item as { readonly product_handle?: unknown } | null)?.product_handle;
+  return typeof handle === "string" && handle.length > 0 ? handle : null;
+}
+
 /** Reads the cart's own total and its line quantities. Refuses rather than guesses if the API answers with anything less than all three of id, currency and total. */
 export async function getCheckoutCart(fetchJson: FetchJson, cartId: string): Promise<CheckoutCart> {
   const { cart } = await fetchJson<StoreCartTotalResponse>(`/store/carts/${encodeURIComponent(cartId)}`);
@@ -75,9 +90,14 @@ export async function getCheckoutCart(fetchJson: FetchJson, cartId: string): Pro
   // Dropping it would turn a two-line cart into a one-line cart and let
   // `isSingleCertificate` pass something it should refuse -- the failure this
   // whole path exists to prevent, arrived at by being tidy.
-  const quantities = Array.isArray(cart.items) ? cart.items.map((item) => lineQuantity(item) ?? Number.NaN) : [];
+  const items = Array.isArray(cart.items) ? cart.items : [];
+  const quantities = items.map((item) => lineQuantity(item) ?? Number.NaN);
+  const lines = items.map((item) => ({
+    quantity: lineQuantity(item) ?? Number.NaN,
+    handle: lineHandle(item),
+  }));
 
-  return { id: cart.id, currencyCode: cart.currency_code, total: cart.total, quantities };
+  return { id: cart.id, currencyCode: cart.currency_code, total: cart.total, quantities, lines };
 }
 
 interface StoreCartEmailResponse {

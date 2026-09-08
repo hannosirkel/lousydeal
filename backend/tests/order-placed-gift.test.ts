@@ -100,7 +100,7 @@ async function run({
       total: new BigNumber(25),
       created_at: "2026-09-07T10:00:00.000Z",
       metadata: metadata ?? {},
-      items: [{ title: "Lousy Deal Pro", detail: { quantity: 1 } }],
+      items: [{ title: "Lousy Deal Pro", product_handle: "lousy-deal-pro", total: 2500, detail: { quantity: 1 } }],
     };
 
     const container = {

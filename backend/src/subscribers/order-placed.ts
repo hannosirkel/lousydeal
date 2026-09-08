@@ -16,6 +16,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework";
 import { ContainerRegistrationKeys, Modules, OrderWorkflowEvents } from "@medusajs/framework/utils";
 
+import { PRODUCT_TIERS } from "../commerce/product-model";
 import type { MerchantIdentity } from "../config/merchant";
 import { readBackendRuntimeConfig } from "../config/runtime";
 import { DEAL_MODULE } from "../modules/deal";
@@ -31,6 +32,8 @@ interface OrderPlacedEvent {
 
 interface QueriedOrderItem {
   readonly title?: unknown;
+  readonly product_handle?: unknown;
+  readonly total?: unknown;
   readonly detail?: { readonly quantity?: unknown } | null;
 }
 
@@ -109,12 +112,59 @@ function text(value: unknown): string | null {
  * not reachable by a customer today — both environments are behind Access and
  * no live payment key exists.
  */
-function soleTier(items: readonly QueriedOrderItem[] | null | undefined): string | null {
-  if (!Array.isArray(items) || items.length !== 1) return null;
-  const only = items[0];
-  const quantity = only?.detail?.quantity;
-  if (Number(quantity) !== 1) return null;
-  return text(only?.title);
+/**
+ * What the certificate half of an order is, if it has one.
+ *
+ * Three outcomes rather than two, because LD-04 made "no certificate" a normal
+ * order rather than a broken one — a cart may now hold a mug and nothing else.
+ * `unreadable` is the only one that gets an error line.
+ */
+type CertificateLine =
+  | { readonly kind: "certificate"; readonly tier: string; readonly amountPaid: number }
+  | { readonly kind: "none" }
+  | { readonly kind: "unreadable" };
+
+/**
+ * Which line is the certificate, and what was paid for it.
+ *
+ * **Matched on the tier's own identifiers**, `handle` and `title`, both frozen
+ * in `commerce/product-model.ts`. `product_handle` is the better of the two —
+ * a title is display copy — but it is nullable on Medusa's line item, so the
+ * title is checked as well and both come from the same declaration.
+ */
+function certificateLine(items: readonly QueriedOrderItem[] | null | undefined): CertificateLine {
+  if (!Array.isArray(items)) return { kind: "unreadable" };
+
+  const handles = new Set(PRODUCT_TIERS.map((tier) => tier.handle));
+  const titles = new Set(PRODUCT_TIERS.map((tier) => tier.title));
+  const certificates = items.filter(
+    (item) => handles.has(text(item.product_handle) ?? "") || titles.has(text(item.title) ?? ""),
+  );
+
+  // Nothing to issue, and nothing wrong. LD-04 lets a cart hold merch, so an
+  // order of one mug is a complete and correct order that produces no
+  // certificate. Reporting it as a failure would fill the log with the shop
+  // working.
+  if (certificates.length === 0) return { kind: "none" };
+
+  // §16 gives a deal one `order_id` and no line reference, so two
+  // certificates in one order have no single tier and no single price to put
+  // on a document. Refusing is still right; only "more than one line" stopped
+  // being the test for it.
+  if (certificates.length > 1) return { kind: "unreadable" };
+
+  const only = certificates[0];
+  if (Number(only?.detail?.quantity) !== 1) return { kind: "unreadable" };
+
+  const tier = text(only?.title);
+  // **The line's own total, not the order's.** Constraint 10, and the lie this
+  // row exists to remove: with a $15 mug beside it, `order.total` would print
+  // $20 on a $5 certificate and add $20 to the public counter -- a fabricated
+  // transaction total, on the two surfaces §11 exists to protect.
+  const amountPaid = amount(only?.total);
+  if (tier === null || amountPaid === null) return { kind: "unreadable" };
+
+  return { kind: "certificate", tier, amountPaid };
 }
 
 export default async function orderPlaced({
@@ -136,24 +186,46 @@ export default async function orderPlaced({
         "created_at",
         "metadata",
         "items.title",
+        // LD-04 P6a. Which line is the certificate, and what was paid for
+        // *it* -- not for the order, which may now also hold a mug.
+        "items.product_handle",
+        "items.total",
         "items.detail.quantity",
       ],
       filters: { id: orderId },
     });
 
     const order = data[0] as QueriedOrder | undefined;
-    const tier = soleTier(order?.items);
+    const line = certificateLine(order?.items);
+    // Still read, and still required. LD-04 P6a moved the *certificate's*
+    // amount onto its own line; the § 55 confirmation is about the order and
+    // states what the order cost, so an unreadable order total is still a
+    // refusal. Two numbers, two documents.
     const total = amount(order?.total);
     const currencyCode = text(order?.currency_code);
     const issuedAt = order?.created_at instanceof Date ? order.created_at : new Date(String(order?.created_at));
 
-    if (order?.id === undefined || tier === null || total === null || currencyCode === null || Number.isNaN(issuedAt.getTime())) {
+    // An order with no certificate in it is a complete order — LD-04 lets a
+    // cart hold merch alone. It is not a failure and does not get an error
+    // line; P8 is what fulfils it.
+    if (line.kind === "none") {
+      logger.info(`order ${orderId} carries no certificate; nothing to issue`);
+      return;
+    }
+
+    if (
+      order?.id === undefined ||
+      line.kind === "unreadable" ||
+      total === null ||
+      currencyCode === null ||
+      Number.isNaN(issuedAt.getTime())
+    ) {
       // Named parts, not a dump: this line is what an operator reads when a
-      // paid order has no certificate, and "which of the five was missing" is
-      // the whole of what they need from it.
+      // paid order has no certificate, and "which of them was missing" is the
+      // whole of what they need from it.
       logger.error(
         `deal issuance skipped for order ${orderId}: ` +
-          `tier=${tier ?? "none"} total=${total ?? "none"} currency=${currencyCode ?? "none"} ` +
+          `certificate=${line.kind} total=${total ?? "none"} currency=${currencyCode ?? "none"} ` +
           `issued_at=${Number.isNaN(issuedAt.getTime()) ? "none" : "ok"}`,
       );
       return;
@@ -162,8 +234,8 @@ export default async function orderPlaced({
     const inscription = readInscription(order.metadata);
     const input: DealIssuanceInput = {
       orderId: String(order.id),
-      tier,
-      amountPaid: total,
+      tier: line.tier,
+      amountPaid: line.amountPaid,
       currencyCode,
       displayName: inscription.displayName,
       dedication: inscription.dedication,

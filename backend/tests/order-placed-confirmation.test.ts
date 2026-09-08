@@ -96,10 +96,14 @@ describe("the subscriber", () => {
     // one of the refusal cases below is exactly an order whose total is
     // undefined. Key presence is what distinguishes them.
     money: { readonly total: unknown } | null = null,
+    // LD-04 P6a. Which lines the order has, when a case is about that rather
+    // than about money.
+    items: readonly Record<string, unknown>[] | null = null,
   ) {
     const orderTotal = money === null ? new BigNumber(25) : money.total;
     const original = { ...process.env };
     const notifications: Record<string, unknown>[] = [];
+    const issued: Record<string, unknown>[] = [];
     const errors: string[] = [];
     const infos: string[] = [];
 
@@ -115,7 +119,14 @@ describe("the subscriber", () => {
         total: orderTotal,
         created_at: "2026-09-06T10:00:00.000Z",
         metadata: {},
-        items: [{ title: "Lousy Deal Pro", detail: { quantity: 1 } }],
+        // LD-04 P6a. The line carries its own total, deliberately different
+        // from the order's: that difference is what a mug in the cart looks
+        // like, and the two numbers are for two different documents. The § 55
+        // confirmation records what was paid for the *order*; the certificate
+        // records what was paid for the *certificate*.
+        items: items ?? [
+          { title: "Lousy Deal Pro", product_handle: "lousy-deal-pro", total: 5, detail: { quantity: 1 } },
+        ],
       };
 
       const container = {
@@ -128,12 +139,15 @@ describe("the subscriber", () => {
           }
           if (key === "deal") {
             return {
-              issueDeal: async () => ({
-                id: "deal_1",
-                order_id: "order_01",
-                serial: 4102,
-                public_slug: "xbts2k3mmv3trv3n",
-              }),
+              issueDeal: async (input: Record<string, unknown>) => {
+                issued.push(input);
+                return {
+                  id: "deal_1",
+                  order_id: "order_01",
+                  serial: 4102,
+                  public_slug: "xbts2k3mmv3trv3n",
+                };
+              },
             };
           }
           return {
@@ -152,8 +166,79 @@ describe("the subscriber", () => {
       vi.resetModules();
     }
 
-    return { notifications, errors, infos };
+    return { notifications, errors, infos, issued };
   }
+
+  describe("which line the certificate is, and what it cost", () => {
+    /**
+     * **Constraint 10, and the lie this row exists to remove.** Before LD-04's
+     * P6a the subscriber set `amountPaid` from `order.total`, which was the
+     * same number while a cart could hold only one thing. A cart may now hold
+     * a mug: a $5 certificate bought beside a $15 mug would have printed $20
+     * on the certificate and added $20 to the public counter — a fabricated
+     * transaction total, on the two surfaces §11 exists to protect.
+     */
+    it("certifies what the certificate cost, not what the order cost", async () => {
+      const { issued, errors } = await run(ENVIRONMENT, "buyer@example.test");
+      expect(errors).toEqual([]);
+      // The fixture's order totals 25 and its certificate line 5.
+      expect(issued).toHaveLength(1);
+      expect(issued[0]?.amountPaid).toBe(5);
+    });
+
+    it("still names the tier from the line's own title", async () => {
+      const { issued } = await run(ENVIRONMENT, "buyer@example.test");
+      expect(issued[0]?.tier).toBe("Lousy Deal Pro");
+    });
+
+    it("finds the certificate among merch lines rather than requiring it to be alone", async () => {
+      const { issued, errors } = await run(ENVIRONMENT, "buyer@example.test", null, [
+        { title: "This Mug Cost Extra", product_handle: "this-mug-cost-extra", total: 15, detail: { quantity: 1 } },
+        { title: "Lousy Deal", product_handle: "lousy-deal", total: 5, detail: { quantity: 1 } },
+        { title: "Certified Worthless", product_handle: "certified-worthless", total: 6, detail: { quantity: 3 } },
+      ]);
+      expect(errors).toEqual([]);
+      expect(issued).toHaveLength(1);
+      expect(issued[0]).toMatchObject({ tier: "Lousy Deal", amountPaid: 5 });
+    });
+
+    it("matches on the title too, because Medusa's product_handle is nullable", async () => {
+      const { issued } = await run(ENVIRONMENT, "buyer@example.test", null, [
+        { title: "Lousy Deal Pro", total: 25, detail: { quantity: 1 } },
+      ]);
+      expect(issued[0]).toMatchObject({ tier: "Lousy Deal Pro", amountPaid: 25 });
+    });
+
+    it("issues nothing, quietly, for an order with no certificate in it", async () => {
+      // A cart may hold a mug alone. That is a complete order, and reporting
+      // it as a failure would fill the log with the shop working.
+      const { issued, errors, infos } = await run(ENVIRONMENT, "buyer@example.test", null, [
+        { title: "This Mug Cost Extra", product_handle: "this-mug-cost-extra", total: 15, detail: { quantity: 1 } },
+      ]);
+      expect(issued).toEqual([]);
+      expect(errors).toEqual([]);
+      expect(infos.join(" ")).toContain("carries no certificate");
+    });
+
+    it("refuses two certificates, which have no single tier to put on a document", async () => {
+      // §16 gives a deal one `order_id` and no line reference. This refusal is
+      // unchanged by LD-04; only "more than one line" stopped being the test.
+      const { issued, errors } = await run(ENVIRONMENT, "buyer@example.test", null, [
+        { title: "Lousy Deal", product_handle: "lousy-deal", total: 5, detail: { quantity: 1 } },
+        { title: "Lousy Deal Pro", product_handle: "lousy-deal-pro", total: 25, detail: { quantity: 1 } },
+      ]);
+      expect(issued).toEqual([]);
+      expect(errors.join(" ")).toContain("certificate=unreadable");
+    });
+
+    it("refuses a certificate line of more than one, which is two by another route", async () => {
+      const { issued, errors } = await run(ENVIRONMENT, "buyer@example.test", null, [
+        { title: "Lousy Deal", product_handle: "lousy-deal", total: 10, detail: { quantity: 2 } },
+      ]);
+      expect(issued).toEqual([]);
+      expect(errors.join(" ")).toContain("certificate=unreadable");
+    });
+  });
 
   describe("the shape money arrives in", () => {
     /**
@@ -170,6 +255,11 @@ describe("the subscriber", () => {
      * The real class, imported from `@medusajs/framework/utils`, not a stub
      * shaped like it -- a hand-rolled object is what a test would agree with
      * while Medusa handed over something else.
+     *
+     * **These are about the § 55 confirmation, which is about the order.**
+     * LD-04 P6a moved the *certificate's* amount onto its own line — a
+     * different number for a different document — and `issues a certificate
+     * for what the certificate cost` below is where that is asserted.
      */
     it.each([
       ["a BigNumber, which is what Medusa actually sends", new BigNumber(25), 25],
@@ -267,7 +357,7 @@ describe("the subscriber", () => {
                     total: new BigNumber(25),
                     created_at: "2026-09-06T10:00:00.000Z",
                     metadata: {},
-                    items: [{ title: "Lousy Deal Pro", detail: { quantity: 1 } }],
+                    items: [{ title: "Lousy Deal Pro", product_handle: "lousy-deal-pro", total: 2500, detail: { quantity: 1 } }],
                   },
                 ],
               }),

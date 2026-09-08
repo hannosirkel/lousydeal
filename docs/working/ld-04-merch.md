@@ -431,7 +431,7 @@ not change".
 **Files:** `storefront/src/content/checkout.ts`, the cart and checkout pages,
 `backend/src/subscribers/order-placed.ts`, tests.
 
-- [ ] Let a cart hold a certificate and a mug, and still issue exactly one certificate.
+- [x] Let a cart hold a certificate and a mug, and still issue exactly one certificate.
 
 **Nothing else in this slice works until this row does.** Today
 `CART_NOT_SINGLE_NOTICE` takes the pay control away from any cart that is not
