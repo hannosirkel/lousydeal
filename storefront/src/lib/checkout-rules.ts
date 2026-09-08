@@ -70,6 +70,20 @@ export interface CartLine {
  * `POST /store/carts/:id/line-items` is public, so the state is reachable by
  * anyone who wants it.
  */
+/**
+ * Whether this cart holds anything that has to be posted.
+ *
+ * The question the address block turns on, and it is asked the same way the
+ * payability rule asks its own: by handle, against the list Medusa gives. A
+ * line that is not a certificate is a thing in a box.
+ *
+ * An empty cart needs no address, which is not a special case so much as the
+ * absence of the only reason to ask for one.
+ */
+export function cartNeedsAddress(lines: readonly CartLine[], certificateHandles: readonly string[]): boolean {
+  return lines.some((line) => line.handle === null || !certificateHandles.includes(line.handle));
+}
+
 export function isPayableCart(lines: readonly CartLine[], certificateHandles: readonly string[]): boolean {
   if (lines.length === 0) return false;
   // An unreadable quantity is not a quantity. `getCheckoutCart` keeps such a

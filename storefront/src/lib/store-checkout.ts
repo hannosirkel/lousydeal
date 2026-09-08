@@ -277,6 +277,58 @@ interface StoreCartAddressResponse {
  * `toPrecision(20)` before it is compared or persisted
  * (`@medusajs/utils/dist/totals/big-number.js:26`).
  */
+/**
+ * Puts the whole postal address on the cart.
+ *
+ * **A superset of `setCartCountry`, not a replacement for it.** The country is
+ * still written on its own for a certificate-only cart, where there is nothing
+ * to post and the country exists to resolve a tax region. This is what runs
+ * when there is a parcel.
+ *
+ * Both addresses are written, as `setCartCountry` does: Medusa resolves tax
+ * from the shipping address and Stripe reconciles against the billing one, and
+ * a cart carrying two different countries is a cart whose total nobody can
+ * explain.
+ */
+export async function setCartShippingAddress(
+  fetchJson: FetchJson,
+  cartId: string,
+  address: {
+    readonly name: string;
+    readonly line1: string;
+    readonly city: string;
+    readonly postcode: string;
+    readonly province: string;
+    readonly countryCode: string;
+  },
+): Promise<CartCountry> {
+  const body = {
+    // Medusa splits a name in two and this shop collects one. Putting the
+    // whole of it in `first_name` keeps it intact for a courier's label rather
+    // than guessing where a name divides -- a guess that is wrong for most of
+    // the world.
+    first_name: address.name,
+    address_1: address.line1,
+    city: address.city,
+    postal_code: address.postcode,
+    country_code: address.countryCode,
+    ...(address.province.trim().length === 0 ? {} : { province: address.province }),
+  };
+
+  const { cart } = await fetchJson<StoreCartAddressResponse>(`/store/carts/${encodeURIComponent(cartId)}`, {
+    method: "POST",
+    body: JSON.stringify({ shipping_address: body, billing_address: body }),
+  });
+
+  if (typeof cart?.shipping_address?.country_code !== "string" || cart.shipping_address.country_code.length === 0) {
+    throw new Error(`Medusa did not return a shipping-address country for cart ${cartId}`);
+  }
+  return {
+    countryCode: cart.shipping_address.country_code,
+    taxTotal: typeof cart.tax_total === "number" ? cart.tax_total : undefined,
+  };
+}
+
 export async function setCartCountry(fetchJson: FetchJson, cartId: string, countryCode: string): Promise<CartCountry> {
   const { cart } = await fetchJson<StoreCartAddressResponse>(`/store/carts/${encodeURIComponent(cartId)}`, {
     method: "POST",

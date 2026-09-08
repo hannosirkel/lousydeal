@@ -456,7 +456,8 @@ Three changes, and the third is the one with a lie in it:
 
 - [ ] Ask for an address only when there is something to post, and quote the real rate.
   - [x] the rate, quoted live and grossed up — `modules/printful/shipping.ts`
-  - [ ] the address form, conditional on the cart holding something physical
+  - [x] the address rules and copy, conditional on the cart holding something physical
+  - [ ] the fields themselves, in `PaymentForm.tsx`, and the pay gate that waits for a quote
 
 The checkout collects an email, a country, the consent box, two optional
 inscription fields and four optional gift fields. **It collects no address**, and

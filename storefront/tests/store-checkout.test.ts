@@ -26,8 +26,8 @@ import {
   type StoreApiFetch,
 } from "../src/app/api/store/[...path]/route";
 import { STORE_PUBLISHABLE_KEY_HEADER, type FetchJson, type StoreFetchInit } from "../src/lib/medusa-client";
-import { isPayableCart } from "../src/lib/checkout-rules";
-import { getCheckoutCart, setCartCountry } from "../src/lib/store-checkout";
+import { cartNeedsAddress, isPayableCart } from "../src/lib/checkout-rules";
+import { getCheckoutCart, setCartCountry, setCartShippingAddress } from "../src/lib/store-checkout";
 import { addLineToCart, createCart } from "../src/lib/store-cart";
 import {
   completeCheckoutCart,
@@ -609,6 +609,36 @@ describe("getCheckoutCart", () => {
   });
 });
 
+describe("cartNeedsAddress", () => {
+  const TIERS = ["lousy-deal", "lousy-deal-plus", "lousy-deal-pro"];
+  const line = (handle: string | null, quantity = 1) => ({ handle, quantity });
+
+  it("asks for nothing when the cart holds only certificates", () => {
+    // A certificate goes nowhere. A form that asked everyone for a postcode in
+    // order to sell them a PDF would be collecting data it does not need --
+    // the principle LD-02 applied to the certificate's own fields and LD-03 to
+    // the gift's.
+    expect(cartNeedsAddress([line("lousy-deal")], TIERS)).toBe(false);
+    expect(cartNeedsAddress([line("lousy-deal"), line("lousy-deal-pro")], TIERS)).toBe(false);
+  });
+
+  it("asks for one as soon as anything is posted", () => {
+    expect(cartNeedsAddress([line("this-mug-cost-extra")], TIERS)).toBe(true);
+    expect(cartNeedsAddress([line("lousy-deal"), line("certified-worthless")], TIERS)).toBe(true);
+  });
+
+  it("asks for one for a line Medusa gave no handle for", () => {
+    // The same reading `isPayableCart` takes: a null handle is not a
+    // certificate. Erring toward asking collects one address too many;
+    // erring the other way posts a parcel to nowhere.
+    expect(cartNeedsAddress([line(null)], TIERS)).toBe(true);
+  });
+
+  it("asks for nothing for an empty cart", () => {
+    expect(cartNeedsAddress([], TIERS)).toBe(false);
+  });
+});
+
 describe("isPayableCart", () => {
   // §16 gives a deal one `order_id` and no line reference, so an order for two
   // certificates has no single tier and no single price to certify. C2's
@@ -658,6 +688,69 @@ describe("isPayableCart", () => {
     // as a certificate would refuse carts that are fine; counting two of them
     // as certificates would refuse every cart.
     expect(isPayableCart([line("lousy-deal"), line(null), line(null)], TIERS)).toBe(true);
+  });
+});
+
+describe("setCartShippingAddress", () => {
+  it("writes the whole address to both addresses, and reads the country back", async () => {
+    let seen: unknown;
+    const fetchJson: FetchJson = (async <T,>(path: string, init?: StoreFetchInit): Promise<T> => {
+      if (path === "/store/carts/cart_ship" && init?.method === "POST") {
+        seen = init.body === undefined ? undefined : JSON.parse(init.body);
+        return { cart: { id: "cart_ship", shipping_address: { country_code: "us" }, tax_total: 0 } } as T;
+      }
+      throw new Error(`unexpected ${path}`);
+    }) as FetchJson;
+
+    const result = await setCartShippingAddress(fetchJson, "cart_ship", {
+      name: "A Buyer",
+      line1: "1 Test St",
+      city: "New York",
+      postcode: "10001",
+      province: "NY",
+      countryCode: "US",
+    });
+
+    expect(result.countryCode).toBe("us");
+    const body = seen as { shipping_address: Record<string, unknown>; billing_address: Record<string, unknown> };
+    // Both, as `setCartCountry` does: Medusa resolves tax from the shipping
+    // address and Stripe reconciles against the billing one, and a cart
+    // carrying two different countries is a cart whose total nobody can
+    // explain.
+    expect(body.shipping_address).toEqual(body.billing_address);
+    expect(body.shipping_address).toEqual({
+      // Medusa splits a name in two and this shop collects one. The whole of
+      // it goes in `first_name` rather than guessing where a name divides --
+      // a guess that is wrong for most of the world.
+      first_name: "A Buyer",
+      address_1: "1 Test St",
+      city: "New York",
+      postal_code: "10001",
+      country_code: "US",
+      province: "NY",
+    });
+  });
+
+  it("omits the province where the country does not use one", async () => {
+    let seen: unknown;
+    const fetchJson: FetchJson = (async <T,>(_path: string, init?: StoreFetchInit): Promise<T> => {
+      seen = init?.body === undefined ? undefined : JSON.parse(init.body);
+      return { cart: { id: "c", shipping_address: { country_code: "ee" } } } as T;
+    }) as FetchJson;
+
+    await setCartShippingAddress(fetchJson, "c", {
+      name: "A", line1: "1 St", city: "Tallinn", postcode: "10111", province: "  ", countryCode: "EE",
+    });
+    expect((seen as { shipping_address: Record<string, unknown> }).shipping_address).not.toHaveProperty("province");
+  });
+
+  it("refuses rather than guessing when Medusa returns no country", async () => {
+    const fetchJson: FetchJson = (async <T,>(): Promise<T> => ({ cart: { id: "c" } }) as T) as FetchJson;
+    await expect(
+      setCartShippingAddress(fetchJson, "c", {
+        name: "A", line1: "1 St", city: "T", postcode: "1", province: "", countryCode: "EE",
+      }),
+    ).rejects.toThrow(/did not return a shipping-address country/);
   });
 });
 
