@@ -237,3 +237,46 @@ export const PAYMENT_NEEDS_SCRIPTING =
   "Paying needs JavaScript, because the card form is served by Stripe and runs in your browser. Nothing else on this site does. If you would rather not turn it on, write to us and we will take the order by email.";
 
 export const COUNTRY_LABEL = "Country";
+
+/**
+ * The address block, shown only when the cart holds something that is posted.
+ *
+ * **LD-04 P7.** A certificate goes nowhere, and a form that asked everyone for
+ * a postcode in order to sell them a PDF would be collecting data it does not
+ * need — the principle LD-02 applied to the certificate's own fields and LD-03
+ * to the gift's. So the block appears when there is a parcel and not before.
+ */
+export const ADDRESS_HEADING = "Where it goes";
+
+export const ADDRESS_LABELS = {
+  name: "Name",
+  line1: "Street address",
+  city: "City",
+  postcode: "Postcode",
+  province: "State or province",
+} as const;
+
+/**
+ * Why it is asked for, said before it is given rather than after — the shape
+ * `INSCRIPTION_NOTE` and the gift note both take.
+ *
+ * It names the recipient of the data, because Printful is a processor and a
+ * buyer is owed that before they type rather than in a policy they have to go
+ * and find. §6 of the Privacy Policy is where the whole of it lives.
+ */
+export const ADDRESS_NOTE =
+  "This is where the printed items go. It is passed to Printful, who print and post them, and to the courier who carries them. Nothing else is done with it, and none of it appears on a certificate. The Privacy Policy sets out the rest.";
+
+/** Shown while the postage is being quoted, so the total is never silently stale. */
+export const SHIPPING_PENDING_NOTICE = "Postage is quoted once the address is complete.";
+
+/**
+ * Shown when Printful could not be asked.
+ *
+ * **No number is offered with it.** §11 forbids a fabricated figure and §23
+ * requires the final price to be explicit, so a shop that cannot price the
+ * postage says so rather than guessing — a made-up figure is a price the buyer
+ * never agreed to.
+ */
+export const SHIPPING_UNAVAILABLE_NOTICE =
+  "Postage could not be quoted for this address just now, so this order cannot be completed. Nothing has been charged. Try again shortly, or write to the address in the Imprint.";
