@@ -8,13 +8,40 @@ does not.
 | | |
 | --- | --- |
 | Updated | 2026-09-08 |
-| Current slice | **LD-05 — Baldrick, complete 2026-09-08.** LD-03 complete 2026-09-08; LD-02 complete 2026-09-07; LD-01 closed by the operator 2026-09-06; LD-09 complete. |
-| Next action | **Plan LD-06 — the surcharge codes** (§9). It inherits one written liability: `storefront/src/content/baldrick.ts` says a discount code exists and is not finished, which LD-06 makes false, so under LD-05's constraint 9 an LD-06 row must carry that file. LD-04 stays deferred until a Printful account exists. The legal gate below is unchanged and is still the operator's. |
+| Current slice | **LD-04 — Printful and the merch upsell**, planned and started 2026-09-08. LD-05 complete 2026-09-08; LD-03 complete 2026-09-08; LD-02 complete 2026-09-07; LD-01 closed by the operator 2026-09-06; LD-09 complete. |
+| Next action | Execute [`ld-04-merch.md`](./ld-04-merch.md). `P1` and `P2` are done; **`P3a` is next and is in `orange`** — seed the Printful token to OpenBao. The VAT arrangement is settled in decision [`013`](../decisions/013-the-vat-arrangement.md) and needs two registrations in e-MTA before merch goes on sale. LD-06 follows LD-04 and inherits one written liability: `storefront/src/content/baldrick.ts` says a discount code exists and is not finished, which LD-06 makes false. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
 
 ## Next action, in full
+
+**LD-04 is the current slice**, planned in
+[`ld-04-merch.md`](./ld-04-merch.md): four printed things sold as an upsell and
+fulfilled by Printful. Fifteen rows, and five of them are not the shop — this
+site sells one digital product supplied immediately, and every legal surface it
+has is written for exactly that. A mug is not that.
+
+**Its VAT arrangement is settled and is a document of its own**, decision
+[`013`](../decisions/013-the-vat-arrangement.md): everything filed in Estonia,
+the KMD plus a Union OSS return, plus the small-enterprise scheme's `EX` number
+for supplies located in Latvia. No other country's registration, and no country
+blocked. Spain's fulfil-and-deliver-inside-Spain case and the United Kingdom are
+recorded there as accepted exposures rather than as coverage; the UK is decided
+on a first-sale basis and blocks nothing.
+
+**Two operator actions gate the sale of merch, and neither gates the build**: a
+Union OSS registration and the `EX` notification, both in e-MTA, both listed
+above.
+
+**Decision `009` is reopened by that arrangement.** Registering for OSS most
+likely moves the $5 certificate to destination VAT as well, so a single absorbed
+Estonian rate becomes one between 17% and 27%. It adds no filing and LD-04 does
+not close it.
+
+**Four products exist in the `Lousydeal Test` store** as of 2026-09-08, with
+artwork Printful fetched from this public repository at a pinned commit — which
+removed the only thing that had needed a Cloudflare Access change.
 
 **LD-05 is complete**, recorded in
 [`ld-05-baldrick.md`](./ld-05-baldrick.md): nine rows in `lousydeal` only,
@@ -204,7 +231,9 @@ What is actually held, as against what the contract expects in §2b.
 | Stripe test-mode keys | yes | `.keys/stripe-lousydeal-test` in the Orange checkout, provider-first per `006` |
 | Merchant identity in the private `orange.yml` | **yes** | added 2026-09-07 while deploying `C11`; the test environment renders `Aislopica OÜ` |
 | Stripe live keys | no | not before the publication gate, by design |
-| Printful account and sandbox | no | request before LD-04 |
+| Printful account and store API token | **yes** | supplied 2026-09-08 for the `Lousydeal Test` store. The first token carried only `orders/read`; regenerated the same day with the eight scopes LD-04 needs, verified by read-back |
+| Union OSS registration in e-MTA | no | **operator action, before merch goes on sale.** Decision `013`; it takes effect only from the quarter after application |
+| Small-enterprise scheme (`EX` number) in e-MTA | no | **operator action.** Decision `013`; an *eelteade*, then a number within 35 working days |
 | SMTP transactional credentials | **yes** | supplied 2026-09-06, live and test; in the Orange key store, seeded to OpenBao by `C11` |
 | SMTP submission host, port, servername and destination CIDR | **yes** | added 2026-09-07; mail verified sending from both environments |
 | Cloudflare Access policy for `test.lousydeal.com` | yes | measured 2026-09-05: all three hostnames answer 302 to Access |

@@ -256,7 +256,7 @@ table to rewrite, and it has been — both terms now appear.
 **Repository:** `lousydeal`.
 **Files:** this document; `docs/working/fresh-build.md`; `docs/working/status.md`.
 
-- [ ] Land the plan, amend the contract's merch list, and move the resume point.
+- [x] Land the plan, amend the contract's merch list, and move the resume point.
 
 §7 says three products and names a sticker. The operator's collection is four
 and adds a cap. The amendment is written into §7 as an amendment — dated,
@@ -268,7 +268,7 @@ contract quietly rewritten to match what was built is not a contract.
 **Repository:** `lousydeal`.
 **Files:** `design/merch/*.svg`, `design/merch/render.ts`, `storefront/tests/merch-artwork.test.ts`.
 
-- [ ] Draw four print files, from source, and look at every one.
+- [x] Draw four print files, from source, and look at every one.
 
 The designs are the site's identity on cotton: IBM Plex Mono, black on white,
 ruled lines, uppercase labels with letterspacing. The operator's copy is fixed
