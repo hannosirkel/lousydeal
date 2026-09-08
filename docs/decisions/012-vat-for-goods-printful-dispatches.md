@@ -135,7 +135,10 @@ the delivery country. Three articles, one position, and it is the position this
 record already took.
 
 **And the formula carries a build consequence nobody had noticed: VAT applies to
-the shipping line.** LD-04 quotes Printful's rate and passes it through
+the shipping line.** Confirmed in law, not only in Printful's arithmetic —
+**Art 78(b)** puts "incidental expenses, such as commission, packing, transport
+and insurance costs, charged by the supplier to the customer" in the taxable
+amount, and **KMS § 12 lg 6¹** says the same of "kõrvalkulud". LD-04 quotes Printful's rate and passes it through
 unmarked-up — but under decision `009` the price is VAT-inclusive, so a $5.22
 quote shown to a buyer nets $4.21 at 24% while Printful charges the full $5.22.
 **The pass-through loses about a fifth of itself on every order.**
@@ -159,7 +162,7 @@ available.
 | --- | --- | --- |
 | 1 | Sales to Estonian addresses | **The ordinary Estonian return** |
 | 2 | Every intra-EU cross-border sale — **including Riga→Estonia** | **Union OSS**, registered in Estonia through e-MTA, naming Latvia and Spain as dispatch countries in the application. Quarterly, in euro |
-| 3 | Latvia → a Latvian buyer | **The EU SME scheme.** A prior notification in e-MTA yields an "EX" number, and the supply is exempt in Latvia without a Latvian registration. Art 284(2) of Directive 2020/285. Conditions — EU turnover ≤ €100,000, Latvian supplies ≤ €50,000 — are met by orders of magnitude. Costs a short quarterly turnover report to EMTA, in the same portal |
+| 3 | Latvia → a Latvian buyer, **and any sale ending in Latvia** | **The EU SME scheme**, transposed at **KMS § 19¹**. An *eelteade* in e-MTA yields an "EX" number within 35 working days and the supply is exempt in Latvia with no Latvian registration — Art 284(2) of the VAT Directive as amended by Directive (EU) 2020/285. Conditions: Union turnover ≤ €100,000 current and preceding year, Latvian supplies ≤ €50,000. Costs a per-country turnover report by the end of the month after each quarter |
 | 4 | Spain → a Spanish buyer | **Nothing available.** Spain is the one member state that never transposed the SME directive. Either a Spanish registration, or a stated decision to accept the exposure — see below |
 | 5 | The United Kingdom, both routes | **Nothing available.** Non-established persons get *no* registration threshold. Either a UK registration, or a stated decision to accept |
 | 6 | US → EU parcels under €150 | **Printful's IOSS**, and only Printful's — merchants cannot supply their own number. Nothing to do |
@@ -173,11 +176,43 @@ and it quoted every destination tried — Estonia to Brazil.
 the Estonian return. It does not belong there: it is an intra-Community distance
 sale like any other, and EMTA's own worked example puts it in the OSS return.
 
-**Row 3 is the finding that made "all countries" affordable.** The first version
-of this record proposed blocking Latvia because it could find no way for a
-non-established trader to make a domestic Latvian supply without registering
-there. The EU SME scheme is that way, it has existed since 1 January 2025, and
-it is administered from the same portal as everything else here.
+**Row 3 is the finding that made "all countries" affordable**, and it was
+verified against all three sources before being relied on, because the whole
+design rests on it. The first version of this record proposed blocking Latvia
+because it could find no way for a non-established trader to make a domestic
+Latvian supply without registering there. The EU SME scheme is that way.
+
+Four things about it could have been wrong, and none is:
+
+- **It is in Estonian law**, at KMS § 19¹, in force since 1 January 2025: "…
+  **ei teki teises liikmesriigis käibe tekkimise korral kohustust ennast selles
+  teises liikmesriigis maksukohustuslasena registreerida**, kui ta rakendab …
+  väikeettevõtete erikorda."
+- **It covers goods**, not only services. Art 284(1) and (2) both say "goods and
+  services", and the Commission's SME notes lead with domestic supplies of
+  goods.
+- **It covers a domestic supply in the other state.** Art 284(2) is mandatory on
+  Member States operating an exemption: they "**shall** also grant that
+  exemption to the supplies of goods and services **in their own territory**
+  made by taxable persons established in another Member State".
+- **A trader already VAT-registered in Estonia may use it** — the limb most
+  likely to fail. EMTA answers exactly this configuration in its own FAQ: an
+  Estonian VAT payer using OSS for sales to other member states asks whether it
+  can also use the SME scheme, and the answer is "**Jah**", subject only to the
+  €100,000 Union turnover ceiling.
+
+**Row 3 also reaches further than the first draft of it did.** Once the EX
+number covers Latvia, *every* supply located in Latvia falls under the Latvian
+exemption — including a distance sale that merely *ends* there, such as
+Barcelona → a Latvian consumer, because the SME scheme and OSS cannot both
+apply in one jurisdiction. That is favourable, and it makes row 2 one line too
+absolute: Latvia-terminating sales belong in row 3, not row 2. **Worth putting
+to EMTA** alongside the certificate question below.
+
+**One cost it carries, which is not a filing.** The SME exemption is exemption
+*without* deduction. Input VAT on the exempt Latvian activity is not deductible,
+and overhead input VAT has to be apportioned on the Estonian return. Negligible
+money at this volume, and recorded so it is not a surprise.
 
 ## Spain and the United Kingdom, which are the two the scheme cannot absorb
 
@@ -186,11 +221,20 @@ Printful's registrations, the SME scheme, or OSS as it stands. The operator has
 a genuine choice and it should be made with the labels attached rather than by
 drift:
 
-**Spain** — Modelo 303 quarterly plus Modelo 390 annually; no fiscal
-representative needed for an EU business. Exposure is only Barcelona→Spanish-buyer
-orders. **And it is time-boxed**: from 1 July 2028 ViDA puts non-established
-domestic supplies into the same quarterly OSS return, at which point the problem
-disappears by law.
+**Spain** — Modelo 303 quarterly plus Modelo 390 annually. Exposure is only
+Barcelona→Spanish-buyer orders. **EMTA states the position itself**, which is
+worth knowing because it is an Estonian source on a Spanish question:
+"Hispaanias puudub käibemaksuvaba piirmäär ja seetõttu väikeettevõtete erikorda
+seal kasutada ei saa ning seal käibe tekkimisel tuleb registreerida kohe
+Hispaania käibemaksukohustuslaseks." Spain is the only Member State not to have
+transposed the SME directive and was referred to the Court of Justice in March
+2026 over it.
+
+**It is time-boxed, with a caveat.** From 1 July 2028 ViDA puts non-established
+domestic supplies into the same quarterly OSS return. But that relief also
+depends on Spanish transposition, and Spain's current position before the Court
+is precisely a failure to transpose — so the end date is the directive's, not a
+promise.
 
 **The United Kingdom** — quarterly returns under Making Tax Digital, and it does
 *not* expire. Printful already remits 20% on its own leg, so parcels clear and
@@ -200,6 +244,12 @@ collect through EMTA.
 
 Accepting either is **non-compliance rather than a grey area**, and this record
 says so plainly so that accepting it is a decision and not an oversight.
+
+Three supporting details could not be checked against EU law, Estonian law or
+EMTA, and are therefore held as plausible rather than established: that Spain
+needs no fiscal representative from an EU business; that HMRC can collect
+through EMTA under the EU–UK agreement; and that Printful requires its own IOSS
+number rather than accepting a merchant's.
 
 ## Two things this creates that are not filings
 
@@ -216,19 +266,30 @@ at this volume — so it is **cost of goods**. P4 measures it from a real invoic
 The margin table has been wrong twice; it will not be trusted a third time
 without one.
 
-Also worth knowing: since 1 July 2026 a flat **€3-per-item EU customs fee**
-applies to sub-€150 imports even under IOSS, until 1 July 2028.
+Also worth knowing, and it is a **duty rather than a fee**: Council Regulation
+(EU) 2026/382 applies a flat €3 per item to sub-€150 consignments imported
+VAT-exempt under IOSS, from 1 July 2026 to 1 July 2028. A separate Union
+handling fee of about €2 was provisionally agreed as of September 2026, planned
+from 1 November 2026. Both are cost lines P4 will meet.
 
 ## The certificate, which this record cannot leave alone
 
-The Commission's Explanatory Notes on the e-commerce rules are explicit that the
-€10,000 threshold is lost **at trader level** where goods are dispatched from a
-Member State other than the state of establishment: "for the threshold to be
-applicable the supplier must be established in one Member State and goods must
-be sent from that Member State of establishment."
+The Commission's Explanatory Notes on the e-commerce rules say the €10,000
+threshold is lost **at trader level** where goods are dispatched from a Member
+State other than the state of establishment: "for the threshold to be applicable
+the supplier must be established in one Member State and goods must be sent from
+that Member State of establishment."
 
-If that reading holds, selling the first mug costs the **certificate** its
-threshold too, and decision `009`'s single absorbed Estonian rate becomes a
+**That is guidance, and this record must not present it as more.** The Notes
+disclaim being legally binding on their own title page; the in-force
+Art 59c(1)(b) says goods dispatched "**to**" another Member State, not from — the
+origin wording enters only with ViDA on 1 January 2027; and KMS § 10¹ lg 7's
+conditions are arguably still met for the certificate, since the trader has no
+seat or fixed establishment outside Estonia.
+
+So the honest statement is that it is **unsettled**, and that if the
+Commission's reading holds, selling the first mug costs the **certificate** its
+threshold too and decision `009`'s single absorbed Estonian rate becomes a
 per-country rate between 17% and 27%.
 
 **ViDA settles it from 1 January 2027 regardless**: the amended Art 59c counts
