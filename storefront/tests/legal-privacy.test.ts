@@ -346,12 +346,20 @@ describe("the register", () => {
 
     // Basis, retention and rights: the three a reader needs and the three a
     // notice most often omits.
+    // **The basis, named.** A fable review found that simplifying this section
+    // dropped "legitimate interest" from it, which broke two things at once:
+    // Article 14(1)(c) wants the basis stated, and §8 says "§6 says so to them
+    // directly" -- a claim about this document's own contents that had become
+    // false. Naming it is also what tells the recipient Article 21 objection
+    // is theirs.
+    expect(gifts).toMatch(/because the buyer paid for you to have it/i);
     expect(gifts).toMatch(/legitimate interest/i);
+    expect(gifts).toMatch(/you can object to/i);
     expect(gifts).toMatch(/seven years/i);
-    expect(gifts).toMatch(/ask what we hold|ask for it to be corrected or deleted/i);
+    expect(gifts).toMatch(/ask what we hold/i);
 
     // And the promise that makes the rest bearable.
-    expect(gifts).toMatch(/not going to write to you again/i);
+    expect(gifts).toMatch(/will not write to you again/i);
   });
 
   it("gives the gift its basis in §8, beside the others", () => {
@@ -359,5 +367,30 @@ describe("the register", () => {
     // missing from the list a supervisory authority reads first.
     expect(section("8")).toMatch(/sending a gift certificate/i);
     expect(section("8")).toMatch(/not consent either/i);
+  });
+
+  it("keeps §8's claim about §6 true, since §8 makes one", () => {
+    // §8 says "§6 says so to them directly". That is a statement about this
+    // document's own contents, and it went false when §6 was simplified. A
+    // cross-reference nothing checks is a cross-reference that rots.
+    expect(section("8")).toContain("§6 says so to them directly");
+    expect(section("6")).toMatch(/legitimate interest/i);
+  });
+
+  it("does not attribute the recipient's retention to the accounting law", () => {
+    // **The correction a fable review forced.** Raamatupidamise seadus § 12
+    // requires the source document; § 7 makes that the economic content --
+    // parties, date, amounts. A recipient's address establishes none of it, so
+    // no accounting obligation attaches to it. Claiming one would put the
+    // processing on Article 6(1)(c), which defeats erasure under 17(3)(b) and
+    // defeats objection -- overstating our own position against the person
+    // with the least standing to argue.
+    for (const number of ["6", "8"]) {
+      const text = section(number);
+      expect(text, number).not.toMatch(/accounting law (?:makes|requires) us to keep (?:your|their|a recipient)/i);
+    }
+    expect(section("6")).toMatch(/it cares about the money, not about you/i);
+    expect(section("6")).toMatch(/if you ask us to remove your address/i);
+    expect(section("8")).toMatch(/does not require knowing who the certificate went to/i);
   });
 });

@@ -471,6 +471,57 @@ two notifications where one was owed — the same file that caught LD-02's
 | Letting a recipient claim or re-inscribe the certificate | There are no accounts (§12) and the inscription is frozen at issuance (§5). |
 | Whether the Article 14 position is right | The operator, with a qualified human reader. §23. `G7` states it and cites the provisions rather than settling it. |
 
+### The review after the record
+
+The operator asked for the simplest wording, and for a fable review to resolve
+anything left open. Both happened after `G9`, and the review found three things
+the slice had wrong — one of them introduced by the simplification itself.
+
+**The simplification broke Article 14(1)(c).** Dropping the explanatory prose
+from privacy §6 also dropped the words "legitimate interest", which is the
+basis. That mattered twice over: the basis has to be stated, and naming it is
+what tells a recipient that Article 21 objection is theirs. It also made §8's
+"§6 says so to them directly" a false statement about the document's own
+contents — the defect class Gate D exists to catch, introduced three rows after
+Gate D passed. §6 names the basis again and a test now holds §8's
+cross-reference true.
+
+**The retention reasoning was wrong, not merely arguable.** Both sections
+attributed seven-year retention of a recipient's address to Estonian accounting
+law. Raamatupidamise seadus § 12 requires the source document and § 7 makes that
+the economic content — parties, date, amounts. A recipient's address establishes
+none of it. Claiming the obligation would have put the processing on
+Article 6(1)(c), which defeats erasure under 17(3)(b) and defeats objection: the
+document was overstating the trader's position against the person with the least
+standing to argue.
+
+The "separating it would be worse" argument in `G7` was a rationalisation and is
+withdrawn. Erasing a field is `UPDATE … SET … NULL`, not a second register of
+who was sent what. The honest basis is narrower and is what the documents now
+say: we keep the details to show, if the buyer disputes it, that we sent what
+they paid for — and we remove them if the recipient asks. The operator chose
+that over a three-year blanking job, which would have promised a mechanism gate
+item 15 has not built.
+
+**The gift message claimed data it might not hold.** "We have your name and
+address" is false whenever the buyer left the name blank, which §6 makes
+optional. It reads "your address, and your name if they gave one" now.
+
+**One question was factual and went to the operator.** Privacy §5 says "there is
+no other third party". The gift message is the only processing of a recipient's
+address and it leaves through an SMTP submission host; if that host were
+somebody else's, §5 would be false about the one processor touching a person who
+never gave us anything. The operator confirmed on 2026-09-08 that it is
+Aislopica OÜ's own machine, so the sentence stands. The check is recorded beside
+§5 because the next sending path has to ask the same question.
+
+**One thing the review said to leave alone, and why it is worth restating.** The
+gift message is defensible against ePrivacy and ESS § 103¹ precisely because it
+carries no offer, no referral, no discount and no price the recipient can act
+on. Any "growth" addition would convert it from delivery of a purchased product
+into direct marketing to somebody who never consented. `content/gift.ts` states
+that as a constraint and should keep doing so.
+
 ### Left behind in the test environment
 
 Four deals now, one of them a gift, and one withdrawal. They are Stripe

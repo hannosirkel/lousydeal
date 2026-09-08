@@ -95,8 +95,8 @@ export const GIFT_WHAT = [
  * this file's.
  */
 export const GIFT_NOTICE = [
-  "We have your name and address because the person who bought this typed them in. We used them to send you this message and for nothing else, we have not added you to anything, and we are not going to write to you again.",
-  "You can ask us what we hold about you, ask for it to be corrected or deleted, or object to us holding it at all. Write to {merchantEmail}. What we keep, for how long, and on what basis is at {siteBaseUrl}/legal/privacy — §6 there is about you rather than about the buyer.",
+  "We have your address, and your name if they gave one, because the person who bought this typed them in. We used them to send you this, and for nothing else. You are not on a list and we will not write to you again.",
+  "You can ask what we hold, have it corrected or deleted, or object. Write to {merchantEmail}. What we keep and for how long is at {siteBaseUrl}/legal/privacy — §6 there is for you, not for the buyer.",
 ] as const;
 
 /** Who sent it. Article 14(1)(a), and the difference between a message and spam. */

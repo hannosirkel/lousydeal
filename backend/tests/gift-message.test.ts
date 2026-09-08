@@ -124,6 +124,16 @@ describe("the Article 14 notice G7 added", () => {
     }
   });
 
+  it("does not claim to hold a name the buyer never gave", () => {
+    // §6 makes the recipient's name optional, so the notice cannot say "we
+    // have your name and address" flatly -- when the buyer left it blank the
+    // message asserts holding data we do not hold, which is Article 14(1)(d)
+    // wrong in the trader's own document. Found by a fable review.
+    const text = build({ recipientName: null })?.text ?? "";
+    expect(text).toMatch(/we have your address, and your name if they gave one/i);
+    expect(text).not.toMatch(/we have your name and address/i);
+  });
+
   it("says where the address came from and that it is used once", () => {
     const text = build()?.text ?? "";
     expect(text).toMatch(/the person who bought this typed them in/i);
@@ -138,7 +148,7 @@ describe("the Article 14 notice G7 added", () => {
   });
 
   it("tells the recipient how to object, in the message itself", () => {
-    expect(build()?.text).toMatch(/ask us what we hold|ask for it to be corrected or deleted/i);
+    expect(build()?.text).toMatch(/ask what we hold|corrected or deleted|object/i);
     expect(build()?.text).toContain(MERCHANT.email);
   });
 });

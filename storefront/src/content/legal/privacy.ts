@@ -107,6 +107,15 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
+      // **"There is no other third party" was checked, not assumed.** A fable
+      // review on 2026-09-08 raised it against the gift message: that message
+      // is the only processing of a recipient's address, and it leaves through
+      // an SMTP submission host. If that host were operated by somebody else,
+      // this sentence would be false about the one processor touching a person
+      // who never gave us anything. The operator confirmed the host is
+      // Aislopica OÜ's own machine, so no processor is involved and the
+      // sentence stands. Recorded here because the next person to add a
+      // sending path has to ask the same question.
       number: "5",
       heading: "Who else handles your data",
       body: [
@@ -120,11 +129,11 @@ export const PRIVACY: LegalDocument = {
       number: "6",
       heading: "If somebody sent you a certificate as a gift",
       body: [
-        "This section is about you rather than about the person who bought it. You did not buy anything from us, you have no contract with us, and you did not give us your address — the buyer typed it in.",
-        "We hold what they typed: your email address, and your name if they gave one. We used them to send you one message with the certificate in it, and for nothing else. You are not on a list, there is nothing to unsubscribe from, and we are not going to write to you again.",
-        "Article 14 of the GDPR covers data obtained from somebody other than the person it is about. It requires us to tell you the things in this section, and Article 14(3)(b) requires it at the latest when we first write to you — so the message itself says the short version and points here for the rest. Our identity and contact details are in the Imprint; the basis is our legitimate interest in giving the buyer the gift they paid for, and yours in receiving what was bought for you.",
-        "The address is kept with the order it belongs to, which Estonian accounting law requires us to keep for seven years — §8 says so for the buyer and it is the same record. We would rather say that plainly than imply a shorter life for it.",
-        "You can ask what we hold, ask for it to be corrected or deleted, or object to us holding it at all. Write to {merchantEmail} and say which certificate it was, since we have no account to look you up by. §9 is the rest of your rights, and they are yours in the same way they are the buyer's.",
+        "This section is for you, not for the person who bought it. You did not buy anything, you have no contract with us, and you did not give us your address — the buyer typed it in.",
+        "We hold your email address, and your name if they gave one. We used them to send you the certificate, once. You are not on a list, there is nothing to unsubscribe from, and we will not write to you again.",
+        "We may do that because the buyer paid for you to have it. The regulation calls that a legitimate interest — ours in delivering what the buyer paid for, and yours in receiving it — and it is one you can object to. Article 14 of the GDPR is the rule for data we get from someone other than the person it is about, and it is why the message we sent you says where your address came from.",
+        "Your address stays on the order record. Accounting law makes us keep the order for seven years — but it cares about the money, not about you, so if you ask us to remove your address from it we will, and the order stays.",
+        "You can ask what we hold, have it corrected or deleted, or object. Write to {merchantEmail} and say which certificate it was — we have no account to look you up by. §9 lists the rest of your rights, and they are yours as much as the buyer's.",
       ],
     },
     {
@@ -143,7 +152,7 @@ export const PRIVACY: LegalDocument = {
         "Sending a gift certificate to the person a buyer named is our legitimate interest in delivering what they paid for, and theirs in receiving it — §6 says so to them directly. It is not consent either: the recipient was never asked, which is exactly why Article 14 applies rather than Article 13.",
         "The cart cookie ends with your browser session. Stripe's last 30 minutes and a year, as §2 says.",
         "Estonian accounting law requires us to keep the record of an order for seven years from the end of the financial year it falls in, and we keep it no longer than that. The payment details described in §4 are part of that record, and so is your email address; both are kept with it and for as long.",
-        "A gift recipient's address and name are part of the same order record and are kept for the same seven years. That is longer than sending one message needs, and we say so rather than implying otherwise: separating them from the order would mean keeping a second record of who was sent what, which is more data about that person and not less.",
+        "A gift recipient's address and name sit on the same order record. The accounting law requires the order; it does not require knowing who the certificate went to. We keep those details so we can show, if the buyer disputes it, that we sent what they paid for — and we remove them if the recipient asks.",
         "The request lines described in §2 are kept for 30 days.",
         "Cloudflare keeps its own record of the requests it carries, under its own retention and not ours. We do not control how long it holds them, and §5 says what it sees.",
         "If you write to us we keep the message and your address for two years after the last message in the conversation, so that we can find it again if you come back about the same order.",
