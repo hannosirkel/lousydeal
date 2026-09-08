@@ -128,6 +128,49 @@ export const BALDRICK_SCRIPT: Script = {
     ],
   },
 
+  inscription: {
+    say: [
+      ["You can have something put on it."],
+      ["There is a box at the checkout. Keep it short. It is not a big certificate."],
+    ],
+  },
+
+  identity: {
+    say: [
+      [
+        "No. I am a list of sentences somebody typed out in advance.",
+        "No. I am a short list of answers and a box to type in.",
+      ],
+      ["The line under the box is true. Nothing you say here reaches a person."],
+    ],
+    quickReplies: [{ id: "identity-who", label: "Who wrote the sentences", goes: "identity_author" }],
+  },
+  identity_author: {
+    say: [
+      ["Somebody who works here. I did not ask which one."],
+      ["They were not paid extra for it, as far as I know."],
+    ],
+  },
+
+  licensing: {
+    say: [
+      ["Nobody has mentioned a licence to me."],
+      ["What you get is a certificate. Terms of service is in the footer, and it is the one that would know."],
+    ],
+  },
+
+  pleasantry: {
+    say: [
+      // The first draft of this pool had "you are the first person to say that
+      // today, probably" -- a claim about other visitors, which is exactly what
+      // §11 forbids, written by the row whose job was finding that class of
+      // defect. The guard below did not catch it either, so the guard was
+      // widened in the same commit.
+      ["Hello.", "Hello. Right."],
+      ["That is the small talk finished."],
+    ],
+  },
+
   refund: {
     say: [
       ["That is a matter for a document."],

@@ -107,6 +107,23 @@ describe("no legal claim", () => {
     expect(BALDRICK_SCRIPT.refund?.say.flat().join(" ")).toContain("Refunds and Withdrawal");
   });
 
+  it("answers plainly when asked whether he is a person", () => {
+    // **The hole mutation found in B7's own most important fix.** Adding the
+    // `identity` intent was Gate D's first finding; nothing then asserted that
+    // the step it reaches actually *answers*. Replacing its lines with "I would
+    // rather not say." passed every guard in this file.
+    //
+    // A visitor asking directly is the one place a non-answer reads as evasion
+    // rather than as laziness, and the standing disclaimer cannot repair it —
+    // somebody who asked and was deflected has already drawn a conclusion.
+    const identity = BALDRICK_SCRIPT.identity?.say.flat().join(" ") ?? "";
+    expect(identity).toMatch(/\bno\b|\bnot a (?:person|human|real)/i);
+    expect(identity).toMatch(/\bsentences\b|\banswers\b|\bwritten\b|\bin advance\b/i);
+    // And says the same thing the line under the input says, in his own words,
+    // rather than pointing at it.
+    expect(identity).toMatch(/\breaches? a person\b|\bnothing you say here\b|\bnot a person\b/i);
+  });
+
   it("sends the complaint and support questions to a person", () => {
     // §23's standing requirement -- a trader's address must be reachable -- and
     // constraint 8's: nothing typed here is read. Both steps have to point
@@ -130,6 +147,13 @@ describe("no invented population", () => {
       /\beveryone (?:else )?(?:says|thinks|buys|loves)\b/i,
       /\bthousands\b|\bmillions\b|\bhundreds\b/i,
       /\breviews?\b|\brating\b|\bpopular\b|\bbest[- ]selling\b/i,
+      // **Added by B7, after this guard let my own line through.** A Gate D
+      // draft of the greeting said "you are the first person to say that
+      // today, probably". Hedged, unverifiable, and a statement about other
+      // visitors -- §11's subject exactly. The patterns above all name a
+      // population; this one names a *rank*, which is the same fabrication
+      // with the population left implied.
+      /\bfirst (?:person|one)\b|\bthe only (?:person|one)\b|\bnobody else has\b|\bmost (?:of them|buyers)\b|\bso far today\b/i,
     ]) {
       const offending = LINES.filter(([, line]) => pattern.test(line));
       expect(`${String(pattern)}: ${offending.map(([, line]) => line).join(" | ")}`).toBe(`${String(pattern)}: `);
