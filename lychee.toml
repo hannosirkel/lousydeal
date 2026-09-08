@@ -22,6 +22,14 @@ exclude = [
   # The site does not exist yet. Every link to it is a forward reference until
   # the first deployment publishes one; see docs/working/fresh-build.md.
   "^https?://([a-z-]+\\.)?lousydeal\\.com(/|$)",
+
+  # Printful's help centre sits behind a Cloudflare bot check that answers 403
+  # to any non-browser request -- and to a headless browser too, which was
+  # measured. Decision 012 quotes two of these articles at length, so a reader
+  # can check the quotations against the text without following the link; what
+  # cannot be automated is the link itself. Excluded because the answer is
+  # meaningless, not because the link is doubtful.
+  "^https://help\\.printful\\.com/",
 ]
 
 max_concurrency = 4
