@@ -17,6 +17,18 @@ export interface PayGateInput {
   readonly submitting: boolean;
   /** The buyer has ticked the express-consent box. */
   readonly consented: boolean;
+  /**
+   * LD-04 P7: postage is settled, or this cart has none to settle.
+   *
+   * `true` for a certificate-only cart, which posts nothing. For a cart with a
+   * parcel in it, `true` only once a shipping method is on the cart — because
+   * until then the total is the goods alone, and paying would take the buyer's
+   * money without the postage in it, which the merchant would then pay.
+   *
+   * Optional so every existing caller keeps its meaning: a gate that silently
+   * became stricter would be a gate nobody reviewed.
+   */
+  readonly shippingSettled?: boolean;
 }
 
 /**
@@ -26,8 +38,8 @@ export interface PayGateInput {
  * the buyer's express prior consent before supply begins, and supply begins
  * when this control is used. The other two conditions are mechanical.
  */
-export function payDisabled({ stripeReady, submitting, consented }: PayGateInput): boolean {
-  return !stripeReady || submitting || !consented;
+export function payDisabled({ stripeReady, submitting, consented, shippingSettled = true }: PayGateInput): boolean {
+  return !stripeReady || submitting || !consented || !shippingSettled;
 }
 
 /** One cart line, as the checkout needs to judge it. */
