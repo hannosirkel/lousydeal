@@ -20,6 +20,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { baldrickProse } from "../src/content/baldrick";
 import { CONSENT_LABEL, EMAIL_HINT } from "../src/content/checkout";
 import { WITHDRAWAL_NOTICE } from "../src/content/deal";
 import { TERMS_OF_OFFER } from "../src/content/home";
@@ -56,6 +57,13 @@ const SURFACES: ReadonlyArray<readonly [string, string]> = [
   // not on the list. `checkout.ts`'s own comment said this guard "enforces it
   // across all seven" while being one of the surfaces it did not reach.
   ["the checkout email hint", EMAIL_HINT],
+  // B4 adds Baldrick, and the reason is the sentence this file opens with: a
+  // guard is only as wide as its list. He is not a legal document and says
+  // nothing legal -- his own guards forbid it -- but he is prose a buyer reads
+  // beside the offer, in a widget nobody would think to re-read when a
+  // document is corrected. That is precisely the shape of the two surfaces
+  // already on this list because they were found missing from it.
+  ["Baldrick", baldrickProse()],
 ];
 
 /** Surfaces that discuss the § 55 confirmation at all. */
@@ -65,7 +73,7 @@ describe("the surfaces this applies to", () => {
   it("includes every legal document and every pre-contractual surface", () => {
     // A cross-document guard that silently stops covering a document is the
     // failure it was written to prevent.
-    expect(SURFACES).toHaveLength(8);
+    expect(SURFACES).toHaveLength(9);
     for (const [name, text] of SURFACES) expect(`${name}: ${String(text.length > 0)}`).toBe(`${name}: true`);
   });
 
