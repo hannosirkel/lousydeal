@@ -127,6 +127,15 @@ export interface BackendRuntimeConfig {
    * is accepted with no store header.
    */
   readonly printfulApiToken: string | null;
+  /**
+   * Where Printful fetches artwork from, pinned to a commit.
+   *
+   * Configuration rather than a constant, because which commit a deployment
+   * prints from is a fact about that deployment. `sync.ts` refuses a branch
+   * URL and gives the reason: artwork must not change under a product somebody
+   * has already ordered against.
+   */
+  readonly printfulArtworkBaseUrl: string | null;
 }
 
 /** What `notifications/smtp.ts` needs, read from the environment. */
@@ -234,6 +243,7 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
     redis: readRedisRuntimeConfig(environment),
     smtp: readSmtpRuntimeConfig(environment),
     printfulApiToken: optionalEnv(environment, "PRINTFUL_API_TOKEN") ?? null,
+    printfulArtworkBaseUrl: optionalEnv(environment, "PRINTFUL_ARTWORK_BASE_URL") ?? null,
     merchant: readMerchantIdentity(environment),
     // Trailing slash removed here rather than at every use: a configured
     // `https://lousydeal.com/` would otherwise produce `//legal/withdraw`,
