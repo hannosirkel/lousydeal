@@ -97,10 +97,16 @@ passed through.
   (`POST /v2/shipping-rates`), order estimation, webhooks and mockups.
 - `POST /files` is **permanently removed**; the file library is reached through
   its v2 endpoint or by giving Printful a public URL to fetch.
-- The v1 mockup-generator lists only the cap's *embroidery* placements, while
-  v2 prices `front_dtf_hat`. **P5 resolves whether a DTF cap can be a sync
-  product**, and the answer decides the cap's technique. It is the one product
-  fact this plan has not been able to settle by reading.
+- **The DTF cap is a sync product, measured.** The v1 mockup-generator lists
+  only the cap's embroidery placements, which read like a restriction and is
+  not one — that endpoint describes what the *mockup generator* supports, not
+  what `/store/products` accepts. Probed on 2026-09-08: all four placements
+  (`front`, `default`, `front_dtf_hat`, `default`) were accepted, the products
+  created, and every probe deleted afterwards. The cap keeps DTF, and nothing
+  forces the slice catalogue-side.
+- **File upload is URL-only.** `POST /v2/files` refuses multipart —
+  "Request body must be a JSON object" — so Printful fetches every design file
+  from a URL it can reach. There is no route that hands it bytes.
 
 ---
 
@@ -329,9 +335,23 @@ plan's own non-goals rule mockups off the site because §6 forbids raster images
 Against that it costs two sources of truth that can drift, and a v1 + v2
 straddle that builds durable state on the version Printful is winding down.
 
-The review's recommendation is **catalogue orders (v2)** unless the operator
-personally wants the listing. This row takes that as its default and records the
-one thing that would overturn it.
+The review's recommendation was **catalogue orders (v2)** unless the operator
+personally wanted the listing. Two things then settled it the other way, and
+both are measurements rather than preferences:
+
+1. **The cap constraint evaporated.** The fork's forcing function was whether a
+   DTF cap could be a sync product. It can.
+2. **The operator asked for the products in Printful**, which is the listing the
+   review said would be the only reason to prefer sync.
+
+And the cost the review named — needing artwork Printful can fetch — turns out
+to fall on *both* paths equally, because file upload is URL-only either way. So
+it is not a cost of choosing sync.
+
+**Sync products, then**, with the review's argument preserved rather than
+deleted: two sources of truth can drift, and P4's mapping table plus its guard
+is what stops them. If Printful retires v1 sync products, the catalogue path is
+the exit and P4's table is what makes it cheap.
 
 **And the file-hosting snag joins up here.** Catalogue orders carry a design
 file URL, and `POST /v2/files` takes a URL Printful fetches — but
