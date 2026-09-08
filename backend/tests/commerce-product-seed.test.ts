@@ -125,8 +125,47 @@ describe("no tier amount is a bare literal in any .ts under backend/src except p
   //     into a storefront file.
   const PRICE_LITERAL_PATTERN = /\b(500|1000|2500)\b/;
 
+  /**
+   * **Comments are stripped first**, which LD-04's P3b added and which the
+   * bullet above anticipated: a bare 500 "used for something that is not a
+   * price -- an HTTP status" would read as a false failure, and the two
+   * dispositions offered were to phrase around it or to narrow the scan.
+   *
+   * `modules/printful/client.ts` phrases around it — its retry predicate is
+   * `Math.floor(status / 100) === 5` rather than `status >= 500` — and then
+   * tripped this anyway, on the *comment explaining why*. That is the fourth
+   * time a guard in this repository has matched prose where it meant to match
+   * code; `lib/baldrick/conversation.ts`'s purity guard records the first
+   * three and settled on exactly this fix.
+   *
+   * **No coverage is lost.** A price written only in a comment is not a price
+   * the code charges. The subject of this scan is a literal in code.
+   */
+  const code = (source: string): string =>
+    source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+
   it.each(sources)("%s carries no bare 500, 1000 or 2500 token", (_file, source) => {
-    expect(source).not.toMatch(PRICE_LITERAL_PATTERN);
+    expect(code(source)).not.toMatch(PRICE_LITERAL_PATTERN);
+  });
+
+  it("strips comments without stripping the code they sit beside", () => {
+    // A stripper that returned "" would make every assertion above pass while
+    // scanning nothing -- the failure mode of every guard that transforms its
+    // input before matching.
+    expect(code("const a = 1; // 500\n/* 1000 */ const b = 2;")).toBe("const a = 1; \n const b = 2;");
+    expect(code("const price = 500;")).toMatch(PRICE_LITERAL_PATTERN);
+    // And every real file still has code in it after stripping. The first
+    // version of this asserted a quarter of the source survived, and
+    // `commerce/tax-model.ts` failed it — that file is more comment than code,
+    // which is characteristic of this repository rather than a defect in it.
+    // What matters is that nothing is wiped, not what the ratio is.
+    for (const [file, source] of sources) {
+      expect(`${file}: ${String(code(source).trim().length > 0)}`).toBe(`${file}: true`);
+    }
+    // One file checked precisely, so "non-empty" cannot be satisfied by a
+    // stripper that leaves only whitespace and punctuation.
+    const runtime = sources.find(([file]) => file === "config/runtime.ts")?.[1] ?? "";
+    expect(code(runtime)).toContain("export function readBackendRuntimeConfig");
   });
 });
 

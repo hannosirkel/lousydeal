@@ -327,7 +327,7 @@ literal.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/modules/printful/client.ts` and its tests.
 
-- [ ] Give the backend a single typed client.
+- [x] Give the backend a single typed client.
 
 Base URL, bearer auth, one retry policy, errors that say which endpoint failed
 and carry no token. It knows nothing about mugs.
