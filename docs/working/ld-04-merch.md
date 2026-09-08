@@ -454,10 +454,7 @@ Three changes, and the third is the one with a lie in it:
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/checkout/*`, `storefront/src/content/checkout.ts`, `backend/src/modules/printful/shipping.ts`, tests.
 
-- [ ] Ask for an address only when there is something to post, and quote the real rate.
-  - [x] the rate, quoted live and grossed up — `modules/printful/shipping.ts`
-  - [x] the address rules and copy, conditional on the cart holding something physical
-  - [ ] the fields themselves, in `PaymentForm.tsx`, and the pay gate that waits for a quote
+- [x] Ask for an address only when there is something to post, and quote the real rate.
 
 The checkout collects an email, a country, the consent box, two optional
 inscription fields and four optional gift fields. **It collects no address**, and

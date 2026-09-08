@@ -47,7 +47,7 @@ import {
   PRICE_NOTICE,
   RETURN_LABEL,
 } from "../../content/checkout";
-import { isPayableCart } from "../../lib/checkout-rules";
+import { cartNeedsAddress, isPayableCart } from "../../lib/checkout-rules";
 import { createStoreFetchJson, getDefaultRegion, listTiers } from "../../lib/medusa-client";
 import { formatMoney } from "../../lib/money";
 import { getCheckoutCart } from "../../lib/store-checkout";
@@ -147,7 +147,15 @@ export default async function CheckoutPage() {
             {line}
           </p>
         ))}
-        <PaymentForm cartId={cart.id} stripePublishableKey={stripe.publishableKey} countries={region.countries ?? []} />
+        <PaymentForm
+          cartId={cart.id}
+          stripePublishableKey={stripe.publishableKey}
+          countries={region.countries ?? []}
+          currencyCode={cart.currencyCode}
+          /* LD-04 P7. Decided from the cart's own lines, here rather than in
+             the component, so the rule is one a test can call. */
+          needsAddress={cartNeedsAddress(cart.lines, certificateHandles)}
+        />
       </DocumentFrame>
     </main>
   );

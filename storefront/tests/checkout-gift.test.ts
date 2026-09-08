@@ -42,6 +42,10 @@ const html = renderToStaticMarkup(
     cartId: "cart_1",
     fetchJson: (async () => ({})) as never,
     countries: [{ iso_2: "ee", display_name: "Estonia" }],
+      // LD-04 P7: a certificate-only cart. The address block and the postage
+      // row are absent, and nothing this file asserts changes.
+      needsAddress: false,
+      currencyCode: "usd",
   }),
 );
 

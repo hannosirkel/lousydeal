@@ -71,6 +71,10 @@ describe("the rendered checkout form", () => {
       cartId: "cart_1",
       fetchJson: (async () => ({})) as never,
       countries: [{ iso_2: "ee", display_name: "Estonia" }],
+      // LD-04 P7: a certificate-only cart, which posts nothing. The address
+      // block and the postage row are absent, and the pay gate is unchanged.
+      needsAddress: false,
+      currencyCode: "usd",
     }),
   );
 
