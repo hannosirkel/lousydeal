@@ -455,6 +455,8 @@ Three changes, and the third is the one with a lie in it:
 **Files:** `storefront/src/app/checkout/*`, `storefront/src/content/checkout.ts`, `backend/src/modules/printful/shipping.ts`, tests.
 
 - [ ] Ask for an address only when there is something to post, and quote the real rate.
+  - [x] the rate, quoted live and grossed up — `modules/printful/shipping.ts`
+  - [ ] the address form, conditional on the cart holding something physical
 
 The checkout collects an email, a country, the consent box, two optional
 inscription fields and four optional gift fields. **It collects no address**, and
@@ -470,7 +472,30 @@ asks everyone for a postcode to sell them a PDF would be collecting data it does
 not need, which is a principle this repository has already applied twice.
 
 Rates come from `POST /v2/shipping-rates`, live, per address. What the buyer
-sees is what Printful charges, not marked up. **A rate call that fails does not
+sees recovers what Printful charges and no more — grossed up by the destination
+VAT, because Art 78(b) puts transport inside the taxable amount and decision
+`007` makes the price VAT-inclusive. A rate shown ungrossed loses about a fifth
+of itself on every order.
+
+**And the quote answers a question decision `013` thought was unanswerable.**
+Printful states `shipments[].departure_country` in the rate response, before the
+buyer pays. Routing is not *controllable*, which turns out to be a different
+thing from not being *knowable*. Measured on 2026-09-08, for one tee and one
+mug:
+
+| To | Charged | Departs | Customs possible |
+| --- | --- | --- | --- |
+| Estonia | $13.56 | **LV** | no |
+| Latvia | $13.56 | **LV** | no |
+| Spain | $13.56 | **ES** | no |
+| United States | $12.42 | **US** | no |
+| Brazil | $25.56 | **LV** | **yes** |
+
+Every case `013` reasoned about in the abstract is there: Latvia→Estonia is the
+intra-Community distance sale that goes in OSS; Latvia→Latvia and Spain→Spain
+are the two domestic supplies, one covered by the SME scheme and one the
+accepted exposure; and the export to Brazil is the only one Printful flags for
+customs, which is exactly where §54(1)'s import-charge disclosure is owed. **A rate call that fails does not
 guess** — §11 and §23 both bar an invented number, so the checkout says the rate
 could not be fetched and does not proceed to payment.
 
