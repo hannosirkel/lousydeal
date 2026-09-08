@@ -89,6 +89,36 @@ better joke and is a real loss.
 Shipping is not in these numbers and is not marked up. It is quoted live and
 passed through.
 
+### Shipping, quoted live and measured
+
+`POST /v2/shipping-rates` answers for every destination tried, for one tee:
+
+| Destination | Cheapest | Options | Printful's minimum |
+| --- | --- | --- | --- |
+| Estonia, Latvia, Spain | $5.22 | 1 | — |
+| Germany | $5.22 | 2 | — |
+| United Kingdom | $5.10 | 1 | — |
+| United States | $5.45 | 2 | 4 days |
+| Canada | $9.29 | 2 | 2 days |
+| Australia | $7.90 | 1 | 4 days |
+| Norway | $10.80 | 1 | 5 days |
+| Brazil | $12.78 | 2 | 8 days |
+
+Two things follow, and the second is what makes a legal row cheap.
+
+**The rate call is real and P7 can be built on it.** Every quote above came back
+in one request against the live API, with the artwork URL in the payload.
+
+**The response carries `min_delivery_days`**, which discharges the § 54(1)
+delivery-time duty without inventing anything. Constraint 7 says a delivery
+window is a claim about the future and only Printful's own estimate may be
+repeated, attributed — and here it is, per destination, from the same call that
+produces the price. The site quotes Printful and says it is quoting Printful.
+
+Two quotes require a subdivision and fail without one: the United States and
+Australia want a state code, Japan a prefecture. That is P7's address form, not
+an obstacle.
+
 ### Print files
 
 | Item | Print file | DPI |
