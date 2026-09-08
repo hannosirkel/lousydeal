@@ -186,25 +186,36 @@ The voice section is what LD-09 deferred, and "eager, confident, wrong" is not
 enough to write forty lines that sound like one person. It must carry, in this
 order:
 
-1. **The reconciliation rule, first, because it is what makes the character
-   permissible here.** Baldrick is wrong about *his own plans and his own
-   usefulness*, never about *a fact the site states*. He may misjudge,
-   mis-prioritise and over-report his diligence; he may not misinform. His
-   wrongness is misplaced confidence, not incorrect content. Without this
-   sentence stated first, a writer makes him wrong about the product, and §11's
-   never-fabricate wall is breached by a joke.
-2. **How eagerness reads with no exclamation marks.** Declarative pride. Short
-   sentences. He announces effort nobody asked for and reports success at
-   things that needed none. Enthusiasm is carried by assertion, never by
-   punctuation.
-3. **Catchphrase discipline.** "A cunning plan" at most once in a conversation
-   and never in the fallback. In every message it is a meme, which §2 forbids.
-4. **Mechanics.** First person. The product is "certificate" and never anything
-   else, under §2's same-word rule. He does not address the buyer's wallet. One
-   to three messages a turn, each a sentence or two. He never claims to
-   remember, look up, send or forward anything.
-5. **A worked-example table**, the instead/write shape §2 already uses, because
+1. **The character, which the operator settled on 2026-09-08: he is lazy.** Not
+   eager, not cheerful, not a helper. A sales assistant who cannot be bothered,
+   employed by a shop that sells nothing — two facts that explain each other.
+   An earlier draft of this plan said "eager, confident, catastrophically
+   wrong", which was a borrowed characterisation and is not what is being
+   built.
+2. **Why laziness is the safer character, stated because it is not obvious.**
+   §11 forbids invented customers, totals, testimonials and social proof. An
+   eager assistant strains against that wall constantly, because enthusiasm
+   invents; a lazy one never approaches it, because making something up is
+   work. His failure mode is telling you less than you wanted, which is the
+   harmless direction.
+3. **The reconciliation rule.** He is wrong about his own *effort*, never about
+   a *fact the site states*. Reluctant, unhelpful, dismissive of a question he
+   could easily answer — but never wrong about what the product is, what it
+   costs, or what the law gives you.
+4. **How laziness reads with no exclamation marks.** Short sentences. Flat
+   statements. He answers the question asked and stops before the sentence that
+   would have helped. No apology, no alternatives, no "anything else?".
+5. **Mechanics.** First person. The product is "certificate" and never anything
+   else, under §2's same-word rule. One to three messages a turn. He never
+   claims to remember, look up, send or forward anything.
+6. **A worked-example table**, the instead/write shape §2 already uses, because
    that is what actually transmits a register to a later writer.
+
+**The name is a name.** It refers to no existing character and borrows nothing
+from one — no catchphrase, no inherited running gag, no wink at a reader who
+thinks they recognise it. The operator settled that on 2026-09-08, and the row
+records it as a decision rather than enforcing it with a guard: a test that
+policed a resemblance would be policing prose against a thing it cannot see.
 
 **He has no face**, which the section states positively rather than leaving to
 be discovered: he is a name and a column of text.
@@ -283,8 +294,8 @@ is what makes a bot feel like a form.
 - [ ] Write every line, and guard the three things he must never say.
 
 Copy in `content/`, like every other surface, so it is reviewable without
-reading logic. The character is Blackadder's Baldrick: eager, confident, and
-wrong in a way that is somehow still on-brand for a shop selling nothing.
+reading logic. The character is laziness, and `brand.md`'s voice section is where it is
+defined rather than here.
 
 `intents.ts` is in this row's files because B2 leaves the list open to whatever
 the copy needs; a row that discovered an intent it could not land would be a
@@ -484,5 +495,4 @@ answer. A transcript a human can read is the only acceptance this slice has.
 | --- | --- | --- |
 | Whether Baldrick's voice section reads as him | B1 | judgement; the row proposes and the operator disposes |
 | Whether the transcript in B7 is funny | B7 | the one acceptance no test can give |
-| **Whether the character's name and catchphrase survive a qualified reader** | B1 | Baldrick is a BBC *Blackadder* character, and the name, the catchphrase and the characterisation are somebody's. Using them as a commercial site's sales mechanic is an exposure no test can see and no row above would have raised. It joins §23's gate list, and it is cheap to record now and expensive to discover after forty lines are written in his voice. |
 | What the indicator says instead of "typing" | B1 | nobody is typing; the honest wording is a voice decision |

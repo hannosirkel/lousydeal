@@ -58,8 +58,77 @@ Worked examples of the register:
 | Thanks for your purchase! | `RECEIPT` |
 | Our lawyers made us say this | This document is legally binding, unlike our value proposition. |
 
-**Baldrick is out of scope here.** He arrives in LD-05 and needs his own voice
-section, written then. Nothing in this slice speaks as him.
+### Baldrick's voice
+
+LD-09 deferred this: "he arrives in LD-05 and needs his own voice section,
+written then." Written now, in B1, because nothing else in that slice is
+authorised until the identity admits him.
+
+**He is lazy.** That is the whole character and it is a decision, taken by the
+operator on 2026-09-08. Not eager, not cheerful, not a helper. A sales
+assistant who cannot be bothered, employed by a shop that sells nothing — the
+two facts explain each other, and neither needs a joke written on top of it.
+
+**The name is a name.** It is not a reference to any existing character and
+carries none of one. Nothing in his voice, his phrasing or his history borrows
+from anywhere; there is no catchphrase, no running gag inherited from
+somewhere else, and no wink at a reader who thinks they recognise him. Recorded
+here as a decision so that a later writer does not add the reference this
+section is declining.
+
+**Laziness is why he is safe.** §11 forbids invented customers, totals,
+testimonials and social proof, and `AGENTS.md` forbids fabrication outright.
+An eager assistant strains against that wall constantly — enthusiasm invents.
+A lazy one never approaches it: making something up is work, and he would
+rather point at a document than summarise one. His failure mode is telling you
+less than you wanted, which is the harmless direction.
+
+**He is wrong about his own effort, never about a fact.** He may be reluctant,
+unhelpful, dismissive of a question he could easily answer, and openly
+uninterested in whether you buy anything. He may not misstate what the product
+is, what it costs, or what the law gives you. The site's accuracy wall stands
+behind him unchanged: a funny line that makes a disclosure less true is cut.
+
+**How laziness reads with no exclamation marks.** It is the easiest register on
+this site to write, because the rules are already restraint. Short sentences.
+Flat statements. He answers the question asked and stops before the sentence
+that would have helped. He does not apologise, does not offer alternatives, and
+does not ask if there is anything else.
+
+**What he never does**, beyond §2's list, which binds him as it binds every
+surface:
+
+- state a price, a total or any figure — the worth is said in words, never in
+  numbers, and `$0.00` is the site's line and not his;
+- state an entitlement, a period or a provision. He may name *Refunds and
+  Withdrawal* or the *Imprint* and stop there; summarising a legal document is
+  both effort and risk, and he is against both;
+- claim to remember, look up, send, forward or pass anything on;
+- invent a count, a percentage, a statistic or another customer;
+- use a term of art, a section number or the word "policy".
+
+**He has no face.** No avatar, no illustration, no mascot — §6 keeps all of
+them. He is a name and a column of text.
+
+**Nobody is typing, so nothing says typing.** The indicator that runs between
+his messages is a pause, and the honest description of a pause in a
+deterministic bot is that a pre-written line is being selected. Its accessible
+text says so. This is the same choice as `Nothing yet. You could be the first,
+which is worse.` — the true version, which is also the funnier one.
+
+Worked examples, in his register:
+
+| Instead of | Write |
+| --- | --- |
+| Hi there! How can I help you today? 😊 | Yes. |
+| Great question! Let me look that up for you. | I could look that up. |
+| I'd be happy to explain our refund policy! | That is in Refunds and Withdrawal. It is in the footer. |
+| Sorry, I didn't quite catch that — could you rephrase? | I did not understand that. I am not going to guess. |
+| You get a beautiful numbered certificate — and so much more! | A certificate. That is the whole list. |
+| We have an amazing discount just for you! | There is a discount code. I have not finished it. It makes your deal worse. |
+
+Nothing outside `content/baldrick.ts` speaks as him, and he speaks nowhere the
+site speaks for itself.
 
 ## 3. Visual direction
 
@@ -626,17 +695,43 @@ acceptance.
 
 ## 6. What this identity forbids
 
-A single list, so a later surface does not have to re-derive it:
+A single list, so a later surface does not have to re-derive it. Two entries
+carry amendments, both made by LD-05's B1 and both marked: this list is meant
+to be argued with in the open rather than edited quietly.
 
 - no raster image anywhere except generated social images;
 - no second typeface, no second accent colour, no dark mode;
 - no border radius, no shadow, no gradient, no card;
 - no icon, illustration, mascot or photograph;
-- no animation beyond a 120ms colour change and the loading cursor;
+- no animation beyond a 120ms colour change, the loading cursor, and
+  **Baldrick's pause indicator** (amended by LD-05's B1). That indicator is the
+  second animation this identity has ever admitted, and it is admitted because
+  a deterministic bot that answered instantly would read as a lookup table
+  rather than as a character — which it is, but the joke needs the beat. It is
+  a CSS animation so that `globals.css`'s `prefers-reduced-motion` rule
+  flattens it; the *pauses between his messages* are JavaScript timers and that
+  rule cannot reach them, so LD-05's presenter reads the preference itself and
+  collapses them. Neither half is optional;
 - no emoji and no exclamation mark, in any surface or any error message;
 - no fabricated order, total, customer, testimonial or review;
 - no client-side JavaScript for anything except the consent checkbox, the
-  Stripe payment element, and the two error boundaries — a React error boundary
-  cannot be a Server Component, so `error.tsx` and `global-error.tsx` carry
-  `"use client"` as a framework requirement rather than a choice. They render
-  no interactivity beyond a link.
+  Stripe payment element, the two error boundaries, and **Baldrick** (amended
+  by LD-05's B1) — a React error boundary cannot be a Server Component, so
+  `error.tsx` and `global-error.tsx` carry `"use client"` as a framework
+  requirement rather than a choice. They render no interactivity beyond a link.
+
+  **Baldrick is the first exception that is a choice.** The three before him
+  are requirements: a checkbox the law makes conditional, a payment element
+  Stripe owns, and a framework constraint. He is a character somebody wanted,
+  and §8 of the contract asks for typing indicators, pauses and messages
+  arriving one at a time, none of which a server can do. The operator took that
+  decision on 2026-09-08 against the alternative — a server-rendered transcript
+  that would have kept this list at three.
+
+  Two things bound it. He is **not rendered at all** where scripting is off:
+  not a disabled input, not a dead button, because this document says elsewhere
+  that a control which does nothing is a lie, and a chat box that cannot send
+  is exactly that. And he gates nothing — the only thing the contract has him
+  unlock is Enterprise, which §10 defers out of V1 — so every purchase path on
+  this site still works with scripting off, which is the property this list
+  exists to protect.
