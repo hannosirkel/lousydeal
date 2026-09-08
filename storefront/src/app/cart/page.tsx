@@ -18,6 +18,7 @@
 import { cookies } from "next/headers";
 import { connection } from "next/server";
 
+import { Baldrick } from "../../components/baldrick/Baldrick";
 import { Button } from "../../components/document/Button";
 import { DocumentFrame } from "../../components/document/DocumentFrame";
 import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
@@ -45,6 +46,13 @@ function EmptyCart() {
           {RETURN_LABEL}
         </Button>
       </DocumentFrame>
+      {/* **After the document, inside `main`.** He arrives with hydration, so
+          anything he sat above would move when he appeared -- and the thing
+          above him here is the control that starts a purchase. Below the whole
+          document he shifts nothing that matters. `tests/baldrick-reach.test.ts`
+          holds the list of pages this appears on, and the longer list it does
+          not. */}
+      <Baldrick />
     </main>
   );
 }
@@ -104,6 +112,11 @@ export default async function CartPage() {
         {/* The only route to `/checkout` a shopper reaches by clicking. */}
         <Button href="/checkout">{CHECKOUT_LABEL}</Button>
       </DocumentFrame>
+      {/* Both of this file's returns carry him, and the empty one is not an
+          afterthought: a cart with nothing in it is where somebody is most
+          likely to have a question, and where a shop with one product has the
+          least to say. */}
+      <Baldrick />
     </main>
   );
 }
