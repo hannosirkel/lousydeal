@@ -414,12 +414,15 @@ and looked at in G3, which is where its `No message` empty state was found.
 diagnosed: it is test-mode Stripe behaviour on a repeated card, not this
 application, and nothing in the logs shows a request reaching the backend.
 
-**What no machine can accept on a human's behalf.** One § 55 confirmation went
-to the buyer's address and one gift message to a real Gmail account. Whether
-they arrived, are readable, and landed in an inbox rather than a spam folder is
-the operator's to judge — and Gmail is stricter about an unsigned message than
-the earlier sends' destination was, so this is also the first real test of the
-DKIM signing corrected during LD-02.
+**What no machine could accept on a human's behalf, now accepted.** One § 55
+confirmation went to the buyer's address and one gift message to a real Gmail
+account. The operator confirmed on 2026-09-08 that both arrived.
+
+That is the stronger of the two results, because Gmail is markedly stricter
+about an unsigned or misaligned message than the earlier sends' destination was.
+A gift message is also the worst case by construction: unsolicited, from a
+domain the recipient has never corresponded with, about a purchase they did not
+make. It landed. The DKIM signing corrected during LD-02 is doing its job.
 
 ## Completion report
 
