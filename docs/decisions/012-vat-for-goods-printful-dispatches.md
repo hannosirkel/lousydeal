@@ -1,21 +1,21 @@
 # 012. VAT for goods Printful dispatches
 
 **Date:** 2026-09-08.
-**Status:** accepted by the operator, with one assumption recorded below and one
-question left open for EMTA.
+**Status:** the scheme is settled; **two choices remain open for the operator**
+— Spain and the United Kingdom — and one question is for EMTA.
 **Supersedes nothing.** [`009`](./009-merchant-absorbs-the-vat.md) stands for the
 certificate; this record covers the goods LD-04 adds, which 009 said would
 reopen it.
 
 ## The ruling
 
-Estonian VAT on everything while cross-border EU sales stay under €10,000 a
-year. **Union OSS when they pass it** — one quarterly return, filed in e-MTA in
-euro. No registration in Latvia, Spain, the United Kingdom or Northern Ireland.
-**Every country is served; nothing is blocked.**
+**Every country is served and nothing is blocked**, which was the operator's
+firm constraint. The cost is **two filings, not one**: a Union OSS registration,
+and the EU SME scheme's quarterly turnover report — both in e-MTA, both in
+Estonian, and the second is four lines.
 
-That is the operator's decision of 2026-09-08 and it is also, almost word for
-word, what Printful's own guidance says to do.
+Spain and the United Kingdom sit outside that and are the operator's remaining
+choice.
 
 ## Why the earlier draft of this record proposed something worse
 
@@ -31,8 +31,8 @@ võõrandatakse ja toimetatakse **Eestist** … teise liikmesriiki". *From Eston
 On a strict reading, goods dispatched from Latvia never qualified for the
 threshold, and destination VAT was due from the first cross-border sale.
 
-**What resolves it is Printful's position, not a different reading of the
-statute.**
+What resolves it is neither Printful's position nor a different reading of the
+statute: it is the **EU SME scheme**, which the first draft did not know about.
 
 ## What Printful's guidance actually says, and what it does not
 
@@ -43,86 +43,128 @@ constitute legal advice", and then:
 > "When your total cross-border sales exceed 10,000 EUR across all EU member
 > states in a calendar year, you can register for the One Stop Shop (OSS)
 > scheme."
-
+>
 > "We're registered for both OSS and IOSS schemes, so we handle most VAT
 > obligations for your orders within the EU and on imports under 150 EUR. That
 > means you usually don't need to register separately, unless you're selling
 > outside of the EU or have specific VAT needs."
-
+>
 > **Note:** "Even if you're registered under the OSS scheme, VAT will still be
 > charged for orders fulfilled in Latvia, Spain, the UK, and Northern Ireland
 > due to our local tax obligations in those countries."
 
-**Read the note carefully, because it is the sentence that decides the
-architecture and it is easy to read backwards.** It is about VAT *Printful
-charges the merchant*, arising from *Printful's* obligations in those four
-places. It is a **cost line on the invoice you receive**, not a filing duty you
-acquire. Nothing in it asks the merchant to register anywhere, and the article
-says so in its first line: "No, you don't need to register for VAT in every EU
-country you sell to."
+**Read the note carefully, because it is easy to read backwards.** It is about
+VAT *Printful charges the merchant*, arising from *Printful's* obligations in
+those four places. It is a **cost line on the invoice you receive**, not a
+filing duty you acquire.
 
-So the scheme below follows Printful's guidance where Printful is describing its
-own conduct — which is the part a supplier can actually speak to — and does not
-lean on it for anything else.
+**But it does not follow that the merchant has no duty of its own**, and the
+last paragraph of the article is where it overreaches. Printful's OSS and IOSS
+registrations can only report **Printful's** supplies. A Riga→Berlin sale is the
+*merchant's* intra-Community distance sale under Art 14(4) p 1; no mechanism
+exists by which Printful's OSS return could carry it. The article hedges the
+sentence twice — "most", "usually" — and disclaims being advice in its first
+line.
+
+So this record follows Printful's guidance for what Printful does, which is the
+part a supplier can speak to, and settles the merchant's own position from the
+statute.
 
 ## The scheme
 
-| | What | Where it is reported |
+| | What | How it is handled |
 | --- | --- | --- |
-| 1 | Every sale, while cross-border EU turnover is under €10,000/yr | **The ordinary Estonian return.** Estonian VAT, absorbed into the price per `009` |
-| 2 | Cross-border EU sales once that figure is passed | **Union OSS**, registered in Estonia through e-MTA. Quarterly, in euro |
-| 3 | Sales to Estonian addresses | The ordinary Estonian return, always. EMTA confirms home-country supplies are excluded from OSS |
-| 4 | Orders Printful fulfils in LV, ES, UK, NI | **Nothing to file.** Printful charges its own VAT on its invoice to us |
-| 5 | EU imports under €150 | **Printful's IOSS.** The buyer pays nothing at the door |
-| 6 | Outside the EU | Export. The buyer bears any local import charge, disclosed before purchase |
-| 7 | US sales tax | Printful computes and charges it; `/tax/countries` returns the per-state table it uses |
+| 1 | Sales to Estonian addresses | **The ordinary Estonian return** |
+| 2 | Every intra-EU cross-border sale — **including Riga→Estonia** | **Union OSS**, registered in Estonia through e-MTA, naming Latvia and Spain as dispatch countries in the application. Quarterly, in euro |
+| 3 | Latvia → a Latvian buyer | **The EU SME scheme.** A prior notification in e-MTA yields an "EX" number, and the supply is exempt in Latvia without a Latvian registration. Art 284(2) of Directive 2020/285. Conditions — EU turnover ≤ €100,000, Latvian supplies ≤ €50,000 — are met by orders of magnitude. Costs a short quarterly turnover report to EMTA, in the same portal |
+| 4 | Spain → a Spanish buyer | **Nothing available.** Spain is the one member state that never transposed the SME directive. Either a Spanish registration, or a stated decision to accept the exposure — see below |
+| 5 | The United Kingdom, both routes | **Nothing available.** Non-established persons get *no* registration threshold. Either a UK registration, or a stated decision to accept |
+| 6 | US → EU parcels under €150 | **Printful's IOSS**, and only Printful's — merchants cannot supply their own number. Nothing to do |
+| 7 | US, Canada, Australia, NZ, Norway, Switzerland, Japan, Singapore | **Nothing.** Every threshold is far above this volume, and print-on-demand creates no US physical nexus because no inventory is ever owned |
+| 8 | Everywhere else | Export. The buyer bears any local import charge, disclosed before purchase |
 
 **Nothing is blocked. Every destination the shipping API quotes is sellable**,
 and it quoted every destination tried — Estonia to Brazil.
 
-## Three things this creates, and none of them is a filing
+**Row 2 corrects the first version of this record**, which put Riga→Estonia on
+the Estonian return. It does not belong there: it is an intra-Community distance
+sale like any other, and EMTA's own worked example puts it in the OSS return.
 
-**A counter, and it is a build requirement rather than a note.** The €10,000
-threshold is a fact about turnover, and the one way to get this wrong is to pass
-it without noticing. LD-04 measures cross-border EU sales and says so where the
-operator will see it. This site already counts things it must not fabricate; it
-can count this.
+**Row 3 is the finding that made "all countries" affordable.** The first version
+of this record proposed blocking Latvia because it could find no way for a
+non-established trader to make a domestic Latvian supply without registering
+there. The EU SME scheme is that way, it has existed since 1 January 2025, and
+it is administered from the same portal as everything else here.
 
-**Registration timing, which is easy to get wrong the other way.** OSS takes
-effect the first day of the quarter after application — earlier only if filed by
-the 10th of the month after the first supply. So it is applied for as the
-counter approaches €10,000, not after it is passed.
+## Spain and the United Kingdom, which are the two the scheme cannot absorb
 
-**An operator action worth taking today.** The Estonian VAT number belongs in
-Printful's billing settings, so that reverse charge applies to Printful's supply
-wherever it can. The note above says VAT is charged on LV/ES/UK/NI fulfilments
-regardless; whatever that leaves is an input cost that an Estonian registration
-does not recover through the Estonian return, and reclaiming Latvian VAT under
-Directive 2008/9 is not worth a filing at this volume. **It is therefore a real
-cost and P4 must carry it in the margin table**, measured from an invoice rather
-than assumed.
+Both are **legally required from the first sale**. Neither is covered by
+Printful's registrations, the SME scheme, or OSS as it stands. The operator has
+a genuine choice and it should be made with the labels attached rather than by
+drift:
 
-## The assumption this record rests on, stated so it is visible
+**Spain** — Modelo 303 quarterly plus Modelo 390 annually; no fiscal
+representative needed for an EU business. Exposure is only Barcelona→Spanish-buyer
+orders. **And it is time-boxed**: from 1 July 2028 ViDA puts non-established
+domestic supplies into the same quarterly OSS return, at which point the problem
+disappears by law.
 
-Printful's summary of the €10,000 threshold does not mention the dispatch-state
-condition in Art 59c and § 10¹(5). If EMTA reads that condition strictly,
-cross-border merch was destination-taxed from the first sale and the threshold
-never applied to it.
+**The United Kingdom** — quarterly returns under Making Tax Digital, and it does
+*not* expire. Printful already remits 20% on its own leg, so parcels clear and
+buyers are never charged at the door; what is unaccounted is VAT on the margin.
+Unlike a US seller, an Estonian OÜ is reachable — the EU–UK agreement lets HMRC
+collect through EMTA.
 
-The operator has accepted that risk on the basis of Printful's guidance, at a
-volume where the amounts are small. **This record exists so that the decision is
-visible rather than implicit**, and so that the answer is cheap if it is ever
-questioned: register for OSS, and account for the difference.
+Accepting either is **non-compliance rather than a grey area**, and this record
+says so plainly so that accepting it is a decision and not an oversight.
 
-**The open question for EMTA** — worth asking once, in writing, whenever there
-is a reason to contact them: *do sales of goods dispatched from another Member
-State count toward the €10,000 threshold?* If they do, the certificate's own
-threshold position is affected too, which is the larger half of the question.
+## Two things this creates that are not filings
+
+**A counter for cross-border EU turnover.** Even under Printful's own reading the
+threshold is a fact about turnover, and the way to get it wrong is to pass it
+without noticing. LD-04 measures it and shows the operator.
+
+**The wholesale-leg taxes, in the margin table.** Printful charges its own VAT on
+orders fulfilled in Latvia, Spain, the UK and Northern Ireland, destination VAT
+on US→EU imports under its IOSS, US sales tax on US orders, and GST on
+Toronto-fulfilled Canadian ones. An Estonian registration recovers none of it
+through the Estonian return, and a Directive 2008/9 reclaim is not worth filing
+at this volume — so it is **cost of goods**. P4 measures it from a real invoice.
+The margin table has been wrong twice; it will not be trusted a third time
+without one.
+
+Also worth knowing: since 1 July 2026 a flat **€3-per-item EU customs fee**
+applies to sub-€150 imports even under IOSS, until 1 July 2028.
+
+## The certificate, which this record cannot leave alone
+
+The Commission's Explanatory Notes on the e-commerce rules are explicit that the
+€10,000 threshold is lost **at trader level** where goods are dispatched from a
+Member State other than the state of establishment: "for the threshold to be
+applicable the supplier must be established in one Member State and goods must
+be sent from that Member State of establishment."
+
+If that reading holds, selling the first mug costs the **certificate** its
+threshold too, and decision `009`'s single absorbed Estonian rate becomes a
+per-country rate between 17% and 27%.
+
+**ViDA settles it from 1 January 2027 regardless**: the amended Art 59c counts
+only goods dispatched from the establishment state, *and* deems an OSS-registered
+trader to have opted for destination taxation. Since this trader will be in OSS,
+the certificate goes to destination VAT no later than that date.
+
+The damage is contained — it lands in the same quarterly return and adds no
+filing — but it touches `009`, the margin guard, and the Estonian return, and it
+is **the thing to put to EMTA in writing** rather than the threshold question the
+first version of this record proposed asking.
 
 ## Consequences
 
 - LD-04's P14 implements this record and no longer blocks Gate E.
-- P4's margin table carries Printful's LV/ES/UK VAT as a cost, from an invoice.
+- P4's margin table carries Printful's wholesale-leg taxes as cost of goods,
+  measured from an invoice.
+- Decision `009` is reopened by the certificate finding above, and LD-04 does not
+  close it.
 - P7 has no destination allow-list; every country the rate API quotes is
   offered.
 - P9 states, before the ordering process begins, that buyers outside the EU may
