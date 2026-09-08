@@ -414,7 +414,7 @@ Creation is idempotent: run it twice, get four products, not eight.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/scripts/*`, `backend/src/modules/printful/*`, tests.
 
-- [ ] Four real Medusa products, with variants, priced, and shipping-required.
+- [x] Four real Medusa products, with variants, priced, and shipping-required.
 
 The contract asks for "the proper Medusa product/order/fulfillment model" and
 this is that row. The certificate stays exactly what it is; merch arrives beside
