@@ -500,9 +500,17 @@ Initial merch catalog must remain deliberately tiny:
 
 1. one T-shirt design;
 2. one mug design;
-3. one sticker design.
+3. one sticker design;
+4. **one trucker cap design** (amended by the operator on 2026-09-08).
 
 Do not build a broad merchandise catalog.
+
+**The fourth entry is an amendment and is marked as one**, the way `brand.md`
+§6 marks its own, rather than edited in as though it had always been there. The
+operator chose the collection when LD-04 started: a cap carries the domain in a
+way a sticker cannot, and the sticker was kept rather than displaced. Four is
+still tiny and still a punchline, so the rule under this list is untouched — the
+list simply has one more line than it did.
 
 The merch exists primarily as a punchline/upsell.
 
