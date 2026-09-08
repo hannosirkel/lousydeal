@@ -112,6 +112,21 @@ export interface BackendRuntimeConfig {
    * subscriber names whichever is missing.
    */
   readonly siteBaseUrl: string | null;
+  /**
+   * The Printful token, or `null` where this deployment has none.
+   *
+   * **Nullable, and deliberately so on the live deployment.** LD-04's P3a gives
+   * the token to the test workloads and to nothing else, because there is no
+   * live Printful store and §23 keeps one out until the publication gate. A
+   * required value here would refuse to boot the very deployment the contract
+   * says must run without Printful.
+   *
+   * Unlike `smtp`, there is no half-configured state to refuse: it is one
+   * value. The store id is not here because it is not needed — a store API
+   * token is scoped to exactly one store, measured 2026-09-08, and every call
+   * is accepted with no store header.
+   */
+  readonly printfulApiToken: string | null;
 }
 
 /** What `notifications/smtp.ts` needs, read from the environment. */
@@ -218,6 +233,7 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
     },
     redis: readRedisRuntimeConfig(environment),
     smtp: readSmtpRuntimeConfig(environment),
+    printfulApiToken: optionalEnv(environment, "PRINTFUL_API_TOKEN") ?? null,
     merchant: readMerchantIdentity(environment),
     // Trailing slash removed here rather than at every use: a configured
     // `https://lousydeal.com/` would otherwise produce `//legal/withdraw`,

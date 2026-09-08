@@ -147,6 +147,12 @@ describe("readBackendRuntimeConfig", () => {
       // has not patched.
       merchant: null,
       siteBaseUrl: null,
+      // LD-04 P3a/P3b. `null` for a third reason, and the one the contract
+      // requires: the live deployment is never given a Printful token, because
+      // there is no live store and §23 keeps one out until the publication
+      // gate. A required value here would refuse to boot the very deployment
+      // that must run without Printful.
+      printfulApiToken: null,
       stripe: {
         apiKey: "stripe-secret-key-value",
         webhookSecret: "stripe-webhook-secret-value",
@@ -218,6 +224,23 @@ describe("readBackendRuntimeConfig", () => {
       STRIPE_PAYMENT_METHOD_CONFIGURATION_ID: "  pmc_test_value\n",
     });
     expect(config.stripe.paymentMethodConfiguration).toBe("pmc_test_value");
+  });
+
+  it("reads the Printful token when the deployment has one", () => {
+    // The other direction of the `null` asserted above. Without this, a reader
+    // that always returned `null` would satisfy every other assertion here.
+    const config = readBackendRuntimeConfig({ ...validEnvironment, PRINTFUL_API_TOKEN: "  tok-abc\n" });
+    expect(config.printfulApiToken).toBe("tok-abc");
+  });
+
+  it("treats a blank Printful token as absent rather than as a token", () => {
+    // An empty environment variable is how a deployment says "not configured".
+    // A client built from `""` would fail every call with a 401 instead of the
+    // deployment simply not having Printful, which is the honest state on live.
+    for (const value of ["", "   "]) {
+      const config = readBackendRuntimeConfig({ ...validEnvironment, PRINTFUL_API_TOKEN: value });
+      expect(`${JSON.stringify(value)}: ${String(config.printfulApiToken)}`).toBe(`${JSON.stringify(value)}: null`);
+    }
   });
 });
 
