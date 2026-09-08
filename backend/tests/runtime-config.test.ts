@@ -153,6 +153,9 @@ describe("readBackendRuntimeConfig", () => {
       // gate. A required value here would refuse to boot the very deployment
       // that must run without Printful.
       printfulApiToken: null,
+      // LD-04 P7a. `null` alongside the token, and for the same reason: a
+      // deployment with no Printful store prints from no commit.
+      printfulArtworkBaseUrl: null,
       stripe: {
         apiKey: "stripe-secret-key-value",
         webhookSecret: "stripe-webhook-secret-value",
@@ -231,6 +234,16 @@ describe("readBackendRuntimeConfig", () => {
     // that always returned `null` would satisfy every other assertion here.
     const config = readBackendRuntimeConfig({ ...validEnvironment, PRINTFUL_API_TOKEN: "  tok-abc\n" });
     expect(config.printfulApiToken).toBe("tok-abc");
+  });
+
+  it("reads the artwork base when the deployment has one", () => {
+    const config = readBackendRuntimeConfig({
+      ...validEnvironment,
+      PRINTFUL_ARTWORK_BASE_URL: "  https://raw.githubusercontent.com/o/r/0123456789abcdef0123456789abcdef01234567/design/merch/print-files  ",
+    });
+    expect(config.printfulArtworkBaseUrl).toBe(
+      "https://raw.githubusercontent.com/o/r/0123456789abcdef0123456789abcdef01234567/design/merch/print-files",
+    );
   });
 
   it("treats a blank Printful token as absent rather than as a token", () => {

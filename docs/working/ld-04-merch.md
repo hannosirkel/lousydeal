@@ -504,7 +504,7 @@ could not be fetched and does not proceed to payment.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/modules/printful/fulfilment-provider.ts`, `medusa-config.ts`, a seed script, tests.
 
-- [ ] Turn a Printful quote into a line the buyer pays.
+- [x] Turn a Printful quote into a line the buyer pays.
 
 A quote is not a charge. A shipping-required Medusa cart needs a shipping option
 backed by a registered fulfilment provider, and the quoted amount has to become
