@@ -31,7 +31,6 @@ const REG = font("LDMono-Regular.woff2");
 const BOLD = font("LDMono-Bold.woff2");
 
 const INK = "#141412";
-const SOFT = "#6b6b66";
 const STAMP = "#b3261e";
 // Pure white, not --paper, for the one file that reverses out of black: a RIP
 // given #fafaf7 lays white ink plus a faint tint pass, which looks dirty on a
