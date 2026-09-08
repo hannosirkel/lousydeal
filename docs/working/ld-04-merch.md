@@ -496,6 +496,20 @@ It sits at the cart, where the decision is. Four rows in the ledger register the
 site already uses — item, price, and the same `VALUE $0.00` column the tier
 table has, because the joke is consistent.
 
+**`VALUE` reads `NOT $0.00`, and that is the resolution rather than a joke about
+one.** Printing `$0.00` against a Gildan shirt would break the wall `brand.md`
+calls load-bearing — "accuracy is the joke's load-bearing wall" — because a
+shirt is worth something. Omitting the column spends the running gag exactly
+where an upsell needs it. Inventing a defensible dollar figure is the
+fabrication §11 forbids. So the column stays and the entry inverts: `NOT $0.00`
+is **literally true of all four items**, makes no claim that could ever need
+defending, keeps the ledger register, and turns the inconsistency into the
+punchline — the merch is the only thing here with any value, which is itself a
+lousy deal for the shop. Beneath the merch ledger:
+
+> "Unlike the certificate, these objects are worth something. We apologise for
+> the inconsistency."
+
 **Constraint 7 is the whole risk here.** No stock level, because Printful
 prints on demand and this site does not know. No delivery date, because nobody
 does. Printful's own estimate may be repeated, attributed to Printful, or
@@ -514,22 +528,60 @@ code. What is wrong the moment a mug is orderable:
 
 - **The clock.** Refunds §2 says the 14 days run from the day the contract is
   concluded, under § 56(1³). True for a certificate. **False for goods**, where
-  § 56(1) runs the period from the day the buyer takes possession — and for a
-  divisible order, from the last item.
+  **§ 56(1¹)** runs the period from the day the consumer physically takes
+  possession — and p 1 of it, for several goods ordered together and delivered
+  separately, from the **last** item. Printful splits orders across facilities
+  routinely, so a mixed cart carries **two clocks**: conclusion for the
+  certificate, last delivery for the goods.
 - **The exception.** § 53(4) p 7¹ is about digital content not supplied on a
   physical medium. It reaches nothing in a box. Every sentence that currently
   reads as a general position about "your order" has to be scoped to the
   certificate.
 - **The consent box.** Constraint 6. It is a condition of ordering the
   certificate and it waives nothing about a T-shirt. Its label must say which.
+- **Who pays return postage: the consumer**, which § 56²(3) permits by default
+  and § 54(1) p 14 makes conditional on saying so first. The trader already eats
+  the print cost of a good Printful will not take back, refunds the price and
+  the outbound delivery, and absorbs the VAT; adding return postage would make
+  withdrawal a pure loss engine. The sentence, in the document's register:
+
+  > "If you withdraw, you send the item back to the address in the Imprint
+  > within 14 days, and you pay the direct cost of sending it; we refund the
+  > price and the outbound delivery up to the cheapest standard option we
+  > offered."
+
+  Printful does not accept consumer returns of on-demand goods, so the parcel
+  comes to the registered address. **The operator confirms they are content to
+  receive it, or this position changes.**
+
 - **Made to order is not made to measure.** § 53(4) p 3 removes the right for
   goods made to the consumer's specifications. These are fixed designs printed
   on demand, chosen from a list — **the exception does not apply**, and the plan
   states that rather than leaving a tempting reading available.
-- **Return costs and delivery refunds.** § 56²(1) refunds the delivery cost as
-  well, capped at the cheapest standard delivery offered. Who bears the cost of
-  sending a mug back is a commercial decision with a legal floor, and it is on
-  the operator's gate below.
+- **Return costs and delivery refunds**, now verified against the redaction in
+  force rather than guessed. Both of this plan's first citations were wrong.
+
+  | Rule | Provision |
+  | --- | --- |
+  | Clock for goods, and the last-item rule | **§ 56(1¹)**, p 1 |
+  | Refund including outbound delivery | **§ 56¹(1)** |
+  | Capped at the cheapest ordinary delivery offered | **§ 56¹(3)** |
+  | Trader may withhold until return or proof of dispatch | **§ 56¹(5)** |
+  | Consumer returns within 14 days | **§ 56²(1)** |
+  | Consumer bears direct return cost — **only if told beforehand** | **§ 56²(3)** |
+  | Diminished value, and the disclosure that conditions it | **§ 56²(4)** |
+  | The pre-contractual duty to say who pays return postage | **§ 54(1) p 14** |
+
+  § 56²(4) is the one with teeth in the wrong direction: fail the § 54(1) p 12
+  and p 13 disclosures and the consumer is liable for **no** diminished value at
+  all.
+
+- **§ 56¹(5) versus a guard this repository already has.**
+  `legal-consistency.test.ts` bans `provided|only if|so long as` anywhere in the
+  § 56¹ section, because Gate D once added an unlawful condition to the refund
+  promise. Withholding until the goods come back is a **lawful** condition, and
+  it lives in that same section. The clause and the guard have to be written
+  together, or the guard will reject a sentence the statute permits.
 - **Non-conformity.** § 62¹¹'s two years applies to goods too, and the current
   wording is about a certificate.
 
@@ -571,28 +623,68 @@ Printful's webhooks, verified, mapped onto the Medusa fulfilment, and one email
 carrying the tracking number. Returned-to-sender and lost-in-transit are named
 here even though the answer to both is a person reading the Imprint address.
 
-### P14 — Tax, which may be the row that stops this slice
+### P14 — Tax, which is the row that stops this slice
 
 **Repository:** `lousydeal`; and the operator.
 **Files:** `docs/decisions/`, `storefront/src/content/legal/terms.ts`, `status.md`.
 
 - [ ] Establish whether this shop may lawfully post a mug abroad at the price it shows.
 
-Decision `009` rests the entire tax position on the Article 59c threshold.
-**Art 59c(1)(b) conditions that threshold on goods being dispatched from the
-Member State of establishment**, and Printful dispatches from Latvia, Spain and
-the United States, not Estonia. So for the merch the reasoning does not
-transpose: distance sales dispatched from a state where the trader is not
-established point at destination-country VAT from the first euro — OSS
-registration, or a registration in the dispatch state.
+**The operator ruled on 2026-09-08: "store is below 10k€ OSS threshold, Estonia
+VAT is to be used." That ruling is safe for the certificate and unsafe for the
+merch, and the reason is not the threshold.**
 
-Non-EU fulfilment raises the converse: **import charges the buyer pays**, which
-is itself a pre-contractual disclosure where the trader does not collect them.
+The review's first reading — that Art 59c(1)(b) conditions the threshold on
+dispatch *from* the state of establishment — was wrong on the letter, and it
+withdrew it: the consolidated text says goods dispatched **to** another Member
+State. The correction does not rescue the ruling. It relocates the problem:
 
-This row does not answer the question. It states it precisely, puts it on §23's
-gate, and **blocks P13** — because a Gate E that posts a real parcel across a
-border on an unsettled VAT position is not an acceptance test, it is a
-liability.
+- Art 59c only disapplies **Art 33(a)**, the destination rule. What is left is
+  **Art 32** — place of supply is where dispatch begins. Printful dispatches
+  from **Riga and Barcelona**. So under the threshold the supply is Latvian or
+  Spanish, and over it, it is the destination's. **On no reading is a mug
+  posted from Riga to Berlin an Estonian supply.** The threshold, where it
+  applies at all, sends you to the dispatch state, and the dispatch state is
+  not Estonia.
+- Estonia transposed it that way and the words are checkable. **KMS § 10¹(7)**
+  makes Estonia the place of supply under the €10,000 limit only for supplies
+  named in **§ 10¹(5)** — "kaup võõrandatakse ja toimetatakse **Eestist** …
+  teise liikmesriiki". *From Estonia.* Latvia-dispatched goods are outside
+  § 10¹(5) entirely, so Estonian law offers no hook to charge Estonian VAT on
+  them at any turnover.
+
+**What is actually owed.** Destination VAT from the first cross-border sale,
+with **no de minimis**, discharged by a Union-scheme OSS registration in Estonia
+through e-MTA — one quarterly return. It must exist before the first merch order
+crosses a border. Separately, an order dispatched Riga→Latvia or
+Barcelona→Spain is not a distance sale at all, OSS cannot carry it, and a
+non-established trader gets no local threshold: either register there, or block
+those two destinations at checkout until you do. US-dispatched EU orders are a
+third regime — IOSS, or the buyer pays import VAT at the door, which is lawful
+only if disclosed pre-contractually and which falsifies `PRICE_NOTICE`.
+
+**And the ruling would be right if one thing were physically true**: that the
+goods are dispatched from Estonia. Printful shipping stock to the trader, who
+posts it onward, puts the supply squarely inside § 10¹(5) and makes "below
+€10,000, Estonian VAT" exactly correct. That has to be a fact about parcels, not
+an invoicing arrangement — place of supply follows the goods.
+
+**The consequence nobody priced.** Decision `009` absorbs VAT into the shelf
+price. A $25 shirt at Hungary's 27% nets **$19.69**; the 3XL costs $19.58. That
+is eleven cents, against an operator floor of 25%, and P4's guard would catch it
+arithmetically the moment it was written with the right numbers. The margin
+table in this document is correct for Estonian VAT and wrong for every other EU
+destination, and **the shelf prices need re-deriving** — or 009's absorb policy
+needs a merch-shaped exception, which costs the site the sentence "the amount
+shown is the amount charged".
+
+This row does not decide any of it. It states it precisely, puts it on §23's
+gate, and **blocks P13**: a Gate E that posts a real parcel across a border on
+an unsettled VAT position is not an acceptance test, it is a liability.
+
+**What would settle it beyond argument**, and neither is mine to obtain: written
+confirmation from EMTA or an Estonian VAT adviser, and Printful's routing table
+per destination.
 
 ### P12 — Gate D
 
@@ -635,29 +727,37 @@ LD-02's Gate E found a defect that made every paid order produce nothing while
 
 Two things need a human, and one needs a decision.
 
-1. **VAT, and it may be the largest thing on this list.** Decision `009`'s
-   Article 59c threshold does not transpose to goods Printful dispatches from
-   Latvia, Spain and the US. This plausibly means OSS registration before a
-   single mug crosses a border. It needs a real answer from someone qualified,
-   and P14 blocks Gate E until it has one.
+1. **VAT, and it is much the largest thing on this list.** The 2026-09-08 ruling
+   — below €10,000, charge Estonian VAT — holds for the certificate and for
+   merch delivered to Estonian addresses, and **fails for everything else**, not
+   because of the threshold but because Art 32 puts the supply where dispatch
+   begins and Printful dispatches from Riga and Barcelona. KMS § 10¹(5) says
+   *from Estonia* in as many words. What is needed: a Union OSS registration
+   before the first cross-border merch order; a position on Latvia- and
+   Spain-domestic orders, which OSS cannot carry; and IOSS or an import-charges
+   disclosure for US-dispatched EU orders. **And the shelf prices need
+   re-deriving** — a $25 shirt absorbing 27% destination VAT nets $19.69 against
+   a 3XL costing $19.58. P14 blocks Gate E. This needs EMTA or an Estonian VAT
+   adviser, and Printful's routing table; it is not mine to settle.
 2. **An Article 28 processing agreement with Printful**, and confirmation of
    where they process. P11 writes the disclosure; it cannot create the
    agreement.
-3. **Return costs.** If somebody withdraws from a printed mug, who pays to send
-   it back, and does the site say so before they buy? A legal floor, and a
-   commercial choice above it. Printful does not accept consumer returns of
-   on-demand goods, so the parcel comes to the registered address — which the
-   operator should confirm they are content to receive.
-4. **`VALUE $0.00` on a physical good.** The certificate's zero is *true*, and
-   that is the load-bearing wall of the identity. A Gildan shirt is not worth
-   nothing. Printing the column anyway would be the site's first false figure;
-   omitting it costs the joke. This is a decision, not a defect.
+3. **Return costs — resolved, pending one confirmation.** P10 takes the position
+   that the consumer pays return postage, which § 56²(3) permits if § 54(1) p 14
+   is discharged first. All that is left is the operator confirming they are
+   content to receive returned parcels at the registered address, because
+   Printful will not.
+4. **`VALUE` — resolved.** `NOT $0.00`, per P9. Recorded here because it is the
+   operator's gag and they may want a different answer.
 5. **Authority for the legal rows.** Decision `011` gave LD-09 an exception for
    legal drafting inside a slice and said the rule stands for every other one.
    P10 and P11 need the same exception recorded, or they do not run.
 6. **The sticker's copy**, which P2 proposes and the operator settles.
-7. **The Access bypass** for `/print-files/*`, per the operator's note of
-   2026-09-08 — scoped to the prefix, not the host.
+7. ~~**The Access bypass** for `/print-files/*`.~~ **Not needed.** Printful
+   fetched the print files from this public repository at a pinned commit,
+   measured on 2026-09-08. A commit-pinned raw URL is also a better artefact
+   than a served one: it cannot change under a product that has already been
+   ordered against it.
 
 The §23 legal gate gains everything in P10, P11 and P14. It was already seven
 items.
