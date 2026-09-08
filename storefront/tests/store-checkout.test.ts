@@ -26,7 +26,7 @@ import {
   type StoreApiFetch,
 } from "../src/app/api/store/[...path]/route";
 import { STORE_PUBLISHABLE_KEY_HEADER, type FetchJson, type StoreFetchInit } from "../src/lib/medusa-client";
-import { isSingleCertificate } from "../src/lib/checkout-rules";
+import { isPayableCart } from "../src/lib/checkout-rules";
 import { getCheckoutCart, setCartCountry } from "../src/lib/store-checkout";
 import { addLineToCart, createCart } from "../src/lib/store-cart";
 import {
@@ -550,7 +550,7 @@ function stubStoreApi(overrides: Record<string, unknown> = {}): FetchJson {
 describe("getCheckoutCart", () => {
   it("reads the cart's own total, unconverted", async () => {
     const cart = await getCheckoutCart(stubStoreApi(), "cart_fixture");
-    expect(cart).toEqual({ id: "cart_fixture", currencyCode: "usd", total: 25, quantities: [] });
+    expect(cart).toEqual({ id: "cart_fixture", currencyCode: "usd", total: 25, quantities: [], lines: [] });
   });
 
   it("refuses a cart the stub answers with no numeric total", async () => {
@@ -565,15 +565,40 @@ describe("getCheckoutCart", () => {
 
   it("keeps an unreadable line as NaN rather than dropping it", async () => {
     // C3a. Dropping it would turn a two-line cart into a one-line cart and let
-    // `isSingleCertificate` pass something it must refuse -- the exact failure
-    // this path exists to prevent, reached by being tidy. NaN is never 1, so
-    // the rule stays closed.
+    // the payability rule pass something it must refuse -- the exact failure
+    // this path exists to prevent, reached by being tidy. LD-04 P6a kept the
+    // property when the rule changed: `isPayableCart` refuses any line whose
+    // quantity is not a finite number, rather than relying on NaN never
+    // equalling one.
     const fetchJson = stubStoreApi({ items: [{ id: "a", quantity: 1 }, { id: "b" }] });
-    const { quantities } = await getCheckoutCart(fetchJson, "cart_fixture");
+    const { quantities, lines } = await getCheckoutCart(fetchJson, "cart_fixture");
 
     expect(quantities).toHaveLength(2);
     expect(Number.isNaN(quantities[1])).toBe(true);
-    expect(isSingleCertificate(quantities)).toBe(false);
+    expect(lines).toHaveLength(2);
+    expect(isPayableCart(lines, ["lousy-deal"])).toBe(false);
+  });
+
+  it("reads each line's product handle, which is how a certificate is told from a mug", async () => {
+    const fetchJson = stubStoreApi({
+      items: [
+        { id: "a", quantity: 1, product_handle: "lousy-deal" },
+        { id: "b", quantity: 2, product_handle: "this-mug-cost-extra" },
+        { id: "c", quantity: 1 },
+        // An empty string is not a handle. Reading it as one would make a
+        // line whose handle Medusa left blank compare equal to nothing and
+        // sort into merch by accident rather than by decision.
+        { id: "d", quantity: 1, product_handle: "" },
+      ],
+    });
+    expect((await getCheckoutCart(fetchJson, "cart_fixture")).lines).toEqual([
+      { quantity: 1, handle: "lousy-deal" },
+      { quantity: 2, handle: "this-mug-cost-extra" },
+      // Medusa's line item permits a null handle, and an empty string is not
+      // a handle either.
+      { quantity: 1, handle: null },
+      { quantity: 1, handle: null },
+    ]);
   });
 
   it("reports no quantities for a cart with no lines, rather than refusing it", async () => {
@@ -584,20 +609,55 @@ describe("getCheckoutCart", () => {
   });
 });
 
-describe("isSingleCertificate", () => {
+describe("isPayableCart", () => {
   // §16 gives a deal one `order_id` and no line reference, so an order for two
-  // things has no single tier and no single price to certify. C2's subscriber
-  // issues nothing for such an order; this is what stops the checkout offering
-  // to take the money for one.
-  it("accepts exactly one line of exactly one", () => {
-    expect(isSingleCertificate([1])).toBe(true);
+  // certificates has no single tier and no single price to certify. C2's
+  // subscriber issues nothing for such an order; this is what stops the
+  // checkout offering to take the money for one.
+  //
+  // **LD-04 P6a replaced `isSingleCertificate` with this**, and the change is
+  // narrower than it looks: the rule was never "one line", it was "one
+  // certificate", and one line was only how that was expressed while the shop
+  // sold one thing. A cart may now hold a mug beside it.
+  const TIERS = ["lousy-deal", "lousy-deal-plus", "lousy-deal-pro"];
+  const line = (handle: string | null, quantity = 1) => ({ handle, quantity });
+
+  it("accepts one certificate alone, as it always did", () => {
+    expect(isPayableCart([line("lousy-deal")], TIERS)).toBe(true);
   });
 
-  it("refuses an empty cart, a second line, and a quantity above one", () => {
-    expect(isSingleCertificate([])).toBe(false);
-    expect(isSingleCertificate([1, 1])).toBe(false);
-    expect(isSingleCertificate([2])).toBe(false);
-    expect(isSingleCertificate([Number.NaN])).toBe(false);
+  it("accepts one certificate beside merch, which is the upsell §7 asks for", () => {
+    expect(isPayableCart([line("lousy-deal"), line("this-mug-cost-extra")], TIERS)).toBe(true);
+    expect(isPayableCart([line("lousy-deal-pro"), line("original-purchase-receipt", 3)], TIERS)).toBe(true);
+  });
+
+  it("accepts merch with no certificate at all", () => {
+    // Nothing issues, which is correct: nobody bought one. `order-placed.ts`
+    // reports that at info rather than error, because it is the shop working.
+    expect(isPayableCart([line("this-mug-cost-extra")], TIERS)).toBe(true);
+    expect(isPayableCart([line(null)], TIERS)).toBe(true);
+  });
+
+  it("refuses two certificates, however they are arranged", () => {
+    expect(isPayableCart([line("lousy-deal"), line("lousy-deal-plus")], TIERS)).toBe(false);
+    expect(isPayableCart([line("lousy-deal", 2)], TIERS)).toBe(false);
+    // And with merch in the cart too, which is the arrangement the old
+    // one-line rule would have refused for the wrong reason.
+    expect(isPayableCart([line("lousy-deal", 2), line("this-mug-cost-extra")], TIERS)).toBe(false);
+  });
+
+  it("refuses an empty cart and an unreadable quantity", () => {
+    expect(isPayableCart([], TIERS)).toBe(false);
+    expect(isPayableCart([line("lousy-deal", Number.NaN)], TIERS)).toBe(false);
+    expect(isPayableCart([line("lousy-deal"), line("this-mug-cost-extra", Number.NaN)], TIERS)).toBe(false);
+    expect(isPayableCart([line("lousy-deal", 0)], TIERS)).toBe(false);
+  });
+
+  it("treats a line with no handle as merch, not as a certificate", () => {
+    // Medusa's line item permits a null `product_handle`. Counting such a line
+    // as a certificate would refuse carts that are fine; counting two of them
+    // as certificates would refuse every cart.
+    expect(isPayableCart([line("lousy-deal"), line(null), line(null)], TIERS)).toBe(true);
   });
 });
 
@@ -808,10 +868,20 @@ describe("the cart-to-paid-order flow, against one stubbed backend", () => {
     expect(line.unitPrice).toBe(25);
 
     const checkoutCart = await getCheckoutCart(fetchJson, cart.id);
-    expect(checkoutCart).toEqual({ id: "cart_e2e", currencyCode: "usd", total: 25, quantities: [1] });
+    expect(checkoutCart).toEqual({
+      id: "cart_e2e",
+      currencyCode: "usd",
+      total: 25,
+      quantities: [1],
+      lines: [{ quantity: 1, handle: null }],
+    });
     // C3a: the state the checkout page requires before it will render a pay
     // control at all.
-    expect(isSingleCertificate(checkoutCart.quantities)).toBe(true);
+    // LD-04 P6a: the stub's line carries no `product_handle`, so it reads as
+    // merch rather than as a certificate — and a merch-only cart is payable.
+    // The end-to-end property this asserts is unchanged: this cart can be
+    // paid for.
+    expect(isPayableCart(checkoutCart.lines, ["lousy-deal"])).toBe(true);
 
     const paymentCollectionId = await createPaymentCollection(fetchJson, checkoutCart.id);
     const session = await initiateStripePaymentSession(fetchJson, paymentCollectionId);

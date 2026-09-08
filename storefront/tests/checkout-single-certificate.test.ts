@@ -39,9 +39,16 @@ vi.mock("@stripe/react-stripe-js", () => ({
 vi.mock("@stripe/stripe-js", () => ({ loadStripe: () => Promise.resolve(null) }));
 vi.mock("next/server", () => ({ connection: async () => undefined }));
 
-/** Renders the checkout page for a cart whose lines have these quantities. */
+/**
+ * Renders the checkout page for a cart holding these lines.
+ *
+ * **LD-04 P6a made the cart's shape part of the question.** The page used to
+ * ask only "how many lines, of what quantity"; it now asks which of them is a
+ * certificate, because a cart may hold a mug beside one. A line is given as
+ * `[handle, quantity]`, and `null` is a line Medusa gave no handle for.
+ */
 async function renderCheckout(options: {
-  quantities?: readonly number[];
+  lines?: ReadonlyArray<readonly [string | null, number]>;
   cartId?: string | undefined;
 }): Promise<string> {
   vi.resetModules();
@@ -60,13 +67,21 @@ async function renderCheckout(options: {
   vi.doMock("../src/lib/medusa-client", () => ({
     createStoreFetchJson: () => async () => ({}),
     getDefaultRegion: async () => ({ id: "reg_1", countries: [{ iso_2: "ee", display_name: "Estonia" }] }),
+    // P6a: the page asks Medusa which handles are certificates rather than
+    // holding a second copy of the three the backend freezes.
+    listTiers: async () => [
+      { handle: "lousy-deal", title: "Lousy Deal" },
+      { handle: "lousy-deal-plus", title: "Lousy Deal Plus" },
+      { handle: "lousy-deal-pro", title: "Lousy Deal Pro" },
+    ],
   }));
   vi.doMock("../src/lib/store-checkout", () => ({
     getCheckoutCart: async () => ({
       id: options.cartId ?? "cart_1",
       currencyCode: "usd",
       total: 25,
-      quantities: options.quantities ?? [],
+      quantities: (options.lines ?? []).map(([, quantity]) => quantity),
+      lines: (options.lines ?? []).map(([handle, quantity]) => ({ handle, quantity })),
     }),
     setCartCountry: async () => ({ countryCode: "ee", taxTotal: undefined }),
   }));
@@ -80,8 +95,8 @@ afterEach(() => {
 });
 
 describe("the checkout, for a cart it can certify", () => {
-  it("offers the pay control for one line of one", async () => {
-    const html = await renderCheckout({ cartId: "cart_1", quantities: [1] });
+  it("offers the pay control for one certificate", async () => {
+    const html = await renderCheckout({ cartId: "cart_1", lines: [["lousy-deal", 1]] });
 
     // `PaymentForm`'s own noscript notice is the marker: it is rendered by
     // that component and by nothing else, so its presence means the component
@@ -95,20 +110,41 @@ describe("the checkout, for a cart it can certify", () => {
     // transmitted, so it appears on the document that can transmit one.
     for (const line of ORDER_SUMMARY_LINES) expect(html).toContain(line);
   });
+
+  it("offers it for a certificate with merch beside it, which is the upsell §7 asks for", async () => {
+    // **The state that could not be paid for at all before LD-04's P6a.**
+    // `CART_NOT_SINGLE_NOTICE` took the pay control away from any cart that
+    // was not exactly one line, so adding a mug removed the pay button.
+    const html = await renderCheckout({
+      cartId: "cart_1",
+      lines: [["lousy-deal", 1], ["this-mug-cost-extra", 2]],
+    });
+
+    expect(html).toContain(PAYMENT_NEEDS_SCRIPTING);
+    expect(html).not.toContain(CART_NOT_SINGLE_NOTICE);
+  });
+
+  it("offers it for merch with no certificate at all", async () => {
+    // Nothing issues, which is correct: nobody bought a certificate.
+    const html = await renderCheckout({ cartId: "cart_1", lines: [["this-mug-cost-extra", 1]] });
+    expect(html).toContain(PAYMENT_NEEDS_SCRIPTING);
+    expect(html).not.toContain(CART_NOT_SINGLE_NOTICE);
+  });
 });
 
 describe("the checkout, for a cart it cannot certify", () => {
   // Each case is the same refusal reached a different way. They are separate
   // so a regression says which one came back.
-  const refused: [string, readonly number[]][] = [
-    ["two lines, from two tiers", [1, 1]],
-    ["one line of two, from the same tier twice", [2]],
-    ["three lines", [1, 1, 1]],
-    ["a line whose quantity the API did not give", [Number.NaN]],
+  const refused: [string, ReadonlyArray<readonly [string | null, number]>][] = [
+    ["two certificates, from two tiers", [["lousy-deal", 1], ["lousy-deal-pro", 1]]],
+    ["one line of two, from the same tier twice", [["lousy-deal", 2]]],
+    ["two certificates with merch beside them", [["lousy-deal", 1], ["lousy-deal-pro", 1], ["this-mug-cost-extra", 1]]],
+    ["a line whose quantity the API did not give", [["lousy-deal", Number.NaN]]],
+    ["a merch line whose quantity the API did not give", [["this-mug-cost-extra", Number.NaN]]],
   ];
 
-  it.each(refused)("refuses to take money for %s", async (_case, quantities) => {
-    const html = await renderCheckout({ cartId: "cart_1", quantities });
+  it.each(refused)("refuses to take money for %s", async (_case, lines) => {
+    const html = await renderCheckout({ cartId: "cart_1", lines });
 
     expect(html).toContain(CART_NOT_SINGLE_NOTICE);
     // The whole point: no payment form on the page means no way to pay.
@@ -123,7 +159,10 @@ describe("the checkout, for a cart it cannot certify", () => {
     // The buyer is owed the figure they were looking at. Hiding it would make
     // the refusal harder to understand, not easier -- and a refusal with no
     // way onward is the Gate E finding V6a had to fix on the empty cart.
-    const html = await renderCheckout({ cartId: "cart_1", quantities: [1, 1] });
+    const html = await renderCheckout({
+      cartId: "cart_1",
+      lines: [["lousy-deal", 1], ["lousy-deal-pro", 1]],
+    });
 
     expect(html).toContain("$25.00");
     expect(html).toContain(CART_LINK_LABEL);

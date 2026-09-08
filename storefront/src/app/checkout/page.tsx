@@ -47,8 +47,8 @@ import {
   PRICE_NOTICE,
   RETURN_LABEL,
 } from "../../content/checkout";
-import { isSingleCertificate } from "../../lib/checkout-rules";
-import { createStoreFetchJson, getDefaultRegion } from "../../lib/medusa-client";
+import { isPayableCart } from "../../lib/checkout-rules";
+import { createStoreFetchJson, getDefaultRegion, listTiers } from "../../lib/medusa-client";
 import { formatMoney } from "../../lib/money";
 import { getCheckoutCart } from "../../lib/store-checkout";
 import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-session";
@@ -86,6 +86,15 @@ export default async function CheckoutPage() {
 
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const cart = await getCheckoutCart(fetchJson, cartId);
+  /*
+   * LD-04 P6a. Which handles are certificates comes from Medusa, not from a
+   * constant declared here: `commerce/product-model.ts` is the one place the
+   * three tiers are frozen, the backend seeds them from it, and a second copy
+   * in this repository's other half is exactly the drift the merch sync spent
+   * a row preventing. The cost is one Store API call on a page that already
+   * makes two.
+   */
+  const certificateHandles = (await listTiers(fetchJson)).map((tier) => tier.handle);
 
   // C3a. A cart holding anything other than one certificate cannot be
   // certified -- C2's subscriber issues nothing for it rather than print a
@@ -93,7 +102,7 @@ export default async function CheckoutPage() {
   // money. The ledger row is still shown: the buyer is owed the figure they
   // were looking at, and hiding it would make the refusal harder to
   // understand, not easier.
-  if (!isSingleCertificate(cart.quantities)) {
+  if (!isPayableCart(cart.lines, certificateHandles)) {
     return (
       <main>
         <DocumentFrame
