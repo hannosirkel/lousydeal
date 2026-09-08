@@ -65,15 +65,26 @@ in it, which is why both terms appear.
 
 Operator rule: fulfilment cost plus 25%, rounded up to a marketable number.
 
-| Item | Cost | +25% | **Shelf** | Realised margin |
-| --- | --- | --- | --- | --- |
-| T-shirt | $15.58–19.58 | $19.48–24.48 | **$25** | 27.7%–60% |
-| Mug | $8.95 | $11.19 | **$12** | 34% |
-| Trucker cap | $18.10 | $22.63 | **$25** | 38% |
-| Sticker | $3.25 | $4.06 | **$5** | 54% |
+**The first version of this table was wrong, and decision
+[`012`](../decisions/012-vat-for-goods-printful-dispatches.md) records why.** It
+took cost + 25% and printed the result as a shelf price. Decision `007` makes
+every price on this site tax-inclusive, so that quietly spends the VAT out of
+the margin: a $25 shirt nets $20.16 after Estonian VAT, and a 3XL costing $19.58
+clears **3%**, not 25%. The mug cleared 8%. Only the small shirt was ever right.
 
-**The sticker costs exactly what the certificate costs**, which is not a
-coincidence this plan is going to apologise for.
+Corrected, and derived at 27% — Hungary's rate, the worst in the EU — so one
+number works in every country this shop posts to:
+
+| Item | Cost | **Shelf** | Net at 27% | Margin |
+| --- | --- | --- | --- | --- |
+| T-shirt S–2XL | $15.58–17.58 | **$28** | $22.05 | 25%–42% |
+| T-shirt 3XL | $19.58 | **$32**, or the size goes | $25.20 | 29% |
+| Mug | $8.95 | **$15** | $11.81 | 32% |
+| Trucker cap | $18.10 | **$29** | $22.83 | 26% |
+| Sticker | $3.25 | **$6** | $4.72 | 45% |
+
+The sticker no longer costs exactly what the certificate costs, which was the
+better joke and is a real loss.
 
 Shipping is not in these numbers and is not marked up. It is quoted live and
 passed through.
