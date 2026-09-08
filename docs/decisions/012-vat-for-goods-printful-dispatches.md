@@ -117,6 +117,36 @@ is precisely the cost of goods this record already sends P4 to measure — and i
 raises the stakes on measuring it rather than assuming a reverse charge that may
 never apply.
 
+**A third article closes the question in one sentence.** *What formula should I
+use to calculate VAT?*, same help centre, same disclaimer:
+
+> "If you're selling to customers in the EU, you may need to collect VAT (Value
+> Added Tax) on those orders, **regardless of where the order is fulfilled**.
+> This applies even if the order is fulfilled outside the EU."
+>
+> "The VAT rate depends on both your business's country of registration and
+> where the order is delivered."
+>
+> "(Retail price + shipping + services – discounts) × VAT rate"
+
+There is no reading of that on which Printful's own registrations discharge the
+merchant's duty. Printful says the merchant collects, and says the rate turns on
+the delivery country. Three articles, one position, and it is the position this
+record already took.
+
+**And the formula carries a build consequence nobody had noticed: VAT applies to
+the shipping line.** LD-04 quotes Printful's rate and passes it through
+unmarked-up — but under decision `009` the price is VAT-inclusive, so a $5.22
+quote shown to a buyer nets $4.21 at 24% while Printful charges the full $5.22.
+**The pass-through loses about a fifth of itself on every order.**
+
+The fix is arithmetic rather than policy, and it keeps both rules intact: the
+quoted shipping is **grossed up** by the destination rate, so the net recovers
+Printful's charge exactly. The buyer still sees one number and still pays
+exactly that number, which is all `PRICE_NOTICE` promises; the pass-through
+becomes genuinely neutral instead of quietly subsidised. P7 does the grossing
+up, and P4's guard checks the net rather than the gross.
+
 Printful also assumes the merchant can deduct "any VAT you've paid on your
 supply chain". An Estonian registration does not deduct Latvian VAT on the
 Estonian return; that needs a Directive 2008/9 reclaim, which is not worth
@@ -224,3 +254,5 @@ first version of this record proposed asking.
   owe local import charges — § 54(1), and it is the honest form of "the amount
   shown is the amount charged".
 - A cross-border turnover counter is added, and watched.
+- P7 grosses up the shipping quote by the destination rate, so passing
+  Printful's charge through is neutral rather than a fifth short.
