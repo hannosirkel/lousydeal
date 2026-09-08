@@ -664,68 +664,38 @@ Printful's webhooks, verified, mapped onto the Medusa fulfilment, and one email
 carrying the tracking number. Returned-to-sender and lost-in-transit are named
 here even though the answer to both is a person reading the Imprint address.
 
-### P14 — Tax, which is the row that stops this slice
+### P14 — Tax
 
-**Repository:** `lousydeal`; and the operator.
-**Files:** `docs/decisions/`, `storefront/src/content/legal/terms.ts`, `status.md`.
+**Repository:** `lousydeal`.
+**Files:** `docs/decisions/012-vat-for-goods-printful-dispatches.md`, the cart
+and checkout content, a turnover counter, tests.
 
-- [ ] Establish whether this shop may lawfully post a mug abroad at the price it shows.
+- [ ] Implement decision `012`, and count the thing that decides when it changes.
 
-**The operator ruled on 2026-09-08: "store is below 10k€ OSS threshold, Estonia
-VAT is to be used." That ruling is safe for the certificate and unsafe for the
-merch, and the reason is not the threshold.**
+Decision [`012`](../decisions/012-vat-for-goods-printful-dispatches.md) settles
+the scheme: Estonian VAT while cross-border EU turnover is under €10,000, Union
+OSS after that, no registration in Latvia, Spain, the UK or Northern Ireland
+because those are Printful's own obligations on its invoice to us, Printful's
+IOSS for EU imports under €150, and **no country blocked**.
 
-The review's first reading — that Art 59c(1)(b) conditions the threshold on
-dispatch *from* the state of establishment — was wrong on the letter, and it
-withdrew it: the consolidated text says goods dispatched **to** another Member
-State. The correction does not rescue the ruling. It relocates the problem:
+This row builds three things, none of which is a tax filing:
 
-- Art 59c only disapplies **Art 33(a)**, the destination rule. What is left is
-  **Art 32** — place of supply is where dispatch begins. Printful dispatches
-  from **Riga and Barcelona**. So under the threshold the supply is Latvian or
-  Spanish, and over it, it is the destination's. **On no reading is a mug
-  posted from Riga to Berlin an Estonian supply.** The threshold, where it
-  applies at all, sends you to the dispatch state, and the dispatch state is
-  not Estonia.
-- Estonia transposed it that way and the words are checkable. **KMS § 10¹(7)**
-  makes Estonia the place of supply under the €10,000 limit only for supplies
-  named in **§ 10¹(5)** — "kaup võõrandatakse ja toimetatakse **Eestist** …
-  teise liikmesriiki". *From Estonia.* Latvia-dispatched goods are outside
-  § 10¹(5) entirely, so Estonian law offers no hook to charge Estonian VAT on
-  them at any turnover.
+1. **A counter for cross-border EU turnover.** The threshold is a fact about
+   turnover and the one way to get it wrong is to pass it without noticing. It
+   is measured, not estimated — §11's rule applies to a number the operator will
+   act on as much as to one a visitor reads.
+2. **The pre-contractual sentence for buyers outside the EU**, saying they may
+   owe local import charges. § 54(1) requires it before the ordering process
+   begins, and it is the honest form of `PRICE_NOTICE`'s "the amount shown is
+   the amount charged" — which P10 also has to reconcile.
+3. **The cost line P4 was missing.** Printful charges its own VAT on orders it
+   fulfils in Latvia, Spain, the UK and Northern Ireland. An Estonian
+   registration does not recover that through the Estonian return, and a
+   Directive 2008/9 reclaim is not worth filing at this volume, so it is simply
+   a cost. **Measured from a real invoice before the margin table is trusted**,
+   not assumed — the last two versions of that table were wrong.
 
-**What is actually owed.** Destination VAT from the first cross-border sale,
-with **no de minimis**, discharged by a Union-scheme OSS registration in Estonia
-through e-MTA — one quarterly return. It must exist before the first merch order
-crosses a border. Separately, an order dispatched Riga→Latvia or
-Barcelona→Spain is not a distance sale at all, OSS cannot carry it, and a
-non-established trader gets no local threshold: either register there, or block
-those two destinations at checkout until you do. US-dispatched EU orders are a
-third regime — IOSS, or the buyer pays import VAT at the door, which is lawful
-only if disclosed pre-contractually and which falsifies `PRICE_NOTICE`.
-
-**And the ruling would be right if one thing were physically true**: that the
-goods are dispatched from Estonia. Printful shipping stock to the trader, who
-posts it onward, puts the supply squarely inside § 10¹(5) and makes "below
-€10,000, Estonian VAT" exactly correct. That has to be a fact about parcels, not
-an invoicing arrangement — place of supply follows the goods.
-
-**The consequence nobody priced.** Decision `009` absorbs VAT into the shelf
-price. A $25 shirt at Hungary's 27% nets **$19.69**; the 3XL costs $19.58. That
-is eleven cents, against an operator floor of 25%, and P4's guard would catch it
-arithmetically the moment it was written with the right numbers. The margin
-table in this document is correct for Estonian VAT and wrong for every other EU
-destination, and **the shelf prices need re-deriving** — or 009's absorb policy
-needs a merch-shaped exception, which costs the site the sentence "the amount
-shown is the amount charged".
-
-This row does not decide any of it. It states it precisely, puts it on §23's
-gate, and **blocks P13**: a Gate E that posts a real parcel across a border on
-an unsettled VAT position is not an acceptance test, it is a liability.
-
-**What would settle it beyond argument**, and neither is mine to obtain: written
-confirmation from EMTA or an Estonian VAT adviser, and Printful's routing table
-per destination.
+**This row no longer blocks Gate E.**
 
 ### P12 — Gate D
 
