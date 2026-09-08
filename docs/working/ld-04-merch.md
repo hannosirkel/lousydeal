@@ -353,7 +353,7 @@ and a price that does not is a slow loss nobody notices.
 **Repository:** `lousydeal` (the script and its record).
 **Files:** `backend/src/modules/printful/sync.ts`, its test, and the recorded ids.
 
-- [ ] Create the four products in the store, from the mapping, repeatably.
+- [x] Create the four products in the store, from the mapping, repeatably.
 
 **This row resolves the sync-versus-catalogue question**, and it is the plan's
 sharpest architectural fork:
