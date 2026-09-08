@@ -144,16 +144,40 @@ export const realTimer: Timer = (run, after) => {
  * defect and both are closed by the returned function, which B5b calls from its
  * effect's teardown and before starting a new turn.
  *
- * Cancelling twice, or after everything has run, does nothing.
+ * **Stopping returns what did not run, which B7's Gate E made necessary.**
+ * Driving ten real turns through a browser produced a transcript with three
+ * questions in it and no answers beneath them: the next question had arrived
+ * while he was still speaking, and cancelling threw the rest of his reply away.
+ *
+ * That is the same defect this file already forbids in the other direction.
+ * The reduced-motion path collapses the *wait* and not the *content*, and its
+ * test says so in as many words — "collapsing the schedule by dropping
+ * messages rather than by dropping the wait" is the failure it names. An
+ * interruption is the same situation: the lines were chosen the moment the
+ * turn began, and the delay is presentation. So stopping hands them back, and
+ * the caller decides. B5b flushes them when a new turn starts and discards
+ * them on unmount, where there is nothing left to render into.
+ *
+ * Cancelling twice, or after everything has run, returns an empty list.
  */
 export function play(
   steps: readonly PresentationStep[],
   emit: (step: PresentationStep) => void,
   timer: Timer = realTimer,
-): () => void {
-  const cancels = steps.map((step) => timer(() => emit(step), step.at));
+): () => PresentationStep[] {
+  const ran = new Set<number>();
+  const cancels = steps.map((step, index) =>
+    timer(() => {
+      ran.add(index);
+      emit(step);
+    }, step.at),
+  );
+  let stopped = false;
   return () => {
+    if (stopped) return [];
+    stopped = true;
     for (const cancel of cancels) cancel();
+    return steps.filter((_, index) => !ran.has(index));
   };
 }
 

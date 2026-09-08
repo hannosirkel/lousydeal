@@ -36,7 +36,7 @@ import {
   type Utterance,
 } from "../../lib/baldrick/conversation";
 import { conversationSeed, draw } from "../../lib/baldrick/pool";
-import { play, prefersReducedMotion, schedule } from "../../lib/baldrick/presenter";
+import { play, prefersReducedMotion, schedule, type PresentationStep } from "../../lib/baldrick/presenter";
 import { BALDRICK_LIMITS, Surface } from "./Surface";
 
 /**
@@ -92,23 +92,48 @@ export function BaldrickWidget() {
   const [presenting, setPresenting] = useState(false);
   const [value, setValue] = useState("");
 
-  /** The current turn's cancel, so a new question stops the old answer. */
-  const cancel = useRef<(() => void) | null>(null);
+  /** The current turn's stop, so a new question ends the old answer. */
+  const cancel = useRef<(() => PresentationStep[]) | null>(null);
+
+  /**
+   * End the turn in flight.
+   *
+   * **`flush` is the whole of B7's Gate E finding.** Ten real turns driven
+   * through a browser produced a transcript with three questions and no
+   * answers under them — the next question had arrived while he was still
+   * speaking, and stopping discarded the rest of his reply. A transcript is
+   * this slice's only acceptance, and one where he appears to ignore people is
+   * not one.
+   *
+   * The lines were chosen the instant the turn began; the delay is
+   * presentation. So an interruption collapses the wait and keeps the words,
+   * exactly as the reduced-motion path does. Unmounting passes `false`,
+   * because there is nothing left to render into.
+   */
+  const stop = useCallback((flush: boolean) => {
+    const remaining = cancel.current?.() ?? [];
+    cancel.current = null;
+    if (!flush) return;
+    const lines = remaining.flatMap((step) => (step.kind === "message" ? [step.line] : []));
+    if (lines.length === 0) return;
+    setIndicating(false);
+    setShown((before) => [...before, ...lines.map((line) => ({ speaker: "baldrick" as const, lines: [line] }))]);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
     setShown([{ speaker: "baldrick", lines: greeting() }]);
     return () => {
       // Unmounting mid-answer must not leave timers emitting into a component
-      // that is gone. The same function closes the other half of this defect,
-      // a second question arriving mid-answer, in `ask` below.
+      // that is gone -- and must not flush either, for the same reason.
       cancel.current?.();
     };
   }, []);
 
   const ask = useCallback(
     (utterance: Utterance) => {
-      cancel.current?.();
+      // Flushes rather than discards: see `stop`.
+      stop(true);
 
       const next = respond(conversation, utterance, BALDRICK_SCRIPT);
       const said = next.transcript.at(-1);
@@ -139,7 +164,7 @@ export function BaldrickWidget() {
       // exists, so this is a belt on a brace rather than a live path.
       if (steps.length === 0) setPresenting(false);
     },
-    [conversation],
+    [conversation, stop],
   );
 
   if (!mounted) return null;

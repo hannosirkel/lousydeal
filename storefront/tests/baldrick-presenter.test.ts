@@ -225,6 +225,39 @@ describe("playing a schedule", () => {
     expect(pending()).toEqual([]);
   });
 
+  it("hands back what it did not get to play", () => {
+    // **B7's Gate E finding, as a unit.** Ten real turns produced a transcript
+    // with three questions and no answers beneath them: the next question
+    // arrived mid-reply and stopping threw the rest away. The lines were
+    // chosen when the turn began -- the delay is presentation -- so stopping
+    // returns them and the caller decides. B5b flushes on a new turn and
+    // discards on unmount.
+    const { timer, run } = fakeTimer();
+    const steps = schedule(LINES, MOVING);
+    const cancel = play(steps, () => undefined, timer);
+
+    // Stopped after the first message, and after the indicator that fires at
+    // the same instant. What is left is the sentence he had not said yet --
+    // the one Gate E watched disappear.
+    run(steps[1]!.at);
+    const remaining = cancel();
+    expect(remaining.map((step) => (step.kind === "message" ? step.line : step.kind))).toEqual([LINES[1]]);
+  });
+
+  it("hands back nothing when everything ran, and nothing on a second stop", () => {
+    const { timer, run } = fakeTimer();
+    const cancel = play(schedule(LINES, MOVING), () => undefined, timer);
+    run(Number.MAX_SAFE_INTEGER);
+    expect(cancel()).toEqual([]);
+    expect(cancel()).toEqual([]);
+  });
+
+  it("hands back everything when stopped before it started", () => {
+    const { timer } = fakeTimer();
+    const steps = schedule(LINES, MOVING);
+    expect(play(steps, () => undefined, timer)()).toEqual(steps);
+  });
+
   it("can be cancelled twice, and after everything has run", () => {
     const { timer, run } = fakeTimer();
     const cancel = play(schedule(LINES, MOVING), () => undefined, timer);

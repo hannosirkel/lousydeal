@@ -234,12 +234,25 @@ describe("the shell, which is the part no test can render", () => {
     expect(renderToStaticMarkup(createElement(Baldrick))).toBe("");
   });
 
-  it("cancels the turn in flight on unmount and before a new one", () => {
-    // Two halves of one defect: timers emitting into a component that is gone,
-    // and a second question interleaving with the first answer. B5a returns one
-    // function that closes both, and this asserts it is called in both places.
-    expect(code(shell)).toMatch(/return \(\) => \{\s*cancel\.current\?\.\(\);/);
-    expect(code(shell)).toMatch(/\(utterance: Utterance\) => \{\s*cancel\.current\?\.\(\);/);
+  it("ends the turn in flight on unmount and before a new one, differently", () => {
+    // Two halves of one defect -- timers emitting into a component that is
+    // gone, and a second question interleaving with the first answer -- with
+    // **different right answers**, which is B7's Gate E finding.
+    //
+    // Unmounting discards: nothing is left to render into. A new turn flushes:
+    // the lines were chosen when the turn began, so throwing them away leaves
+    // a question in the transcript with no answer under it. Gate E produced
+    // exactly that, three times in ten turns.
+    expect(code(shell)).toMatch(/return \(\) => \{\s*cancel\.current\?\.\(\);\s*\};/);
+    expect(code(shell)).toMatch(/\(utterance: Utterance\) => \{\s*stop\(true\);/);
+  });
+
+  it("flushes the unplayed lines rather than dropping them", () => {
+    // The property, not just the call: what `stop` hands back must reach the
+    // transcript.
+    expect(code(shell)).toMatch(/const remaining = cancel\.current\?\.\(\) \?\? \[\];/);
+    expect(code(shell)).toMatch(/remaining\.flatMap\(\(step\) => \(step\.kind === "message" \? \[step\.line\] : \[\]\)\)/);
+    expect(code(shell)).toMatch(/setShown\(\(before\) => \[\.\.\.before, \.\.\.lines\.map/);
   });
 
   it("ignores an empty submit instead of answering it", () => {

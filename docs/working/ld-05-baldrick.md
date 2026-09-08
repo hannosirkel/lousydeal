@@ -157,14 +157,14 @@ Eight, after B5 was split at planning rather than at execution: as one row it he
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-05-baldrick.md`, `docs/working/status.md`.
 
-- [ ] Land the plan and move the resume point to it.
+- [x] Land the plan and move the resume point to it.
 
 ### B1 — The identity admits him
 
 **Repository:** `lousydeal`.
 **Files:** `docs/current/brand.md`.
 
-- [ ] Write Baldrick's voice section and the two §6 amendments, as amendments.
+- [x] Write Baldrick's voice section and the two §6 amendments, as amendments.
 
 **First, because nothing else is authorised until it lands.** §6 is written as
 "a single list, so a later surface does not have to re-derive it", and a row
@@ -234,7 +234,7 @@ is selecting a pre-written response.*
 **Files:** `storefront/src/lib/baldrick/intents.ts`,
 `storefront/src/lib/baldrick/pool.ts`, `storefront/tests/baldrick-intents.test.ts`.
 
-- [ ] Match what a visitor typed to one of §8's intents, deterministically.
+- [x] Match what a visitor typed to one of §8's intents, deterministically.
 
 Keyword and phrase matching, as §8 says, and nothing cleverer. The ten intents
 it lists — discount, Enterprise, support, refund, complaint, gift, what do I
@@ -268,7 +268,7 @@ picks and says why rather than letting declaration order decide silently.
 **Files:** `storefront/src/lib/baldrick/conversation.ts`,
 `storefront/tests/baldrick-conversation.test.ts`.
 
-- [ ] Give a conversation memory, so a second turn can depend on the first.
+- [x] Give a conversation memory, so a second turn can depend on the first.
 
 §8 asks for flows and state, which is what separates a character from an FAQ.
 The reducer is pure — a state and a message in, a state and a list of replies
@@ -291,7 +291,7 @@ is what makes a bot feel like a form.
 `storefront/tests/baldrick-copy.test.ts`,
 `storefront/tests/legal-consistency.test.ts`.
 
-- [ ] Write every line, and guard the three things he must never say.
+- [x] Write every line, and guard the three things he must never say.
 
 Copy in `content/`, like every other surface, so it is reviewable without
 reading logic. The character is laziness, and `brand.md`'s voice section is where it is
@@ -343,7 +343,7 @@ inherits it rather than rediscovering it.
 **Files:** `storefront/src/lib/baldrick/presenter.ts`,
 `storefront/tests/baldrick-presenter.test.ts`.
 
-- [ ] Decide when each message appears, without a DOM.
+- [x] Decide when each message appears, without a DOM.
 
 B3 made the conversation a pure reducer so the whole of Baldrick's behaviour is
 testable without a browser. This is the same argument one layer up: *when* a
@@ -372,7 +372,7 @@ certificate's spacing by rendering it and looking.
 `storefront/src/app/globals.css`,
 `storefront/tests/baldrick-widget.test.ts`.
 
-- [ ] Render the conversation, and make it usable by somebody who cannot see it.
+- [x] Render the conversation, and make it usable by somebody who cannot see it.
 
 The fifth client component in the repository and the first that exists because
 somebody wants it rather than because a framework requires it. B1 is what makes
@@ -431,7 +431,7 @@ persisted, with `browser-storage-disclosure.test.ts` cited as the proof.
 **Files:** `storefront/src/app/layout.tsx` or the routes that mount him,
 `storefront/tests/baldrick-reach.test.ts`.
 
-- [ ] Put him where he belongs and prove he is absent everywhere else.
+- [x] Put him where he belongs and prove he is absent everywhere else.
 
 **Not the layout.** Mounting him globally would put a client component on the
 certificate — a page people screenshot and share, and the one surface LD-02
@@ -464,7 +464,7 @@ inferred from the source.
 **Repository:** `lousydeal`.
 **Files:** the findings, in this document; `docs/working/status.md`.
 
-- [ ] Review every row against the contract, then talk to him.
+- [x] Review every row against the contract, then talk to him.
 
 Gate E is executed against a rendered site at 390px and desktop, with scripting
 disabled where the surface claims to work without it. LD-02's Gate E found a
@@ -589,6 +589,89 @@ with the population left implied.
   exist and a price change that did not happen, which §11 forbids and which
   outranks an illustration. B4's copy says the code exists and is unfinished.
   This is the same forward liability `content/baldrick.ts` records for LD-06.
+
+## Gate E: the rendered site, and the transcript
+
+Executed against a production build of the storefront, served and driven in
+Chromium. Ten turns, from the keyboard only, including a flow, an abandoned
+branch, a question he cannot answer, and the sentence constraint 8 names.
+
+### What it found
+
+**Interrupting him threw away what he had already decided to say.** The first
+run produced a transcript with three questions in it and no answers beneath
+them. That was not a harness artefact in the end but a real defect wearing one:
+the next question arrived while he was still speaking, `play`'s cancel stopped
+the remaining timers, and the rest of his reply was discarded. A human reading
+that transcript sees him ignoring three people.
+
+It is the same defect B5a already forbids in the other direction. The
+reduced-motion path collapses the *wait* and not the *content*, and its own test
+names the failure — "collapsing the schedule by dropping messages rather than by
+dropping the wait". An interruption is the same situation: the lines were chosen
+the instant the turn began, and the delay is presentation.
+
+**Fixed.** `play`'s stop now returns the steps that did not run. B5b flushes
+them into the transcript when a new turn starts, and discards them on unmount,
+where there is nothing left to render into. Confirmed against the running site:
+interrupting mid-reply now keeps the sentence that used to vanish.
+
+The harness was wrong too, and separately: it settled on a message count of two
+per turn, and some steps say more. It now settles on quiescence.
+
+### The transcript
+
+Ten turns, keyboard only, on the built site.
+
+```text
+BALDRICK  I am Baldrick. There is one product and I know most of it.
+          Ask me something. I will answer if it is easy.
+YOU       are you a real person
+BALDRICK  No. I am a short list of answers and a box to type in.
+          The line under the box is true. Nothing you say here reaches a person.
+YOU       Who wrote the sentences
+BALDRICK  Somebody who works here. I did not ask which one.
+          They were not paid extra for it, as far as I know.
+YOU       what do I get for my money
+BALDRICK  A certificate. That is the whole list.
+YOU       That is all
+BALDRICK  It has a number on it. The number is yours and nobody else gets it.
+          I have looked at one. There was nothing on the back either.
+YOU       is there any kind of discount
+BALDRICK  There is a discount code.
+          It is not finished. When it is, it will make your deal worse.
+YOU       That is not a discount
+BALDRICK  No. It is not.
+YOU       can I put my wife's name on it
+BALDRICK  You can have something put on it.
+          There is a box at the checkout. Keep it short. It is not a big certificate.
+YOU       do you deliver to Latvia by hovercraft
+BALDRICK  I did not understand that. I am not going to guess.
+          I know about the certificate, gifts, refunds and complaints. That is the extent of it.
+YOU       it never arrived
+BALDRICK  The address is in the Imprint.
+          Nothing you type here reaches anybody. I am the last stop.
+YOU       actually I want a refund
+BALDRICK  That is a matter for a document.
+          Refunds and Withdrawal is in the footer. I have not read it, and I am not going to summarise it.
+```
+
+**This is the acceptance.** No assertion covers whether a conversation reads
+like one, so the operator reads it. What it shows: he answers, he is short, he
+declines to summarise a document, he does not pretend to be a person, and the
+one he cannot follow he says he cannot follow rather than guessing.
+
+### The rest of the gate
+
+| Checked | Result |
+| --- | --- |
+| Ten turns, keyboard only — typed messages by `Enter`, quick replies by `Enter` on the button | every turn answered |
+| Focus after ten turns | still `baldrick-input`; nothing ever took it |
+| Live region, as attributes | `aria-live="polite"`, `aria-relevant="additions"`, `aria-atomic` absent |
+| `prefers-reduced-motion: reduce` | both messages present after 51ms; **zero** indicators rendered |
+| Same input, two fresh sessions | identical transcripts |
+| 390px | 0px horizontal overflow; the ask stacks; edges align with the sheet |
+| Scripting off | 0 Baldrick sections, 0 inputs |
 
 ## What this slice does not do
 
