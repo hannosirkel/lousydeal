@@ -310,7 +310,7 @@ turn it into three rows of unreadable stitching.
 **Repository:** `orange`.
 **Files:** `orange` inventory and playbook.
 
-- [ ] Seed the Printful credential by the sanctioned path.
+- [x] Seed the Printful credential by the sanctioned path.
 
 Split from P3b because `fresh-build.md` §2b forbids a row spanning two
 repositories in exactly those words: "this is always two rows with a stated
@@ -321,6 +321,21 @@ The path is the one LD-02's C10 and C11 walked: the operator's file in
 reaches a public repository in any form** — and the store id is a
 per-environment value too, so it travels the same way rather than becoming a
 literal.
+
+Done in `orange` #85, merged. Two things the row settled by measurement rather
+than assumption: a store API token is **scoped to exactly one store**, so the
+store id is not needed at all and is not carried; and `parse_structured`
+demands exact set equality, so the field is added to the *test* runtime source
+alone — requiring it of the live one would make that source unparseable until
+somebody invented a live Printful credential that §23 forbids.
+
+**`PRINTFUL_WEBHOOK_SECRET` is deliberately not on this path yet**, and it is
+the one loose end here. The backend reads it and rejects every unsigned
+delivery without it, which is the safe direction; but Printful shows that
+secret once, at subscription time, and it does not exist yet. Adding it to the
+required set before the operator holds it would make the existing `.keys/` file
+unparseable and block the very seed this row delivers. It follows as its own
+row the day the webhook is subscribed.
 
 ### P3b — One way to call Printful
 
@@ -1325,6 +1340,43 @@ nothing is printed and nobody is charged for a joke.
 >
 > The plan's own sentence — "nothing is printed and nobody is charged for a
 > joke" — is the constraint. It was written before P8b and is still right.
+>
+> **Answered on 2026-09-09: option 2, and the research changed what the other
+> two mean.** A reviewer read Printful's own specification and help centre end
+> to end.
+>
+> **There is no sandbox.** The word appears nowhere in either OpenAPI spec and
+> the help centre has no such article; a "manual order / API store", which is
+> what this store is, is a store *type* and nothing says its orders are exempt
+> from billing. One API host, one live billing system, and the only documented
+> safe state is `draft`.
+>
+> **Confirmation is the charge.** v1: *"Store owner's credit card is charged
+> when the order is submitted for fulfillment."* v2: *"You are only charged for
+> orders when they have been confirmed with the 'Confirm Order' operation."*
+> The code's own comment — "this is the call that spends money" — turns out to
+> be verbatim right.
+>
+> **Option 1 was worse than it looked.** v2 has *no cancel endpoint*: its
+> `DELETE` works only on an order that "must also have not been charged yet",
+> and the spec flags that this differs from v1. `orders.ts` implements no
+> cancel in either version, so option 1 needed new code before it could even be
+> attempted. Worse, no source states how long an order sits in `pending` before
+> fulfilment accepts it, so the window cannot be established in advance at all
+> — and an `inreview` status blocks cancelling outright. A lost race is a
+> printed shirt that *"can't be edited or canceled, and our Support Team can't
+> override that"*.
+>
+> **Option 2 is documented rather than timed**, which is why it wins. With no
+> billing method the charge fails and *"the order gets the 'Failed' status. It
+> won't be sent to fulfillment on its own"*. The confirm call is exercised for
+> real; nothing can be printed and nothing can be kept.
+>
+> **The prerequisite is the operator's and cannot be done from here.** Neither
+> API version has a billing endpoint — billing state is visible only in the
+> Dashboard. Before the run: Dashboard → Billing, confirm no billing method on
+> the account, a zero Wallet balance, and no store-specific billing method
+> assigned to the test store.
 
 LD-02's Gate E found a defect that made every paid order produce nothing while
 1,318 tests passed. This one has a physical object and a courier in it.

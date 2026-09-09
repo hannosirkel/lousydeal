@@ -154,14 +154,27 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
     // path calls these "the one outcome that has to reach a person"; the same
     // outcome arriving later by webhook left the local status saying the order
     // was placed and fine. Gate D found it.
-    ...(event.type === "order_canceled" || event.type === "order_failed" ? { status: "canceled" as const } : {}),
+    //
+    // **The two do not land in the same place, and P12i is why.** Printful's
+    // `failed` is a charge that did not go through on an order that still
+    // exists — recoverable, in its own documentation, by fixing the cause and
+    // submitting again. Local `failed` is the retryable state and `canceled`
+    // is terminal, so filing a chargeable order as cancelled is what would
+    // stop anybody ever rescuing it.
+    ...(event.type === "order_canceled" ? { status: "canceled" as const } : {}),
+    ...(event.type === "order_failed" ? { status: "failed" as const } : {}),
   });
 
   if (event.type === "order_canceled" || event.type === "order_failed") {
     // Loud, and for the same reason `submitPrintfulOrder` is loud about it: a
     // buyer has paid and nothing is coming.
+    // Still one message and still at error: from the buyer's side the two are
+    // the same event, and the difference between them is what an operator can
+    // do next rather than how loud it should be.
     logger.error(
-      `printful ${event.type} for order ${row.order_id}: the buyer has paid and this order will not be made`,
+      event.type === "order_canceled"
+        ? `printful order_canceled for order ${row.order_id}: the buyer has paid and this order will not be made`
+        : `printful order_failed for order ${row.order_id}: the buyer has paid and Printful could not charge this order — it exists and can be submitted again once the cause is fixed`,
     );
   } else {
     logger.info(`printful ${event.type} recorded for order ${row.order_id}`);

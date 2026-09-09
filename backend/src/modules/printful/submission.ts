@@ -147,12 +147,27 @@ export interface PrintfulSubmissionInput {
 }
 
 /**
- * Printful statuses that mean the order is not going to be made.
+ * Printful statuses that mean the order can never be made.
  *
  * Both spellings of cancelled, because the field is somebody else's and the
  * live API answered `canceled` while its own documentation uses both.
+ *
+ * **`failed` was in here and does not belong.** Printful's own status table
+ * calls it recoverable — *"If a charge or auto-recharge fails, the order gets
+ * the 'Failed' status. It won't be sent to fulfillment on its own, so once
+ * you've resolved the cause you'll need to submit the order again manually"* —
+ * and the dashboard offers a Confirm order retry. The order still exists under
+ * its `external_id`, which is the thing that decides whether a later attempt
+ * can do anything. A cancelled one cannot be replaced under that id, so it is
+ * terminal; a failed one is a draft with a billing problem in front of it.
+ *
+ * Recording the recoverable case as the unrecoverable one made a paid order
+ * that a person could have rescued into one nothing would ever try again.
  */
-const NOT_GOING_TO_BE_MADE = new Set(["canceled", "cancelled", "failed"]);
+const NEVER_GOING_TO_BE_MADE = new Set(["canceled", "cancelled"]);
+
+/** Printful's word for an order it accepted and then could not charge. */
+const CHARGE_FAILED = "failed";
 
 /** Printful's word for an order that exists and has not been sent to a facility. */
 const DRAFT = "draft";
@@ -170,11 +185,17 @@ const DRAFT = "draft";
  * `?confirm=1` on the create. A crash between creating and confirming leaves a
  * recoverable draft; an atomic create-and-confirm would leave the same crash
  * indistinguishable from a create that never happened.
+ *
+ * **Printful's `failed` maps the same way, and for the same reason.** It is a
+ * confirmed order whose charge did not go through: it exists, it is not going
+ * anywhere on its own, and a person who fixes the billing can have it. Local
+ * `failed` is the retryable state, so that is where both belong. Only a
+ * cancellation is terminal.
  */
 function statusFor(remote: RemotePrintfulOrder): PrintfulSubmissionStatus {
   const status = remote.status.toLowerCase();
-  if (NOT_GOING_TO_BE_MADE.has(status)) return "canceled";
-  return status === DRAFT ? "failed" : "submitted";
+  if (NEVER_GOING_TO_BE_MADE.has(status)) return "canceled";
+  return status === DRAFT || status === CHARGE_FAILED ? "failed" : "submitted";
 }
 
 /**

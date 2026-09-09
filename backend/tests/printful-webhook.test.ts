@@ -349,12 +349,31 @@ describe("an order Printful cancels or fails after it was placed", () => {
     .replace(/\/\/.*$/gm, "");
 
   it("stops the local status saying the order was submitted", () => {
-    expect(source).toMatch(/event\.type === "order_canceled" \|\| event\.type === "order_failed"\s*\?\s*\{ status: "canceled"/);
+    expect(source).toMatch(/event\.type === "order_canceled" \? \{ status: "canceled" as const \}/);
+    expect(source).toMatch(/event\.type === "order_failed" \? \{ status: "failed" as const \}/);
+  });
+
+  it("does not file a failed charge as a cancellation, which is terminal", () => {
+    /**
+     * **P12i, and the Gate E procedure is what made it matter.** Printful's
+     * `failed` is a charge that did not go through on an order that still
+     * exists: its own status table says *"once you've resolved the cause
+     * you'll need to submit the order again manually"*, and the dashboard
+     * offers the retry. Local `canceled` is terminal — `settled()` admits
+     * everything but `failed` — so recording it there is what would stop
+     * anybody ever rescuing a paid order.
+     *
+     * Asserted as an absence as well as a presence, because the shape that
+     * was wrong is one condition covering both events.
+     */
+    expect(source).not.toMatch(/order_canceled" \|\| event\.type === "order_failed"\s*\?\s*\{ status: "canceled"/);
   });
 
   it("says it at error, because a buyer has paid and nothing is coming", () => {
-    expect(source).toMatch(/logger\.error\(\s*`printful \$\{event\.type\} for order/);
+    expect(source).toMatch(/logger\.error\(/);
     expect(source).toMatch(/the buyer has paid and this order will not be made/);
+    // And the failed case says the one thing that differs: it can be had.
+    expect(source).toMatch(/it exists and can be submitted again once the cause is fixed/);
   });
 
   it("still logs an ordinary shipment at info", () => {
