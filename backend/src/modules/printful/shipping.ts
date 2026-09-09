@@ -22,15 +22,31 @@
  * `PRICE_NOTICE` promises.
  *
  * **Only for an EU destination.** An export bears no EU VAT, so grossing up a
- * parcel to Brazil would be charging a tax nobody owes. `WORST_VAT_RATE` is
- * used rather than the buyer's own, for the same reason the shelf prices are
- * derived at it: one number, safe everywhere, and no rate table to go stale.
- * It over-recovers by at most ten points against a buyer in Luxembourg, which
- * is the direction that cannot hurt anybody.
+ * parcel to Brazil would be charging a tax nobody owes.
+ *
+ * **At the buyer's own rate since P14b, and the reason it was not is spent.**
+ * This used `WORST_VAT_RATE` — 27%, Hungary's — "for the same reason the shelf
+ * prices are derived at it: one number, safe everywhere, and no rate table to
+ * go stale". P14a built the rate table, guarded it against twenty-seven
+ * literal figures, and decision `013` made destination rates the arrangement,
+ * so the one argument for a single number is gone.
+ *
+ * **And the sentence that justified it had the direction wrong.** It said the
+ * over-recovery was "at most ten points against a buyer in Luxembourg, which
+ * is the direction that cannot hurt anybody". It is the buyer who is hurt: a
+ * larger gross-up is a larger charge, so a Luxembourg buyer at 17% was paying
+ * ten points of postage nobody owed, and the merchant was keeping it. Small,
+ * and the wrong way round — §23 is about the buyer being charged what they
+ * were shown for a reason that holds.
+ *
+ * The shelf prices are a different question and still derive at the worst
+ * rate: `catalogue.ts`'s `WORST_VAT_RATE` is a **margin floor**, a check that
+ * no destination makes an item unprofitable. A floor wants the worst case. A
+ * charge wants the true one.
  */
 
-import { EU_MEMBER_STATE_CODES } from "../../commerce/tax-model";
-import { WORST_VAT_RATE, printfulLineFor } from "./catalogue";
+import { EU_MEMBER_STATE_CODES, EU_STANDARD_VAT_PERCENTS } from "../../commerce/tax-model";
+import { printfulLineFor } from "./catalogue";
 import type { PrintfulClient } from "./client";
 
 export interface ShippingAddress {
@@ -128,6 +144,39 @@ export function isEuDestination(countryCode: string): boolean {
 }
 
 /**
+ * The VAT the buyer's own country puts on transport, as a fraction.
+ *
+ * Zero outside the EU, which is the same answer `isEuDestination` gave and is
+ * why grossing up a parcel to Brazil charges nothing extra. Inside it, the
+ * destination's own rate — Art 78(b) puts transport inside the taxable amount,
+ * so the postage is taxed at whatever the goods are.
+ *
+ * **A member state absent from the table is a bug, not a zero.** Returning
+ * zero would silently stop recovering the VAT on that country's postage — the
+ * merchant losing a fifth of it through a missing key, which is the exact
+ * failure the gross-up exists to prevent.
+ *
+ * **Unreachable by construction, and kept anyway**, which is the disposition
+ * `fulfilment-provider.ts` records for its own empty-quote branch.
+ * `EU_MEMBER_STATE_CODES` is `Object.keys` of this same table, so a code that
+ * passes `isEuDestination` and has no rate cannot exist — mutation confirmed
+ * it: replacing the throw with `return 0` fails nothing. No test drives it,
+ * and saying so is better than writing one that pretends to. What is asserted
+ * instead is the thing that makes it unreachable: every declared member state
+ * has a rate, and it is the same rate the tax regions carry.
+ */
+export function vatRateFor(countryCode: string): number {
+  const code = countryCode.trim().toUpperCase();
+  if (!isEuDestination(code)) return 0;
+
+  const percent = EU_STANDARD_VAT_PERCENTS[code];
+  if (percent === undefined) {
+    throw new ShippingQuoteError(`No VAT rate is declared for the EU member state ${code}`);
+  }
+  return percent / 100;
+}
+
+/**
  * What the buyer is charged for a rate Printful quoted, **in major units**.
  *
  * Rounded up to the cent. A rounding that went down would leave the merchant a
@@ -152,7 +201,7 @@ export function isEuDestination(countryCode: string): boolean {
  * correct, so the suite agreed with the bug throughout.
  */
 export function chargeForRate(rate: number, countryCode: string): number {
-  const gross = isEuDestination(countryCode) ? rate * (1 + WORST_VAT_RATE) : rate;
+  const gross = rate * (1 + vatRateFor(countryCode));
   // Ceil at the cent, then express in major units. The rounding rule is about
   // money and the scale is about Medusa; doing both in one expression is how
   // the two came to be confused.
