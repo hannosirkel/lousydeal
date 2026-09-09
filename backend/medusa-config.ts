@@ -36,7 +36,7 @@
 import { defineConfig } from "@medusajs/framework/utils";
 
 import { dealModule } from "./src/config/deal";
-import { fulfilmentModule } from "./src/config/fulfilment";
+import { fulfilmentModule, printfulFulfilmentConfig } from "./src/config/fulfilment";
 import { notificationModule } from "./src/config/notification";
 import { stripePaymentModule } from "./src/config/payment";
 import { redisEventBusModule, redisLockingModule, redisWorkflowEngineModule } from "./src/config/redis";
@@ -84,11 +84,7 @@ export default defineConfig({
     // publication gate, and a deployment with no token must boot -- without an
     // option to ship anything, which is the truthful state of a shop that
     // sells one digital thing.
-    fulfilmentModule(
-      runtime.printfulApiToken === null || runtime.printfulArtworkBaseUrl === null
-        ? null
-        : { apiToken: runtime.printfulApiToken, artworkBaseUrl: runtime.printfulArtworkBaseUrl },
-    ),
+    fulfilmentModule(printfulFulfilmentConfig(runtime)),
     // Both nullable entries are dropped here rather than inside `defineConfig`,
     // which keeps each absence visible in this list instead of hidden behind a
     // call that sometimes does nothing.

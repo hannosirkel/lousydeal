@@ -27,6 +27,29 @@ export interface PrintfulFulfilmentConfig {
   readonly artworkBaseUrl: string;
 }
 
+/**
+ * Printful's configuration, or `null` where this deployment has none.
+ *
+ * **One predicate, because two of them drifted and broke every predeploy.**
+ * `medusa-config.ts` registers the provider only when both values are present;
+ * `configure-commerce.ts` created a shipping option owned by that provider
+ * unconditionally. So a deployment without Printful — which §23 says the live
+ * one is, and which the module comment above says must boot — died in its
+ * predeploy chain with "Unable to retrieve the fulfillment provider with id:
+ * printful_printful". Gate E hit it on 2026-09-09 with a token and no artwork
+ * base; the live workloads have neither, and were in the same state.
+ *
+ * Both callers ask this now, so the question is answered in one place and the
+ * answer cannot disagree with itself.
+ */
+export function printfulFulfilmentConfig(runtime: {
+  readonly printfulApiToken: string | null;
+  readonly printfulArtworkBaseUrl: string | null;
+}): PrintfulFulfilmentConfig | null {
+  if (runtime.printfulApiToken === null || runtime.printfulArtworkBaseUrl === null) return null;
+  return { apiToken: runtime.printfulApiToken, artworkBaseUrl: runtime.printfulArtworkBaseUrl };
+}
+
 export function fulfilmentModule(config: PrintfulFulfilmentConfig | null) {
   if (config === null) return null;
 

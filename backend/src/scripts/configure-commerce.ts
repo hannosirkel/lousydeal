@@ -88,6 +88,8 @@ import { PRODUCT_TIERS } from "../commerce/product-model";
 import { EU_MEMBER_STATE_CODES, EU_STANDARD_VAT_PERCENTS, TAX_PROVIDER_ID, VAT_RATE_CODE, vatRateName } from "../commerce/tax-model";
 import { STRIPE_PAYMENT_PROVIDER_ID } from "../config/payment";
 import { PRINTFUL_FULFILMENT_PROVIDER_ID } from "../modules/printful/fulfilment-provider";
+import { printfulFulfilmentConfig } from "../config/fulfilment";
+import { readBackendRuntimeConfig } from "../config/runtime";
 import { MERCH_SHIPPING_PROFILE } from "./seed-merch";
 
 /**
@@ -271,7 +273,18 @@ export interface CommerceConfigurationTarget {
  * and none wider -- `commerce/tax-model.ts` is why there is no rest-of-world
  * region.
  */
-export function commerceRecords(): readonly CommerceRecord[] {
+/**
+ * The configuration this deployment should hold.
+ *
+ * **`printful` is not decoration.** A deployment with no Printful has no
+ * fulfilment provider registered, and a shipping option naming one it does not
+ * have cannot be created: `validate-fulfillment-providers.js` refuses it and
+ * the predeploy chain dies. §23 keeps the live deployment in exactly that
+ * state, deliberately, and `config/fulfilment.ts` says a deployment without
+ * Printful must boot -- so it must be able to run its predeploy too. Gate E
+ * found that it could not.
+ */
+export function commerceRecords(printful: boolean): readonly CommerceRecord[] {
   return [
     {
       kind: "store-currency",
@@ -316,14 +329,23 @@ export function commerceRecords(): readonly CommerceRecord[] {
       key: MERCH_SHIPPING_PROFILE,
       name: MERCH_SHIPPING_PROFILE,
     },
-    {
-      kind: "shipping-option",
-      key: SHIPPING_OPTION_NAME,
-      name: SHIPPING_OPTION_NAME,
-      profileName: MERCH_SHIPPING_PROFILE,
-      serviceZoneName: SERVICE_ZONE_NAME,
-      providerId: PRINTFUL_FULFILMENT_PROVIDER_ID,
-    },
+    // **The one record that names a provider, and the only one dropped.** The
+    // profile above stays either way: `seed-merch.ts` links the four products
+    // to it, and a deployment that cannot post them still has to describe them
+    // as things that would travel. What it must not do is offer a way to post
+    // them that does not exist.
+    ...(printful
+      ? [
+          {
+            kind: "shipping-option" as const,
+            key: SHIPPING_OPTION_NAME,
+            name: SHIPPING_OPTION_NAME,
+            profileName: MERCH_SHIPPING_PROFILE,
+            serviceZoneName: SERVICE_ZONE_NAME,
+            providerId: PRINTFUL_FULFILMENT_PROVIDER_ID,
+          },
+        ]
+      : []),
     // **Each state's own rate since decision `013`**, which registered the
     // Union OSS and with it opted into destination taxation. `tax-model.ts`
     // carries the table, where it came from, and the 1 October 2026 date it
@@ -344,8 +366,11 @@ export interface CommerceConfigurationSummary {
   readonly records: number;
 }
 
-export async function configureCommerce(target: CommerceConfigurationTarget): Promise<CommerceConfigurationSummary> {
-  const records = commerceRecords();
+export async function configureCommerce(
+  target: CommerceConfigurationTarget,
+  printful: boolean,
+): Promise<CommerceConfigurationSummary> {
+  const records = commerceRecords(printful);
   for (const record of records) {
     await target.apply(record);
   }
@@ -359,7 +384,15 @@ export async function configureCommerce(target: CommerceConfigurationTarget): Pr
  * update, never a bare create.
  */
 export class MedusaCommerceConfigurationTarget implements CommerceConfigurationTarget {
-  constructor(private readonly container: MedusaContainer) {}
+  /**
+   * `printful` decides one thing here: whether to link the provider to the
+   * stock location. Linking one that is not registered fails the same way
+   * creating a shipping option for it does, and for the same reason.
+   */
+  constructor(
+    private readonly container: MedusaContainer,
+    private readonly printful: boolean,
+  ) {}
 
   private get query() {
     return this.container.resolve(ContainerRegistrationKeys.QUERY);
@@ -426,6 +459,12 @@ export class MedusaCommerceConfigurationTarget implements CommerceConfigurationT
      * creating a link that exists is not something to find out about on a
      * live database.
      */
+    // Nothing to link where there is no provider. The location, its sales
+    // channel and its fulfilment set are all still created: they describe
+    // where this shop dispatches from, which is true whether or not it can
+    // currently dispatch.
+    if (!this.printful) return;
+
     const linked = await this.one<{ fulfillment_providers?: { id?: string }[] }>(
       "stock_location",
       ["id", "fulfillment_providers.id"],
@@ -778,6 +817,13 @@ export class MedusaCommerceConfigurationTarget implements CommerceConfigurationT
  */
 export default async function configureCommerceCommand({ container }: ExecArgs): Promise<void> {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
-  const summary = await configureCommerce(new MedusaCommerceConfigurationTarget(container));
-  logger.info(`commerce configuration applied: records=${String(summary.records)}`);
+  // The same question `medusa-config.ts` asked when it decided whether to
+  // register the provider at all, asked through the same function so the two
+  // cannot answer differently.
+  const printful = printfulFulfilmentConfig(readBackendRuntimeConfig(process.env)) !== null;
+  const summary = await configureCommerce(new MedusaCommerceConfigurationTarget(container, printful), printful);
+  logger.info(
+    `commerce configuration applied: records=${String(summary.records)}` +
+      (printful ? "" : "; no Printful in this deployment, so nothing is offered for posting"),
+  );
 }

@@ -1565,6 +1565,16 @@ rule — no session until the amount is final — is what the working order used
 
 ### 1. `PRINTFUL_ARTWORK_BASE_URL` reaches no deployment
 
+> **Fixed in P17, and it was worse than this section first recorded.** The
+> missing value is real and still needed for the test deployment, but the
+> failure it exposed was not about the value: `configure-commerce.ts` created a
+> shipping option owned by `printful_printful` **whatever the deployment
+> held**, while `medusa-config.ts` registered that provider only when Printful
+> was configured. So the **live** deployment — which §23 gives no Printful
+> token at all, deliberately — was in exactly the same state, and its predeploy
+> chain had been impossible since P7a. Measured after the fix: predeploy with
+> no Printful applies 32 records and says so; with Printful, 33.
+
 `medusa-config.ts` registers the fulfilment module only when the Printful
 token **and** the artwork base are both set; `configure-commerce.ts` then
 creates a shipping option owned by `printful_printful` unconditionally. The
@@ -1688,8 +1698,13 @@ Two things need a human, and one needs a decision.
    re-deriving** — a $25 shirt absorbing 27% destination VAT nets $19.69 against
    a 3XL costing $19.58. P14 blocks Gate E. This needs EMTA or an Estonian VAT
    adviser, and Printful's routing table; it is not mine to settle.
-2. **`PRINTFUL_ARTWORK_BASE_URL` has no path to any deployment, and predeploy
-   fails without it.** Gate E found it: `medusa-config.ts` registers the
+2. **`PRINTFUL_ARTWORK_BASE_URL` has no path to the test deployment.**
+   **The half that was a code defect is fixed in P17** — a deployment with no
+   Printful now runs its predeploy chain, which the live one could not do
+   either, and had not been able to since P7a. What remains is this value, and
+   it is needed only where Printful is meant to work: without it the test
+   deployment boots and configures cleanly but offers no way to post anything,
+   so the merch is unbuyable rather than broken. Gate E found it: `medusa-config.ts` registers the
    fulfilment module only when the token *and* the artwork base are both
    present, and `configure-commerce.ts` unconditionally creates a shipping
    option owned by that provider — so the chain dies with "Unable to retrieve
