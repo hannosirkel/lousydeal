@@ -143,7 +143,7 @@ describe("the document that relies on all of it", () => {
     // Backblaze was here and held nothing: the platform's backup jobs are nine
     // and none is this shop. A guard that *requires* a false name is worse than
     // no guard -- removing the falsehood would have failed the suite.
-    for (const party of ["Stripe", "Cloudflare"]) {
+    for (const party of ["Stripe", "Cloudflare", "Printful"]) {
       expect(privacyProse).toContain(party);
     }
     // §5 says "this is all of them". Nothing that is not in the code may be
@@ -161,6 +161,10 @@ describe("the document that relies on all of it", () => {
       "Mailchimp",
       "Hotjar",
       "Backblaze",
+      // Named in Printful's own documents as an affiliate location, never as a
+      // company in this path. §5 says "no company is named here that is not in
+      // the path today", and an affiliate of a processor is not one.
+      "Shopify",
     ]) {
       expect(`${absent}: ${String(privacyProse.includes(absent))}`).toBe(`${absent}: false`);
     }
@@ -169,5 +173,89 @@ describe("the document that relies on all of it", () => {
   it("says the payment page is where Stripe is, since that is where the code puts it", () => {
     expect(privacyProse).toMatch(/payment page loads Stripe/i);
     expect(privacyProse).toMatch(/fetches nothing from anywhere else/i);
+  });
+});
+
+
+/**
+ * **The scan above reads `storefront/src`, and Printful is not in it.**
+ *
+ * That is the whole point of the paragraph §2 now carries: the browser never
+ * contacts Printful, because the integration is server-to-server. Which means
+ * this file's original method — "every recipient appears as a host literal in
+ * the source we scan" — stopped being sufficient the moment a recipient existed
+ * that the front end cannot see.
+ *
+ * So the claim is executed against the repository that does the contacting.
+ */
+describe("the recipient the browser never sees", () => {
+  const backend = fileURLToPath(new URL("../../backend/src", import.meta.url));
+
+  const backendSources = readdirSync(backend, { recursive: true, encoding: "utf8" })
+    .filter((name) => /\.ts$/.test(name))
+    .map((name) => name.replace(/\\/g, "/"))
+    .map((file) => ({ file, text: readFileSync(`${backend}/${file}`, "utf8") }));
+
+  it("reads the backend tree too", () => {
+    expect(backendSources.length).toBeGreaterThan(20);
+  });
+
+  it("finds Printful reached from the server, which is what §2 promises", () => {
+    // If this ever became empty, §5 would name a company nothing contacts --
+    // the Backblaze defect, in the other repository.
+    const callers = backendSources
+      .filter(({ text }) => /api\.printful\.com/.test(withoutComments(text)))
+      .map(({ file }) => file)
+      .sort();
+    expect(callers).toEqual(["modules/printful/client.ts"]);
+  });
+
+  it("keeps Printful's host out of the storefront, which is what makes §2 true", () => {
+    // The claim is not "we do not load their script". It is that the host
+    // appears nowhere the browser could reach, which is the checkable form.
+    //
+    // **Written first as a search for the word and it failed correctly**: the
+    // Privacy Policy is under `src`, and §5 names the company in prose. The
+    // subject of the claim is the host, not the name -- and `PERMITTED` above
+    // would have rejected the host anyway, which is the belt this is the
+    // braces for.
+    const offending = sources
+      .filter(({ text }) => /printful\.com/i.test(withoutComments(text)))
+      .map(({ file }) => file);
+    expect(offending).toEqual([]);
+  });
+
+  it("says only what Printful gets today, and is tied to the code that decides", () => {
+    // **The sentence and the stub have to change together.** §5 says nothing
+    // has been sent to Printful to be printed, and that is true only while
+    // `createFulfillment` is inert. P8 makes it place an order; when it does,
+    // this assertion fails and the paragraph must be rewritten -- which is the
+    // point of writing it this way rather than describing P8's flow early.
+    const provider = readFileSync(`${backend}/modules/printful/fulfilment-provider.ts`, "utf8");
+    // The method body, taken to the closing brace at method indentation. A
+    // regex spanning the signature cannot work -- its return type contains
+    // braces, which is how the first version of this failed.
+    const start = provider.indexOf("createFulfillment(");
+    expect(start).toBeGreaterThan(-1);
+    const body = provider.slice(start, provider.indexOf("\n  }", start));
+    expect(body).toContain("return Promise.resolve({ data: {}, labels: [] });");
+    // And nothing in it reaches Printful. This is the half that will fail when
+    // P8 lands, which is the point.
+    expect(body).not.toMatch(/\brequest\s*[(<]/);
+    expect(body).not.toMatch(/this\.client/);
+    expect(privacyProse).toMatch(/does not yet hand its orders over for printing/i);
+  });
+
+  it("names the address as what goes with a quote, and not the name", () => {
+    // Measured against `shipping.ts`: the recipient block it sends carries
+    // address1, city, country_code and zip. No name. A policy claiming more
+    // left than actually does would be wrong in the direction that looks
+    // cautious, and this document does not do that either.
+    const shipping = readFileSync(`${backend}/modules/printful/shipping.ts`, "utf8");
+    const recipient = shipping.slice(shipping.indexOf("recipient: {"), shipping.indexOf("recipient: {") + 220);
+    expect(recipient).toContain("address1");
+    expect(recipient).toContain("zip");
+    expect(recipient).not.toMatch(/\bname:/);
+    expect(privacyProse).toMatch(/Your name is not sent with it/i);
   });
 });

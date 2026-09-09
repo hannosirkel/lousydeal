@@ -189,6 +189,35 @@ describe("what the checkout asks for", () => {
   });
 });
 
+describe("the address, once there is something to post", () => {
+  it("says the checkout asks for it, and only when there is a parcel", () => {
+    // **Mutation deleted this and the paragraph after it still read
+    // plausibly** -- "That fourth is a delivery name..." with nothing to refer
+    // back to. Article 13 requires the categories collected, and a policy that
+    // describes a field without saying it is asked for has not given them.
+    const s = section("3");
+    expect(s).toMatch(/it asks for a fourth: where to send it/i);
+    expect(s).toMatch(/asked for only when there is a parcel/i);
+    expect(s).toMatch(/a certificate is never a parcel/i);
+  });
+
+  it("lists what the field actually collects", () => {
+    // Measured against `shipping-address.ts`: name, line1, city, postcode, and
+    // province in the four countries `PROVINCE_REQUIRED_COUNTRIES` names.
+    const s = section("3");
+    for (const part of ["delivery name", "street", "town", "postcode", "state or province"]) {
+      expect(`${part}: ${String(s.includes(part))}`).toBe(`${part}: true`);
+    }
+  });
+
+  it("keeps the promise LD-02 and LD-03 both made about the certificate", () => {
+    // A postal address is the largest thing yet that must not appear on a
+    // certificate, and the same sentence has now been made three times about
+    // three different fields.
+    expect(section("3")).toMatch(/none of it is printed on a certificate and none of it is published/i);
+  });
+});
+
 describe("the payment record", () => {
   it("says Stripe's own billing details reach our database", () => {
     const record = claim(section("4"), /last four digits/);
@@ -196,14 +225,24 @@ describe("the payment record", () => {
     expect(section("4")).toMatch(/without ever passing through this site's code/i);
   });
 
-  it("lists the email address among what an order holds, and still no name", () => {
+  it("lists the email address and now the delivery name among what an order holds", () => {
     // Until C3b this said "There is no name and no email address on it". The
-    // email half stopped being true the moment the checkout asked for one;
-    // the name half did not, and is asserted here rather than quietly dropped
-    // with it.
+    // email half stopped being true when the checkout asked for an address to
+    // send confirmations to; **the name half stopped being true when LD-04 P7
+    // shipped a delivery-address block**, and this guard required the document
+    // to keep saying it.
+    //
+    // What survives is the narrower claim, which is still true and is the one
+    // a reader cares about: no billing name is ever asked for.
     const held = claim(section("4"), /An order record holds/);
     expect(held).toMatch(/the email address you gave/i);
-    expect(held).toMatch(/no name on it/i);
+    expect(held).toMatch(/delivery name and address you typed/i);
+    expect(section("4")).not.toMatch(/there is no name on it/i);
+    expect(section("4")).toMatch(/we never ask for your billing name/i);
+    // And the correction is stated rather than made silently, because a
+    // privacy notice that quietly starts holding a name is the thing a reader
+    // would most want flagged.
+    expect(section("4")).toMatch(/that was true until this shop began posting things/i);
     expect(section("4")).not.toMatch(/no name and no email address/i);
   });
 
@@ -217,13 +256,53 @@ describe("the payment record", () => {
 });
 
 describe("who else handles it", () => {
-  it("names two processors and no more", () => {
-    const opener = claim(section("5"), /Two companies handle data/);
-    expect(opener).toMatch(/these are both of them/i);
+  it("names three processors and no more, and a carrier as its own case", () => {
+    // **Two until LD-04 P11.** The opener counted, so adding Printful without
+    // touching it would have left the document contradicting itself in its
+    // own first sentence.
+    const opener = claim(section("5"), /Three companies handle data/);
+    expect(opener).toMatch(/these are all of them/i);
+    expect(section("5")).not.toMatch(/two companies handle data/i);
     // Backblaze was named while holding nothing: the platform's backup jobs are
     // nine and none is this shop. Naming it was the Printful defect applied
     // inconsistently.
     expect(prose).not.toContain("Backblaze");
+  });
+
+  it("says Printful is a processor, and how that agreement was actually concluded", () => {
+    // Its Data Processing Terms form part of the terms of service, so
+    // acceptance on sign-up concludes the Article 28 agreement and there is
+    // nothing countersigned. A document implying a signed contract would be
+    // describing a thing that does not exist.
+    const s = section("5");
+    expect(s).toContain("Printful, Inc.");
+    expect(s).toMatch(/acts on our instructions/i);
+    expect(s).toMatch(/without anything having been signed separately/i);
+    expect(s).toMatch(/does not use it to market to you/i);
+  });
+
+  it("names the one thing Printful does for itself, as it does for Stripe", () => {
+    // Sanctions screening against lists its own law obliges it to apply. The
+    // document already draws exactly this distinction for Stripe's fraud
+    // check, and drawing it for one processor and not the other would be the
+    // inconsistency the Backblaze finding was about.
+    const s = section("5");
+    expect(s).toMatch(/sanctions lists/i);
+    expect(s).toMatch(/its legal obligation and not our instruction/i);
+  });
+
+  it("declines to classify the carrier, because Printful's terms do not", () => {
+    // **The temptation is to write "carriers are sub-processors" and move on.**
+    // Printful's data processing terms are silent -- the word does not appear
+    // -- so either answer would be this document asserting something no source
+    // supports, in the section whose whole claim is that it names only what is
+    // in the path.
+    const s = section("5");
+    expect(s).toMatch(/do not say whether it treats a carrier/i);
+    expect(s).toMatch(/not going to state a position its own documents do not support/i);
+    // And it still says what the carrier gets, which is the part a reader
+    // needs. Declining to classify is not declining to disclose.
+    expect(s).toMatch(/a way to reach you if there is a problem/i);
   });
 
   it("says Stripe acts for itself on fraud, not only on our instructions", () => {
@@ -311,6 +390,56 @@ describe("rights and remedy", () => {
   });
 });
 
+describe("leaving the Area", () => {
+  it("does not put Printful in the Data Privacy Framework, because it is not in it", () => {
+    // **The edit this row would have got wrong from memory.** Stripe and
+    // Cloudflare both participate, so the natural change is to add a third
+    // name to that sentence. Printful's certification was withdrawn in 2021
+    // and the Framework's own list records it inactive -- checked against
+    // dataprivacyframework.gov rather than against Printful's own pages,
+    // which is the only version of that check worth doing.
+    // **Written first as "any sentence that says *participates*", and mutation
+    // walked past it by writing *participate*.** A guard keyed to one
+    // inflection is a guard against one spelling.
+    //
+    // The property instead: the phrase "Data Privacy Framework" names the
+    // scheme Stripe and Cloudflare are in, and **no sentence may put Printful
+    // in the same sentence as it**. The correction below says "that Framework"
+    // precisely so it does not, which makes this checkable rather than a
+    // matter of how the claim happens to be worded.
+    const s = section("7");
+    const together = s
+      .split(/(?<=\.)\s+/)
+      .filter((sentence) => /Data Privacy Framework/i.test(sentence) && /Printful/.test(sentence));
+    expect(together).toEqual([]);
+    expect(s).toMatch(/it does not participate in that Framework/i);
+    expect(s).toMatch(/certification was withdrawn/i);
+    expect(s).toMatch(/standard contractual clauses alone/i);
+  });
+
+  it("names where a parcel may be printed, and admits it cannot promise the Area", () => {
+    // Printful routes automatically and the merchant cannot choose. A policy
+    // saying data stays in the EEA, or implying it, would be false for most
+    // destinations -- only Latvia and Spain of its facilities are inside.
+    const s = section("7");
+    for (const country of ["Latvia", "Spain", "United Kingdom", "Mexico", "Canada", "Brazil", "Japan", "Australia"]) {
+      expect(`${country}: ${String(s.includes(country))}`).toBe(`${country}: true`);
+    }
+    expect(s).toMatch(/only Latvia and Spain are inside the European Economic Area/i);
+    expect(s).toMatch(/not a choice either of us gets to make/i);
+    expect(s).toMatch(/we cannot promise you a parcel printed inside the Area/i);
+  });
+
+  it("invents no retention period for a processor that publishes none", () => {
+    // Printful publishes criteria and no number. §11's rule about figures
+    // applies to one a reader would rely on as much as to one on the home
+    // page.
+    const s = section("8");
+    expect(s).toMatch(/publishes no fixed period/i);
+    expect(s).toMatch(/not going to invent one on its behalf/i);
+  });
+});
+
 describe("the register", () => {
   it("is titled as brand.md §5 names the document", () => {
     // §4 names the footer entry "Privacy"; §5 names the document. The link
@@ -330,7 +459,12 @@ describe("the register", () => {
     // to describe it -- a privacy notice silent about a third party's address
     // it holds is the failure this guard was aimed at, pointing the other way.
     // Inverted below rather than deleted.
-    for (const absent of ["t-shirt", "newsletter", "subscription", "Printful"]) {
+    // **Printful was on this list until LD-04 P11**, exactly as "gift" was
+    // until G7, and it comes off for the same reason: the slice started, the
+    // company is in the path, and a privacy notice silent about a processor
+    // holding a buyer's address is the failure this guard was aimed at,
+    // pointing the other way.
+    for (const absent of ["t-shirt", "newsletter", "subscription"]) {
       expect(`${absent}: ${String(prose.toLowerCase().includes(absent.toLowerCase()))}`).toBe(`${absent}: false`);
     }
   });
