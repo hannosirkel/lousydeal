@@ -7,7 +7,7 @@ import type { MedusaContainer } from "@medusajs/framework/types";
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
 
 import { STRIPE_PAYMENT_PROVIDER_ID } from "../src/config/payment";
-import { PRINTFUL_FULFILMENT_IDENTIFIER } from "../src/modules/printful/fulfilment-provider";
+import { PRINTFUL_FULFILMENT_PROVIDER_ID } from "../src/modules/printful/fulfilment-provider";
 import { MERCH_SHIPPING_PROFILE } from "../src/scripts/seed-merch";
 import { EU_MEMBER_STATE_CODES } from "../src/commerce/tax-model";
 import {
@@ -35,6 +35,7 @@ const updateStoresRun = vi.fn();
  * records tell you what was declared; only these tell you what was sent.
  */
 const createStockLocationsRun = vi.fn((_input: unknown) => ({ result: [{ id: "sloc_1" }] }));
+const batchLinksRun = vi.fn((_input: unknown) => undefined);
 const linkSalesChannelsRun = vi.fn((_input: unknown) => undefined);
 const createLocationFulfillmentSetRun = vi.fn((_input: unknown) => ({ result: { id: "fuset_1" } }));
 const createServiceZonesRun = vi.fn((_input: unknown) => ({ result: [{ id: "serzo_1" }] }));
@@ -48,6 +49,7 @@ vi.mock("@medusajs/medusa/core-flows", async (importOriginal) => {
     updateStoresWorkflow: () => ({ run: updateStoresRun }),
     createStockLocationsWorkflow: () => ({ run: createStockLocationsRun }),
     linkSalesChannelsToStockLocationWorkflow: () => ({ run: linkSalesChannelsRun }),
+    batchLinksWorkflow: () => ({ run: batchLinksRun }),
     createLocationFulfillmentSetWorkflow: () => ({ run: createLocationFulfillmentSetRun }),
     createServiceZonesWorkflow: () => ({ run: createServiceZonesRun }),
     createShippingProfilesWorkflow: () => ({ run: createShippingProfilesRun }),
@@ -137,7 +139,7 @@ describe("commerceRecords", () => {
       // entry would be a figure nobody quoted, charged to a buyer.
       const option = records.find((record) => record.kind === "shipping-option");
       expect(option).toMatchObject({
-        providerId: PRINTFUL_FULFILMENT_IDENTIFIER,
+        providerId: PRINTFUL_FULFILMENT_PROVIDER_ID,
         profileName: MERCH_SHIPPING_PROFILE,
         serviceZoneName: "Worldwide",
       });
@@ -147,10 +149,17 @@ describe("commerceRecords", () => {
 
     it("gives the certificate no profile, which is constraint 4", () => {
       // `seed-product.ts` sends no `shipping_profile_id` and
-      // `create-products.js:154` links one only when present. An option is
-      // offered only for profiles the cart's items are in, so a cart of
-      // certificates is offered nothing and asked for no address. Asserted
-      // against the seed rather than restated here.
+      // `create-products.js:154` links one only when present. Verified against
+      // a real database: `product_shipping_profile` holds the four merch
+      // handles and none of the three tiers.
+      //
+      // **What this does not do is keep postage off a certificate cart**, and
+      // the first version of this comment said it did.
+      // `list-shipping-options-for-cart.js:203-208` filters on the fulfillment
+      // set and the address only -- the profile is not a filter -- so a
+      // certificate-only cart with an address *is* offered the option.
+      // Measured. What refuses is `calculatePrice`, and what never asks is the
+      // storefront.
       const seed = readFileSync(join(__dirname, "../src/scripts/seed-product.ts"), "utf8");
       expect(seed).not.toContain("shipping_profile_id");
       expect(seed).not.toContain(MERCH_SHIPPING_PROFILE);
@@ -498,6 +507,7 @@ describe("applying the delivery configuration", () => {
     for (const spy of [
       createStockLocationsRun,
       linkSalesChannelsRun,
+      batchLinksRun,
       createLocationFulfillmentSetRun,
       createServiceZonesRun,
       createShippingProfilesRun,
@@ -521,18 +531,34 @@ describe("applying the delivery configuration", () => {
 
       expect(createStockLocationsRun).toHaveBeenCalledTimes(1);
       expect(linkSalesChannelsRun).toHaveBeenCalledWith({ input: { id: "sloc_1", add: ["sc_1"] } });
+
+      // **And the fulfilment provider, which is a second link.** Without it
+      // `validate-fulfillment-providers.js` refuses to create the option at
+      // all: "Providers (printful_printful) are not enabled for the service
+      // location". Measured -- `configure:commerce` failed on it.
+      expect(batchLinksRun).toHaveBeenCalledTimes(1);
+      const link = batchLinksRun.mock.calls[0]?.[0] as unknown as {
+        input: { create: Record<string, Record<string, string>>[] };
+      };
+      expect(link.input.create[0]?.stock_location?.stock_location_id).toBe("sloc_1");
+      expect(link.input.create[0]?.fulfillment?.fulfillment_provider_id).toBe(PRINTFUL_FULFILMENT_PROVIDER_ID);
     });
 
     it("relinks an existing location rather than skipping it", async () => {
       // The link is the kind of thing an operator removes in the Admin without
       // meaning to. Restoring it costs one idempotent call.
       const target = new MedusaCommerceConfigurationTarget(
-        containerFor({ store: STORE, stock_location: [{ id: "sloc_existing" }] }),
+        containerFor({
+          store: STORE,
+          stock_location: [{ id: "sloc_existing", fulfillment_providers: [{ id: PRINTFUL_FULFILMENT_PROVIDER_ID }] }],
+        }),
       );
       await target.apply(record("stock-location"));
 
       expect(createStockLocationsRun).not.toHaveBeenCalled();
       expect(linkSalesChannelsRun).toHaveBeenCalledWith({ input: { id: "sloc_existing", add: ["sc_1"] } });
+      // The provider link is already there and is not created twice.
+      expect(batchLinksRun).not.toHaveBeenCalled();
     });
   });
 
@@ -554,7 +580,7 @@ describe("applying the delivery configuration", () => {
       const input = createShippingOptionsRun.mock.calls[0]?.[0] as unknown as { input: Record<string, unknown>[] };
       expect(input.input[0]).toMatchObject({
         price_type: "calculated",
-        provider_id: PRINTFUL_FULFILMENT_IDENTIFIER,
+        provider_id: PRINTFUL_FULFILMENT_PROVIDER_ID,
         service_zone_id: "serzo_1",
         shipping_profile_id: "sp_1",
       });

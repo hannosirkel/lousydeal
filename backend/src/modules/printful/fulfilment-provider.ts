@@ -27,12 +27,30 @@
  * misled.
  */
 
-import { AbstractFulfillmentProviderService } from "@medusajs/framework/utils";
+import { AbstractFulfillmentProviderService, ModuleProvider, Modules } from "@medusajs/framework/utils";
 
 import { createPrintfulClient, type PrintfulClient } from "./client";
 import { quoteShipping, ShippingQuoteError, type ShippingAddress, type ShippingLine } from "./shipping";
 
 export const PRINTFUL_FULFILMENT_IDENTIFIER = "printful";
+
+/**
+ * What Medusa actually registers the provider under, and what a shipping
+ * option's `provider_id` has to be.
+ *
+ * **Not the identifier.** Medusa composes a provider's id from the service's
+ * `static identifier` and the `id` given in the module options — its own
+ * manual provider ends up as `manual_manual` — so this deployment's is
+ * `printful_printful`. Measured against a real database on 2026-09-09:
+ * `select id from fulfillment_provider` answers exactly that, and
+ * `shipping_option.provider_id` is a foreign key to it.
+ *
+ * P7b used the bare identifier and the application refused to configure with
+ * `Could not resolve 'fp_printful'`. Two names for one thing is one name too
+ * many, so the composition is written once, here, beside the identifier it is
+ * built from.
+ */
+export const PRINTFUL_FULFILMENT_PROVIDER_ID = `${PRINTFUL_FULFILMENT_IDENTIFIER}_${PRINTFUL_FULFILMENT_IDENTIFIER}`;
 
 /** The one option this provider offers. Which service is chosen is Printful's. */
 export const PRINTFUL_FULFILMENT_OPTION = "printful-standard";
@@ -176,4 +194,26 @@ export class PrintfulFulfilmentProviderService extends AbstractFulfillmentProvid
   }
 }
 
-export default PrintfulFulfilmentProviderService;
+/**
+ * **The default export is a `ModuleProvider`, not the class.**
+ *
+ * Medusa loads a provider module and reads `services` off it —
+ * `modules-sdk/dist/loaders/utils/load-internal.js:185-191` takes
+ * `moduleService`, else `services`, else *the module itself*, and then
+ * iterates. A bare class satisfies none of those and is not iterable, so the
+ * application dies at boot with `moduleProviderServices is not iterable`
+ * before any request is served.
+ *
+ * `@medusajs/fulfillment-manual/dist/index.js` is the shape, and it is four
+ * lines: `ModuleProvider(Modules.FULFILLMENT, { services })`.
+ *
+ * **Nothing caught this for four rows**, and the reason is worth keeping.
+ * `fulfilment-module.test.ts` asserts the *configuration object*
+ * `config/fulfilment.ts` builds — resolve path, id, options — and every one of
+ * those assertions was correct. What it could not assert is that Medusa can
+ * load what the path points at. And the provider was never loaded anywhere,
+ * because §23 keeps the Printful token out of every deployment: the module is
+ * registered only when a token exists, so **the first boot with one was the
+ * first boot that could fail**.
+ */
+export default ModuleProvider(Modules.FULFILLMENT, { services: [PrintfulFulfilmentProviderService] });
