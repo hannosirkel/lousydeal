@@ -78,6 +78,27 @@ export const PrintfulSubmission = model
     /** Printful's own status word, stored as it came. See the note on `canceled` above. */
     printful_status: model.text().nullable(),
 
+    /**
+     * Where the parcel is, once Printful says it went — LD-04 P11a.
+     *
+     * **Nullable and expected to stay null for a while.** A shipment with no
+     * tracking number is ordinary: some carriers issue one late, and "it
+     * shipped" is worth recording without waiting for "and here is where it
+     * is". A certificate order never has any of the three.
+     */
+    tracking_number: model.text().nullable(),
+    tracking_url: model.text().nullable(),
+    carrier: model.text().nullable(),
+
+    /**
+     * When Printful says it shipped, not when the webhook arrived.
+     *
+     * The same argument `lousy_deal.issued_at` makes: a redelivered event must
+     * produce the same record rather than a differently-dated one, and a
+     * parcel dated by whenever the worker caught up is wrong on its face.
+     */
+    shipped_at: model.dateTime().nullable(),
+
     // Spread for the same reason `lousy_deal` spreads its own: `model.enum`
     // refuses a readonly tuple, and the tuple stays `as const` so the exported
     // type is the union rather than `string`.
