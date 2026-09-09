@@ -136,12 +136,21 @@ interface PaymentFormProps {
    * sell them a PDF would be collecting data the shop does not need.
    */
   readonly needsAddress: boolean;
+  /** LD-04 P10: this cart holds a certificate, so there is consent to ask for. */
+  readonly needsConsent: boolean;
   /** The cart's own currency, for the postage row. */
   readonly currencyCode: string;
 }
 
 /** Creates the cart's Stripe session, then renders the Payment Element once a client secret exists. */
-export function PaymentForm({ cartId, stripePublishableKey, countries, needsAddress, currencyCode }: PaymentFormProps) {
+export function PaymentForm({
+  cartId,
+  stripePublishableKey,
+  countries,
+  needsAddress,
+  needsConsent,
+  currencyCode,
+}: PaymentFormProps) {
   const stripePromise = useMemo(() => loadStripe(stripePublishableKey), [stripePublishableKey]);
   const fetchJson = useMemo(() => createProxyFetchJson(), []);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -207,6 +216,7 @@ export function PaymentForm({ cartId, stripePublishableKey, countries, needsAddr
         fetchJson={fetchJson}
         countries={countries}
         needsAddress={needsAddress}
+        needsConsent={needsConsent}
         currencyCode={currencyCode}
       />
     </Elements>
@@ -233,6 +243,8 @@ interface PayButtonProps {
   readonly fetchJson: FetchJson;
   readonly countries: readonly StoreRegionCountry[];
   readonly needsAddress: boolean;
+  /** LD-04 P10: this cart holds a certificate, so there is consent to ask for. */
+  readonly needsConsent: boolean;
   /** The cart's own currency, for the postage row. */
   readonly currencyCode: string;
 }
@@ -248,7 +260,14 @@ interface PayButtonProps {
  * `@stripe/react-stripe-js` render the real markup -- the real default, the
  * real `disabled`.
  */
-export function PayButton({ cartId, fetchJson, countries, needsAddress, currencyCode }: PayButtonProps) {
+export function PayButton({
+  cartId,
+  fetchJson,
+  countries,
+  needsAddress,
+  needsConsent,
+  currencyCode,
+}: PayButtonProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -691,20 +710,27 @@ export function PayButton({ cartId, fetchJson, countries, needsAddress, currency
       ) : null}
       {shippingError === null ? null : <p className="notice payment-error">{shippingError}</p>}
 
-      <p className="consent">
-        {/* `required` as well as the disabled control: it is the native
-            mechanism for this pattern and it blocks an implicit submission
-            the `disabled` attribute does not. */}
-        <input
-          id="checkout-consent"
-          type="checkbox"
-          checked={consented}
-          required
-          aria-describedby={consented ? undefined : "checkout-consent-required"}
-          onChange={(event) => setConsented(event.target.checked)}
-        />
-        <label htmlFor="checkout-consent">{CONSENT_LABEL}</label>
-      </p>
+      {/* LD-04 P10: absent, not disabled, for a cart with no certificate in
+          it. § 53(4) p 7¹ is about digital content, so asking a buyer of one
+          mug to request its immediate supply would be asking them to consent
+          to something they are not buying -- and then refusing to take their
+          money until they did. */}
+      {needsConsent ? (
+        <p className="consent">
+          {/* `required` as well as the disabled control: it is the native
+              mechanism for this pattern and it blocks an implicit submission
+              the `disabled` attribute does not. */}
+          <input
+            id="checkout-consent"
+            type="checkbox"
+            checked={consented}
+            required
+            aria-describedby={consented ? undefined : "checkout-consent-required"}
+            onChange={(event) => setConsented(event.target.checked)}
+          />
+          <label htmlFor="checkout-consent">{CONSENT_LABEL}</label>
+        </p>
+      ) : null}
 
       <PaymentElement options={{ wallets: { applePay: "auto", googlePay: "auto", link: "auto" } }} />
       {error !== null && (
@@ -728,6 +754,7 @@ export function PayButton({ cartId, fetchJson, countries, needsAddress, currency
           // "is the address complete" flag would be redundant: an incomplete
           // address never quotes, so `shippingAmount` is already `null`.
           shippingSettled: !needsAddress || shippingAmount !== null,
+          consentRequired: needsConsent,
         })}
       >
         {submitting ? PAYING_LABEL : PAY_LABEL}
@@ -735,7 +762,7 @@ export function PayButton({ cartId, fetchJson, countries, needsAddress, currency
       {/* Attached to the checkbox rather than to the button: a disabled
           `<button>` is not focusable, so a keyboard reader tabs from the box
           straight past the explanation. */}
-      {consented ? null : (
+      {consented || !needsConsent ? null : (
         <FinePrint>
           <span id="checkout-consent-required">{CONSENT_REQUIRED_NOTICE}</span>
         </FinePrint>

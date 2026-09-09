@@ -451,6 +451,11 @@ describe("the two kinds of thing, kept apart", () => {
     // The strong form, and the honest one: not "we choose not to rely on it"
     // but "the law provides no such box for goods".
     expect(s).toMatch(/the law provides none for goods/i);
+    // And the box's own words, which P10c scoped. The derivation below checks
+    // §4 covers the label's vocabulary; this checks the scoping specifically,
+    // since "certificate" was already in both and the word that changed is
+    // one the coverage test treats as a stopword.
+    expect(s).toMatch(/right of withdrawal for that certificate/i);
   });
 
   it("gives the § 55(1) deadline that applies to goods, which is a different one", () => {
