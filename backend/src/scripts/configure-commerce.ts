@@ -21,9 +21,14 @@
  * `vi.mock`. Its `region` and `tax-region` branches (`applyRegion`,
  * `applyTaxRegion`) remain unexercised by any test in this repository.
  *
- * **What this row deliberately does not build:** no stock location, no
- * fulfillment set, and no shipping profile or option -- this shop has no
- * physical delivery yet.
+ * **This said "no stock location, no fulfillment set, and no shipping profile
+ * or option -- this shop has no physical delivery yet", and P7b built all
+ * four.** The sentence survived the row that falsified it, which is the defect
+ * `terms.ts` keeps a counted list to prevent and which the plan's own
+ * checkboxes have now produced twice. What is true is the opposite: the four
+ * delivery records below are what a cart needs before it can be offered
+ * postage at all, and `list-shipping-options-for-cart.js` reaches them through
+ * the sales channel.
  *
  * **It configures no sales channel either**, which narrows T7's second
  * checkbox ("configure the region, sales channel and currency") to the region
@@ -80,7 +85,7 @@ import {
 } from "@medusajs/medusa/core-flows";
 
 import { PRODUCT_TIERS } from "../commerce/product-model";
-import { ESTONIAN_STANDARD_VAT_PERCENT, EU_MEMBER_STATE_CODES, TAX_PROVIDER_ID, VAT_RATE_CODE, VAT_RATE_NAME } from "../commerce/tax-model";
+import { EU_MEMBER_STATE_CODES, EU_STANDARD_VAT_PERCENTS, TAX_PROVIDER_ID, VAT_RATE_CODE, vatRateName } from "../commerce/tax-model";
 import { STRIPE_PAYMENT_PROVIDER_ID } from "../config/payment";
 import { PRINTFUL_FULFILMENT_PROVIDER_ID } from "../modules/printful/fulfilment-provider";
 import { MERCH_SHIPPING_PROFILE } from "./seed-merch";
@@ -319,12 +324,16 @@ export function commerceRecords(): readonly CommerceRecord[] {
       serviceZoneName: SERVICE_ZONE_NAME,
       providerId: PRINTFUL_FULFILMENT_PROVIDER_ID,
     },
+    // **Each state's own rate since decision `013`**, which registered the
+    // Union OSS and with it opted into destination taxation. `tax-model.ts`
+    // carries the table, where it came from, and the 1 October 2026 date it
+    // takes effect on.
     ...EU_MEMBER_STATE_CODES.map<CommerceRecord>((countryCode) => ({
       kind: "tax-region",
       key: countryCode,
       countryCode,
-      name: VAT_RATE_NAME,
-      ratePercent: ESTONIAN_STANDARD_VAT_PERCENT,
+      name: vatRateName(countryCode),
+      ratePercent: EU_STANDARD_VAT_PERCENTS[countryCode]!,
       code: VAT_RATE_CODE,
       providerId: TAX_PROVIDER_ID,
     })),

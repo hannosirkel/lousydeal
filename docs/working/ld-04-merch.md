@@ -954,7 +954,27 @@ here even though the answer to both is a person reading the Imprint address.
 **Files:** `docs/decisions/012-vat-for-goods-printful-dispatches.md`, the cart
 and checkout content, a turnover counter, tests.
 
-- [ ] Implement decision `012`, and count the thing that decides when it changes.
+- [x] **P14a** — a destination VAT rate per member state.
+- [ ] **P14b** — the two counters, and the postage grossed up at the buyer's rate rather than the worst.
+
+**P14a.** `tax-model.ts` said "One rate, not twenty-seven" and charged every EU
+destination Estonia's 24%, on the Article 59c threshold reading `008` records.
+Decision `013` reopened it: the operator registered for the Union OSS on
+2026-09-09, and OSS *is* destination-rate taxation.
+
+Because prices are tax-inclusive and the merchant absorbs the VAT, **no buyer
+pays differently** — what was wrong is the figure reported to each member state
+through the Estonian OSS return.
+
+**The rates take effect 1 October 2026**, not on merge: Art 57d of Implementing
+Regulation 282/2011 starts the scheme on the first day of the quarter after
+application, and EMTA carries the same rule with an on-point example. §23 is
+what makes shipping them early safe — this deployment can make no supply before
+then, having no live payment keys.
+
+Three things it does not answer, all in `status.md`: TEDB has not been read
+directly, the special territories are wrong in both directions, and Northern
+Ireland needs two answers for one postcode.
 
 Decision [`013`](../decisions/013-the-vat-arrangement.md) is the arrangement and
 this row implements it: everything filed in Estonia — the KMD and a Union OSS
