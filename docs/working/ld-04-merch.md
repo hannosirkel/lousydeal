@@ -414,7 +414,21 @@ Creation is idempotent: run it twice, get four products, not eight.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/scripts/*`, `backend/src/modules/printful/*`, tests.
 
-- [x] Four real Medusa products, with variants, priced, and shipping-required.
+- [ ] Four real Medusa products, with variants, priced, and shipping-required.
+
+> **This was ticked and should not have been.** Found on 2026-09-09 while
+> building P9c. `seed-merch.ts` defines `merchSeedRecords`, `seedMerch` and a
+> `MerchSeedTarget` seam — and **nothing implements the seam**. There is no
+> `MedusaMerchSeedTarget`, no `default export` command, and no entry in
+> `predeploy`. So the four products have never existed in Medusa and cannot be
+> created.
+>
+> What the row did land is real and is kept: the records, the catalogue they
+> derive from, the Printful mapping in variant metadata, and the constraint-4
+> test that the certificate did not change. What it did not land is the half
+> the checkbox described.
+>
+> **P6b** finishes it.
 
 The contract asks for "the proper Medusa product/order/fulfillment model" and
 this is that row. The certificate stays exactly what it is; merch arrives beside
@@ -502,7 +516,21 @@ could not be fetched and does not proceed to payment.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/modules/printful/fulfilment-provider.ts`, `medusa-config.ts`, a seed script, tests.
 
-- [x] Turn a Printful quote into a line the buyer pays.
+- [ ] Turn a Printful quote into a line the buyer pays.
+
+> **Also ticked prematurely, and found the same day.** The provider is written,
+> registered and tested; `calculatePrice` asks P7's rate function and refuses
+> to invent a figure. But a Medusa cart cannot *select* it, because nothing in
+> this repository creates a **stock location, a fulfillment set, a service
+> zone, a shipping profile or a shipping option** — `configure-commerce.ts`
+> says so in as many words: "no stock location, no fulfillment set, and no
+> shipping profile or option — this shop has no physical delivery yet."
+>
+> So `listCartShippingOptions` would answer with nothing, and P7's checkout
+> would show `SHIPPING_UNAVAILABLE_NOTICE` for every parcel. The provider is a
+> real provider with nothing pointing at it.
+>
+> **P7b** finishes it.
 
 A quote is not a charge. A shipping-required Medusa cart needs a shipping option
 backed by a registered fulfilment provider, and the quoted amount has to become
@@ -513,6 +541,57 @@ to handle, and this is it.
 The provider is calculated-price, not flat: `calculatePrice` asks P7's rate
 function. It fulfils nothing itself — P8 does that — but it is what makes the
 fulfilment a real Medusa fulfilment rather than a side effect.
+
+### P6b — The merch seed target, which P6 left as a seam
+
+**Repository:** `lousydeal`.
+**Files:** `backend/src/scripts/seed-merch.ts`, `package.json`, tests.
+
+- [ ] A `MedusaMerchSeedTarget`, and a command that runs it.
+
+Mirrors `MedusaProductSeedTarget`: look up by handle, create or update, never a
+bare create. It differs in three ways and each is why it is not a copy —
+several variants per product rather than one, a `Size` option, and the Printful
+mapping carried in variant metadata.
+
+**It also has to settle the unit conversion.** `seed-product.ts` stores
+`amountMinor / 100` and `money.ts` records why: every amount the storefront
+formats is a major-unit decimal. This row does the same and says so, because
+P9c found the postage path doing the opposite.
+
+### P7b — A shipping option a cart can actually select
+
+**Repository:** `lousydeal`.
+**Files:** `backend/src/scripts/configure-commerce.ts`, tests.
+
+- [ ] The delivery configuration P7a assumed and nothing built.
+
+Four new record kinds in `commerceRecords`, in dependency order: a stock
+location, a fulfillment set with a service zone over the same worldwide country
+list the region uses, the `merch` shipping profile `seed-merch.ts` already
+names, and a shipping option bound to `PRINTFUL_FULFILMENT_IDENTIFIER` with a
+**calculated** price type — flat would be wrong everywhere except one
+destination, which is the argument `fulfilment-provider.ts` already makes.
+
+**The certificate must not acquire a shipping step**, which is constraint 4
+again: the tiers are seeded into no shipping profile, and a cart holding only a
+certificate must still reach payment without an address.
+
+### P7c — The postage units, settled by measurement
+
+**Repository:** `lousydeal`.
+**Files:** `backend/src/modules/printful/shipping.ts`, `fulfilment-provider.ts`, tests.
+
+- [ ] Charge what Printful quoted, on the scale Medusa reads.
+
+`chargeForRate` returns `Math.ceil(gross * 100)` — minor units — and
+`fulfilment-provider.ts` hands it to Medusa as `calculated_amount`. Every other
+amount in this codebase on that path is a major-unit decimal, and P7a's own
+test asserts `663` for a $5.22 rate as correct. **If Medusa reads it on the
+product scale, that is $663.00 of postage.**
+
+It is not fixed by reasoning, because reasoning is what produced it. P6b and
+P7b together make a real cart possible; this row reads the number off one.
 
 ### P8 — The order reaches Printful
 
