@@ -7,6 +7,7 @@ import type { MedusaContainer } from "@medusajs/framework/types";
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
 
 import { STRIPE_PAYMENT_PROVIDER_ID } from "../src/config/payment";
+import { printfulFulfilmentConfig } from "../src/config/fulfilment";
 import { PRINTFUL_FULFILMENT_PROVIDER_ID } from "../src/modules/printful/fulfilment-provider";
 import { MERCH_SHIPPING_PROFILE } from "../src/scripts/seed-merch";
 import { EU_MEMBER_STATE_CODES } from "../src/commerce/tax-model";
@@ -74,7 +75,7 @@ const EU_MEMBER_STATES: readonly string[] = [
 ];
 
 describe("commerceRecords", () => {
-  const records = commerceRecords();
+  const records = commerceRecords(true);
   const taxRegions = records.filter((record) => record.kind === "tax-region");
 
   it("holds tax-model.ts's member-state list to these 27 literal codes", () => {
@@ -273,7 +274,7 @@ describe("commerceRecords", () => {
   });
 
   it("is a pure function: two calls return equal records", () => {
-    expect(commerceRecords()).toEqual(commerceRecords());
+    expect(commerceRecords(true)).toEqual(commerceRecords(true));
   });
 });
 
@@ -302,12 +303,12 @@ describe("configureCommerce run twice", () => {
   it("is called once per record on each run, and converges on one row per natural key", async () => {
     const target = new RecordingCommerceConfigurationTarget();
 
-    await configureCommerce(target);
-    await configureCommerce(target);
+    await configureCommerce(target, true);
+    await configureCommerce(target, true);
 
-    expect(target.calls).toHaveLength(commerceRecords().length * 2);
+    expect(target.calls).toHaveLength(commerceRecords(true).length * 2);
 
-    const expectedKeys = commerceRecords()
+    const expectedKeys = commerceRecords(true)
       .map((record) => `${record.kind}/${record.key}`)
       .sort();
     expect(target.appliedKeys).toEqual(expectedKeys);
@@ -435,7 +436,7 @@ describe("MedusaCommerceConfigurationTarget applyStoreCurrency", () => {
   // converges instead.
   it("adds the deployment's currency to a store Medusa created EUR-only, rather than refusing", async () => {
     const world = register(eurOnlyWorld());
-    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world));
+    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world), true);
 
     await expect(target.apply(usdRecord)).resolves.toBeUndefined();
 
@@ -449,7 +450,7 @@ describe("MedusaCommerceConfigurationTarget applyStoreCurrency", () => {
   // prices only in USD.
   it("keeps the store's existing EUR entry but demotes it off is_default", async () => {
     const world = register(eurOnlyWorld());
-    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world));
+    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world), true);
 
     await target.apply(usdRecord);
 
@@ -464,7 +465,7 @@ describe("MedusaCommerceConfigurationTarget applyStoreCurrency", () => {
       store: { id: "store_2", supported_currencies: [{ currency_code: "usd", is_default: true }] },
       pricePreferences: new Map([["usd", true]]),
     });
-    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world));
+    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world), true);
 
     await target.apply(usdRecord);
 
@@ -484,7 +485,7 @@ describe("MedusaCommerceConfigurationTarget applyStoreCurrency", () => {
       store: { id: "store_3", supported_currencies: [{ currency_code: "eur", is_default: true }] },
       pricePreferences: new Map([["usd", true]]),
     });
-    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world));
+    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world), true);
 
     await target.apply(usdRecord);
 
@@ -506,7 +507,7 @@ describe("MedusaCommerceConfigurationTarget applyStoreCurrency", () => {
       ];
       return { result: [] };
     });
-    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world));
+    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world), true);
 
     await expect(target.apply(usdRecord)).rejects.toThrow(
       "The store does not have usd as its sole default currency",
@@ -528,7 +529,7 @@ describe("MedusaCommerceConfigurationTarget applyStoreCurrency", () => {
       },
       pricePreferences: new Map([["usd", true]]),
     });
-    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world));
+    const target = new MedusaCommerceConfigurationTarget(fakeContainer(world), true);
 
     await target.apply(usdRecord);
 
@@ -575,7 +576,7 @@ describe("applying the delivery configuration", () => {
   });
 
   const record = <K extends CommerceRecord["kind"]>(kind: K) =>
-    commerceRecords().find((candidate) => candidate.kind === kind)!;
+    commerceRecords(true).find((candidate) => candidate.kind === kind)!;
 
   describe("the stock location", () => {
     it("links it to the sales channel, which is the whole reason it exists", async () => {
@@ -583,7 +584,7 @@ describe("applying the delivery configuration", () => {
       // reaches fulfillment sets only through `sales_channels.stock_locations`,
       // so an unlinked location offers every cart nothing -- and creating the
       // location without linking it looks like success.
-      const target = new MedusaCommerceConfigurationTarget(containerFor({ store: STORE }));
+      const target = new MedusaCommerceConfigurationTarget(containerFor({ store: STORE }), true);
       await target.apply(record("stock-location"));
 
       expect(createStockLocationsRun).toHaveBeenCalledTimes(1);
@@ -601,6 +602,26 @@ describe("applying the delivery configuration", () => {
       expect(link.input.create[0]?.fulfillment?.fulfillment_provider_id).toBe(PRINTFUL_FULFILMENT_PROVIDER_ID);
     });
 
+    it("links no provider where the deployment has none, and still links the sales channel", async () => {
+      /**
+       * **Gate E: predeploy was impossible in this state, and had been since
+       * P7a.** A link naming a provider the container cannot resolve fails the
+       * same way creating a shipping option for it does. The live workloads
+       * have no Printful token at all, by §23 and on purpose, so this is the
+       * shape they were in.
+       *
+       * The sales-channel link is unaffected, and must be: it is the whole
+       * reason the location exists —
+       * `list-shipping-options-for-cart.js` reaches fulfilment sets only
+       * through `sales_channels.stock_locations`.
+       */
+      const target = new MedusaCommerceConfigurationTarget(containerFor({ store: STORE }), false);
+      await target.apply(record("stock-location"));
+
+      expect(linkSalesChannelsRun).toHaveBeenCalledWith({ input: { id: "sloc_1", add: ["sc_1"] } });
+      expect(batchLinksRun).not.toHaveBeenCalled();
+    });
+
     it("relinks an existing location rather than skipping it", async () => {
       // The link is the kind of thing an operator removes in the Admin without
       // meaning to. Restoring it costs one idempotent call.
@@ -609,6 +630,7 @@ describe("applying the delivery configuration", () => {
           store: STORE,
           stock_location: [{ id: "sloc_existing", fulfillment_providers: [{ id: PRINTFUL_FULFILMENT_PROVIDER_ID }] }],
         }),
+        true,
       );
       await target.apply(record("stock-location"));
 
@@ -631,7 +653,7 @@ describe("applying the delivery configuration", () => {
       // beside it, and a different provider. A flat rate would be wrong
       // everywhere but one destination, and a price here is a figure nobody
       // quoted charged to a buyer -- §11 and §23 both.
-      const target = new MedusaCommerceConfigurationTarget(containerFor(ready));
+      const target = new MedusaCommerceConfigurationTarget(containerFor(ready), true);
       await target.apply(record("shipping-option"));
 
       const input = createShippingOptionsRun.mock.calls[0]?.[0] as unknown as { input: Record<string, unknown>[] };
@@ -652,7 +674,7 @@ describe("applying the delivery configuration", () => {
         { store: STORE, shipping_profile: [{ id: "sp_1" }] },
       ];
       for (const partial of partials) {
-        const target = new MedusaCommerceConfigurationTarget(containerFor(partial));
+        const target = new MedusaCommerceConfigurationTarget(containerFor(partial), true);
         await expect(target.apply(record("shipping-option"))).rejects.toThrow(/must apply first/);
       }
       expect(createShippingOptionsRun).not.toHaveBeenCalled();
@@ -661,6 +683,7 @@ describe("applying the delivery configuration", () => {
     it("creates nothing when the option is already there", async () => {
       const target = new MedusaCommerceConfigurationTarget(
         containerFor({ ...ready, shipping_option: [{ id: "so_existing" }] }),
+        true,
       );
       await target.apply(record("shipping-option"));
       expect(createShippingOptionsRun).not.toHaveBeenCalled();
@@ -671,6 +694,7 @@ describe("applying the delivery configuration", () => {
     it("hangs the set on the location and the zone on the set", async () => {
       const target = new MedusaCommerceConfigurationTarget(
         containerFor({ store: STORE, stock_location: [{ id: "sloc_1", fulfillment_sets: [] }] }),
+        true,
       );
       await target.apply(record("fulfillment-set"));
 
@@ -697,6 +721,7 @@ describe("applying the delivery configuration", () => {
           stock_location: [{ id: "sloc_1", fulfillment_sets: [{ id: "fuset_1", name: "Shipping" }] }],
           service_zone: [{ id: "serzo_1" }],
         }),
+        true,
       );
       await target.apply(record("fulfillment-set"));
 
@@ -705,14 +730,14 @@ describe("applying the delivery configuration", () => {
     });
 
     it("refuses when the location it needs is absent", async () => {
-      const target = new MedusaCommerceConfigurationTarget(containerFor({ store: STORE }));
+      const target = new MedusaCommerceConfigurationTarget(containerFor({ store: STORE }), true);
       await expect(target.apply(record("fulfillment-set"))).rejects.toThrow(/must apply first/);
     });
   });
 
   describe("the shipping profile", () => {
     it("creates it under the name seed-merch.ts uses", async () => {
-      const target = new MedusaCommerceConfigurationTarget(containerFor({ store: STORE }));
+      const target = new MedusaCommerceConfigurationTarget(containerFor({ store: STORE }), true);
       await target.apply(record("shipping-profile"));
 
       expect(createShippingProfilesRun).toHaveBeenCalledWith({
@@ -723,9 +748,102 @@ describe("applying the delivery configuration", () => {
     it("creates nothing when it exists", async () => {
       const target = new MedusaCommerceConfigurationTarget(
         containerFor({ store: STORE, shipping_profile: [{ id: "sp_1" }] }),
+        true,
       );
       await target.apply(record("shipping-profile"));
       expect(createShippingProfilesRun).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("a deployment with no Printful, which is what §23 makes the live one", () => {
+  /**
+   * **Gate E found the predeploy chain impossible here.**
+   *
+   * `medusa-config.ts` registers the fulfilment provider only when Printful is
+   * configured; this script created a shipping option owned by that provider
+   * whatever the deployment held. `validate-fulfillment-providers.js` refuses
+   * such an option — "Providers (printful_printful) are not enabled for the
+   * service location" — so `configure:commerce` threw, and with it migrations,
+   * administrator, commerce, products and merch.
+   *
+   * `config/fulfilment.ts` says in as many words that a deployment without
+   * Printful "must boot, and boot without an option to ship anything". Booting
+   * is not enough if it cannot deploy.
+   */
+  it("declares no shipping option, because there is no provider to own one", () => {
+    expect(commerceRecords(false).map((record) => record.kind)).not.toContain("shipping-option");
+  });
+
+  it("keeps everything a shop still is without a printer", () => {
+    // The line between the two is "does this record name a provider": the
+    // location, its fulfilment set and its zone describe where this shop
+    // dispatches from, which is true either way.
+    const kinds = new Set(commerceRecords(false).map((record) => record.kind));
+    for (const kind of ["region", "store-currency", "stock-location", "fulfillment-set", "shipping-profile", "tax-region"]) {
+      expect(`${kind}: ${String(kinds.has(kind as never))}`).toBe(`${kind}: true`);
+    }
+  });
+
+  it("keeps the shipping profile, which the merch products are linked to", () => {
+    // `seed-merch.ts` links the four products to it and runs in the same
+    // predeploy chain, so dropping it would move the failure rather than fix
+    // it.
+    expect(commerceRecords(false).some((record) => record.kind === "shipping-profile")).toBe(true);
+  });
+
+  it("differs from the configured deployment by exactly that one record", () => {
+    // Asserted as a difference rather than as a count, so a record added to
+    // either branch alone shows up here.
+    const withPrintful = commerceRecords(true);
+    const without = commerceRecords(false);
+    expect(withPrintful.length - without.length).toBe(1);
+    expect(withPrintful.filter((record) => record.kind !== "shipping-option")).toEqual(without);
+  });
+
+  it("asks the same question medusa-config asks, through the same function", () => {
+    // The two drifted once and that is the whole bug. `printfulFulfilmentConfig`
+    // is the one place the question is answered.
+    for (const [token, artwork, expected] of [
+      ["tok", "https://example.invalid/art", true],
+      ["tok", null, false],
+      [null, "https://example.invalid/art", false],
+      [null, null, false],
+    ] as const) {
+      const configured =
+        printfulFulfilmentConfig({ printfulApiToken: token, printfulArtworkBaseUrl: artwork }) !== null;
+      expect(`${String(token)}/${String(artwork)}: ${String(configured)}`).toBe(
+        `${String(token)}/${String(artwork)}: ${String(expected)}`,
+      );
+    }
+  });
+});
+
+describe("the command that runs in predeploy", () => {
+  /**
+   * The wiring between the predicate and the records, which no unit test can
+   * reach: `configureCommerceCommand` takes a container and talks to a real
+   * Medusa. A mutation that hard-codes `printful = true` passes every test
+   * above and restores the exact failure Gate E found, so it is read off the
+   * file — the disposition `printful-from-order.test.ts` settled for the
+   * subscriber's own wiring.
+   */
+  const source = readFileSync(join(__dirname, "../src/scripts/configure-commerce.ts"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
+
+  it("asks the runtime rather than assuming an answer", () => {
+    expect(source).toContain("const printful = printfulFulfilmentConfig(readBackendRuntimeConfig(process.env)) !== null;");
+  });
+
+  it("hands the same answer to both the records and the target", () => {
+    // Two consumers, one answer. Passing `true` to one and the predicate to
+    // the other would create a shipping option nothing could own -- which is
+    // the original bug with an extra step.
+    expect(source).toContain("new MedusaCommerceConfigurationTarget(container, printful), printful)");
+  });
+
+  it("reads the stripping, so a broken regex cannot pass by emptying the file", () => {
+    expect(source).toContain("export function commerceRecords(");
   });
 });
