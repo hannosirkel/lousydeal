@@ -1176,14 +1176,14 @@ and the guard that exists to catch exactly that has a frozen list.
    is); and still carries **the inverted €30 sentence** that Terms §12 and
    Refunds §8 were corrected to remove.
 
-- **7.** **The Imprint was never corrected.** §3 says "A numbered digital
+- **7. Fixed in P12d.** **The Imprint was never corrected.** §3 says "A numbered digital
    certificate, and nothing else of value" — Terms §2 now says two kinds of
    thing are sold. §4 carries the inverted €30 claim **and cites the Terms for
    it**, which is the document that explicitly retracts it. The banned-phrase
    guard is scoped to `REFUNDS` alone; the suite's own header says a guard
    aimed at one file is not a guard on a claim.
 
-- **8.** **Refunds §5 says "we send no email at all", and a test requires it.**
+- **8. Fixed in P12d.** **Refunds §5 says "we send no email at all", and a test requires it.**
    False since LD-02, and the withdrawal route sends the § 56⁴(4) receipt —
    `withdrawals/route.ts` sends both copies and the page's own success text
    says so. `legal-refunds.test.ts` asserts the sentence, so **removing the
@@ -1191,7 +1191,7 @@ and the guard that exists to catch exactly that has a frozen list.
    about. It escaped the consistency guard because "we send no email at all"
    matches neither of its two patterns.
 
-- **9.** **Privacy §9 says "We hold no name".** False three ways: §4 of the same
+- **9. Fixed in P12d.** **Privacy §9 says "We hold no name".** False three ways: §4 of the same
    document says the order holds the delivery name, §6 says a gift recipient's
    name is held, and the withdrawal form stores one. The plan flagged §4 and §9
    together; §4 was corrected and §9 was not — in the section about exercising
@@ -1208,7 +1208,10 @@ and the guard that exists to catch exactly that has a frozen list.
   met "there is nothing to return". A buyer reading one is promised something
   the other withdraws.
 
-- **12.** **"It is a condition of ordering" is no longer true of every order.** P10c
+- **12. Dissolved by the upsell decision, in P12c.** Every payable cart holds a
+  certificate now, so the box is a condition of ordering again and the
+  unscoped sentences in Terms §4 and Refunds §4 are true. **Was:** **"It is a
+  condition of ordering" is no longer true of every order.** P10c
   made the box conditional on the cart holding a certificate; Terms §4 and
   Refunds §4 both state the condition unscoped.
 
@@ -1216,13 +1219,13 @@ and the guard that exists to catch exactly that has a frozen list.
   a name and a dedication, typed by the buyer, stored on the deal and
   **published**. Article 13 completeness, and a false count pinned by a test.
 
-- **14.** **The consistency guard's surface list is frozen at nine** and collects
+- **14. Fixed in P12d.** **The consistency guard's surface list is frozen at nine** and collects
   nothing LD-04 added: `GIFT_CONFIRMATION_NOTE`, `orderSummaryLines`'
   output, `POSTED_PRICE_NOTICE`, `ADDRESS_NOTE`, all of `merch.ts` — and the
   backend confirmation copy, which is outside the guard's repository half
   entirely. **That is where findings 5 and 6 survived undetected.**
 
-- **15.** **Baldrick still says "There is one product and I know most of it."**
+- **15. Fixed in P12d.** **Baldrick still says "There is one product and I know most of it."**
 
 - **16.** **The `skipped` state hides a paid order that will never be printed.** A
   merch order whose address `recipientFrom` refuses records `skipped`, which

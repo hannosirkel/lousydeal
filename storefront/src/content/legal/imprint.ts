@@ -50,6 +50,7 @@ export const IMPRINT: LegalDocument = {
       heading: "What is sold here",
       body: [
         "A numbered digital certificate, and nothing else of value. That is stated at greater length in the Terms of Service, and it is not a disclaimer: it is the description of the product.",
+        "Printed goods too — a shirt, a mug, a cap, a sticker — made after you order them and posted to you. Those are ordinary objects and worth what such objects are worth; nothing in the sentence above about worthlessness is true of them.",
       ],
     },
     {
@@ -57,7 +58,7 @@ export const IMPRINT: LegalDocument = {
       heading: "Supervision and disputes",
       body: [
         "Consumer matters in Estonia are supervised by the Consumer Protection and Technical Regulatory Authority (Tarbijakaitse ja Tehnilise Järelevalve Amet), Endla 10A, 10122 Tallinn, info@ttja.ee.",
-        "A consumer who cannot resolve a complaint with us may put it to the Consumer Disputes Committee (tarbijavaidluste komisjon) at that authority: avaldus@komisjon.ee, +372 620 1700. The Committee ordinarily takes disputes worth at least 30 euros, which is more than anything sold here costs; the Terms of Service say so plainly rather than leaving you to find out.",
+        "A consumer who cannot resolve a complaint with us may put it to the Consumer Disputes Committee (tarbijavaidluste komisjon) at that authority: avaldus@komisjon.ee, +372 620 1700. The Committee ordinarily takes disputes worth at least 30 euros. A certificate on its own costs less than that; an order of printed goods, with the postage, may be more. Which yours is depends on what you ordered, and the Terms of Service say so at greater length.",
         "A consumer resident in another European Union country may also approach the European Consumer Centre network, and the courts remain open wherever you live.",
       ],
     },

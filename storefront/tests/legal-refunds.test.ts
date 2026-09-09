@@ -236,8 +236,16 @@ describe("how to withdraw", () => {
     expect(s).toContain("/legal/withdraw");
     expect(s).toContain("§ 54(1) p 13¹");
     // And the honest half: no email exists, so no § 56⁴(4) receipt does.
-    expect(s).toMatch(/cannot yet do is send you the receipt/i);
-    expect(s).toMatch(/shortcoming of ours and not a limit on you/i);
+    // **This required the falsehood, which is the Backblaze shape the privacy
+    // suite warns about: removing the false sentence failed the build.** The
+    // document said "we send no email at all" -- untrue since LD-02, and
+    // untrue twice over since C14, whose `POST /store/withdrawals` sends both
+    // the trader copy and the consumer's § 56⁴(4) receipt. Gate D found it.
+    expect(s).toMatch(/we send you the receipt § 56⁴\(4\) requires/i);
+    expect(s).not.toMatch(/we send no email at all/i);
+    // That sentence went with the falsehood it excused. What survives is the
+    // half that is about the buyer rather than about us.
+    expect(s).toMatch(/dates your withdrawal from when you sent it/i);
   });
 });
 
