@@ -1227,7 +1227,7 @@ and the guard that exists to catch exactly that has a frozen list.
 
 - **15. Fixed in P12d.** **Baldrick still says "There is one product and I know most of it."**
 
-- **16.** **The `skipped` state hides a paid order that will never be printed.** A
+- **16. Fixed in P12e.** **The `skipped` state hides a paid order that will never be printed.** A
   merch order whose address `recipientFrom` refuses records `skipped`, which
   is terminal and which the subscriber logs at no level at all. Buyer
   charged, nothing sent, no line anywhere, and no later attempt because
@@ -1245,12 +1245,12 @@ and the guard that exists to catch exactly that has a frozen list.
   `quoting` — so a buyer who edits the address and pays inside the window
   pays the old postage. Estonia to Brazil is $6.48 against a measured $25.56.
 
-- **19.** **A late `shipment_sent` retry overwrites `shipment_returned`.** The route
+- **19. Fixed in P12e.** **A late `shipment_sent` retry overwrites `shipment_returned`.** The route
   records whatever arrived without comparing `occurredAt` to the state it
   holds, and nulls `shipped_at` on every other event. Printful retries over
   about eighteen hours, so the ordering is not hypothetical.
 
-- **20.** **`order_failed` and `order_canceled` webhooks reach nobody.** The
+- **20. Fixed in P12e.** **`order_failed` and `order_canceled` webhooks reach nobody.** The
   submission path calls these "the one outcome that has to reach a person"
   and logs at error; the same outcome arriving later by webhook is logged at
   info, leaves the local `status` at `submitted`, and tells no one.

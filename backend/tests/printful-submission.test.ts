@@ -348,12 +348,46 @@ describe("an order with nothing to post", () => {
     expect(rows).toHaveLength(1);
   });
 
-  it("skips rather than orders when there is no address to send to", async () => {
-    // Merch with no usable address is a bug upstream, and guessing an address
-    // is the one response that would put a parcel somewhere real.
+  it("fails rather than skips when there is something to post and nowhere to post it", async () => {
+    // **This asserted `skipped`, and its own comment called the case "a bug
+    // upstream" while locking in the response that made the bug invisible.**
+    //
+    // `skipped` is terminal -- `settled()` admits everything but `failed` --
+    // and the subscriber logged it at no level, because it was the ordinary
+    // answer for the ordinary order. So a paid order whose address was refused
+    // was charged, sent to nobody, recorded as unremarkable, and never retried
+    // even after an operator fixed the address. Gate D found it.
     const { store } = fakeStore();
     const printful = fakePrintful();
     const result = await submitPrintfulOrder(store, printful.orders, { ...INPUT, recipient: null });
+
+    expect(result.status).toBe("failed");
+    expect(result.last_error).toMatch(/no usable delivery address/i);
+    // Still not ordered: guessing an address is the one response that would
+    // put a parcel somewhere real.
+    expect(printful.calls.create).toBe(0);
+  });
+
+  it("lets a later attempt succeed once the address is fixed", async () => {
+    // The whole point of `failed` over `skipped`: it is the one state a
+    // redelivery may act on.
+    const { store, rows } = fakeStore();
+    const printful = fakePrintful();
+    await submitPrintfulOrder(store, printful.orders, { ...INPUT, recipient: null });
+
+    const result = await submitPrintfulOrder(store, printful.orders, INPUT);
+
+    expect(result.status).toBe("submitted");
+    expect(printful.calls.create).toBe(1);
+    expect(rows).toHaveLength(1);
+  });
+
+  it("still skips an order with nothing to post at all", async () => {
+    // The other half of the branch these two shared, and the common case:
+    // most orders here are one certificate.
+    const { store } = fakeStore();
+    const printful = fakePrintful();
+    const result = await submitPrintfulOrder(store, printful.orders, { ...INPUT, lines: [], recipient: null });
     expect(result.status).toBe("skipped");
     expect(printful.calls.create).toBe(0);
   });
