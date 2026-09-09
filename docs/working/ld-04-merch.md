@@ -956,7 +956,30 @@ and checkout content, a turnover counter, tests.
 
 - [x] **P14a** — a destination VAT rate per member state.
 - [x] **P14b** — the postage grossed up at the buyer's own rate.
-- [ ] **P14c** — the two counters decision `013` asks for.
+- [x] **P14c** — the two counters decision `013` asks for. **P14 is complete.**
+
+`npm run report:vat-thresholds [year]` — a command an operator runs, not a job
+and not an alert. A scheduled warning nobody reads is worse than a number
+somebody asks for, and Union turnover reaching €100,000 develops over months.
+
+**Two things it over-counts on purpose**, because over-counting a threshold
+warns early and under-counting warns after the letter:
+
+- **Latvian supplies** are every order delivered to Latvia, whatever Printful
+  printed it in. What the €50,000 threshold measures is supplies *located*
+  there — dispatched from Latvia and delivered to Latvia — and the dispatch
+  country is answered by the shipping quote and stored on no order.
+- **An order with no address counts as domestic.** A certificate is supplied
+  where the trader is, and it is most of what this shop sells; leaving it out
+  would understate the one threshold that ends the scheme.
+
+**And one thing it refuses.** The totals are in the store's currency and the
+ceilings are in euro. Converting needs an ECB rate for a stated date, which the
+report does not have and will not invent — so it reports the currency it
+counted in, states the ceilings in euro, and says the comparison warns early
+while a unit of the store's currency is worth less than a euro. A
+foreign-currency order is counted at face value and flagged rather than
+dropped, because dropping understates.
 
 **P14b.** The gross-up used `WORST_VAT_RATE` — Hungary's 27% — for every EU
 buyer, "for the same reason the shelf prices are derived at it: one number,
