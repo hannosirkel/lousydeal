@@ -21,8 +21,8 @@ country's VAT registration is taken.
 | | | Cadence |
 | --- | --- | --- |
 | **Estonian VAT registration** | Held | **KMD**, monthly |
-| **Union OSS**, in e-MTA | To register **before merch goes on sale** | Quarterly, in euro |
-| **Small-enterprise scheme**, KMS § 19¹ | An *eelteade* in e-MTA; an `EX`-suffixed number follows within 35 working days | A per-country turnover report by the end of the month after each quarter |
+| **Union OSS**, in e-MTA | **Registered**, 2026-09-09 | Quarterly, in euro |
+| **Small-enterprise scheme**, KMS § 19¹ | **Registered**, 2026-09-09 — the *eelteade* is filed and the `EX`-suffixed number follows within 35 working days | A per-country turnover report by the end of the month after each quarter |
 
 Nothing else. No Latvian, Spanish, or other member-state registration.
 
