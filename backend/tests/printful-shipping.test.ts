@@ -6,6 +6,9 @@
  * the fixtures are what came back.
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import type { PrintfulClient } from "../src/modules/printful/client";
@@ -347,5 +350,53 @@ describe("whose VAT the postage carries", () => {
     for (const code of EU_MEMBER_STATE_CODES) {
       expect(`${code}: ${String(vatRateFor(code) * 100)}`).toBe(`${code}: ${String(EU_STANDARD_VAT_PERCENTS[code])}`);
     }
+  });
+});
+
+describe("the units, said once", () => {
+  /**
+   * **Gate D found the field carrying both answers.** P7c renamed `amountMinor`
+   * to `amount` and added a doc comment saying major units *directly beneath*
+   * the one still saying minor. Whichever a later reader believed, one of them
+   * agreed with them — on the path where the wrong belief already charged
+   * $663.00 for $5.22 of postage.
+   *
+   * A stale comment is not caught by any behavioural test, which is why it
+   * survived the mutation run that prompted this one. So the label form is
+   * banned outright: `Minor units,` is how a field is annotated, and the
+   * past-tense sentences that record P7c's correction are deliberately still
+   * allowed to say the word.
+   */
+  const source = readFileSync(join(__dirname, "../src/modules/printful/shipping.ts"), "utf8");
+
+  it("labels no money field in this file as minor units", () => {
+    expect(source).not.toMatch(/^\s*\*\s*Minor units/im);
+    expect(source).not.toMatch(/Minor units,/);
+  });
+
+  it("still lets the history say so, which is the whole reason the file explains itself", () => {
+    // Inverted rather than loosened: the ban must not be satisfiable by
+    // deleting the paragraph that records why the field is the way it is.
+    // **Anchored per comment, because the first version was not.** It asserted
+    // `chargeForRate`'s history sentence, which lives 100 lines below the
+    // field -- so gutting the field's own paragraph passed. Each of the two
+    // comments has to carry its own reason.
+    const field = source.slice(source.indexOf("export interface ShippingQuote"), source.indexOf("readonly amount: number;"));
+    expect(field).toMatch(/carried both answers at once until Gate D/);
+    expect(source).toMatch(/returned minor units until P7c/);
+    expect(source).toMatch(/\*\*in major units\*\*/);
+  });
+
+  it("cites nothing for the sort that P10 established says otherwise", () => {
+    // § 56¹(3) caps a refund at the cheapest *offered* method; it says nothing
+    // about which to offer. The sort survives, the citation does not.
+    const sort = source.slice(source.indexOf("  // Cheapest first, because"));
+    expect(sort).toContain("[...quotes].sort(");
+    expect(sort).not.toMatch(/§ 56¹\(3\) (?:requires|means|obliges|is why)/);
+    expect(sort).toMatch(/It used to cite § 56¹\(3\) for this, and P10 established that reading is/);
+  });
+
+  it("reads the file, so a bad path cannot pass by finding nothing", () => {
+    expect(source).toContain("export function chargeForRate");
   });
 });

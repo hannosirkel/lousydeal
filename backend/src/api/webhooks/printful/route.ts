@@ -56,11 +56,20 @@ interface SubmissionRow {
   readonly order_id: string;
   readonly printful_order_id: string | null;
   readonly printful_status: string | null;
+  readonly last_event_at: Date | string | null;
+  readonly shipped_at: Date | string | null;
 }
 
 interface Submissions {
   listPrintfulSubmissions(filters: Record<string, unknown>): Promise<SubmissionRow[]>;
   updatePrintfulSubmissions(data: Record<string, unknown>): Promise<unknown>;
+}
+
+/** A date however the row carried it. Medusa answers a `timestamptz` as either. */
+function timestamp(value: Date | string | null): Date | null {
+  if (value === null) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<void> {
@@ -101,6 +110,30 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
     return;
   }
 
+  /*
+   * **An event older than the state this row already holds is ignored.**
+   *
+   * Printful retries a non-2xx after 1, 4, 16, 64, 256 and 1024 minutes, so a
+   * delivery that failed once can land eighteen hours later — after the parcel
+   * has been refused and `shipment_returned` recorded. Gate D found the
+   * delayed `shipment_sent` overwriting it, so the shop's own record said a
+   * parcel was on its way to a buyer it had already bounced off.
+   *
+   * Compared on Printful's own `occurred_at` and not on arrival, which is the
+   * only clock that orders the events. An event carrying no timestamp is
+   * treated as current: refusing it would drop a real event over a missing
+   * field, and the last writer winning is what happened before this check
+   * existed.
+   */
+  const held = timestamp(row.last_event_at);
+  if (event.occurredAt !== null && held !== null && event.occurredAt.getTime() < held.getTime()) {
+    logger.info(
+      `printful ${event.type} for order ${row.order_id} is older than what is recorded; ignored`,
+    );
+    res.status(200).json({ ok: true });
+    return;
+  }
+
   // Read before written: an event arriving against a row that already says
   // shipped is a redelivery, and it records without telling anybody twice.
   const alreadyShipped = row.printful_status === "shipment_sent";
@@ -111,10 +144,28 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
     tracking_number: event.shipment.trackingNumber,
     tracking_url: event.shipment.trackingUrl,
     carrier: event.shipment.carrier,
-    shipped_at: event.type === "shipment_sent" ? event.occurredAt : null,
+    // **Kept rather than nulled on any other event.** It used to be set to
+    // `null` for everything but a shipment, so a `shipment_returned` erased
+    // the date the parcel had actually gone out — the one fact a return is
+    // measured from.
+    shipped_at: event.type === "shipment_sent" ? event.occurredAt : timestamp(row.shipped_at),
+    last_event_at: event.occurredAt,
+    // **A cancelled or failed order stops being `submitted`.** The submission
+    // path calls these "the one outcome that has to reach a person"; the same
+    // outcome arriving later by webhook left the local status saying the order
+    // was placed and fine. Gate D found it.
+    ...(event.type === "order_canceled" || event.type === "order_failed" ? { status: "canceled" as const } : {}),
   });
 
-  logger.info(`printful ${event.type} recorded for order ${row.order_id}`);
+  if (event.type === "order_canceled" || event.type === "order_failed") {
+    // Loud, and for the same reason `submitPrintfulOrder` is loud about it: a
+    // buyer has paid and nothing is coming.
+    logger.error(
+      `printful ${event.type} for order ${row.order_id}: the buyer has paid and this order will not be made`,
+    );
+  } else {
+    logger.info(`printful ${event.type} recorded for order ${row.order_id}`);
+  }
 
   if (event.type === "shipment_sent" && !alreadyShipped) {
     await tellTheBuyer(req, row.order_id, event.shipment);

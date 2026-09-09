@@ -13,7 +13,7 @@
 
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -1084,5 +1084,31 @@ describe("the cart-to-paid-order flow, against one stubbed backend", () => {
 
     expect(state.completed).toBe(true);
     expect(order).toEqual({ orderId: "order_e2e" });
+  });
+});
+
+describe("the postage field, labelled once and in the right scale", () => {
+  /**
+   * The storefront's own copy of the field `printful-shipping.test.ts` guards
+   * on the other side. It said "Minor units" while the value crossing the wire
+   * was major -- the same contradiction, one process away, and the one that
+   * would be read by whoever next writes a total on the checkout.
+   *
+   * Both are asserted because the fix is that the two agree.
+   */
+  const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../src/lib/store-checkout.ts"), "utf8");
+
+  it("labels no money field here as minor units", () => {
+    expect(source).not.toMatch(/^\s*(?:\*|\/\*\*)\s*Minor units/im);
+    expect(source).not.toMatch(/Minor units,/);
+  });
+
+  it("says which scale, rather than leaving it to be inferred from a multiplication", () => {
+    // Inverted: deleting the comment must not satisfy the ban above.
+    expect(source).toMatch(/Major units, VAT-inclusive/);
+  });
+
+  it("reads the file, so a bad path cannot pass by finding nothing", () => {
+    expect(source).toContain("export");
   });
 });
