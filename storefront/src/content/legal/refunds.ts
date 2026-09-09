@@ -139,11 +139,14 @@
  * was found either way — which is an argument for stating the position that
  * favours the buyer, not against it.
  *
- * **What is an operator action rather than a sentence.** § 56²(1) returns an
- * item to the trader, and the trader here is the Imprint address; the printer
- * does not take back goods it made to order. The document says so because the
- * statute puts it there, not because anything has been arranged —
- * `status.md` carries the row.
+ * **The return address was an open operator question and is now settled.**
+ * § 56²(1) returns an item to the trader, and the trader here is the Imprint
+ * address; the printer does not take back goods it made to order. The document
+ * said so from the start because the statute puts it there rather than because
+ * anything had been arranged — and the operator confirmed on 2026-09-09 that
+ * they are content to receive parcels at it. Nothing in §6.1 changes; what
+ * changes is that the sentence is now backed by an arrangement as well as by
+ * the statute.
  *
  * **The statutory paragraphs carry no flourish.** `brand.md` §5 allows one in a
  * recital and nowhere that changes meaning; a withdrawal clause is the clearest
