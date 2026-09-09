@@ -204,7 +204,7 @@ export const PRIVACY: LegalDocument = {
       heading: "Your rights",
       body: [
         "You may ask what we hold about you, ask for it to be corrected, ask for it to be deleted, ask us to stop or limit what we do with it, ask for a copy in a portable form, or object to processing we do on the basis of our legitimate interests. Write to {merchantEmail}.",
-        "We hold no name, so an order is identified by its number, by the email address you gave, and by the payment behind it. If you ask us about an order, write from that address or tell us which order it is, or we will not be able to find you in our own records.",
+        "We hold no billing name — our own code never asks for one — so an order is identified by its number, by the email address you gave, and by the payment behind it. Where an order had something posted we also hold the delivery name you typed, and where somebody was sent a certificate as a gift we hold theirs; §4 and §6 say so. If you ask us about an order, write from that address or tell us which order it is, or we will not be able to find you in our own records.",
         "If you think we have got it wrong you may complain to your national data protection authority. In Estonia that is the Data Protection Inspectorate (Andmekaitse Inspektsioon), Tatari 39, 10134 Tallinn, info@aki.ee.",
       ],
     },

@@ -67,7 +67,7 @@ export const BALDRICK_PAUSE_LABEL = "Baldrick is selecting a pre-written respons
 export const BALDRICK_SCRIPT: Script = {
   greeting: {
     say: [
-      ["I am Baldrick. I am here about the certificate.", "I am Baldrick. There is one product and I know most of it."],
+      ["I am Baldrick. I am here about the certificate.", "I am Baldrick. There is a certificate, and some things with it printed on them."],
       ["Ask me something. I will answer if it is easy."],
     ],
     quickReplies: [

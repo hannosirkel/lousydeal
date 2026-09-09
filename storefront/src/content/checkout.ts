@@ -170,7 +170,7 @@ export const GIFT_PREVIEW_EMPTY = "No message";
  * not is a support message, and this sentence is cheaper than the reply.
  */
 export const GIFT_CONFIRMATION_NOTE =
-  "Your own confirmation still comes to the address above, and it names where the certificate went.";
+  "We still send your own confirmation to the address above, and it names where the certificate went.";
 
 /**
  * The price disclosure, above the pay control rather than below it.

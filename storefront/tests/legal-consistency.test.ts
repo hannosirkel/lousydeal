@@ -21,7 +21,15 @@
 import { describe, expect, it } from "vitest";
 
 import { baldrickProse } from "../src/content/baldrick";
-import { CONSENT_LABEL, EMAIL_HINT } from "../src/content/checkout";
+import {
+  ADDRESS_NOTE,
+  CONSENT_LABEL,
+  EMAIL_HINT,
+  GIFT_CONFIRMATION_NOTE,
+  POSTED_PRICE_NOTICE,
+  orderSummaryLines,
+} from "../src/content/checkout";
+import { MERCH_APOLOGY, MERCH_HEADING, MERCH_TABLE_HEADINGS } from "../src/content/merch";
 import { WITHDRAWAL_NOTICE } from "../src/content/deal";
 import { TERMS_OF_OFFER } from "../src/content/home";
 import { IMPRINT } from "../src/content/legal/imprint";
@@ -64,6 +72,23 @@ const SURFACES: ReadonlyArray<readonly [string, string]> = [
   // document is corrected. That is precisely the shape of the two surfaces
   // already on this list because they were found missing from it.
   ["Baldrick", baldrickProse()],
+  // **LD-04 added five surfaces and this list was not one of the files it
+  // touched.** Gate D found four stale claims surviving on surfaces the guard
+  // does not read -- and the file's own header has said twice already that a
+  // guard is only as wide as its list. These are the ones LD-04 made:
+  ["the gift confirmation note", GIFT_CONFIRMATION_NOTE],
+  ["the address note", ADDRESS_NOTE],
+  ["the posted price notice", POSTED_PRICE_NOTICE],
+  ["the merch upsell", [MERCH_HEADING, MERCH_APOLOGY, ...Object.values(MERCH_TABLE_HEADINGS)].join("\n")],
+  // Every cart shape the checkout can render, because the § 62²(2) lines
+  // differ by shape and only one of them was ever read here.
+  [
+    "the order summary",
+    [
+      ...orderSummaryLines({ hasCertificate: true, hasPostedGoods: false }),
+      ...orderSummaryLines({ hasCertificate: true, hasPostedGoods: true }),
+    ].join("\n"),
+  ],
 ];
 
 /** Surfaces that discuss the § 55 confirmation at all. */
@@ -73,7 +98,7 @@ describe("the surfaces this applies to", () => {
   it("includes every legal document and every pre-contractual surface", () => {
     // A cross-document guard that silently stops covering a document is the
     // failure it was written to prevent.
-    expect(SURFACES).toHaveLength(9);
+    expect(SURFACES).toHaveLength(14);
     for (const [name, text] of SURFACES) expect(`${name}: ${String(text.length > 0)}`).toBe(`${name}: true`);
   });
 
@@ -99,13 +124,20 @@ describe("what every surface says about the confirmation", () => {
   it.each(mentionsTheConfirmation)("%s does not assert that we withhold it", (_name, text) => {
     expect(text).not.toMatch(/do(?:es)? not (?:yet )?send/i);
     expect(text).not.toMatch(/\bno confirmation is (?:sent|given)\b/i);
+    // The form the positive rule above would not catch on its own.
+    expect(text).not.toMatch(/\bwe never send\b/i);
   });
 
   it.each(mentionsTheConfirmation)("%s says we send it", (_name, text) => {
     // The positive half, and still the one that matters: a surface may not go
     // quiet about the third condition. Silence is how §5 of the Terms stayed
     // wrong while §6 was being corrected.
-    expect(text).toMatch(/\bwe (?:do )?send\b|\bwe send it\b/i);
+    // **The adverbs are enumerated, not wildcarded.** `we (\w+ )?send` would
+    // admit "we never send", which is the one thing this rule exists to
+    // forbid. Widened from `we (do )?send` when the gift note joined the list
+    // saying "we still send" -- a phrasing that asserts exactly the same thing
+    // and matched nothing.
+    expect(text).toMatch(/\bwe (?:do |still |also |always )?send\b|\bwe send it\b/i);
   });
 });
 
@@ -233,5 +265,70 @@ describe("the refund promise", () => {
     expect(promise).toContain("§ 56¹(3)");
     expect(promise).toMatch(/the whole of the postage comes back/i);
     expect(promise).not.toMatch(/up to the cheapest/i);
+  });
+});
+
+describe("claims corrected in one document and left standing in another", () => {
+  /**
+   * **Every phrase below was corrected somewhere and survived somewhere else.**
+   * The €30 sentence was written in four places, corrected in Terms §12 and
+   * Refunds §8 by P10, and found by Gate D still standing in the Imprint and
+   * in the § 55 confirmation — where the Imprint additionally *cited the
+   * Terms* for a claim the Terms explicitly retract.
+   *
+   * That is this file's own thesis, stated in its header twice: a guard aimed
+   * at one file is not a guard on a claim. `legal-refunds.test.ts` banned the
+   * threshold sentence — in `REFUNDS` alone.
+   */
+  const bannedEverywhere: ReadonlyArray<readonly [string, RegExp]> = [
+    // The disputes threshold. A shirt costs more than 30 euros, and a buyer
+    // steered away from the committee has lost a remedy that would have taken
+    // their claim.
+    ["everything sold is under the threshold", /more than anything sold here costs|every item sold here costs less/i],
+    // The shop sells five things in two kinds. Said flatly, shop-wide, this is
+    // the claim LD-04 falsified -- not the scoped sentence about what a
+    // certificate confers, which every document is right to keep.
+    ["there is only one product", /\bthere is one product\b/i],
+    // False since P7 collected a delivery name, and since G6 stored a gift
+    // recipient's. Privacy §4 was corrected and §9 was not.
+    ["no name is held at all", /\bwe hold no name\b/i],
+    // Untrue since LD-02, and twice over since C14's withdrawal receipt.
+    ["no email is sent at all", /\bwe send no email at all\b/i],
+  ];
+
+  for (const [claim, pattern] of bannedEverywhere) {
+    it.each(SURFACES)(`%s does not claim ${claim}`, (name, text) => {
+      const offending = text.split(/(?<=\.)\s+/).filter((sentence) => pattern.test(sentence));
+      expect(`${name}: ${offending.join(" | ")}`).toBe(`${name}: `);
+    });
+  }
+
+  it("checks these against every surface, not against one document", () => {
+    // The assertion that makes the ones above worth having: they run over the
+    // whole list, and the list is the one the count above pins.
+    expect(SURFACES.length).toBeGreaterThanOrEqual(14);
+  });
+});
+
+describe("what every surface says is sold", () => {
+  it("names the printed things wherever it enumerates the shop's products", () => {
+    // The Imprint's "What is sold here" said "a numbered digital certificate,
+    // and nothing else of value" a row after Terms §2 began saying two kinds
+    // of thing are sold. A document that enumerates has to enumerate.
+    const imprint = documentProse(IMPRINT);
+    expect(imprint).toMatch(/Printed goods too/i);
+    expect(imprint).toMatch(/worth what such objects are worth/i);
+  });
+
+  it("keeps the certificate's own description intact while doing it", () => {
+    // Scoping is one edit away from softening, and this is the clause §23
+    // turns on.
+    expect(documentProse(IMPRINT)).toMatch(/nothing else of value/i);
+  });
+
+  it("says which name the Privacy Policy does not hold", () => {
+    // The narrower claim is still true and is the one a reader cares about.
+    expect(documentProse(PRIVACY)).toMatch(/We hold no billing name/i);
+    expect(documentProse(PRIVACY)).toMatch(/delivery name you typed/i);
   });
 });
