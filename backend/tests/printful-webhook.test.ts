@@ -286,3 +286,80 @@ describe("the middleware that makes the signature checkable", () => {
     expect((source.match(/preserveRawBody/g) ?? []).length).toBe(1);
   });
 });
+
+describe("events arriving out of order, which Printful's retries make routine", () => {
+  /**
+   * **Printful retries a non-2xx after 1, 4, 16, 64, 256 and 1024 minutes**, so
+   * a delivery that failed once can land eighteen hours later — after the
+   * parcel has been refused and `shipment_returned` recorded.
+   *
+   * Gate D found the delayed `shipment_sent` overwriting it, so the shop's own
+   * record said a parcel was on its way to a buyer it had already bounced off.
+   * The route reads the source, so these assert the rule against it — the
+   * route needs a running Medusa and the comparison is the whole of the fix.
+   */
+  const source = readFileSync(join(__dirname, "../src/api/webhooks/printful/route.ts"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
+
+  it("compares an arriving event against what the row already holds", () => {
+    expect(source).toMatch(/event\.occurredAt\.getTime\(\) < held\.getTime\(\)/);
+    expect(source).toMatch(/is older than what is recorded; ignored/);
+  });
+
+  it("compares on Printful's own clock, not on arrival", () => {
+    // The only clock that orders the events. `new Date()` here would order
+    // them by when this process happened to receive them, which is the thing
+    // that went wrong.
+    const guard = source.slice(source.indexOf("const held ="), source.indexOf("alreadyShipped ="));
+    expect(guard).toContain("row.last_event_at");
+    expect(guard).not.toMatch(/new Date\(\)/);
+  });
+
+  it("acknowledges a stale event rather than refusing it", () => {
+    // A non-2xx earns six more deliveries of something already superseded.
+    const guard = source.slice(source.indexOf("is older than what is recorded"), source.indexOf("alreadyShipped ="));
+    expect(guard).toMatch(/status\(200\)/);
+  });
+
+  it("treats an event with no timestamp as current", () => {
+    // Refusing it would drop a real event over a missing field, and last
+    // writer wins is what happened before the check existed.
+    expect(source).toMatch(/event\.occurredAt !== null && held !== null/);
+  });
+
+  it("keeps the shipped date when a later event is not a shipment", () => {
+    // It was nulled on every other event, so a `shipment_returned` erased the
+    // date the parcel actually went out -- the one fact a return is measured
+    // from.
+    expect(source).toMatch(/shipped_at: event\.type === "shipment_sent" \? event\.occurredAt : timestamp\(row\.shipped_at\)/);
+  });
+});
+
+describe("an order Printful cancels or fails after it was placed", () => {
+  /**
+   * `submitPrintfulOrder` calls these "the one outcome that has to reach a
+   * person" and logs at error. **The same outcome arriving later by webhook
+   * was logged at info**, left the local status saying `submitted`, and told
+   * nobody — so a buyer had paid, the shop's record said the order was placed
+   * and fine, and nothing was coming. Gate D found it.
+   */
+  const source = readFileSync(join(__dirname, "../src/api/webhooks/printful/route.ts"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
+
+  it("stops the local status saying the order was submitted", () => {
+    expect(source).toMatch(/event\.type === "order_canceled" \|\| event\.type === "order_failed"\s*\?\s*\{ status: "canceled"/);
+  });
+
+  it("says it at error, because a buyer has paid and nothing is coming", () => {
+    expect(source).toMatch(/logger\.error\(\s*`printful \$\{event\.type\} for order/);
+    expect(source).toMatch(/the buyer has paid and this order will not be made/);
+  });
+
+  it("still logs an ordinary shipment at info", () => {
+    // Not everything is an emergency; a log that says so about a parcel going
+    // out is one nobody reads.
+    expect(source).toMatch(/logger\.info\(`printful \$\{event\.type\} recorded for order/);
+  });
+});
