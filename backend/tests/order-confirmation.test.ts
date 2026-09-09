@@ -37,8 +37,24 @@ const MERCHANT: MerchantIdentity = {
   phoneNumber: "+372 00 00000",
 };
 
+/**
+ * `CONSENT_LABEL`, read out of the storefront rather than restated here.
+ *
+ * Extracted from the source text: the two workspaces have separate tsconfigs
+ * and this test does not compile the other one.
+ */
+function consentLabel(): string {
+  const source = readFileSync(join(__dirname, "../../storefront/src/content/checkout.ts"), "utf8");
+  const match = /export const CONSENT_LABEL =\s*"([^"]+)"/.exec(source);
+  if (match?.[1] === undefined) throw new Error("could not read CONSENT_LABEL from the storefront");
+  return match[1];
+}
+
 const DEAL: ConfirmationDeal = {
   serial: 4102,
+  // A certificate-only order, which is what every fixture here was written
+  // for. The mixed order has its own describe below.
+  hasPostedGoods: false,
   tier: "Lousy Deal Pro",
   total: "$25.00",
   issuedOn: "2026-09-06",
@@ -93,9 +109,27 @@ describe("what § 55(2) requires it to carry", () => {
     // A confirmation that said "you consented" without saying to what would be
     // the trader's account of the buyer's state of mind.
     expect(text).toMatch(/a box that was not ticked for you/i);
-    expect(text).toContain(
-      "I request that supply of the digital certificate begin immediately, and I acknowledge that I will lose my right of withdrawal once supply has begun.",
-    );
+    expect(text).toContain(consentLabel());
+  });
+
+  it("quotes the box the checkout actually renders, read from the checkout", () => {
+    /**
+     * **This test used to carry its own copy of the sentence, and the copy was
+     * stale.** P10c added "for that certificate" to the box, precisely so no
+     * buyer could read it as waiving anything about a mug — and the durable
+     * record went on reproducing the unscoped version, claiming the buyer had
+     * signed a wider waiver than the one they were shown. Gate D found it. The
+     * assertion here was a second copy of the same falsehood.
+     *
+     * So it is read from the storefront's own constant. The two live in
+     * different workspaces, which is why this is a file read rather than an
+     * import — `third-party-disclosure.test.ts` reaches the other way for the
+     * same reason. A quotation that cannot drift is the only kind worth
+     * putting on a durable medium.
+     */
+    const label = consentLabel();
+    expect(label).toMatch(/for that certificate/);
+    expect(text).toContain(label);
   });
 
   it("gives § 54(1) p 18's complaints route, with the limit the buyer should know first", () => {
@@ -214,5 +248,121 @@ describe("both bodies", () => {
     for (const fragment of ["§ 55", "14 days", "Consumer Disputes Committee", "#4,102", "$25.00"]) {
       expect(message?.html, fragment).toContain(fragment);
     }
+  });
+});
+
+describe("an order that also contained a parcel", () => {
+  /**
+   * **Six of Gate D's findings lived here, unobserved.** Every fixture in this
+   * file was a certificate-only order, so every sentence written when an order
+   * could only ever be one certificate went on being true of the only thing
+   * ever tested.
+   *
+   * § 55(2) requires the § 54(1) information about the **order**, not about
+   * the certificate, and this is the document a dispute reads.
+   */
+  const mixed = buildOrderConfirmation({ ...DEAL, hasPostedGoods: true }, MERCHANT, "https://lousydeal.test");
+  const text = mixed?.text ?? "";
+
+  it("says the printed goods were in it, and that they are worth something", () => {
+    // The worthlessness clauses are the most valuable thing this shop says and
+    // the most dangerous to over-apply. A mug is worth what a mug is worth.
+    expect(text).toMatch(/also contained printed goods/i);
+    expect(text).toMatch(/worth what such objects are worth/i);
+    expect(text).toMatch(/Nothing above about worthlessness is true of them/i);
+  });
+
+  it("keeps the certificate's own clauses intact while doing it", () => {
+    // Additive, the way the gift line is: scoping is one edit away from
+    // softening, and these are the clauses §23 turns on.
+    expect(text).toMatch(/nothing else of value/i);
+    expect(text).toMatch(/no rights, no ownership, no entitlement/i);
+  });
+
+  it("gives both withdrawal clocks, not just the certificate's", () => {
+    // **The one that would have understated a right on the durable medium.**
+    // § 56(1¹) runs a printed item's period from physical possession, and p 1
+    // from the last parcel where an order arrives in several.
+    expect(text).toContain("§ 56(1¹)");
+    expect(text).toContain("§ 56(1³)");
+    expect(text).toMatch(/the day it reaches you/i);
+    expect(text).toMatch(/the day the last of them does/i);
+  });
+
+  it("discharges § 54(1) p 14, which § 56²(3) conditions the return cost on", () => {
+    // Without it the cost cannot be shifted at all. Refunds §6.1 and the
+    // checkout both say it; the durable record is the one a dispute reads.
+    expect(text).toContain("§ 54(1) p 14");
+    expect(text).toMatch(/you pay the direct cost/i);
+    expect(text).toMatch(/return the price and the postage you paid/i);
+  });
+
+  it("stops claiming nothing was added at checkout, because postage was", () => {
+    expect(text).not.toMatch(/nothing was added at checkout/i);
+    expect(text).toMatch(/Postage was the one thing added/i);
+    expect(text).toMatch(/before you paid/i);
+  });
+
+  it("says the consent box did not reach the goods", () => {
+    // The box says "for that certificate"; this says why that matters.
+    expect(text).toMatch(/about the certificate and nothing else/i);
+    expect(text).toMatch(/no exception on that list covers them/i);
+  });
+
+  it("no longer tells a buyer with a parcel that everything here is under 30 euros", () => {
+    // The inverted sentence Terms §12 and Refunds §8 were corrected to remove,
+    // surviving on the durable record and steering a buyer with a $62 basket
+    // away from a remedy that would take their claim.
+    expect(text).not.toMatch(/every item sold here costs less/i);
+    expect(text).toMatch(/depends on what you ordered/i);
+  });
+});
+
+describe("a certificate-only order, which must not have gained any of that", () => {
+  // Constraint 4 applied to the durable record: the order that has always been
+  // possible must read exactly as it did.
+  const text = buildOrderConfirmation({ ...DEAL, hasPostedGoods: false }, MERCHANT, "https://lousydeal.test")?.text ?? "";
+
+  it("says nothing about parcels, postage or returning anything", () => {
+    // **Not "the words `printed goods` never appear".** The corrected disputes
+    // paragraph explains the €30 threshold for both kinds of order, which is
+    // the same wording Terms §12 and Refunds §8 carry, and is not a claim that
+    // this order had any. What must be absent is the assertion.
+    for (const absent of [/also contained printed goods/i, /Postage was the one thing/i, /§ 54\(1\) p 14/, /§ 56\(1¹\)/]) {
+      expect(`${String(absent)}: ${String(absent.test(text))}`).toBe(`${String(absent)}: false`);
+    }
+  });
+
+  it("keeps the single clock and the original price sentence", () => {
+    expect(text).toMatch(/The period runs from the day the contract was concluded/);
+    expect(text).toMatch(/nothing was added at checkout/i);
+  });
+});
+
+describe("what the subscriber tells the confirmation", () => {
+  /**
+   * **A mutation that made `hasPostedGoods` permanently false survived every
+   * test above**, because the subscriber cannot be driven here —
+   * `order-placed.ts`'s own header says why — so nothing checked which value
+   * reaches the builder. Every branch was tested and the switch was not.
+   *
+   * It is decided from the same lines `printfulSubmissionFrom` reads, so the
+   * confirmation and the parcel cannot disagree about whether there is one.
+   */
+  const source = readFileSync(join(__dirname, "../src/subscribers/order-placed.ts"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
+
+  it("decides it from the order's own lines, not from a constant", () => {
+    expect(source).toMatch(/hasPostedGoods:\s*\(printfulSubmissionFrom\(/);
+    expect(source).toMatch(/\.input\.lines\.length \?\? 0\) > 0/);
+  });
+
+  it("does not hard-code it either way", () => {
+    expect(source).not.toMatch(/hasPostedGoods:\s*(?:true|false)\b/);
+  });
+
+  it("reads the stripping, so a broken regex cannot pass by emptying the file", () => {
+    expect(source).toContain("export default async function orderPlaced");
   });
 });

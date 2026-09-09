@@ -34,6 +34,7 @@ import {
   CONFIRMATION_PAID,
   CONFIRMATION_SUBJECT,
   CONFIRMATION_TRADER,
+  CONFIRMATION_ALSO_POSTED,
   CONFIRMATION_WHAT,
   CONFIRMATION_WITHDRAWAL,
 } from "../content/confirmation";
@@ -54,6 +55,14 @@ export interface ConfirmationDeal {
    * anybody, since they typed it.
    */
   readonly giftRecipientAddress: string | null;
+  /**
+   * Whether this order carried anything posted.
+   *
+   * The § 55 confirmation is about the **order**, not the certificate — § 55(2)
+   * requires the § 54(1) information for the whole of it. Gate D found five
+   * sentences here written when an order could only ever be one certificate.
+   */
+  readonly hasPostedGoods: boolean;
 }
 
 export interface ConfirmationMessage {
@@ -124,16 +133,17 @@ export function buildOrderConfirmation(
         `${CONFIRMATION_LABELS.issued}: ${deal.issuedOn}`,
         `${CONFIRMATION_LABELS.certificate}: ${deal.certificateUrl}`,
         CONFIRMATION_WHAT,
+        ...(deal.hasPostedGoods ? [CONFIRMATION_ALSO_POSTED] : []),
         // G4. Present only on a gift, and additive: § 55(2) requires the
         // § 54(1) information whatever the order was for, so this joins the
         // section rather than replacing anything in it.
         ...(deal.giftRecipientAddress === null ? [] : [CONFIRMATION_GIFT(deal.giftRecipientAddress)]),
       ],
     ],
-    [CONFIRMATION_HEADINGS.paid, [`${CONFIRMATION_LABELS.total}: ${deal.total}`, CONFIRMATION_PAID]],
+    [CONFIRMATION_HEADINGS.paid, [`${CONFIRMATION_LABELS.total}: ${deal.total}`, CONFIRMATION_PAID(deal.hasPostedGoods)]],
     [CONFIRMATION_HEADINGS.trader, CONFIRMATION_TRADER.map(fill)],
-    [CONFIRMATION_HEADINGS.withdrawal, CONFIRMATION_WITHDRAWAL.map(fill)],
-    [CONFIRMATION_HEADINGS.consent, [...CONFIRMATION_CONSENT]],
+    [CONFIRMATION_HEADINGS.withdrawal, CONFIRMATION_WITHDRAWAL(deal.hasPostedGoods).map(fill)],
+    [CONFIRMATION_HEADINGS.consent, [...CONFIRMATION_CONSENT(deal.hasPostedGoods)]],
     [CONFIRMATION_HEADINGS.form, [CONFIRMATION_FORM_INTRO, ...CONFIRMATION_FORM_LINES.map(fill)]],
     [CONFIRMATION_HEADINGS.complaints, CONFIRMATION_COMPLAINTS.map(fill)],
   ];

@@ -158,7 +158,7 @@ describe("what the recipient must not read", () => {
     // LD-03's constraint 5. Telling a stranger about a right they do not have
     // is worse than saying nothing: it invites them to try to exercise it.
     const text = build()?.text ?? "";
-    for (const line of CONFIRMATION_WITHDRAWAL) {
+    for (const line of CONFIRMATION_WITHDRAWAL(false)) {
       expect(text).not.toContain(line);
     }
     expect(text).not.toMatch(/14[- ]day|§ 56|§ 53\(4\)|withdraw/i);
@@ -169,7 +169,7 @@ describe("what the recipient must not read", () => {
   });
 
   it("carries no consent recital, because the recipient consented to nothing", () => {
-    for (const line of CONFIRMATION_CONSENT) {
+    for (const line of CONFIRMATION_CONSENT(false)) {
       expect(build()?.text).not.toContain(line);
     }
   });
@@ -235,6 +235,7 @@ describe("the buyer's confirmation", () => {
     buildOrderConfirmation(
       {
         serial: 4102,
+        hasPostedGoods: false,
         tier: "Lousy Deal Pro",
         total: "$25.00",
         issuedOn: "2026-09-07",
@@ -268,7 +269,7 @@ describe("the buyer's confirmation", () => {
       expect(plain, heading).toContain(heading);
       expect(gifted, heading).toContain(heading);
     }
-    for (const line of CONFIRMATION_CONSENT) {
+    for (const line of CONFIRMATION_CONSENT(false)) {
       expect(plain).toContain(line);
       expect(gifted).toContain(line);
     }

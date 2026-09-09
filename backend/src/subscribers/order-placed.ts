@@ -283,7 +283,17 @@ export default async function orderPlaced({
     // internet -- a log line is a place it would outlive its purpose.
     logger.info(`deal #${deal.serial} issued for order ${orderId}`);
 
-    await sendConfirmation({ container, logger, order, deal, orderId, tier: line.tier });
+    await sendConfirmation({
+      container,
+      logger,
+      order,
+      deal,
+      orderId,
+      tier: line.tier,
+      // Decided from the same lines `printfulSubmissionFrom` reads, so the
+      // confirmation and the parcel cannot disagree about whether there is one.
+      hasPostedGoods: (printfulSubmissionFrom(order, PRODUCT_TIERS.map((t) => t.handle), new Date())?.input.lines.length ?? 0) > 0,
+    });
   } catch (error) {
     logger.error(
       `deal issuance failed for order ${orderId}: ${error instanceof Error ? error.message : String(error)}`,
@@ -417,12 +427,15 @@ async function sendConfirmation({
   deal,
   orderId,
   tier,
+  hasPostedGoods,
 }: {
   container: SubscriberArgs<OrderPlacedEvent>["container"];
   logger: { info(message: string): void; error(message: string): void };
   order: QueriedOrder;
   deal: IssuedDeal;
   orderId: string;
+  /** Whether the order carried anything posted. § 55(2) is about the order, not the certificate. */
+  hasPostedGoods: boolean;
   /**
    * The certificate's own title, from `certificateLine`.
    *
@@ -480,6 +493,7 @@ async function sendConfirmation({
       // happened and this function's input was rebuilt from the order; the row
       // is the record of what was actually stored. G1 put the gift on
       // `IssuedDeal` for exactly this.
+      hasPostedGoods,
       giftRecipientAddress: deal.gift_recipient_email,
     },
     runtime.merchant,

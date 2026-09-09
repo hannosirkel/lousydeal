@@ -87,13 +87,38 @@ export const CONFIRMATION_GIFT = (recipientAddress: string): string =>
 export const CONFIRMATION_OPENING =
   "This is the confirmation of your order, on a durable medium, that § 55 of the Estonian Law of Obligations Act requires us to send you. Keep it: it is the record of what you bought and of the rights you have.";
 
-/** § 54(1) p 4: the main characteristics of what was supplied. */
+/**
+ * § 54(1) p 4: the main characteristics of what was supplied.
+ *
+ * **Said of the certificate, and only of the certificate.** Gate D found this
+ * asserting "nothing else of value" on the durable record of an order that
+ * also contained a mug — which is worth what a mug is worth, as Terms §2 now
+ * says. {@link CONFIRMATION_ALSO_POSTED} is the additive half.
+ */
 export const CONFIRMATION_WHAT =
   "A numbered digital certificate, and nothing else of value. It confers no rights, no ownership, no entitlement, no membership, no service, no discount and no benefit of any kind, now or later. It is not an investment, it is not a security, and it cannot be redeemed for anything. You view it in a web browser: there is no account, no software to install, no file to download, and no technical protection measure applied to it.";
 
-/** § 54(1) p 6: the total price including taxes. Decision `009` is why nothing was added at checkout. */
-export const CONFIRMATION_PAID =
-  "The price shown was the price charged. It includes value added tax where value added tax applies, and nothing was added at checkout: no tax line, no fee, and no charge you were not shown before you paid.";
+/**
+ * The printed goods, where there were any.
+ *
+ * Additive, the way `CONFIRMATION_GIFT` is: § 55(2) requires the § 54(1)
+ * information about the whole order, so this joins the section rather than
+ * replacing what is said about the certificate.
+ */
+export const CONFIRMATION_ALSO_POSTED =
+  "This order also contained printed goods, listed in your order summary. Those are ordinary objects: they are worth what such objects are worth, they were made after you ordered them, and they are posted to the address you gave. Nothing above about worthlessness is true of them.";
+
+/**
+ * § 54(1) p 6: the total price including taxes.
+ *
+ * **"Nothing was added at checkout" was false for a parcel**, which Gate D
+ * found — postage is added, and Terms §3 was corrected for exactly this a row
+ * earlier while the durable record kept the old sentence.
+ */
+export const CONFIRMATION_PAID = (hasPostedGoods: boolean): string =>
+  hasPostedGoods
+    ? "Every price shown was the price charged, and it includes value added tax where value added tax applies. Postage was the one thing added, and it was quoted and shown to you as its own line before you paid. There was no tax line, no fee, and no charge you were not shown first."
+    : "The price shown was the price charged. It includes value added tax where value added tax applies, and nothing was added at checkout: no tax line, no fee, and no charge you were not shown before you paid.";
 
 /**
  * § 54(1) pp 12 and 13: the conditions, the time limit and the procedure for
@@ -103,12 +128,28 @@ export const CONFIRMATION_PAID =
  * what the buyer needs and what the site's own documents already say. The
  * `{ }` placeholders are resolved against the trader identity.
  */
-export const CONFIRMATION_WITHDRAWAL = [
-  "Under § 56(1) of the Law of Obligations Act you may withdraw from a distance contract within 14 days, without giving a reason. The period runs from the day the contract was concluded, which for this order is the day of this email.",
+export const CONFIRMATION_WITHDRAWAL = (hasPostedGoods: boolean): readonly string[] => [
+  hasPostedGoods
+    ? // **Two clocks, and Gate D found this stating only one.** § 56(1¹) runs
+      // a printed item's period from physical possession — p 1 from the last
+      // parcel where an order arrives in several — and § 56(1³) runs the
+      // certificate's from conclusion. Stating only the second on the durable
+      // record understates the buyer's right on the document they keep, which
+      // is the failure this shop least wants to make.
+      "Under § 56(1) of the Law of Obligations Act you may withdraw from a distance contract within 14 days, without giving a reason. When those days start depends on what you ordered. For the certificate, § 56(1³) starts them the day the contract was concluded, which for this order is the day of this email. For a printed item, § 56(1¹) starts them the day it reaches you — and where an order arrives as more than one parcel, the day the last of them does."
+    : "Under § 56(1) of the Law of Obligations Act you may withdraw from a distance contract within 14 days, without giving a reason. The period runs from the day the contract was concluded, which for this order is the day of this email.",
   "§ 53(4) p 7¹ removes that right for digital content not supplied on a physical medium, but only where all three of these are true: supply began before the period ended, you gave express prior consent to it beginning and acknowledged that you would thereby lose the right, and we gave you the confirmation § 55(1) and § 55(2) require. This email is that confirmation.",
   "To withdraw, use the button at {siteBaseUrl}/legal/withdraw, or tell us in any unambiguous way — the form below is one, and you are not obliged to use it. Write to {merchantEmail} if you would rather.",
   "If we return anything to you, § 56¹(1) gives us 14 days from receiving your notice and § 56¹(4) requires us to use the same means of payment you did, unless you expressly ask otherwise. There is no fee for withdrawing.",
-] as const;
+  // § 54(1) p 14, and § 56²(3) makes the cost shift *conditional* on having
+  // said it. Refunds §6.1 discharges it and the checkout repeats it; a durable
+  // record that omitted it would be the one document a dispute reads.
+  ...(hasPostedGoods
+    ? [
+        "If you withdraw from a printed item you send it back within 14 days of telling us, and you pay the direct cost of doing so — § 54(1) p 14 requires us to say that, and this is us saying it. We return the price and the postage you paid. Send it to the address above.",
+      ]
+    : []),
+];
 
 /**
  * § 53(4) p 7¹'s consent, recorded as it was given.
@@ -117,11 +158,22 @@ export const CONFIRMATION_WITHDRAWAL = [
  * would be the trader's account of the buyer's state of mind. This reproduces
  * the box.
  */
-export const CONFIRMATION_CONSENT = [
+export const CONFIRMATION_CONSENT = (hasPostedGoods: boolean): readonly string[] => [
   "Before paying, you ticked a box that was not ticked for you. It read:",
-  "I request that supply of the digital certificate begin immediately, and I acknowledge that I will lose my right of withdrawal once supply has begun.",
+  // **Quoted, and Gate D found the quotation wrong.** The box has said "for
+  // that certificate" since P10c, which added those words precisely so no
+  // buyer could read it as waiving anything about a mug. This reproduced the
+  // unscoped sentence — the durable record claiming the buyer signed a wider
+  // waiver than the one they were shown. `confirmation-consent.test.ts` reads
+  // the storefront's own constant and compares.
+  "I request that supply of the digital certificate begin immediately, and I acknowledge that I will lose my right of withdrawal for that certificate once supply has begun.",
   "Supply began when the certificate was issued, which is the moment your payment succeeded.",
-] as const;
+  ...(hasPostedGoods
+    ? [
+        "That box was about the certificate and nothing else. It has no effect on the printed goods in this order: § 53(4) p 7¹ reaches only digital content not supplied on a physical medium, and no exception on that list covers them.",
+      ]
+    : []),
+];
 
 /**
  * Annex I(B) to Directive 2011/83/EU, reproduced.
@@ -147,7 +199,7 @@ export const CONFIRMATION_FORM_LINES = [
 /** § 54(1) p 18 and § 62¹⁴: where a complaint goes, and the limit the buyer should know before writing. */
 export const CONFIRMATION_COMPLAINTS = [
   "Write to {merchantEmail} first. We would rather hear it than not.",
-  "If we cannot resolve it between us, a consumer may put the matter to the Consumer Disputes Committee (tarbijavaidluste komisjon) at the Consumer Protection and Technical Regulatory Authority, Endla 10A, 10122 Tallinn, avaldus@komisjon.ee, +372 620 1700. You should know before you write that the Committee ordinarily takes disputes worth at least 30 euros, and every item sold here costs less than that.",
+  "If we cannot resolve it between us, a consumer may put the matter to the Consumer Disputes Committee (tarbijavaidluste komisjon) at the Consumer Protection and Technical Regulatory Authority, Endla 10A, 10122 Tallinn, avaldus@komisjon.ee, +372 620 1700. You should know before you write that the Committee ordinarily takes disputes worth at least 30 euros. A certificate on its own costs less than that; an order of printed goods, with the postage, may be more. Which yours is depends on what you ordered.",
   "A consumer resident in another European Union country may also approach the European Consumer Centre network, and the courts remain open to you wherever you live.",
 ] as const;
 

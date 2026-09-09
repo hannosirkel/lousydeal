@@ -1138,7 +1138,7 @@ and the guard that exists to catch exactly that has a frozen list.
    this is a breach on every merch-only order — asserted as discharged in
    Terms §5, Refunds §4, Privacy §3 and `EMAIL_HINT`.
 
-- **5.** **The confirmation misquotes the consent box, dropping the scoping.** It
+- **5. Fixed in P12b.** **The confirmation misquotes the consent box, dropping the scoping.** It
    reproduces "I acknowledge that I will lose my right of withdrawal once
    supply has begun"; the box says "…**for that certificate** once supply has
    begun". P10c added that phrase precisely so no buyer could read the box as
@@ -1146,7 +1146,7 @@ and the guard that exists to catch exactly that has a frozen list.
    the wider waiver** — an overstatement in the trader's favour on the one
    document a dispute turns on. Nothing compares the two constants.
 
-- **6.** **The confirmation's own copy was never updated for goods.** It states the
+- **6. Fixed in P12b.** **The confirmation's own copy was never updated for goods.** It states the
    withdrawal clock as running from conclusion (false for a printed item —
    § 56(1¹)); says "A numbered digital certificate, and nothing else of value"
    (false for a mixed order); says "nothing was added at checkout" (postage
