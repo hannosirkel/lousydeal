@@ -282,7 +282,9 @@ and this row sets it rather than reinterpreting it.
 >
 > **Cap** — `I make my Lousy Deals at lousydeal.com`
 >
-> **Sticker** — copy not yet given; P2 proposes and the operator settles.
+> **Sticker** — `I make Lousy Deals`, given by the operator on 2026-09-09.
+> P2 proposed nothing and said so; the line is the operator's, and P18
+> composes it rather than reinterpreting it.
 
 **Generated, not drawn by hand**, from source in the repository, rendered to
 PNG at Printful's exact print-file size using the same `.woff2` files the site
@@ -1684,9 +1686,30 @@ than terminal.
 
 ## For the operator
 
-Two things need a human, and one needs a decision.
+**Three things are still open, and everything above them on this list has been
+settled.** The list had drifted: it still said P14 blocked Gate E after P14 was
+complete and Gate E had run, still asked for a confirmation the operator had
+given, and did not record the authority the legal rows were built under. A plan
+that misdescribes its own state is the failure this slice has now hit four
+times, so the settled items are marked settled rather than deleted — what was
+asked, and what the answer was, is the part worth keeping.
 
-1. **VAT, and it is much the largest thing on this list.** The 2026-09-08 ruling
+1. **VAT — settled by decision `013`, with three narrower questions left.**
+   The sentence below is kept because it is what was true on 2026-09-08 and it
+   is why `013` exists. What changed: the operator registered for the Union OSS
+   on 2026-09-09, P14a put each member state's own rate in `tax-model.ts`
+   (effective 1 October 2026, per Art 57d), P14b grossed the postage at the
+   buyer's own rate, and P14c built the two counters. **P14 is complete and
+   Gate E has run**, so "P14 blocks Gate E" below is no longer true.
+
+   What genuinely remains, and none of it blocks this slice: a position on
+   Latvia- and Spain-domestic supplies, which OSS cannot carry; IOSS or an
+   import-charges disclosure for US-dispatched EU orders; a manual TEDB pass on
+   the 27 rates; the special VAT territories and Northern Ireland; and whether
+   the €10,000 threshold was crossed earlier in 2026, which decides liability
+   independently of the registration date. `status.md` carries all five.
+
+   > **As written on 2026-09-08, before `013`:** The 2026-09-08 ruling
    — below €10,000, charge Estonian VAT — holds for the certificate and for
    merch delivered to Estonian addresses, and **fails for everything else**, not
    because of the threshold but because Art 32 puts the supply where dispatch
@@ -1721,17 +1744,27 @@ Two things need a human, and one needs a decision.
 3. **An Article 28 processing agreement with Printful**, and confirmation of
    where they process. P11 writes the disclosure; it cannot create the
    agreement.
-4. **Return costs — resolved, pending one confirmation.** P10 takes the position
-   that the consumer pays return postage, which § 56²(3) permits if § 54(1) p 14
-   is discharged first. All that is left is the operator confirming they are
-   content to receive returned parcels at the registered address, because
-   Printful will not.
+4. **Return costs — settled 2026-09-09.** P10 takes the position that the
+   consumer pays return postage, which § 56²(3) permits if § 54(1) p 14 is
+   discharged first, and the parcel comes to the registered address because
+   Printful will not take it. **The operator confirmed both**: receiving
+   returns at the registered address, and archiving Printful's sub-processor
+   list. Refunds §6.1 and the Privacy Policy are written on that answer.
 5. **`VALUE` — resolved.** `NOT $0.00`, per P9. Recorded here because it is the
    operator's gag and they may want a different answer.
-6. **Authority for the legal rows.** Decision `011` gave LD-09 an exception for
-   legal drafting inside a slice and said the rule stands for every other one.
-   P10 and P11 need the same exception recorded, or they do not run.
-7. **The sticker's copy**, which P2 proposes and the operator settles.
+6. **Authority for the legal rows — granted 2026-09-09, and this is the
+   record of it.** Decision `011` gave LD-09 an exception for legal drafting
+   inside a slice and said the rule stands for every other one. Asked directly
+   whether LD-04's legal rows were covered, the operator answered *"authority
+   granted — build them now"*. P10 (Refunds and Withdrawal, Terms) and P11
+   (Privacy, Imprint) were drafted under that grant, and Gate D reviewed them
+   against the in-force VÕS redaction afterwards.
+
+   **It was granted before those rows ran and recorded only now**, which is the
+   drift this whole section was rewritten for.
+7. **The sticker's copy — settled 2026-09-09:** *"I make Lousy Deals"*. P2
+   left the slot open and proposed nothing; the operator gave the line. P18
+   composes it.
 8. ~~**The Access bypass** for `/print-files/*`.~~ **Not needed.** Printful
    fetched the print files from this public repository at a pinned commit,
    measured on 2026-09-08. A commit-pinned raw URL is also a better artefact
