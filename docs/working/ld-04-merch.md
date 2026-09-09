@@ -675,7 +675,20 @@ which is the standard the refunds document already set.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/content/legal/privacy.ts`, `imprint.ts`, `storefront/tests/third-party-disclosure.test.ts`, `legal-privacy.test.ts`.
 
-- [ ] Say who now receives a buyer's address, and on what basis.
+- [x] Say who now receives a buyer's address, and on what basis.
+
+**Two facts the row would have got wrong from memory, both checked against
+primary sources.** Printful is **not** in the EU–US Data Privacy Framework — its
+certification was withdrawn in 2021 and the Framework's own list records it
+inactive — so its transfers rest on the 2021 standard contractual clauses alone,
+and the natural edit of adding a third name to the sentence about Stripe and
+Cloudflare would have been false. And the Article 28 agreement is **held by
+incorporation**: Printful's Data Processing Terms form part of its Terms of
+Service, so acceptance concluded it and there is nothing countersigned.
+
+**Its terms are silent on carriers** — not "sub-processor", not "independent
+controller", silent. §5 says what a carrier receives and declines to classify
+the relationship, rather than picking the reading that sounds tidier.
 
 Printful becomes a **processor** the moment an order carries a name and a street.
 That is a new recipient in the Privacy Policy, a new entry in the third-party

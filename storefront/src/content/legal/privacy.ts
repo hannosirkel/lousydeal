@@ -48,6 +48,34 @@
  * table earns its shape at four rows. Three cookies with different owners and
  * different reasons read better as three sentences than as a grid.
  *
+ * **LD-04 P11 added a third recipient, and two sentences here were false the
+ * moment P7 shipped an address field.** §5 said "Two companies handle data when
+ * you use this site, and these are both of them", and §4 said "There is no name
+ * on it, because our own code never asks for one". The checkout asks for a
+ * delivery name now.
+ *
+ * **The Data Privacy Framework claim is the one this row would have got wrong
+ * from memory.** Stripe and Cloudflare both participate, so the natural edit is
+ * to add Printful to that sentence. **Printful does not participate**: its
+ * certification was withdrawn in 2021 and the Framework's own list records it
+ * inactive, which was checked against `dataprivacyframework.gov` rather than
+ * against Printful's marketing. Its transfers rest on the 2021 standard
+ * contractual clauses alone, and §7 says so separately from the sentence about
+ * the other two.
+ *
+ * **Where the carriers are, the document declines to take a position.**
+ * Printful's data processing terms do not classify a carrier — not as a
+ * sub-processor, not as an independent controller. Silence. So §5 says what a
+ * carrier receives and why, and says plainly that Printful's terms do not
+ * settle the relationship, rather than picking the answer that reads better.
+ *
+ * **What Printful actually receives today is less than a reader would assume**,
+ * and §5 says which: the delivery address goes with the shipping quote, without
+ * a name, while the buyer is still typing. The order does not go at all —
+ * `fulfilment-provider.ts`'s `createFulfillment` is deliberately inert and P8
+ * is the row that places the order. `third-party-disclosure.test.ts` holds the
+ * document to that: **the sentence and the stub have to change together.**
+ *
  * **Retention states periods, not mechanisms that exist.** Nothing in either
  * repository deletes or ages out an order; the only expiries that run are the
  * cookies and the platform's 30-day log window. The seven-year accounting
@@ -82,6 +110,7 @@ export const PRIVACY: LegalDocument = {
         "Stripe's are called __stripe_mid and __stripe_sid. They are set by Stripe's script under this site's own domain, and they identify the browser you are paying from so that Stripe can tell an ordinary payment from a fraudulent one. __stripe_sid lasts 30 minutes. __stripe_mid lasts a year, which makes it the longest-lived thing this site puts on your machine.",
         "We do not ask you to consent to any of the three. For ours that is straightforward: a basket that cannot be found is not a shop. For Stripe's two we take the view that identifying the device is part of accepting a card payment safely rather than something separate we do to you, and they are set only when you reach the page where a payment happens. If you never go there, they are never set.",
         "There is no analytics here. No measurement, no advertising pixel, no error reporter of our own, no third-party font and no content delivery network. The payment page loads Stripe, because that is what taking a card payment consists of; apart from it, this site is rendered on our own server and fetches nothing from anywhere else.",
+        "Printful, which §5 describes, is not an exception to that. Your browser never contacts it. Everything that goes to Printful goes from our own server, so it sets nothing on your machine and sees nothing of you beyond what we send it.",
         "Our own services record a line for each request they handle: what was asked for, whether it worked, and how long it took. Those lines do not carry your address. The shop's interior is reached only through this site's own server, so the address in them is that server's, and it is the same for everyone. They are kept for 30 days and then discarded, and they are not sent to anyone.",
         "Your own address is seen by Cloudflare, which is how this site reaches you at all. §5 says what that means.",
       ],
@@ -90,7 +119,8 @@ export const PRIVACY: LegalDocument = {
       number: "3",
       heading: "When you buy something",
       body: [
-        "Our own code asks you for three things: your email address, the country you are in, and the consent described in Refunds and Withdrawal. Nothing else we have written asks you for anything.",
+        "Our own code asks you for three things: your email address, the country you are in, and the consent described in Refunds and Withdrawal. If your order contains something that has to be posted, it asks for a fourth: where to send it.",
+        "That fourth is a delivery name, a street, a town, a postcode, and in a few countries a state or province. It is asked for only when there is a parcel, and a certificate is never a parcel. None of it is printed on a certificate and none of it is published. §4 says what happens to it and §5 says who else sees it.",
         "The email address is where the order confirmation we owe you goes, and we send it: § 55(1) requires that confirmation on a durable medium, and an email is one. Sending it is a legal obligation rather than anything you consented to, which is why §7 lists it there and nothing here asks for consent. §4 says what happens to the address and §7 how long it is kept.",
         "The payment itself happens inside a frame that Stripe serves and controls, which we place on our checkout page. Stripe decides what that frame asks for. Today it asks for your card details, and depending on how you pay it may also ask for your name, your email address, your telephone number or a billing address — and if you pay with Apple Pay, Google Pay or Link, those services hand Stripe what they hold about you. None of it is typed into anything we wrote, and none of it reaches us except as §4 describes.",
         "Stripe's script also collects signals about the device and browser you are paying from. It uses them to judge whether a payment is fraudulent, and that judgement is made automatically: a payment can be declined by it without a person looking. If that happens to you and you think it is wrong, write to {merchantEmail} and a person will look.",
@@ -102,7 +132,8 @@ export const PRIVACY: LegalDocument = {
       number: "4",
       heading: "What an order leaves behind",
       body: [
-        "An order record holds its number, what you bought, what you paid, the currency, the country you selected, the email address you gave, and the time. There is no name on it, because our own code never asks for one.",
+        "An order record holds its number, what you bought, what you paid, the currency, the country you selected, the email address you gave, and the time. Where the order contained something to post, it also holds the delivery name and address you typed.",
+        "This section used to say there was no name on an order at all, because our own code never asked for one. That was true until this shop began posting things and it is not true now. What is still true is narrower: we never ask for your billing name, and nothing here asks for a name except the one a parcel has to be addressed to.",
         "It also holds what Stripe tells us about the payment. That record is stored as Stripe returns it, and it can include the brand of your card, its last four digits, its expiry, and any billing details Stripe collected in its own frame — details that reach our database without ever passing through this site's code. We use them only to reconcile the payment, and they are not shown to anyone.",
       ],
     },
@@ -119,9 +150,15 @@ export const PRIVACY: LegalDocument = {
       number: "5",
       heading: "Who else handles your data",
       body: [
-        "Two companies handle data when you use this site, and these are both of them.",
+        "Three companies handle data when you use this site, and these are all of them. A fourth kind of party — whoever carries a parcel — is described at the end of this section.",
         "Stripe processes payments and holds the payment record. For that it acts on our instructions. For the fraud and regulatory checks described in §3 it acts for itself, deciding on its own account what to collect and what to conclude, and for those we are not the only one responsible. Its own privacy notice is at stripe.com/privacy and it governs that half.",
         "Cloudflare provides this site's DNS and the connection through which it is reached, and gates the administrative interface. It therefore sees the address each of your requests comes from. This is not optional: it is how the site is delivered at all.",
+        "Printful prints and posts anything physical you order. The company we contract with is Printful, Inc., a Delaware corporation; AS “Printful Latvia” is its representative in the European Union. It acts on our instructions, and its data processing terms say so and form part of the terms of service we accepted, so they bind it without anything having been signed separately. It may not sell what it receives, share it for anyone's advertising, or use it outside our arrangement, and it does not use it to market to you.",
+        "One thing it does for itself rather than for us: it checks a recipient against the sanctions lists its own law obliges it to apply. That is its legal obligation and not our instruction, and it is here for the same reason §3 describes Stripe's fraud check — it is processing that happens to you and is not done on our behalf.",
+        "While you are still filling the form in, the delivery address is sent to Printful to get a price for the parcel. Your name is not sent with it. That happens before you pay, and it happens whether or not you go on to pay, because the postage is quoted rather than guessed.",
+        "For now that price request is the only thing Printful receives from us. Nothing has been sent to it to be printed, because this shop does not yet hand its orders over for printing. When it does, the delivery name and address will go with them, and this section will say so rather than leave you to assume it.",
+        "A parcel has to be carried by somebody, and a carrier is given what it needs to deliver it: the address, and a way to reach you if there is a problem at your door or at a customs desk. Which carrier that is depends on where the item was made and where it is going, and neither we nor you choose it.",
+        "Printful's published terms do not say whether it treats a carrier as a company acting on its instructions or as one answering for itself. We are not going to state a position its own documents do not support, so what we tell you instead is what a carrier receives and why.",
         "There is no other third party. We do not sell data, we share it for nobody's advertising, and no company is named here that is not in the path today.",
       ],
     },
@@ -141,19 +178,23 @@ export const PRIVACY: LegalDocument = {
       heading: "Where it is, and what leaves the European Economic Area",
       body: [
         "Your data is processed in the European Economic Area. The servers that run this shop and its database are within it.",
-        "Stripe and Cloudflare are United States companies, and using them means some data is processed in the United States. Each participates in the EU–US Data Privacy Framework, and standard contractual clauses apply where it does not cover a transfer. Write to {merchantEmail} and we will send you a copy of the clauses we rely on.",
+        "Stripe and Cloudflare are United States companies, and using them means some data is processed in the United States. Each participates in the EU–US Data Privacy Framework, and standard contractual clauses apply where it does not cover a transfer.",
+        "Printful is a United States company too, and it does not participate in that Framework. Its certification was withdrawn in 2021 and the Framework's own public list records it as inactive, so what covers those transfers is standard contractual clauses alone — the 2021 clauses, the controller-to-processor module between us and it, and the processor-to-processor module for anyone it engages.",
+        "Printful also prints in more places than it is registered in. Its own facilities are in Latvia, Spain, the United Kingdom, the United States, Mexico and Canada, and it uses partner facilities in Brazil, Japan and Australia. Of those, only Latvia and Spain are inside the European Economic Area. Which one makes your item is decided by its system according to what you ordered and where it is going, and it is not a choice either of us gets to make — so we cannot promise you a parcel printed inside the Area, and we are not going to imply one.",
+        "Write to {merchantEmail} and we will send you a copy of the clauses we rely on.",
       ],
     },
     {
       number: "8",
       heading: "On what basis, and for how long",
       body: [
-        "Taking your order and giving you what you paid for is performance of a contract. Keeping the accounting record, and confirming your order to you on a durable medium, are legal obligations. Operating and defending the site, and checking that a payment is not fraudulent, are our legitimate interests and Stripe's. Nothing on this site runs on consent, which is why nothing on it asks you for any.",
+        "Having a thing made and posted to you is performance of a contract, and the delivery name and address are what performing it takes: without them there is nowhere to send the parcel. Taking your order and giving you what you paid for is performance of a contract. Keeping the accounting record, and confirming your order to you on a durable medium, are legal obligations. Operating and defending the site, and checking that a payment is not fraudulent, are our legitimate interests and Stripe's. Nothing on this site runs on consent, which is why nothing on it asks you for any.",
         "Sending a gift certificate to the person a buyer named is our legitimate interest in delivering what they paid for, and theirs in receiving it — §6 says so to them directly. It is not consent either: the recipient was never asked, which is exactly why Article 14 applies rather than Article 13.",
         "The cart cookie ends with your browser session. Stripe's last 30 minutes and a year, as §2 says.",
         "Estonian accounting law requires us to keep the record of an order for seven years from the end of the financial year it falls in, and we keep it no longer than that. The payment details described in §4 are part of that record, and so is your email address; both are kept with it and for as long.",
         "A gift recipient's address and name sit on the same order record. The accounting law requires the order; it does not require knowing who the certificate went to. We keep those details so we can show, if the buyer disputes it, that we sent what they paid for — and we remove them if the recipient asks.",
         "The request lines described in §2 are kept for 30 days.",
+        "Printful keeps what we send it for as long as our arrangement with it lasts, and afterwards for as long as its own legal obligations require. It publishes no fixed period for that and we are not going to invent one on its behalf. The order record here is kept as the paragraphs above describe, whatever Printful does with its copy.",
         "Cloudflare keeps its own record of the requests it carries, under its own retention and not ours. We do not control how long it holds them, and §5 says what it sees.",
         "If you write to us we keep the message and your address for two years after the last message in the conversation, so that we can find it again if you come back about the same order.",
       ],
