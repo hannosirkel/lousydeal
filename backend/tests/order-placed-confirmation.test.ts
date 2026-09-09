@@ -14,6 +14,9 @@
 
 import { BigNumber } from "@medusajs/framework/utils";
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { MERCHANT_ENVIRONMENT_VARIABLES, type MerchantIdentity } from "../src/config/merchant";
@@ -384,5 +387,42 @@ describe("the subscriber", () => {
       Object.assign(process.env, original);
       vi.resetModules();
     }
+  });
+});
+
+describe("which item the § 55 confirmation names", () => {
+  /**
+   * **Gate D found it reading `items[0]`.** `certificateLine` goes to the
+   * trouble of deciding which line is the certificate — and `sendConfirmation`
+   * read the first line instead, a leftover from when there was only ever one.
+   *
+   * With the upsell appending merch, a buyer who added a mug before a
+   * certificate got a statutory confirmation reading `ITEM: This Mug Cost
+   * Extra` beside the certificate's own serial.
+   *
+   * The subscriber cannot be driven here — `order-placed.ts`'s own header says
+   * why — so what is asserted is that the value handed to the builder comes
+   * from the line the subscriber identified, and not from the order's first.
+   */
+  const source = readFileSync(join(__dirname, "../src/subscribers/order-placed.ts"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
+
+  it("passes the certificate's own tier into the confirmation", () => {
+    expect(source).toMatch(/sendConfirmation\(\{[^}]*tier: line\.tier/);
+  });
+
+  it("no longer reads the order's first line for it", () => {
+    expect(source).not.toMatch(/tier: text\(order\.items\?\.\[0\]\?\.title\)/);
+  });
+
+  it("builds the message from the parameter rather than from the order again", () => {
+    const send = source.slice(source.indexOf("async function sendConfirmation"));
+    expect(send).toMatch(/^\s*tier,$/m);
+    expect(send).not.toMatch(/items\?\.\[0\]/);
+  });
+
+  it("reads the stripping, so a broken regex cannot pass by emptying the file", () => {
+    expect(source).toContain("export default async function orderPlaced");
   });
 });

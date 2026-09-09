@@ -109,7 +109,23 @@ export function readShippingContext(context: unknown): ShippingContext | null {
   });
 
   if (lines.length === 0) return null;
-  return { address: { address1, city, countryCode: countryCode.toUpperCase(), postcode }, lines };
+  // **`stateCode` was declared above and never read**, so it never reached
+  // Printful -- which answers "State code is missing" for the United States
+  // and Australia, measured. The checkout demands the province in exactly
+  // those countries, marks the field required, and blocks the quote until it
+  // is filled; the quote then discarded it and failed. Every US, AU, CA and JP
+  // merch checkout showed the unavailable notice. Gate D found it.
+  const province = text(address?.province);
+  return {
+    address: {
+      address1,
+      city,
+      countryCode: countryCode.toUpperCase(),
+      postcode,
+      ...(province === null ? {} : { stateCode: province }),
+    },
+    lines,
+  };
 }
 
 export interface PrintfulFulfilmentOptions {

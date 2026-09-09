@@ -81,7 +81,7 @@ import {
   PREPARING_PAYMENT_LABEL,
 } from "../../content/checkout";
 import { NO_INSCRIPTION } from "../../content/certificate";
-import { payDisabled } from "../../lib/checkout-rules";
+import { paySubmitBlocked, payDisabled } from "../../lib/checkout-rules";
 import { GIFT_LIMITS, previewGiftText } from "../../lib/gift";
 import { INSCRIPTION_LIMITS, sanitiseInscription } from "../../lib/inscription";
 import type { FetchJson, StoreFetchInit, StoreRegionCountry } from "../../lib/medusa-client";
@@ -392,7 +392,21 @@ export function PayButton({
     // one attribute between an unticked box and a completed order --
     // `form.requestSubmit()` ignores it, which Gate D demonstrated by
     // completing a cart with the box visibly unticked.
-    if (stripe === null || elements === null || submitting || !consented) return;
+    // **`needsConsent &&`, and its absence made every merch-only order
+    // unpayable.** P10c stopped rendering the box for a cart with no
+    // certificate -- correctly, § 53(4) p 7¹ is about digital content -- and
+    // taught `payDisabled` to stop waiting for it. It did not touch this
+    // guard, so `consented` stayed `false` forever with no control that could
+    // change it: the button enabled, the click did nothing, no error, no
+    // request. Gate D found it.
+    //
+    // The guard itself stays for the reason its own history gives: a previous
+    // Gate D completed a cart with the box visibly unticked, because
+    // `form.requestSubmit()` ignores `disabled`.
+    // The two null checks are narrowing, and have to be their own statement
+    // for TypeScript to see them. The rule below is the rule.
+    if (stripe === null || elements === null) return;
+    if (paySubmitBlocked({ stripeReady: true, submitting, consented, consentRequired: needsConsent })) return;
     setSubmitting(true);
     setError(null);
     try {

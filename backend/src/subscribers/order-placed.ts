@@ -283,7 +283,7 @@ export default async function orderPlaced({
     // internet -- a log line is a place it would outlive its purpose.
     logger.info(`deal #${deal.serial} issued for order ${orderId}`);
 
-    await sendConfirmation({ container, logger, order, deal, orderId });
+    await sendConfirmation({ container, logger, order, deal, orderId, tier: line.tier });
   } catch (error) {
     logger.error(
       `deal issuance failed for order ${orderId}: ${error instanceof Error ? error.message : String(error)}`,
@@ -416,12 +416,21 @@ async function sendConfirmation({
   order,
   deal,
   orderId,
+  tier,
 }: {
   container: SubscriberArgs<OrderPlacedEvent>["container"];
   logger: { info(message: string): void; error(message: string): void };
   order: QueriedOrder;
   deal: IssuedDeal;
   orderId: string;
+  /**
+   * The certificate's own title, from `certificateLine`.
+   *
+   * Passed in rather than read off the order again: the caller already
+   * decided which line is the certificate, and this function reading
+   * `items[0]` is what put a mug's name on a § 55 confirmation.
+   */
+  tier: string;
 }): Promise<void> {
   const runtime = readBackendRuntimeConfig(process.env);
   const address = text(order.email);
@@ -457,7 +466,13 @@ async function sendConfirmation({
   const message = buildOrderConfirmation(
     {
       serial: deal.serial,
-      tier: text(order.items?.[0]?.title) ?? "",
+      // **`line.tier`, not `items[0]`.** `certificateLine` went to the trouble
+      // of finding which line is the certificate; this read the first one,
+      // which is a leftover from when there was only ever one. With the upsell
+      // appending merch, a buyer who added a mug before a certificate got a
+      // § 55 confirmation reading `ITEM: This Mug Cost Extra` for the
+      // certificate it was confirming. Gate D found it.
+      tier,
       total,
       issuedOn,
       certificateUrl,
