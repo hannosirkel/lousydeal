@@ -23,6 +23,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CART_EMPTY_NOTICE,
   CART_LINK_LABEL,
+  CART_NEEDS_CERTIFICATE_NOTICE,
   CART_NOT_SINGLE_NOTICE,
   ORDER_SUMMARY_LINES,
   PAYMENT_NEEDS_SCRIPTING,
@@ -124,10 +125,13 @@ describe("the checkout, for a cart it can certify", () => {
     expect(html).not.toContain(CART_NOT_SINGLE_NOTICE);
   });
 
-  it("offers it for merch with no certificate at all", async () => {
-    // Nothing issues, which is correct: nobody bought a certificate.
+  it("refuses merch with no certificate at all, and says to add one", async () => {
+    // **Inverted: merch is an upsell.** And the refusal has to say the right
+    // thing -- "choose the one you want" is advice for a cart with two
+    // certificates in it, not for one with none.
     const html = await renderCheckout({ cartId: "cart_1", lines: [["this-mug-cost-extra", 1]] });
-    expect(html).toContain(PAYMENT_NEEDS_SCRIPTING);
+    expect(html).not.toContain(PAYMENT_NEEDS_SCRIPTING);
+    expect(html).toContain(CART_NEEDS_CERTIFICATE_NOTICE);
     expect(html).not.toContain(CART_NOT_SINGLE_NOTICE);
   });
 });
@@ -135,18 +139,33 @@ describe("the checkout, for a cart it can certify", () => {
 describe("the checkout, for a cart it cannot certify", () => {
   // Each case is the same refusal reached a different way. They are separate
   // so a regression says which one came back.
-  const refused: [string, ReadonlyArray<readonly [string | null, number]>][] = [
-    ["two certificates, from two tiers", [["lousy-deal", 1], ["lousy-deal-pro", 1]]],
-    ["one line of two, from the same tier twice", [["lousy-deal", 2]]],
-    ["two certificates with merch beside them", [["lousy-deal", 1], ["lousy-deal-pro", 1], ["this-mug-cost-extra", 1]]],
-    ["a line whose quantity the API did not give", [["lousy-deal", Number.NaN]]],
-    ["a merch line whose quantity the API did not give", [["this-mug-cost-extra", Number.NaN]]],
+  //
+  // **The expected notice is part of each case since 2026-09-09.** There are
+  // two ways to be unpayable and two different things to do about them: a cart
+  // with two certificates needs one taken out, and a cart with none needs one
+  // put in. Telling the second buyer to "choose the one you want" is telling
+  // them to fix the wrong thing.
+  const refused: [string, ReadonlyArray<readonly [string | null, number]>, string][] = [
+    ["two certificates, from two tiers", [["lousy-deal", 1], ["lousy-deal-pro", 1]], CART_NOT_SINGLE_NOTICE],
+    ["one line of two, from the same tier twice", [["lousy-deal", 2]], CART_NOT_SINGLE_NOTICE],
+    [
+      "two certificates with merch beside them",
+      [["lousy-deal", 1], ["lousy-deal-pro", 1], ["this-mug-cost-extra", 1]],
+      CART_NOT_SINGLE_NOTICE,
+    ],
+    ["a line whose quantity the API did not give", [["lousy-deal", Number.NaN]], CART_NOT_SINGLE_NOTICE],
+    [
+      "a merch line whose quantity the API did not give",
+      [["this-mug-cost-extra", Number.NaN]],
+      CART_NEEDS_CERTIFICATE_NOTICE,
+    ],
+    ["merch alone, which is an upsell and not an order", [["this-mug-cost-extra", 1]], CART_NEEDS_CERTIFICATE_NOTICE],
   ];
 
-  it.each(refused)("refuses to take money for %s", async (_case, lines) => {
+  it.each(refused)("refuses to take money for %s", async (_case, lines, notice) => {
     const html = await renderCheckout({ cartId: "cart_1", lines });
 
-    expect(html).toContain(CART_NOT_SINGLE_NOTICE);
+    expect(html).toContain(notice);
     // The whole point: no payment form on the page means no way to pay.
     expect(html).not.toContain(PAYMENT_NEEDS_SCRIPTING);
     // And § 62-2(2)'s pre-order information is not shown on a document that

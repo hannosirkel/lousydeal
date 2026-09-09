@@ -667,11 +667,19 @@ describe("isPayableCart", () => {
     expect(isPayableCart([line("lousy-deal-pro"), line("original-purchase-receipt", 3)], TIERS)).toBe(true);
   });
 
-  it("accepts merch with no certificate at all", () => {
-    // Nothing issues, which is correct: nobody bought one. `order-placed.ts`
-    // reports that at info rather than error, because it is the shop working.
-    expect(isPayableCart([line("this-mug-cost-extra")], TIERS)).toBe(true);
-    expect(isPayableCart([line(null)], TIERS)).toBe(true);
+  it("refuses merch with no certificate at all", () => {
+    // **Inverted on 2026-09-09: merch is an upsell.** This asserted the
+    // opposite, and LD-04 spent rows on the shape it admitted -- a cart with
+    // no consent box to show and no certificate to confirm, which Gate D then
+    // found getting no § 55 confirmation at all. The operator settled it:
+    // there is no order here that is only a mug.
+    expect(isPayableCart([line("this-mug-cost-extra")], TIERS)).toBe(false);
+    expect(isPayableCart([line(null)], TIERS)).toBe(false);
+  });
+
+  it("still accepts a certificate with any amount of merch beside it", () => {
+    // Which is the upsell, and the whole point of the slice.
+    expect(isPayableCart([line("lousy-deal"), line("this-mug-cost-extra", 3)], TIERS)).toBe(true);
   });
 
   it("refuses two certificates, however they are arranged", () => {
@@ -999,7 +1007,7 @@ describe("the cart-to-paid-order flow, against one stubbed backend", () => {
     // the POST above created. Before, the GET returned a cart with no items
     // at all -- which passed while nothing read them, and would have let the
     // checkout's one-certificate rule be asserted against a fiction.
-    const state: { total: number; completed: boolean; items: { id: string; variant_id: string; quantity: number; unit_price: number }[] } = {
+    const state: { total: number; completed: boolean; items: { id: string; variant_id: string; quantity: number; unit_price: number; product_handle: string }[] } = {
       total: 25,
       completed: false,
       items: [],
@@ -1011,7 +1019,16 @@ describe("the cart-to-paid-order flow, against one stubbed backend", () => {
       }
       if (path === "/store/carts/cart_e2e/line-items" && init?.method === "POST") {
         const body = JSON.parse(String(init.body)) as { variant_id: string; quantity: number };
-        state.items.push({ id: "item_e2e", variant_id: body.variant_id, quantity: body.quantity, unit_price: state.total });
+        // The handle a tier has. The stub omitted it, so the line read as
+        // merch -- which was payable until 2026-09-09 and is not now, and the
+        // test's own name says "adds a tier".
+        state.items.push({
+          id: "item_e2e",
+          variant_id: body.variant_id,
+          quantity: body.quantity,
+          unit_price: state.total,
+          product_handle: "lousy-deal",
+        });
         return { cart: { id: "cart_e2e", currency_code: "usd", items: state.items } } as T;
       }
       if (path === "/store/carts/cart_e2e" && (init?.method ?? "GET") === "GET") {
@@ -1047,14 +1064,14 @@ describe("the cart-to-paid-order flow, against one stubbed backend", () => {
       currencyCode: "usd",
       total: 25,
       quantities: [1],
-      lines: [{ quantity: 1, handle: null }],
+      lines: [{ quantity: 1, handle: "lousy-deal" }],
     });
     // C3a: the state the checkout page requires before it will render a pay
     // control at all.
-    // LD-04 P6a: the stub's line carries no `product_handle`, so it reads as
-    // merch rather than as a certificate — and a merch-only cart is payable.
     // The end-to-end property this asserts is unchanged: this cart can be
-    // paid for.
+    // paid for. What changed on 2026-09-09 is that it has to contain a
+    // certificate to be — merch is an upsell — so the stub's line carries a
+    // tier's handle, which is what "adds a tier" meant all along.
     expect(isPayableCart(checkoutCart.lines, ["lousy-deal"])).toBe(true);
 
     const paymentCollectionId = await createPaymentCollection(fetchJson, checkoutCart.id);
