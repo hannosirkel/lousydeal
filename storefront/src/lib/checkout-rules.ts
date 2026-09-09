@@ -167,5 +167,20 @@ export function isPayableCart(lines: readonly CartLine[], certificateHandles: re
 
   const certificates = lines.filter((line) => line.handle !== null && certificateHandles.includes(line.handle));
   const units = certificates.reduce((total, line) => total + line.quantity, 0);
-  return units <= 1;
+  // **Exactly one, and it used to be at most one.** LD-04 read §7's upsell as
+  // admitting three cart shapes and spent rows on the third — merch alone,
+  // with no consent box to show and no certificate to issue. The operator
+  // settled it on 2026-09-09: **merch is an upsell.** There is no order here
+  // that is only a mug.
+  //
+  // That closes a legal question rather than merely a product one. A
+  // merch-only order has no § 53(4) p 7¹ consent to give and no certificate to
+  // confirm, so it needed a § 55 confirmation shaped differently from every
+  // other — Gate D found it getting none at all. An order shape that cannot
+  // occur needs no second document.
+  //
+  // `POST /store/carts/:id/line-items` is public, so the state is still
+  // *reachable*; what changes is that this shop will not take money in it.
+  // `order-placed.ts` treats one that arrives anyway as the anomaly it now is.
+  return units === 1;
 }

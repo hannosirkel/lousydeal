@@ -233,11 +233,21 @@ export default async function orderPlaced({
     const currencyCode = text(order?.currency_code);
     const issuedAt = order?.created_at instanceof Date ? order.created_at : new Date(String(order?.created_at));
 
-    // An order with no certificate in it is a complete order — LD-04 lets a
-    // cart hold merch alone. It is not a failure and does not get an error
-    // line; P8 is what fulfils it.
+    // **An order with no certificate is an anomaly now, and gets an error
+    // line.** LD-04 read §7 as admitting a merch-only cart and this branch
+    // logged at info, calling it "a complete order". The operator settled it
+    // on 2026-09-09: merch is an upsell, and `isPayableCart` refuses a cart
+    // without a certificate.
+    //
+    // The Store API's line-item route is public, so the state is still
+    // reachable by anyone who wants it — which is exactly why this is a log
+    // line and not a throw. Something was paid for and no certificate issues;
+    // a person needs to know, and the merch still reaches Printful because
+    // `submitMerch` runs before this and does not depend on it.
     if (line.kind === "none") {
-      logger.info(`order ${orderId} carries no certificate; nothing to issue`);
+      logger.error(
+        `order ${orderId} carries no certificate, which no payable cart should: nothing issued and no § 55 confirmation sent`,
+      );
       return;
     }
 

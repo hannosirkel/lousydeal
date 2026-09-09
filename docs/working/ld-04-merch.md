@@ -1132,7 +1132,30 @@ and the guard that exists to catch exactly that has a frozen list.
 
 ### Found and not yet fixed
 
-- **4.** **A merch-only order gets no § 55 confirmation at all**, and four surfaces
+- **4. Dissolved by an operator decision, in P12c.** The operator settled it on
+  2026-09-09: **merch is an upsell**, so there is no order here that is only a
+  mug. `isPayableCart` requires exactly one certificate now — it required at
+  most one — and the shape this finding was about cannot be paid for. The
+  surfaces that said a confirmation is sent are true again, because every order
+  that can exist has a certificate to confirm.
+
+  A cart that reaches the checkout without one is refused with a notice that
+  says to **add** one, rather than the one telling a buyer with two to choose
+  between them: two ways to be unpayable and two different things to do.
+
+  The Store API's line-item route is public, so the state stays *reachable*.
+  `order-placed.ts` treats an order that arrives without a certificate as the
+  anomaly it now is — a **log line at error**, where it used to report the same
+  thing at info and call it "a complete order" — because something was paid for
+  and nothing issued. Not a throw: the merch still reaches Printful, since
+  `submitMerch` runs before it and does not depend on it.
+
+  **Superseded, not merely fixed.** LD-04 read §7's upsell as admitting three
+  cart shapes and spent rows on the third: P10c hid the consent box for it, and
+  this Gate D finding was about the § 55 confirmation it never got. One
+  sentence from the operator removed the shape and the questions with it.
+
+- **4a. Was:** **A merch-only order gets no § 55 confirmation at all**, and four surfaces
    say it does. `sendConfirmation` is reached only after the no-certificate
    early return. § 55(1) makes it due no later than delivery of the goods, so
    this is a breach on every merch-only order — asserted as discharged in

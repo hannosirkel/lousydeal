@@ -43,6 +43,18 @@ export const RETURN_LABEL = "Return to the purchase order";
 export const CART_NOT_SINGLE_NOTICE =
   "A certificate is issued against one order, so an order carries one certificate. This cart holds something else. Choose the one you want and it will replace what is there.";
 
+/**
+ * Shown where a cart holds printed goods and no certificate.
+ *
+ * **Merch is an upsell**, settled by the operator on 2026-09-09, so this is
+ * not a cart the shop takes money in. The notice says what to do rather than
+ * reporting a validation failure, which is the register
+ * `CART_NOT_SINGLE_NOTICE` already sets — and it does not scold: a buyer who
+ * reached this state did nothing wrong, they just started from the wrong end.
+ */
+export const CART_NEEDS_CERTIFICATE_NOTICE =
+  "The printed things are an upsell, so they go with a certificate rather than instead of one. Add the certificate you want and the rest of the cart stays as it is.";
+
 /** The way out of that state, to the document that can fix it. */
 export const CART_LINK_LABEL = "Return to the order summary";
 

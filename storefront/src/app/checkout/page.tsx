@@ -41,6 +41,7 @@ import {
   CART_EMPTY_NOTICE,
   CART_LABELS,
   CART_LINK_LABEL,
+  CART_NEEDS_CERTIFICATE_NOTICE,
   CART_NOT_SINGLE_NOTICE,
   CHECKOUT_DOCUMENT,
   orderSummaryLines,
@@ -113,7 +114,13 @@ export default async function CheckoutPage() {
           <Ledger>
             <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currencyCode)} />
           </Ledger>
-          <p className="notice">{CART_NOT_SINGLE_NOTICE}</p>
+          {/* Two ways a cart is unpayable and two different things to do
+              about it, so the notice says which. A buyer told "choose the one
+              you want" when what they need is to add one has been told to fix
+              the wrong thing. */}
+          <p className="notice">
+            {cartHasCertificate(cart.lines, certificateHandles) ? CART_NOT_SINGLE_NOTICE : CART_NEEDS_CERTIFICATE_NOTICE}
+          </p>
           <Button variant="secondary" href="/cart">
             {CART_LINK_LABEL}
           </Button>

@@ -212,15 +212,22 @@ describe("the subscriber", () => {
       expect(issued[0]).toMatchObject({ tier: "Lousy Deal Pro", amountPaid: 25 });
     });
 
-    it("issues nothing, quietly, for an order with no certificate in it", async () => {
-      // A cart may hold a mug alone. That is a complete order, and reporting
-      // it as a failure would fill the log with the shop working.
-      const { issued, errors, infos } = await run(ENVIRONMENT, "buyer@example.test", null, [
+    it("issues nothing for an order with no certificate, and says so loudly", async () => {
+      // **Inverted on 2026-09-09.** This asserted `errors` was empty, because
+      // a merch-only cart was a shape the shop admitted and reporting it would
+      // "fill the log with the shop working". Merch is an upsell now, so no
+      // payable cart reaches here without a certificate -- and one that does
+      // is a paid order issuing nothing, which is exactly what an operator has
+      // to be told about.
+      //
+      // A log line and not a throw: `POST /store/carts/:id/line-items` is
+      // public, so the state stays reachable by anyone who wants it.
+      const { issued, errors } = await run(ENVIRONMENT, "buyer@example.test", null, [
         { title: "This Mug Cost Extra", product_handle: "this-mug-cost-extra", total: 15, detail: { quantity: 1 } },
       ]);
       expect(issued).toEqual([]);
-      expect(errors).toEqual([]);
-      expect(infos.join(" ")).toContain("carries no certificate");
+      expect(errors.join(" ")).toContain("carries no certificate");
+      expect(errors.join(" ")).toMatch(/no § 55 confirmation sent/);
     });
 
     it("refuses two certificates, which have no single tier to put on a document", async () => {
