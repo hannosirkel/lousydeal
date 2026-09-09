@@ -352,6 +352,22 @@ export function PayButton({
    * explicit.
    */
   useEffect(() => {
+    // **Nothing is quoted while a payment is being taken.** The gate above
+    // stops a submit starting while a quote is in flight; this stops a quote
+    // starting while a submit is. Without it a buyer editing a field during
+    // the two seconds `handleSubmit` takes fires a fresh
+    // `setCartShippingMethod` that can land *between* `confirmPayment` and
+    // `completeCheckoutCart` -- changing the cart total after the card has
+    // been charged. Medusa's response to a changed total is to delete the
+    // payment session, which for a *succeeded* PaymentIntent Stripe cannot
+    // do; `deletePaymentSessionsStep` swallows that failure with a log line,
+    // so the session survives and completion records the old capture against
+    // the new total. That is the one sequence in this file that produces a
+    // genuinely wrong amount rather than a failed payment.
+    //
+    // `submitting` is in the dependencies, so an edit made during a submit
+    // that then fails is quoted the moment the submit ends.
+    if (submitting) return;
     if (!needsAddress || !addressComplete(address, countryCode)) {
       setShippingAmount(null);
       return;
@@ -383,8 +399,9 @@ export function PayButton({
       cancelled = true;
     };
     // `address` and `countryCode` are the whole of the input; `fetchJson` and
-    // `cartId` are stable for the life of this component.
-  }, [needsAddress, address, countryCode, fetchJson, cartId]);
+    // `cartId` are stable for the life of this component. `submitting` is a
+    // gate rather than an input: it only ever stops this running.
+  }, [needsAddress, address, countryCode, fetchJson, cartId, submitting]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -406,7 +423,20 @@ export function PayButton({
     // The two null checks are narrowing, and have to be their own statement
     // for TypeScript to see them. The rule below is the rule.
     if (stripe === null || elements === null) return;
-    if (paySubmitBlocked({ stripeReady: true, submitting, consented, consentRequired: needsConsent })) return;
+    if (
+      paySubmitBlocked({
+        stripeReady: true,
+        submitting,
+        consented,
+        // The same term the control is disabled on, and for the second half
+        // of the reason: a quote in flight means the figure this buyer last
+        // saw may not be the one on the cart, and `requestSubmit()` reaches
+        // this handler past any `disabled`.
+        shippingSettled: !needsAddress || (shippingAmount !== null && !quoting),
+        consentRequired: needsConsent,
+      })
+    )
+      return;
     setSubmitting(true);
     setError(null);
     try {
@@ -713,10 +743,15 @@ export function PayButton({
           <LedgerRow
             label={SHIPPING_LABEL}
             value={
-              shippingAmount !== null
-                ? formatMoney(shippingAmount, currencyCode)
-                : quoting
-                  ? SHIPPING_QUOTING_LABEL
+              // **`quoting` is read first, and Gate D is why.** A re-quote
+              // for an edited address leaves the previous figure in
+              // `shippingAmount`, so the old order of these two showed the
+              // buyer a number that was already being replaced -- the one
+              // reading §23 requires to be the price they are about to pay.
+              quoting
+                ? SHIPPING_QUOTING_LABEL
+                : shippingAmount !== null
+                  ? formatMoney(shippingAmount, currencyCode)
                   : SHIPPING_PENDING_NOTICE
             }
           />
@@ -767,7 +802,17 @@ export function PayButton({
           // the parcel and put a method on the cart. A separate
           // "is the address complete" flag would be redundant: an incomplete
           // address never quotes, so `shippingAmount` is already `null`.
-          shippingSettled: !needsAddress || shippingAmount !== null,
+          // **`&& !quoting` since Gate D.** The effect below does not clear
+          // `shippingAmount` when a *new* quote starts for a still-complete
+          // address -- only when the address goes incomplete or the quote
+          // fails -- so editing a country left the old figure standing, the
+          // button enabled, and the buyer able to pay against a quote that
+          // was being replaced. Medusa re-prices the attached method
+          // server-side on the address write in `handleSubmit`, so the
+          // outcome was a failed payment rather than a wrong one; the window
+          // where it is neither is between `confirmPayment` and completion,
+          // and that one costs real money. Waiting is the whole fix.
+          shippingSettled: !needsAddress || (shippingAmount !== null && !quoting),
           consentRequired: needsConsent,
         })}
       >
