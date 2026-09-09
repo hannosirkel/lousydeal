@@ -334,6 +334,66 @@ describe("an order that was cancelled at Printful", () => {
   });
 });
 
+describe("an order Printful accepted and could not charge", () => {
+  /**
+   * **`failed` was filed as a cancellation, and P12i separates them.**
+   *
+   * Printful's own status table calls it recoverable — *"If a charge or
+   * auto-recharge fails, the order gets the 'Failed' status. It won't be sent
+   * to fulfillment on its own, so once you've resolved the cause you'll need
+   * to submit the order again manually"* — and the dashboard offers the retry.
+   * The order exists under its `external_id`, which is the fact that decides
+   * whether a later attempt can do anything at all: a cancelled order cannot
+   * be replaced under that id and is genuinely terminal; a failed one is a
+   * confirmed order with a billing problem in front of it.
+   *
+   * Filing the recoverable case as the unrecoverable one turned a paid order a
+   * person could rescue into one nothing would ever try again.
+   *
+   * It stopped being hypothetical when Gate E chose to confirm against an
+   * account with **no billing method attached** — a procedure whose entire
+   * expected artefact is a Printful order in exactly this state.
+   */
+  it("records it as failed, which is the retryable state", async () => {
+    const printful = fakePrintful({ failCreate: new Error("taken") });
+    printful.remote.set("order_01", { id: "pf_order_01", status: "failed" });
+    const { store } = fakeStore();
+
+    const result = await submitPrintfulOrder(store, printful.orders, INPUT);
+
+    expect(result.status).toBe("failed");
+    // And the remote word is kept verbatim, so the record says which of the
+    // two this was rather than only how this shop classified it.
+    expect(result.printful_status).toBe("failed");
+  });
+
+  it("tries again on a later delivery, which a cancellation must not", async () => {
+    // The whole difference between the two, expressed as behaviour rather
+    // than as a string. `settled()` admits everything but `failed`.
+    const printful = fakePrintful({ failCreate: new Error("taken") });
+    printful.remote.set("order_01", { id: "pf_order_01", status: "failed" });
+    const { store } = fakeStore();
+
+    await submitPrintfulOrder(store, printful.orders, INPUT);
+    const before = printful.calls.find;
+    await submitPrintfulOrder(store, printful.orders, INPUT);
+
+    expect(printful.calls.find).toBeGreaterThan(before);
+  });
+
+  it("leaves a cancellation terminal, which is the half that was already right", async () => {
+    const printful = fakePrintful({ failCreate: new Error("taken") });
+    printful.remote.set("order_01", { id: "pf_order_01", status: "canceled" });
+    const { store } = fakeStore();
+
+    await submitPrintfulOrder(store, printful.orders, INPUT);
+    const before = printful.calls.find;
+    await submitPrintfulOrder(store, printful.orders, INPUT);
+
+    expect(printful.calls.find).toBe(before);
+  });
+});
+
 describe("an order with nothing to post", () => {
   it("records the negative answer rather than leaving no row", async () => {
     // Most orders here are this one. A shop that left them unrecorded would
