@@ -140,10 +140,51 @@ describe("a cart with a parcel in it", () => {
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
       .replace(/\/\/.*$/gm, "");
-    expect(source).toContain("shippingSettled: !needsAddress || shippingAmount !== null,");
+    // **Both places, and `&& !quoting` in both.** The control and the submit
+    // handler are separate rules on purpose -- `requestSubmit()` ignores
+    // `disabled` -- which is exactly why they have to agree about this one.
+    const settled = source.match(/shippingSettled: !needsAddress \|\| \(shippingAmount !== null && !quoting\),/g);
+    expect(settled).toHaveLength(2);
     // And the stripping is checked, so a broken regex cannot pass by deleting
     // the file.
     expect(source).toContain("export function PayButton");
+  });
+
+  it("starts no quote while a payment is being taken", () => {
+    // The other half of the same window. A quote that lands between
+    // `confirmPayment` and `completeCheckoutCart` changes the cart total
+    // after the card is charged, and Medusa cannot delete a succeeded
+    // PaymentIntent -- so the capture is recorded against the new total.
+    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+      .replace(/\/\/.*$/gm, "");
+    const effect = source.slice(source.indexOf("if (submitting) return;"));
+    expect(effect).toContain("if (submitting) return;");
+    // Before the address check, or an incomplete address still clears the
+    // figure the buyer is in the middle of paying against.
+    expect(source.indexOf("if (submitting) return;")).toBeLessThan(
+      source.indexOf("if (!needsAddress || !addressComplete(address, countryCode))"),
+    );
+    // In the dependencies, or an edit made during a failed submit is never
+    // quoted afterwards and the button stays dark for ever.
+    expect(source).toContain("}, [needsAddress, address, countryCode, fetchJson, cartId, submitting]);");
+  });
+
+  it("shows that it is quoting in preference to a figure it is replacing", () => {
+    // §23: the figure on the page has to be the one about to be charged.
+    // **Comments stripped, and the first version was not.** The paragraph
+    // explaining why `quoting` is read first contains the word `quoting`, so
+    // an unstripped read found it before `formatMoney` whichever order the
+    // ternary was in -- and the mutation that put the stale figure back
+    // passed.
+    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+      .replace(/\/\/.*$/gm, "");
+    const row = source.slice(source.indexOf("label={SHIPPING_LABEL}"));
+    expect(row).toContain("SHIPPING_QUOTING_LABEL");
+    expect(row.indexOf("quoting")).toBeLessThan(row.indexOf("formatMoney(shippingAmount"));
   });
 
   it("asks for a province only where Printful demands one", () => {

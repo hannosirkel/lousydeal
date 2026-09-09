@@ -77,14 +77,28 @@ export function payDisabled({
  * A previous Gate D completed a cart with the box visibly unticked by exactly
  * that route, which is why the handler checks at all. What it must not do is
  * check something *different*.
+ *
+ * **It had drifted a second way, and the same Gate D found that too.** It did
+ * not take `shippingSettled` at all — the parameter was `Omit`-ed away — so
+ * the identical `requestSubmit()` bypass could submit a merch cart with no
+ * shipping method attached. The payment session then still matches the
+ * goods-only total, so Stripe **charges** (`payment.ts` sets `capture: true`,
+ * which is `capture_method: "automatic"`), and completion throws at Medusa's
+ * `validate-shipping` step: *"No shipping method selected but the cart
+ * contains items that require shipping"*. Charged, then refunded by the
+ * compensation, for a parcel nobody could have posted.
+ *
+ * The two functions now take the same input and differ only in what the
+ * caller passes for `stripeReady`.
  */
 export function paySubmitBlocked({
   stripeReady,
   submitting,
   consented,
+  shippingSettled = true,
   consentRequired = true,
-}: Omit<PayGateInput, "shippingSettled">): boolean {
-  return !stripeReady || submitting || (consentRequired && !consented);
+}: PayGateInput): boolean {
+  return !stripeReady || submitting || (consentRequired && !consented) || !shippingSettled;
 }
 
 /** One cart line, as the checkout needs to judge it. */

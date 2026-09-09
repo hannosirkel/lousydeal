@@ -332,18 +332,40 @@ describe("the submit handler's own rule, which had drifted from the gate", () =>
     ).toBe(true);
   });
 
-  it("agrees with the pay gate on consent, which is what drifted", () => {
+  it("agrees with the pay gate on every input, which is what drifted twice", () => {
     // The two rules answer different questions and must not disagree about
-    // this one. Asserted across every combination rather than by inspection.
+    // any of them. Asserted across every combination rather than by
+    // inspection -- **and `shippingSettled` is in the sweep now**, because
+    // the second drift was that `paySubmitBlocked` did not take it at all.
     for (const consented of [true, false]) {
       for (const consentRequired of [true, false]) {
-        const gate = payDisabled({ stripeReady: true, submitting: false, consented, consentRequired });
-        const submit = paySubmitBlocked({ stripeReady: true, submitting: false, consented, consentRequired });
-        expect(`${String(consented)}/${String(consentRequired)}: ${String(submit)}`).toBe(
-          `${String(consented)}/${String(consentRequired)}: ${String(gate)}`,
-        );
+        for (const shippingSettled of [true, false]) {
+          const input = { stripeReady: true, submitting: false, consented, consentRequired, shippingSettled };
+          const label = `${String(consented)}/${String(consentRequired)}/${String(shippingSettled)}`;
+          expect(`${label}: ${String(paySubmitBlocked(input))}`).toBe(`${label}: ${String(payDisabled(input))}`);
+        }
       }
     }
+  });
+
+  it("refuses a submit for a parcel with no postage settled on it", () => {
+    /**
+     * **The bypass, applied to the postage.** `requestSubmit()` ignores
+     * `disabled`, so a merch cart could be submitted with no shipping method
+     * attached: the payment session still matches the goods-only total, so
+     * Stripe charges -- `capture: true` means `capture_method: "automatic"` --
+     * and completion then throws at Medusa's `validate-shipping` step. The
+     * buyer is charged and refunded for a parcel nobody could have posted.
+     */
+    expect(
+      paySubmitBlocked({ stripeReady: true, submitting: false, consented: true, shippingSettled: false }),
+    ).toBe(true);
+  });
+
+  it("defaults it to settled, so a certificate-only caller is unchanged", () => {
+    // The same disposition `consentRequired` took: optional, defaulting to the
+    // safe answer for the cart that has no parcel in it.
+    expect(paySubmitBlocked({ stripeReady: true, submitting: false, consented: true })).toBe(false);
   });
 
   it("refuses before Stripe is ready, and while one is already in flight", () => {
