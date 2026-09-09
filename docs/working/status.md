@@ -30,9 +30,9 @@ blocked. Spain's fulfil-and-deliver-inside-Spain case and the United Kingdom are
 recorded there as accepted exposures rather than as coverage; the UK is decided
 on a first-sale basis and blocks nothing.
 
-**Two operator actions gate the sale of merch, and neither gates the build**: a
-Union OSS registration and the `EX` notification, both in e-MTA, both listed
-above.
+**Both operator actions that gated the sale of merch are done**, as of
+2026-09-09: the Union OSS registration and the `EX` notification, both in
+e-MTA. Nothing in decision `013`'s scheme is now waiting on a registration.
 
 **Decision `009` is reopened by that arrangement.** Registering for OSS most
 likely moves the $5 certificate to destination VAT as well, so a single absorbed
@@ -232,8 +232,8 @@ What is actually held, as against what the contract expects in §2b.
 | Merchant identity in the private `orange.yml` | **yes** | added 2026-09-07 while deploying `C11`; the test environment renders `Aislopica OÜ` |
 | Stripe live keys | no | not before the publication gate, by design |
 | Printful account and store API token | **yes** | supplied 2026-09-08 for the `Lousydeal Test` store. The first token carried only `orders/read`; regenerated the same day with the eight scopes LD-04 needs, verified by read-back |
-| Union OSS registration in e-MTA | no | **operator action, before merch goes on sale.** Decision `013`; it takes effect only from the quarter after application |
-| Small-enterprise scheme (`EX` number) in e-MTA | no | **operator action.** Decision `013`; an *eelteade*, then a number within 35 working days |
+| Union OSS registration in e-MTA | **yes** | registered by the operator 2026-09-09. Decision `013`; the quarterly return is the one new filing merch adds |
+| Small-enterprise scheme (`EX` number) in e-MTA | **filed** | the *eelteade* was filed by the operator 2026-09-09; the `EX`-suffixed number follows within 35 working days. Decision `013`; this is what makes a Latvia-dispatched, Latvia-delivered sale exempt without a Latvian registration |
 | SMTP transactional credentials | **yes** | supplied 2026-09-06, live and test; in the Orange key store, seeded to OpenBao by `C11` |
 | SMTP submission host, port, servername and destination CIDR | **yes** | added 2026-09-07; mail verified sending from both environments |
 | Cloudflare Access policy for `test.lousydeal.com` | yes | measured 2026-09-05: all three hostnames answer 302 to Access |
