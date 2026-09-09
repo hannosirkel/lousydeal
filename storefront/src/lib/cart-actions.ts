@@ -24,7 +24,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import type { FetchJson } from "./medusa-client";
-import { createStoreFetchJson, getDefaultRegion } from "./medusa-client";
+import { createStoreFetchJson, getDefaultRegion, listTiers } from "./medusa-client";
 import { addLineToCart, createCart, getCart, removeLineFromCart } from "./store-cart";
 import { CART_COOKIE_OPTIONS, CART_ID_COOKIE, requireStoreClientConfig } from "./store-session";
 
@@ -46,12 +46,16 @@ import { CART_COOKIE_OPTIONS, CART_ID_COOKIE, requireStoreClientConfig } from ".
  *    buying a second certificate arrives here holding the cart they already
  *    bought, whose lines can no longer be changed.
  */
-async function cartToAddTo(fetchJson: FetchJson, existingCartId: string | undefined): Promise<string> {
+async function cartToAddTo(
+  fetchJson: FetchJson,
+  existingCartId: string | undefined,
+  clear: (variantId: string) => boolean,
+): Promise<string> {
   if (existingCartId !== undefined) {
     try {
       const cart = await getCart(fetchJson, existingCartId);
       if (cart.completed_at == null) {
-        for (const line of cart.items ?? []) {
+        for (const line of (cart.items ?? []).filter((item) => clear(item.variant_id))) {
           // Sequential, not `Promise.all`: these are writes to one cart and
           // Medusa refetches and recomputes it on each.
           await removeLineFromCart(fetchJson, cart.id, line.id);
@@ -92,6 +96,17 @@ async function cartToAddTo(fetchJson: FetchJson, existingCartId: string | undefi
  * The quantity is one and is not read from the form: nothing on this site
  * offers a quantity control, and a field the browser can set is a field a
  * visitor can set to something else.
+ *
+ * **It used to clear every line, and LD-04 made that wrong.** "Replace what is
+ * in the cart" and "keep at most one certificate" were the same sentence while
+ * a certificate was the only thing sold. They are not now: a buyer with a mug
+ * in the cart who changes their mind about which tier they want would have
+ * had the mug silently deleted — a paid-for intention removed by a control
+ * that says `ACQUIRE`, with nothing on the page saying so.
+ *
+ * So only the certificates go. Which variants those are comes from
+ * `listTiers`, which is the same list `checkout/page.tsx` derives its rules
+ * from and, since P9a, the one that actually excludes merch.
  */
 export async function addToCart(formData: FormData): Promise<void> {
   const variantId = formData.get("variantId");
@@ -101,7 +116,8 @@ export async function addToCart(formData: FormData): Promise<void> {
 
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const cookieStore = await cookies();
-  const cartId = await cartToAddTo(fetchJson, cookieStore.get(CART_ID_COOKIE)?.value);
+  const certificates = new Set((await listTiers(fetchJson)).map((tier) => tier.variantId));
+  const cartId = await cartToAddTo(fetchJson, cookieStore.get(CART_ID_COOKIE)?.value, (id) => certificates.has(id));
   await addLineToCart(fetchJson, cartId, variantId, 1);
 
   cookieStore.set(CART_ID_COOKIE, cartId, CART_COOKIE_OPTIONS);

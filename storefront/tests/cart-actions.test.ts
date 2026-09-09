@@ -82,6 +82,7 @@ describe("addToCart", () => {
     vi.doMock("../src/lib/medusa-client", () => ({
       createStoreFetchJson: () => async () => ({}),
       getDefaultRegion: async () => ({ id: "reg_1", currency_code: "usd" }),
+      listTiers: async () => [{ variantId: "var_tier_a" }, { variantId: "var_tier_b" }, { variantId: "var_chosen" }],
     }));
     vi.doMock("next/headers", () => ({
       cookies: async () => ({ get: () => undefined, set: () => undefined }),
@@ -135,7 +136,7 @@ interface AddToCartRun {
 async function runAddToCart(options: {
   cookieCartId?: string;
   /** What `getCart` answers for the cookie's cart, or `"unresolvable"` for one that does not. */
-  existingCart?: { id: string; completed_at?: string | null; items?: { id: string }[] } | "unresolvable";
+  existingCart?: { id: string; completed_at?: string | null; items?: { id: string; variant_id: string }[] } | "unresolvable";
 }): Promise<AddToCartRun> {
   vi.resetModules();
   const removed: [string, string][] = [];
@@ -164,6 +165,9 @@ async function runAddToCart(options: {
   vi.doMock("../src/lib/medusa-client", () => ({
     createStoreFetchJson: () => async () => ({}),
     getDefaultRegion: async () => ({ id: "reg_1", currency_code: "usd" }),
+    // The certificate variants, which is what decides what gets cleared. P9a
+    // made this list actually exclude merch.
+    listTiers: async () => [{ variantId: "var_tier_a" }, { variantId: "var_tier_b" }, { variantId: "var_chosen" }],
   }));
   vi.doMock("next/headers", () => ({
     cookies: async () => ({
@@ -204,13 +208,20 @@ async function runAddToCart(options: {
 }
 
 describe("addToCart keeps the cart to one certificate", () => {
-  it("clears what was there before adding the chosen tier", async () => {
+  it("clears the certificates that were there before adding the chosen tier", async () => {
     // Two lines, whether from two tiers or one tier added twice. Both go:
     // pressing "add" on a second tier is changing your mind, not ordering a
     // pair.
     const run = await runAddToCart({
       cookieCartId: "cart_1",
-      existingCart: { id: "cart_1", completed_at: null, items: [{ id: "line_a" }, { id: "line_b" }] },
+      existingCart: {
+        id: "cart_1",
+        completed_at: null,
+        items: [
+          { id: "line_a", variant_id: "var_tier_a" },
+          { id: "line_b", variant_id: "var_tier_b" },
+        ],
+      },
     });
 
     expect(run.removed).toEqual([
@@ -220,6 +231,37 @@ describe("addToCart keeps the cart to one certificate", () => {
     expect(run.added).toEqual([["cart_1", "var_chosen", 1]]);
     expect(run.createdCarts).toBe(0);
     expect(run.cookieWrittenAs).toBe("cart_1");
+  });
+
+  it("leaves the merch alone, which LD-04 made the point of the rule", async () => {
+    // **It used to clear every line.** "Replace what is in the cart" and "keep
+    // at most one certificate" were the same sentence while a certificate was
+    // the only thing sold. A buyer with a mug in the cart, changing their mind
+    // about which tier they wanted, would have had the mug deleted by a
+    // control labelled ACQUIRE with nothing on the page saying so.
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: {
+        id: "cart_1",
+        completed_at: null,
+        items: [
+          { id: "line_mug", variant_id: "var_mug" },
+          { id: "line_tier", variant_id: "var_tier_a" },
+          { id: "line_cap", variant_id: "var_cap" },
+        ],
+      },
+    });
+
+    expect(run.removed).toEqual([["cart_1", "line_tier"]]);
+    expect(run.added).toEqual([["cart_1", "var_chosen", 1]]);
+  });
+
+  it("removes nothing from a cart that holds only merch", async () => {
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [{ id: "line_mug", variant_id: "var_mug" }] },
+    });
+    expect(run.removed).toEqual([]);
   });
 
   it("removes nothing from a cart that is already empty", async () => {
@@ -239,7 +281,7 @@ describe("addToCart keeps the cart to one certificate", () => {
     // impossible, its lines no longer being changeable.
     const run = await runAddToCart({
       cookieCartId: "cart_paid",
-      existingCart: { id: "cart_paid", completed_at: "2026-09-06T10:00:00.000Z", items: [{ id: "line_a" }] },
+      existingCart: { id: "cart_paid", completed_at: "2026-09-06T10:00:00.000Z", items: [{ id: "line_a", variant_id: "var_tier_a" }] },
     });
 
     expect(run.createdCarts).toBe(1);

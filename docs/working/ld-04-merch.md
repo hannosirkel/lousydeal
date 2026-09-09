@@ -598,7 +598,16 @@ happened rather than a silent failure.
 **Files:** `storefront/src/content/merch.ts`, the cart page, `globals.css`, tests.
 
 - [x] **P9a** — tell the two catalogues apart, which nothing did.
-- [ ] **P9b** — the upsell, in the identity, claiming nothing that is not measured.
+- [x] **P9b** — adding a certificate must not delete the merch.
+- [ ] **P9c** — the upsell, in the identity, claiming nothing that is not measured.
+
+**A second defect of the same family**, found the same way. `addToCart`
+removed *every* line before adding the chosen tier. "Replace what is in the
+cart" and "keep at most one certificate" were the same sentence while a
+certificate was the only thing sold; they are not now. A buyer with a mug in
+the cart, changing their mind about which tier they wanted, would have had the
+mug deleted — by a control labelled `ACQUIRE`, with nothing on the page saying
+so. Only certificate variants are cleared now, decided from `listTiers`.
 
 **A defect found while starting this row, and it outranked the upsell.**
 `listTiers` fetched `/store/products` with **no filter** and called every
