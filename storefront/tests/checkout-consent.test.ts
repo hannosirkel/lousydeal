@@ -92,6 +92,14 @@ describe("the rendered checkout form", () => {
       needsAddress: false,
       needsConsent: true,
       currencyCode: "usd",
+      // Gate D finding 17 moved the card out of this form and the Stripe
+      // client with it: what used to be `useStripe() !== null` is now a flag,
+      // and the card fields are a slot. `true` here renders what a buyer with
+      // a loaded Stripe client sees, which is what these tests are about.
+      stripeReady: true,
+      confirmPayment: (async () => ({})) as never,
+      onPostageSettled: () => undefined,
+      cardSlot: null,
     }),
   );
 
@@ -204,6 +212,14 @@ describe("a cart with no certificate in it", () => {
       needsAddress: true,
       needsConsent: false,
       currencyCode: "usd",
+      // Gate D finding 17 moved the card out of this form and the Stripe
+      // client with it: what used to be `useStripe() !== null` is now a flag,
+      // and the card fields are a slot. `true` here renders what a buyer with
+      // a loaded Stripe client sees, which is what these tests are about.
+      stripeReady: true,
+      confirmPayment: (async () => ({})) as never,
+      onPostageSettled: () => undefined,
+      cardSlot: null,
     }),
   );
 

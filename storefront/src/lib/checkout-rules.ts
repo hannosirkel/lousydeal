@@ -198,3 +198,52 @@ export function isPayableCart(lines: readonly CartLine[], certificateHandles: re
   // `order-placed.ts` treats one that arrives anyway as the anomaly it now is.
   return units === 1;
 }
+
+/** What decides whether a Stripe payment session has to be created. */
+export interface PaymentSessionInput {
+  /** Medusa's payment collection for this cart, or `null` until it exists. */
+  readonly paymentCollectionId: string | null;
+  /** Whether this cart holds something that has to be posted. */
+  readonly needsAddress: boolean;
+  /** The postage now on the cart, or `null` where none has been settled. */
+  readonly postage: number | null;
+  /** The session already held, or `null`. */
+  readonly clientSecret: string | null;
+  /** The postage the held session was created against. */
+  readonly sessionPostage: number | null;
+}
+
+/**
+ * Whether a payment session has to be created now.
+ *
+ * **Gate D finding 17.** The session used to be created on mount, chained onto
+ * the payment collection, against the goods-only total — before the buyer had
+ * typed an address. Attaching the shipping method changes the cart total, and
+ * Medusa's answer to a changed total is to delete the payment session
+ * (`refresh-payment-collection.js` compares `payment_collection.raw_amount`
+ * with `cart.raw_total` and, where they differ, runs
+ * `deletePaymentSessionsWorkflow`). For the Stripe provider `deletePayment`
+ * is `cancelPayment` is `paymentIntents.cancel`. Nothing re-created one, so
+ * every buyer with a parcel in their cart filled in the card form against a
+ * cancelled PaymentIntent and `confirmPayment` failed at the last step.
+ *
+ * Deterministic, not a race, and healable only by reloading and retyping.
+ *
+ * The rule: **not before the amount is final, and again whenever it stops
+ * being.** A cart with nothing to post is final as soon as the collection
+ * exists; one with a parcel is final once the quote effect has attached a
+ * shipping method. Re-creating on an *unchanged* postage is refused as
+ * firmly: it would cancel a live PaymentIntent and empty the card fields for
+ * no change in what is being charged.
+ */
+export function paymentSessionNeeded({
+  paymentCollectionId,
+  needsAddress,
+  postage,
+  clientSecret,
+  sessionPostage,
+}: PaymentSessionInput): boolean {
+  if (paymentCollectionId === null) return false;
+  if (needsAddress && postage === null) return false;
+  return clientSecret === null || sessionPostage !== postage;
+}

@@ -47,6 +47,14 @@ const html = renderToStaticMarkup(
       needsAddress: false,
       needsConsent: true,
       currencyCode: "usd",
+      // Gate D finding 17 moved the card out of this form and the Stripe
+      // client with it: what used to be `useStripe() !== null` is now a flag,
+      // and the card fields are a slot. `true` here renders what a buyer with
+      // a loaded Stripe client sees, which is what these tests are about.
+      stripeReady: true,
+      confirmPayment: (async () => ({})) as never,
+      onPostageSettled: () => undefined,
+      cardSlot: null,
   }),
 );
 
@@ -258,7 +266,12 @@ describe("what reaches the cart", () => {
   it("is written before the card is charged", () => {
     // A rejected write should cost the buyer nothing.
     const writes = source.indexOf("setCartInscriptionAndGift(fetchJson, cartId");
-    const confirms = source.indexOf("stripe.confirmPayment");
+    // **`await confirmPayment(`, not `stripe.confirmPayment`.** Gate D
+    // finding 17 moved the Stripe call into `CardSection`, which sits *above*
+    // this handler in the file -- so the old anchor found a `confirmPayment`
+    // that is not the one this ordering is about, and passed for the wrong
+    // reason whichever order the writes were in.
+    const confirms = source.indexOf("await confirmPayment(");
     expect(writes).toBeGreaterThan(-1);
     expect(writes).toBeLessThan(confirms);
   });

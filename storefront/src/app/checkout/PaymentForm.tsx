@@ -47,7 +47,7 @@
 
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { Button } from "../../components/document/Button";
 import { formatMoney } from "../../lib/money";
@@ -81,7 +81,7 @@ import {
   PREPARING_PAYMENT_LABEL,
 } from "../../content/checkout";
 import { NO_INSCRIPTION } from "../../content/certificate";
-import { paySubmitBlocked, payDisabled } from "../../lib/checkout-rules";
+import { paySubmitBlocked, payDisabled, paymentSessionNeeded } from "../../lib/checkout-rules";
 import { GIFT_LIMITS, previewGiftText } from "../../lib/gift";
 import { INSCRIPTION_LIMITS, sanitiseInscription } from "../../lib/inscription";
 import type { FetchJson, StoreFetchInit, StoreRegionCountry } from "../../lib/medusa-client";
@@ -155,6 +155,28 @@ export function PaymentForm({
   const fetchJson = useMemo(() => createProxyFetchJson(), []);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paymentCollectionId, setPaymentCollectionId] = useState<string | null>(null);
+  /**
+   * The postage the cart carries, as the form below last settled it — and
+   * `null` for a cart with nothing to post, which never quotes.
+   *
+   * **This is the input to when a payment session may be created**, not a
+   * display value: the form owns the figure it shows. Held here because the
+   * session must be created *after* the shipping method is on the cart, and
+   * created again whenever the postage changes, and only this component can
+   * do either.
+   */
+  const [postage, setPostage] = useState<number | null>(null);
+  /** The postage the session in `clientSecret` was created against. */
+  const [sessionPostage, setSessionPostage] = useState<number | null>(null);
+  /**
+   * Whether the Stripe client inside `<Elements>` is loaded, lifted out of it.
+   *
+   * The form is no longer inside that subtree (see the note on `cardSlot`),
+   * so it cannot call `useStripe` itself; the section that can reports up.
+   */
+  const [stripeReady, setStripeReady] = useState(false);
+  const confirmRef = useRef<ConfirmPayment | null>(null);
   // Guards against firing `createPaymentCollection` twice for the same
   // `cartId`, not just against setting state after one -- see
   // `store-payment.ts`'s own comment on that function for why a second
@@ -168,15 +190,16 @@ export function PaymentForm({
   // being made at all, while still firing again if `cartId` genuinely
   // changes or a fresh `PaymentForm` instance mounts with a fresh `ref`.
   const startedForCartRef = useRef<string | null>(null);
+  /** The same guard for the session, keyed on what the session is *for*. */
+  const startedSessionForRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (startedForCartRef.current === cartId) return;
     startedForCartRef.current = cartId;
     let cancelled = false;
     createPaymentCollection(fetchJson, cartId)
-      .then((paymentCollectionId) => initiateStripePaymentSession(fetchJson, paymentCollectionId))
-      .then((session) => {
-        if (!cancelled) setClientSecret(session.clientSecret);
+      .then((collectionId) => {
+        if (!cancelled) setPaymentCollectionId(collectionId);
       })
       .catch((thrown: unknown) => {
         if (!cancelled) setError(thrown instanceof Error ? thrown.message : "Could not start payment.");
@@ -186,10 +209,87 @@ export function PaymentForm({
     };
   }, [cartId, fetchJson]);
 
+  /**
+   * The payment session, created only once the amount is final — and created
+   * again whenever it stops being.
+   *
+   * **Gate D finding 17, and it broke every merch order.** This used to run on
+   * mount, chained onto the collection above: one session, created against the
+   * goods-only total before the buyer had typed an address. Attaching the
+   * shipping method then changes the cart total, and Medusa's answer to a
+   * changed total is to delete the payment session
+   * (`refresh-payment-collection.js`: `valueIsEqual` false → parallelize
+   * `deletePaymentSessionsWorkflow`, `updatePaymentCollectionStep`), which for
+   * the Stripe provider means `deletePayment` → `cancelPayment` →
+   * `paymentIntents.cancel`. Nothing re-created one, so the buyer completed the
+   * card form against a cancelled PaymentIntent and `confirmPayment` failed at
+   * the last step with Stripe's own developer-facing wording. Deterministic,
+   * not a race: every cart with a parcel in it, every time, healable only by
+   * reloading the page and retyping the address.
+   *
+   * The rule is now the plain one: **no session exists until the total is
+   * settled.** For a cart with nothing to post that is immediately; for one
+   * with a parcel it is after the quote effect has put a shipping method on
+   * the cart. A later change to the postage creates a fresh session at the new
+   * amount, because the collection amount Medusa keeps has already been
+   * updated by the same workflow that deleted the old one.
+   */
+  useEffect(() => {
+    // The rule itself is in `checkout-rules.ts`, with the rest of this
+    // checkout's gates and for the same reason: a condition written inline in
+    // an effect can only be tested by reading the file, and this suite runs
+    // without a DOM.
+    if (!paymentSessionNeeded({ paymentCollectionId, needsAddress, postage, clientSecret, sessionPostage })) return;
+    // Narrowing, and it has to be its own statement: the rule above already
+    // refuses a null collection, but TypeScript cannot see through a call.
+    if (paymentCollectionId === null) return;
+    const key = `${paymentCollectionId}:${String(postage)}`;
+    if (startedSessionForRef.current === key) return;
+    startedSessionForRef.current = key;
+    let cancelled = false;
+    initiateStripePaymentSession(fetchJson, paymentCollectionId)
+      .then((session) => {
+        if (cancelled) return;
+        setClientSecret(session.clientSecret);
+        setSessionPostage(postage);
+      })
+      .catch((thrown: unknown) => {
+        if (!cancelled) setError(thrown instanceof Error ? thrown.message : "Could not start payment.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [paymentCollectionId, needsAddress, postage, clientSecret, sessionPostage, fetchJson]);
+
+  /**
+   * How the section inside `<Elements>` hands its two capabilities back up.
+   *
+   * Stable, so the effect that calls it does not re-register on every render.
+   */
+  const registerConfirm = useCallback((confirm: ConfirmPayment | null) => {
+    confirmRef.current = confirm;
+    setStripeReady(confirm !== null);
+  }, []);
+
+  const confirmPayment = useCallback<ConfirmPayment>(async (returnUrl) => {
+    const confirm = confirmRef.current;
+    if (confirm === null) throw new Error("The payment form is not ready.");
+    return confirm(returnUrl);
+  }, []);
+
   if (error !== null) {
     return <p className="payment-error">{error}</p>;
   }
-  if (clientSecret === null) {
+  /**
+   * The cursor now waits for the *collection*, not the session.
+   *
+   * For a cart with a parcel the session cannot exist until the buyer has
+   * typed an address, so waiting for one here would show a blinking cursor in
+   * place of the very form that produces it. The collection is created on
+   * mount and needs nothing from the buyer, so it is the honest thing to wait
+   * for: below it there is a form, above it there is nothing to fill in.
+   */
+  if (paymentCollectionId === null) {
     // The one place `brand.md` §4's blinking cursor belongs: a state inside a
     // rendered page. As a route-level `loading.tsx` it made every page serve
     // nothing without JavaScript -- see V5c.
@@ -210,17 +310,81 @@ export function PaymentForm({
   }
 
   return (
-    <Elements stripe={stripePromise} options={{ clientSecret }}>
-      <PayButton
-        cartId={cartId}
-        fetchJson={fetchJson}
-        countries={countries}
-        needsAddress={needsAddress}
-        needsConsent={needsConsent}
-        currencyCode={currencyCode}
-      />
-    </Elements>
+    <PayButton
+      cartId={cartId}
+      fetchJson={fetchJson}
+      countries={countries}
+      needsAddress={needsAddress}
+      needsConsent={needsConsent}
+      currencyCode={currencyCode}
+      stripeReady={stripeReady}
+      confirmPayment={confirmPayment}
+      onPostageSettled={setPostage}
+      cardSlot={
+        clientSecret === null ? (
+          // A parcel with no price yet. The buyer is still typing the address
+          // that produces one, and a card field above an unknown total is a
+          // card field asking to be filled in before the amount exists.
+          <p role="status">
+            <span className="cursor" aria-hidden="true" />
+            <span className="visually-hidden">{PREPARING_PAYMENT_LABEL}</span>
+          </p>
+        ) : (
+          /**
+           * **`key={clientSecret}` is load-bearing.** The installed
+           * `@stripe/react-stripe-js` treats `options.clientSecret` as
+           * immutable and warns "Unsupported prop change:
+           * options.clientSecret is not a mutable property" rather than
+           * re-binding, so a new session has to arrive as a new subtree.
+           *
+           * Which is also why nothing but the card lives in here any more: a
+           * remount of this subtree used to take the buyer's email, address,
+           * inscription and gift with it.
+           */
+          <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret }}>
+            <CardSection registerConfirm={registerConfirm} />
+          </Elements>
+        )
+      }
+    />
   );
+}
+
+/** What `handleSubmit` needs from Stripe, as a function it can be handed. */
+type ConfirmPayment = (returnUrl: string) => Promise<{ error?: { message?: string } }>;
+
+/**
+ * The Payment Element, and the one thing only its subtree can do.
+ *
+ * Everything else on the checkout is outside `<Elements>` now, because this
+ * subtree is remounted whenever the amount changes and the buyer's typed
+ * fields must survive that. What cannot move out is `confirmPayment`, which
+ * needs the `elements` instance — so it is registered upward instead.
+ */
+function CardSection({ registerConfirm }: { readonly registerConfirm: (confirm: ConfirmPayment | null) => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+
+  useEffect(() => {
+    if (stripe === null || elements === null) {
+      registerConfirm(null);
+      return;
+    }
+    registerConfirm(async (returnUrl) =>
+      // `redirect: "if_required"` keeps a standard test-mode card on this
+      // page; `return_url` still has to be an absolute URL because Stripe
+      // uses it for the wallets and payment methods that redirect regardless.
+      stripe.confirmPayment({ elements, confirmParams: { return_url: returnUrl }, redirect: "if_required" }),
+    );
+    return () => {
+      // Unregistered on unmount, so the gate closes the moment the session
+      // this was bound to stops existing -- which is exactly when the
+      // subtree is being replaced.
+      registerConfirm(null);
+    };
+  }, [stripe, elements, registerConfirm]);
+
+  return <PaymentElement options={{ wallets: { applePay: "auto", googlePay: "auto", link: "auto" } }} />;
 }
 
 /**
@@ -247,6 +411,29 @@ interface PayButtonProps {
   readonly needsConsent: boolean;
   /** The cart's own currency, for the postage row. */
   readonly currencyCode: string;
+  /**
+   * The `<Elements>` subtree, rendered where the card fields belong.
+   *
+   * **A slot rather than a child component, and finding 17 is why.** This
+   * form used to live *inside* `<Elements>`, which meant the subtree could not
+   * be remounted without taking the buyer's email, address, inscription and
+   * gift with it — and remounting is the only way to bind a new payment
+   * session, the installed `@stripe/react-stripe-js` treating
+   * `options.clientSecret` as immutable. Inverting the nesting makes the card
+   * the replaceable part and the typing the durable part, which is the right
+   * way round.
+   */
+  readonly cardSlot: ReactNode;
+  /** Whether the slot above has a Stripe client. Was `useStripe() !== null`. */
+  readonly stripeReady: boolean;
+  /** Confirms the payment through the `elements` instance in that slot. */
+  readonly confirmPayment: ConfirmPayment;
+  /**
+   * Reports the postage this form has settled on, or `null` where it has
+   * none — which is what tells the parent a payment session may be created,
+   * and created again when the figure changes.
+   */
+  readonly onPostageSettled: (amount: number | null) => void;
 }
 
 /**
@@ -267,9 +454,11 @@ export function PayButton({
   needsAddress,
   needsConsent,
   currencyCode,
+  cardSlot,
+  stripeReady,
+  confirmPayment,
+  onPostageSettled,
 }: PayButtonProps) {
-  const stripe = useStripe();
-  const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -372,6 +561,10 @@ export function PayButton({
       setShippingAmount(null);
       return;
     }
+    // Not cleared upward here. The parent holds a session bound to the last
+    // settled figure; telling it `null` on every keystroke through a postcode
+    // would cancel a live PaymentIntent for an address the buyer is still
+    // in the middle of typing. The pay gate is already shut in this state.
     let cancelled = false;
     setQuoting(true);
     setShippingError(null);
@@ -382,7 +575,13 @@ export function PayButton({
         const cheapest = [...options].sort((first, second) => first.amount - second.amount)[0];
         if (cheapest === undefined) throw new Error(SHIPPING_UNAVAILABLE_NOTICE);
         const applied = await setCartShippingMethod(fetchJson, cartId, cheapest.id);
-        if (!cancelled) setShippingAmount(applied.shippingAmount);
+        if (!cancelled) {
+          setShippingAmount(applied.shippingAmount);
+          // **After the attach, never before.** This is what lets the parent
+          // create the payment session, and the whole of finding 17 was that
+          // one existed before the shipping method did.
+          onPostageSettled(applied.shippingAmount);
+        }
       } catch {
         // The thrown message is not shown. It is Medusa's or Printful's, and
         // a buyer reading "Printful quoted no usable shipping option to XX"
@@ -401,7 +600,7 @@ export function PayButton({
     // `address` and `countryCode` are the whole of the input; `fetchJson` and
     // `cartId` are stable for the life of this component. `submitting` is a
     // gate rather than an input: it only ever stops this running.
-  }, [needsAddress, address, countryCode, fetchJson, cartId, submitting]);
+  }, [needsAddress, address, countryCode, fetchJson, cartId, submitting, onPostageSettled]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -422,10 +621,9 @@ export function PayButton({
     // `form.requestSubmit()` ignores `disabled`.
     // The two null checks are narrowing, and have to be their own statement
     // for TypeScript to see them. The rule below is the rule.
-    if (stripe === null || elements === null) return;
     if (
       paySubmitBlocked({
-        stripeReady: true,
+        stripeReady,
         submitting,
         consented,
         // The same term the control is disabled on, and for the second half
@@ -490,11 +688,7 @@ export function PayButton({
       // `redirect: "if_required"` keeps a standard test-mode card on this
       // page; `return_url` still has to be an absolute URL because Stripe
       // uses it for the wallets and payment methods that redirect regardless.
-      const confirmation = await stripe.confirmPayment({
-        elements,
-        confirmParams: { return_url: `${window.location.origin}/checkout` },
-        redirect: "if_required",
-      });
+      const confirmation = await confirmPayment(`${window.location.origin}/checkout`);
       if (confirmation.error) {
         throw new Error(confirmation.error.message ?? "Payment could not be confirmed.");
       }
@@ -781,7 +975,7 @@ export function PayButton({
         </p>
       ) : null}
 
-      <PaymentElement options={{ wallets: { applePay: "auto", googlePay: "auto", link: "auto" } }} />
+      {cardSlot}
       {error !== null && (
         <p className="payment-error" role="alert">
           {error}
@@ -795,7 +989,7 @@ export function PayButton({
       <Button
         type="submit"
         disabled={payDisabled({
-          stripeReady: stripe !== null,
+          stripeReady,
           submitting,
           consented,
           // Settled when there is nothing to post, or when Medusa has priced
