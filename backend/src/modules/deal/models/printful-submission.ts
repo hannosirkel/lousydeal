@@ -114,6 +114,18 @@ export const PrintfulSubmission = model
      */
     attempts: model.number(),
 
+    /**
+     * When the last webhook event this row acted on happened, per Printful.
+     *
+     * **Not when it arrived.** Printful retries a non-2xx after 1, 4, 16, 64,
+     * 256 and 1024 minutes, so events arrive out of order as a matter of
+     * routine — Gate D found a delayed `shipment_sent` retry landing after a
+     * `shipment_returned` and rewinding the record to say the parcel was on
+     * its way to a buyer it had already bounced off. This is what an arriving
+     * event is compared against.
+     */
+    last_event_at: model.dateTime().nullable(),
+
     /** Why the last attempt failed, for a person. Never a token: `client.ts` keeps those out of its errors. */
     last_error: model.text().nullable(),
 

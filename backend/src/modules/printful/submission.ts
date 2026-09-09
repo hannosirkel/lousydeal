@@ -208,7 +208,7 @@ export async function submitPrintfulOrder(
   // Nothing to post. Written down rather than left absent, so the next
   // redelivery of a certificate-only order costs one indexed read instead of
   // re-deciding. Most orders here are this one.
-  if (input.lines.length === 0 || input.recipient === null) {
+  if (input.lines.length === 0) {
     return await record(submissions, existing, {
       order_id: input.orderId,
       status: "skipped",
@@ -216,6 +216,34 @@ export async function submitPrintfulOrder(
       printful_status: null,
       last_error: null,
       submitted_at: null,
+    });
+  }
+
+  /*
+   * **Something to post and nowhere to post it, which is not the same thing
+   * and used to be recorded as if it were.**
+   *
+   * Gate D found the two conditions sharing a branch. `skipped` is terminal —
+   * `settled()` admits everything but `failed` — and `order-placed.ts` logged
+   * it at no level at all, because it was the ordinary answer for the
+   * ordinary order. So a paid order whose address `recipientFrom` refused was
+   * charged, sent to nobody, recorded as unremarkable, and **never retried,
+   * even after an operator fixed the address**.
+   *
+   * `failed` is the honest state: retryable, and loud in the subscriber. The
+   * plan promised exactly that for the case where Printful rejects an address
+   * — "ends in a message that says what happened rather than a silent
+   * failure" — and the locally-rejected case got the silent version.
+   */
+  if (input.recipient === null) {
+    return await record(submissions, existing, {
+      order_id: input.orderId,
+      status: "failed",
+      printful_order_id: null,
+      printful_status: null,
+      last_error: "The order has lines to post and no usable delivery address",
+      submitted_at: null,
+      attempts: (existing?.attempts ?? 0) + 1,
     });
   }
 
