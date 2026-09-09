@@ -195,6 +195,11 @@ export default async function orderPlaced({
         "items.product_handle",
         "items.total",
         "items.detail.quantity",
+        // **The fallback `from-order.ts` documents, made reachable.** It reads
+        // `item.detail?.quantity ?? item.quantity`, and a test covers the
+        // second half -- but this query never asked for that field, so the
+        // fallback could not fire in production however well it was tested.
+        "items.quantity",
         // LD-04 P8c. The SKU is what `orders.ts` resolves against the store,
         // and the address is where the parcel goes. Neither is read by the
         // certificate half, and both are absent from an order of certificates.

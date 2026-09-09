@@ -43,8 +43,27 @@ interface V2OrderResponse {
   readonly data?: { readonly id?: unknown; readonly status?: unknown };
 }
 
+/**
+ * What `GET /store/variants/@{external_id}` answers with.
+ *
+ * **The sync variant is `result` itself — there is no wrapper — and reading
+ * for one made every merch order impossible.** Measured against the live test
+ * store on 2026-09-09: `@LD-TEE-L` answers `200` with
+ * `result: { id: 5488997556, external_id: "LD-TEE-L", sync_product_id, name,
+ * synced, variant_id, ... }`. This interface declared
+ * `result.sync_variant.id`, so the read was `undefined` for every SKU that
+ * exists, `syncVariantIdFor` threw "Printful holds no sync variant", and no
+ * order was ever placed.
+ *
+ * The measurement in this file's own header was right all along — it records
+ * "`LD-STK-4` returns `id: 5488997617`", the id at the top of `result`. The
+ * shape was invented between reading it and typing it, probably from
+ * `/store/products/{id}`, which really does answer `{ sync_product,
+ * sync_variants }`. Gate E is what caught the difference, because a stub
+ * shaped like the belief agrees with the belief.
+ */
 interface VariantResponse {
-  readonly result?: { readonly sync_variant?: { readonly id?: unknown } };
+  readonly result?: { readonly id?: unknown };
 }
 
 /**
@@ -132,7 +151,7 @@ function recipientBody(recipient: PrintfulRecipient): Record<string, string> {
 
 async function syncVariantIdFor(client: PrintfulClient, sku: string): Promise<number> {
   const response = await client.request<VariantResponse>("GET", `/store/variants/@${encodeURIComponent(sku)}`);
-  const id = response.result?.sync_variant?.id;
+  const id = response.result?.id;
   if (typeof id !== "number") {
     // A SKU the store does not hold. Throwing here is what stops an order
     // being placed for the wrong thing: the alternative — dropping the line —

@@ -263,3 +263,105 @@ describe("where the submission sits in the subscriber", () => {
     expect(source).toContain("export default async function orderPlaced");
   });
 });
+
+describe("the shape Medusa actually sends, which is not the shape the tests sent", () => {
+  /**
+   * **Gate E, 2026-09-09, and the most expensive kind of green suite.**
+   *
+   * A real order was placed against a real Medusa with a certificate and a
+   * shirt in it. Every test in this file passed, and the shirt was never
+   * ordered: `query.graph` hydrates `quantity` as a **`BigNumber`**, not a
+   * primitive. Measured on the running server —
+   *
+   *     detailType: "object", detailCtor: "BigNumber", raw: "1"
+   *
+   * — so `typeof raw === "number"` was false for every line ever placed,
+   * `quantityOf` returned `null`, the line was counted unorderable, the plan
+   * carried no lines, and `submitPrintfulOrder` recorded `skipped`, which is
+   * terminal. Buyer charged, nothing ordered, nothing retried, one log line.
+   *
+   * **The tests were the reason it survived**: every case above passes
+   * `{ detail: { quantity: 1 } }`, a plain number, which is the one shape
+   * production never sends. `order-placed.ts` has read money through
+   * `amount()` since LD-02 for exactly this reason, and
+   * `vat-thresholds.test.ts` writes the trap down in as many words — "a
+   * `.numeric`, a `valueOf`, or a plain number depending on where it came
+   * from". The knowledge existed; this function did not have it.
+   *
+   * So these drive the real shapes. A plain number stays covered above.
+   */
+  const bigNumber = (value: number) => ({ numeric: value, valueOf: () => value, toJSON: () => value });
+
+  it("orders a line whose quantity is a BigNumber, which is every real line", () => {
+    const result = plan({
+      id: "order_01",
+      shipping_address: ADDRESS,
+      items: [{ product_handle: "mug", variant_sku: "LD-MUG-11", detail: { quantity: bigNumber(2) } }],
+    });
+    expect(result?.input.lines).toEqual([{ sku: "LD-MUG-11", quantity: 2 }]);
+    expect(result?.input.unorderable).toBe(0);
+  });
+
+  it("reads one that only carries .numeric, with no usable valueOf", () => {
+    // **The fixture above hides this**, and a mutation proved it: it carries
+    // `numeric` *and* `valueOf`, so deleting either branch still passes. A
+    // plain object's inherited `valueOf` returns the object itself, so this
+    // shape resolves through `.numeric` or not at all -- which is the shape
+    // `vat-thresholds.test.ts` records reaching it from Medusa.
+    const result = plan({
+      id: "order_01",
+      shipping_address: ADDRESS,
+      items: [{ product_handle: "mug", variant_sku: "LD-MUG-11", detail: { quantity: { numeric: 6 } } }],
+    });
+    expect(result?.input.lines).toEqual([{ sku: "LD-MUG-11", quantity: 6 }]);
+  });
+
+  it("reads one that only answers valueOf, which is what a bare BigNumber is", () => {
+    const result = plan({
+      id: "order_01",
+      shipping_address: ADDRESS,
+      items: [{ product_handle: "mug", variant_sku: "LD-MUG-11", detail: { quantity: { valueOf: () => 3 } } }],
+    });
+    expect(result?.input.lines).toEqual([{ sku: "LD-MUG-11", quantity: 3 }]);
+  });
+
+  it("reads a numeric string, because a third shape is one more than two", () => {
+    const result = plan({
+      id: "order_01",
+      shipping_address: ADDRESS,
+      items: [{ product_handle: "mug", variant_sku: "LD-MUG-11", detail: { quantity: "4" } }],
+    });
+    expect(result?.input.lines).toEqual([{ sku: "LD-MUG-11", quantity: 4 }]);
+  });
+
+  it("still refuses what is genuinely unreadable", () => {
+    // The widening must not become "accept anything". A BigNumber-shaped
+    // object carrying nothing numeric is still nothing.
+    for (const quantity of [{}, { numeric: "two" }, { valueOf: () => "two" }, [], "two", null, 0, -1]) {
+      const result = plan({
+        id: "order_01",
+        shipping_address: ADDRESS,
+        items: [{ product_handle: "mug", variant_sku: "LD-MUG-11", detail: { quantity } }],
+      });
+      expect(`${JSON.stringify(quantity)}: ${String(result?.unorderable)}`).toBe(`${JSON.stringify(quantity)}: 1`);
+    }
+  });
+
+  it("falls back to the plain field when there is no detail at all", () => {
+    // Kept, and now reachable: `order-placed.ts` asks for `items.quantity`
+    // as well, which it did not before -- so this fallback was tested and
+    // could never fire.
+    const result = plan({
+      id: "order_01",
+      shipping_address: ADDRESS,
+      items: [{ product_handle: "mug", variant_sku: "LD-MUG-11", quantity: bigNumber(5) }],
+    });
+    expect(result?.input.lines).toEqual([{ sku: "LD-MUG-11", quantity: 5 }]);
+  });
+
+  it("is asked for by the subscriber, or the fallback above is decoration", () => {
+    const subscriber = readFileSync(join(__dirname, "../src/subscribers/order-placed.ts"), "utf8");
+    expect(subscriber).toContain('"items.detail.quantity"');
+    expect(subscriber).toContain('"items.quantity"');
+  });
+});

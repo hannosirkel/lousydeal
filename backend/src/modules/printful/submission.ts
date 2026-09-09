@@ -144,6 +144,13 @@ export interface PrintfulSubmissionInput {
   /** `null` where the order carried no usable address — which is what an order of certificates looks like. */
   readonly recipient: PrintfulRecipient | null;
   readonly submittedAt: Date;
+  /**
+   * Lines this order held that could not be turned into an order line.
+   *
+   * **Zero and empty is a certificate; non-zero and empty is a defect**, and
+   * Gate E is why the difference is carried here rather than only logged.
+   */
+  readonly unorderable: number;
 }
 
 /**
@@ -225,6 +232,33 @@ export async function submitPrintfulOrder(
 ): Promise<PrintfulSubmissionRecord> {
   const existing = (await submissions.listPrintfulSubmissions({ order_id: input.orderId }))[0];
   if (existing && settled(existing)) return existing;
+
+  /*
+   * **No lines and something that should have been one.** Not the same state,
+   * and Gate E is why this branch exists at all.
+   *
+   * A real order was placed on 2026-09-09 with a certificate and a shirt in
+   * it. Medusa returns `quantity` as a `BigNumber`, `quantityOf` required a
+   * primitive, so the shirt was counted unorderable, the plan carried no
+   * lines, and this function recorded `skipped` — which `settled()` makes
+   * terminal. The buyer had paid, nothing was ordered, nothing would ever
+   * retry, and the only trace was one line in a log.
+   *
+   * The parsing bug is fixed where it lives. This is the second lock: an
+   * order that yields no lines *and* had something it could not read is a
+   * defect, so it is recorded `failed` — retryable, and loud in the
+   * subscriber — rather than filed as an order with nothing to send.
+   */
+  if (input.lines.length === 0 && input.unorderable > 0) {
+    return await record(submissions, existing, {
+      order_id: input.orderId,
+      status: "failed",
+      printful_order_id: null,
+      printful_status: null,
+      last_error: `every line of this order was unreadable: ${String(input.unorderable)} of them`,
+      submitted_at: null,
+    });
+  }
 
   // Nothing to post. Written down rather than left absent, so the next
   // redelivery of a certificate-only order costs one indexed read instead of

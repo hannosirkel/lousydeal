@@ -34,6 +34,7 @@ const INPUT = {
   lines: LINES,
   recipient: RECIPIENT,
   submittedAt: new Date("2026-09-09T10:00:00Z"),
+  unorderable: 0,
 };
 
 /** A store over a plain array, with the unique index the migration writes. */
@@ -576,3 +577,67 @@ function emptyThenTruthful(store: SubmissionStore) {
     return store.listPrintfulSubmissions(filters);
   };
 }
+
+describe("an order whose lines could not be read at all", () => {
+  /**
+   * **The second lock Gate E asked for.**
+   *
+   * `skipped` is terminal — `settled()` admits everything but `failed` — and
+   * it is the right answer for a certificate, which has nothing to post. It
+   * was also the answer given to an order that had a shirt in it and could not
+   * read the shirt: on 2026-09-09 a real order recorded `skipped` because
+   * `quantityOf` rejected Medusa's `BigNumber`, and nothing would ever have
+   * looked at it again.
+   *
+   * The parsing bug is fixed where it lives. This is the lock behind it: no
+   * lines *and* something that should have been one is a defect, not an
+   * absence, so it is recorded retryable and loud.
+   */
+  it("records it as failed rather than skipped, so a later attempt can act", async () => {
+    const printful = fakePrintful();
+    const { store, rows } = fakeStore();
+
+    const record = await submitPrintfulOrder(store, printful.orders, { ...INPUT, lines: [], unorderable: 2 });
+
+    expect(record.status).toBe("failed");
+    expect(rows[0]?.status).toBe("failed");
+    // And it says what happened, because a `failed` row with no reason is a
+    // row somebody has to reconstruct the reason for.
+    expect(record.last_error).toMatch(/every line of this order was unreadable: 2/);
+  });
+
+  it("sends nothing to Printful, because there is nothing readable to send", async () => {
+    const printful = fakePrintful();
+    const { store } = fakeStore();
+
+    await submitPrintfulOrder(store, printful.orders, { ...INPUT, lines: [], unorderable: 1 });
+
+    expect(printful.calls.create).toBe(0);
+  });
+
+  it("tries again on the next delivery, which is the whole difference", async () => {
+    const printful = fakePrintful();
+    const { store } = fakeStore();
+
+    await submitPrintfulOrder(store, printful.orders, { ...INPUT, lines: [], unorderable: 1 });
+    // The same order, now readable -- an operator fixed it, or a later
+    // redelivery carried a complete payload.
+    const second = await submitPrintfulOrder(store, printful.orders, INPUT);
+
+    expect(second.status).toBe("submitted");
+    expect(printful.calls.create).toBe(1);
+  });
+
+  it("still records a certificate-only order as skipped, which is terminal and right", async () => {
+    // The branch that must not widen. An order with nothing to post has
+    // nothing to retry, and re-deciding it on every redelivery is the cost
+    // this state exists to avoid.
+    const printful = fakePrintful();
+    const { store } = fakeStore();
+
+    const record = await submitPrintfulOrder(store, printful.orders, { ...INPUT, lines: [], unorderable: 0 });
+
+    expect(record.status).toBe("skipped");
+    expect(printful.calls.create).toBe(0);
+  });
+});

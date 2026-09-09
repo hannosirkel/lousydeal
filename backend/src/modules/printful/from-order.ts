@@ -67,9 +67,47 @@ function skuOf(item: OrderItemForPrintful): string | null {
   return text(item.variant_sku) ?? text(item.variant?.sku);
 }
 
+/**
+ * How many of a line to order.
+ *
+ * **Gate E found this rejecting every real order, and the mechanism is one
+ * this repository already knew about.** Medusa does not return `quantity` as a
+ * primitive: `query.graph` hydrates it as a **`BigNumber`**, measured live on
+ * 2026-09-09 — `typeof` is `"object"`, `constructor.name` is `BigNumber`, and
+ * both `String()` and `JSON.stringify()` render it as `1`, so it reads as a
+ * number everywhere a person would look at it. `typeof raw !== "number"` was
+ * therefore true of every line, `quantityOf` returned `null`, every merch line
+ * was counted unorderable, and the submission was recorded with no lines at
+ * all. The buyer paid for a shirt that was never ordered.
+ *
+ * The unit tests passed throughout because they pass `{ detail: { quantity: 1 } }`
+ * — a plain number, which is the one shape production never sends.
+ *
+ * `order-placed.ts`'s `amount()` has read money this way since LD-02, and
+ * `vat-thresholds.test.ts` records the same trap in as many words: "a
+ * `.numeric`, a `valueOf`, or a plain number depending on where it came from".
+ * This is that reader, for a count rather than a sum.
+ */
+function numericOf(value: unknown): number | null {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") return Number(value);
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const numeric = (value as { readonly numeric?: unknown }).numeric;
+  if (typeof numeric === "number") return numeric;
+  const valued = (value as { valueOf(): unknown }).valueOf();
+  return typeof valued === "number" ? valued : null;
+}
+
 function quantityOf(item: OrderItemForPrintful): number | null {
-  const raw = item.detail?.quantity ?? item.quantity;
-  if (typeof raw !== "number" || !Number.isFinite(raw) || raw < 1) return null;
+  // **`??` is not enough on its own and never was.** A `BigNumber` is neither
+  // `null` nor `undefined`, so the fallback to `item.quantity` could not fire
+  // for the case that actually occurs -- and the subscriber does not request
+  // that field anyway. Both halves are fixed: this reads the shape Medusa
+  // sends, and the fallback stays for the order shapes that carry the plain
+  // field instead.
+  const raw = numericOf(item.detail?.quantity) ?? numericOf(item.quantity);
+  if (raw === null || !Number.isFinite(raw) || raw < 1) return null;
   return Math.floor(raw);
 }
 
@@ -152,6 +190,10 @@ export function printfulSubmissionFrom(
       lines,
       recipient: recipientFrom(order?.shipping_address),
       submittedAt,
+      // Carried into the submission, not only logged. `submitPrintfulOrder`
+      // cannot otherwise tell "this order has nothing to post" from "nothing
+      // in this order could be read", and it records the first as terminal.
+      unorderable,
     },
     unorderable,
   };
