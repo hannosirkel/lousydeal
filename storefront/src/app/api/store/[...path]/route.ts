@@ -74,7 +74,7 @@ const MOUNT_PREFIX = "/api/store/";
  * rather than by editing this literal, so `tsc` catches an attempt at the
  * former.
  */
-export const ALLOWED_NAMESPACES: ReadonlySet<string> = new Set(["store", "hooks"]);
+export const ALLOWED_NAMESPACES: ReadonlySet<string> = new Set(["store", "hooks", "webhooks"]);
 
 /**
  * The provider segment {@link resolveStoreApiPath} admits under `hooks`,
@@ -101,6 +101,33 @@ const STRIPE_WEBHOOK_PROVIDER_SEGMENT = STRIPE_PROVIDER_ID.slice("pp_".length);
 
 /** The one path {@link resolveStoreApiPath} admits under `hooks` -- see its hooks branch. */
 const STRIPE_WEBHOOK_PATH = `/hooks/payment/${STRIPE_WEBHOOK_PROVIDER_SEGMENT}`;
+
+/**
+ * The one path {@link resolveStoreApiPath} admits under `webhooks`, and the
+ * reason that namespace exists at all.
+ *
+ * **Its counterpart is `backend/src/api/middlewares.ts`**, which sets
+ * `preserveRawBody` for this exact matcher and for nothing else. The two are
+ * one string in two workspaces, and `store-checkout.test.ts` asserts they
+ * agree -- because if they ever disagree the failure is invisible from here:
+ * `req.rawBody` is absent, the route computes no signature, and it answers
+ * 401 to **every delivery including the genuine ones**, logging that the
+ * request "was not signed with this deployment's secret". It presents exactly
+ * as a wrong secret does. Printful retries at 1, 4, 16, 64, 256 and 1024
+ * minutes and then the event is gone for good, so a buyer is never told their
+ * parcel shipped and a cancellation never reaches the local record.
+ *
+ * The backend route is deliberately **not** relocated under `hooks` to reuse
+ * that branch. `hooks` is admitted for one thing -- Medusa core's payment
+ * webhook -- and its whole comment is about that one thing; parking an
+ * application route inside it would blur the one branch in this file whose
+ * narrowness is load-bearing, and would move a path that
+ * `backend/tests/printful-webhook.test.ts` pins in three places for no gain.
+ */
+const PRINTFUL_WEBHOOK_PATH = "/webhooks/printful";
+
+/** The one segment {@link resolveStoreApiPath} admits after `webhooks`. */
+const PRINTFUL_WEBHOOK_SEGMENT = "printful";
 
 /**
  * The origin dot segments are resolved against when {@link resolveStoreApiPath}
@@ -310,6 +337,28 @@ export function resolveStoreApiPath(pathname: string): string | null {
     return STRIPE_WEBHOOK_PATH;
   }
 
+  // The same sixth gate again, for the same reason and in the same shape:
+  // `webhooks` is in ALLOWED_NAMESPACES for exactly one path, not for a
+  // namespace. Admitting the namespace and stopping at the general defences
+  // would let the tail of this function resolve `/webhooks/<anything>` --
+  // every future sibling route, admitted the day somebody adds one and
+  // noticed by nobody.
+  //
+  // **Both segments are compared undecoded, and this gate is the simpler of
+  // the two for a stated reason.** The Stripe branch above decodes its third
+  // segment because that segment is an Express route *parameter*, resolved
+  // with `decodeURIComponent`, so two spellings genuinely are one request.
+  // `/webhooks/printful` has no parameter in it: both segments are literal
+  // route segments, and the rule this file already records for those is that
+  // an encoded spelling is a guess rather than a proven equivalence, so it is
+  // refused. `%70rintful` and `%77ebhooks` reach nothing.
+  if (namespace === "webhooks") {
+    if (segments.length !== 2 || segments[1] !== PRINTFUL_WEBHOOK_SEGMENT) {
+      return null;
+    }
+    return PRINTFUL_WEBHOOK_PATH;
+  }
+
   const normalized = new URL(`/${upstreamPath}`, NORMALIZATION_BASE).pathname;
   if (!normalized.startsWith(`/${namespace}/`)) {
     return null;
@@ -366,7 +415,28 @@ export function resolveStoreApiTarget(upstreamPath: string, search: string, back
  * because a denylist did not name them, is exactly the defect this allowlist
  * replaces. See `tests/store-checkout.test.ts` for the header proven absent.
  */
-const FORWARDED_REQUEST_HEADERS = ["content-type", "accept", "stripe-signature"] as const;
+const FORWARDED_REQUEST_HEADERS = [
+  "content-type",
+  "accept",
+  "stripe-signature",
+  // Printful's own signature, and without it this proxy would deliver a body
+  // the backend cannot verify: `webhook.ts` reads exactly this header, and a
+  // delivery arriving without it is refused like an unsigned one. T18a found
+  // the identical failure for `stripe-signature`.
+  //
+  // **`content-type` is load-bearing for the same route**, not merely polite:
+  // Medusa's bodyparser sets `rawBody` from the *json* parser's `verify` hook
+  // (`framework/dist/http/middlewares/bodyparser.js`), and Express's
+  // `json()` runs only on a JSON content-type. Drop it and there is no raw
+  // body to sign over, which is a 401 on every genuine event.
+  //
+  // **`x-pf-webhook-public-key` is deliberately absent.** Printful sends it to
+  // say *which* configuration signed an event, where one URL serves several;
+  // this deployment holds one secret and `webhook.ts` never reads it. It is
+  // recorded here rather than left unmentioned so that a later change serving
+  // several configurations knows this was a decision and not an oversight.
+  "x-pf-webhook-signature",
+] as const;
 
 /** Forwards only {@link FORWARDED_REQUEST_HEADERS}, then sets the one credential the browser never carries. */
 function forwardedRequestHeaders(request: Request, publishableKey: string): Headers {

@@ -1291,6 +1291,58 @@ wrong by 100×". P11a's operator row failed the same way. Both corrected here;
 the edits in this row were applied through a helper that **exits non-zero when
 a replacement matches nothing**.
 
+### P15 — Printful can reach the webhook
+
+**Repository:** `lousydeal`.
+**Files:** `storefront/src/app/api/store/[...path]/route.ts` and its tests.
+
+- [x] **P15a** — a public path that resolves to the webhook.
+- [ ] **P15b** — the Access bypass, in the infrastructure repository. *Operator.*
+- [ ] **P15c** — the subscription, and the secret. *Operator.*
+
+**P11a built a webhook nothing could reach.** Measured on 2026-09-09: an
+unsigned POST to the Stripe hook path answers 200 from the origin, and the
+same POST to `/webhooks/printful` answers a 302 to the Cloudflare Access
+login. The backend has no public hostname at all — T10 and decision `010` —
+and the storefront host is gated but for one narrow bypass, carved for Stripe.
+
+**The shape, and the alternative it was chosen over.** The obvious move is to
+give the backend its own hostname with an unauthenticated bypass. It **fails
+open**: behind a bypass on that host there is no second gate, so a bypass
+drawn one character too wide exposes the whole Medusa API, Admin included —
+which is the blast radius decision `010` already names. Behind a bypass on the
+*storefront* host there is `resolveStoreApiPath`, so the same careless bypass
+exposes only what the resolver resolves. A regression there is a 404: lost
+webhooks, retried for about eighteen hours and visible in logs, rather than an
+exposed Admin. It also costs one literal instead of an `externalIPs` entry, a
+port on the shared address, a NetworkPolicy rule and T13a's index-0 trap.
+
+**And not by widening the `hooks` branch**, which was the first design. That
+branch is admitted for one thing — Medusa core's payment webhook — and its
+whole comment is about that one thing. Widening it would have meant either
+relocating the backend route under `hooks`, moving a path
+`printful-webhook.test.ts` pins in three places, or rewriting the path on the
+way through and losing the property that the resolver returns the backend's
+own spelling. `webhooks` is a sibling namespace holding exactly one path, the
+same defensive shape one place over, and **the backend is untouched**.
+
+**Both segments are compared undecoded**, and this gate is simpler than the
+Stripe one for a stated reason: that branch decodes its provider segment
+because Express resolves a route *parameter* with `decodeURIComponent`, so two
+spellings are one request. Nothing in `/webhooks/printful` is a parameter.
+
+**Two things the review found that the tests would not have caught.** The
+existing Stripe delivery probe signs over canonical JSON — `JSON.stringify(JSON.parse(x))`
+reproduces it byte for byte — so a re-serialisation in the forward path would
+have passed it; the Printful probe uses a body with an escaped solidus, a
+unicode escape, interior spaces and a trailing newline, and asserts the body
+really is one that re-encoding changes. And nothing anywhere pinned the proxy's
+literal against the backend's `preserveRawBody` matcher: if those two drift,
+`req.rawBody` is absent, every genuine delivery answers 401, and it looks
+exactly like a wrong secret.
+
+Eleven mutations, eleven caught.
+
 ### P13 — Gate E
 
 **Repository:** `lousydeal`.
