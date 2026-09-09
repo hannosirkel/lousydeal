@@ -12,17 +12,41 @@
  * it did.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
+
+import type { MedusaContainer } from "@medusajs/framework/types";
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
 
 import { MERCH_CATALOGUE } from "../src/modules/printful/catalogue";
 import { PRODUCT_TIERS } from "../src/commerce/product-model";
 import { productSeedRecords } from "../src/scripts/seed-product";
 import {
   MERCH_SHIPPING_PROFILE,
+  MedusaMerchSeedTarget,
   merchSeedRecords,
   seedMerch,
   type MerchSeedRecord,
 } from "../src/scripts/seed-merch";
+
+/**
+ * The three workflows `apply` calls directly, replaced at the module import
+ * for the reason `commerce-configuration.test.ts` records: **the records tell
+ * you what was declared, only the applies tell you what was sent.** P7b lost
+ * three mutations to exactly that gap.
+ */
+const createProductsRun = vi.fn((_input: unknown) => ({ result: [{ id: "prod_1" }] }));
+const updateProductsRun = vi.fn((_input: unknown) => ({ result: [{ id: "prod_1" }] }));
+const updateProductVariantsRun = vi.fn((_input: unknown) => ({ result: [] }));
+
+vi.mock("@medusajs/medusa/core-flows", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@medusajs/medusa/core-flows")>();
+  return {
+    ...actual,
+    createProductsWorkflow: () => ({ run: createProductsRun }),
+    updateProductsWorkflow: () => ({ run: updateProductsRun }),
+    updateProductVariantsWorkflow: () => ({ run: updateProductVariantsRun }),
+  };
+});
 
 describe("the certificate, which this slice must not touch", () => {
   it("still seeds exactly the three tiers, in order", () => {
@@ -184,5 +208,154 @@ describe("applying them", () => {
       }),
     ).rejects.toThrow("no");
     expect(applied).toEqual(["original-purchase-receipt", "this-mug-cost-extra"]);
+  });
+});
+
+
+describe("applying merch to a running Medusa", () => {
+  function containerFor(entities: Record<string, unknown[]>): MedusaContainer {
+    return {
+      resolve: (key: string) => {
+        if (key === ContainerRegistrationKeys.QUERY) {
+          return { graph: ({ entity }: { entity: string }) => Promise.resolve({ data: entities[entity] ?? [] }) };
+        }
+        throw new Error(`unexpected resolve(${key})`);
+      },
+    } as unknown as MedusaContainer;
+  }
+
+  const READY = {
+    store: [{ id: "store_1", default_sales_channel_id: "sc_1" }],
+    shipping_profile: [{ id: "sp_merch" }],
+  };
+
+  const mug = () => merchSeedRecords().find((record) => record.handle === "this-mug-cost-extra")!;
+  const tee = () => merchSeedRecords().find((record) => record.handle === "original-purchase-receipt")!;
+
+  beforeEach(() => {
+    createProductsRun.mockClear();
+    updateProductsRun.mockClear();
+    updateProductVariantsRun.mockClear();
+  });
+
+  const createdInput = () =>
+    createProductsRun.mock.calls[0]?.[0] as unknown as {
+      input: { products: Record<string, unknown>[] };
+    };
+
+  it("puts the product in the shipping profile, which is what makes it postable", async () => {
+    // Without it a merch product is as unshippable as a certificate: the cart
+    // offers no postage and P7's checkout shows the unavailable notice.
+    await new MedusaMerchSeedTarget(containerFor(READY)).apply(mug());
+    expect(createdInput().input.products[0]).toMatchObject({ shipping_profile_id: "sp_merch" });
+  });
+
+  it("refuses when the profile is absent rather than seeding an unpostable product", async () => {
+    // It would be orderable, quoted no postage, and posted to nobody.
+    const target = new MedusaMerchSeedTarget(containerFor({ store: READY.store }));
+    await expect(target.apply(mug())).rejects.toThrow(/run configure:commerce before seed:merch/);
+    expect(createProductsRun).not.toHaveBeenCalled();
+  });
+
+  it("prices in major units, the scale P7c was fixed onto", async () => {
+    // `seed-product.ts` writes `amountMinor / 100` and `money.ts` records why.
+    // The mug is 1500 minor in the catalogue.
+    await new MedusaMerchSeedTarget(containerFor(READY)).apply(mug());
+    const variants = createdInput().input.products[0]?.variants as { prices: { amount: number }[] }[];
+    expect(variants[0]?.prices[0]?.amount).toBe(15);
+  });
+
+  it("carries the Printful mapping onto every variant", async () => {
+    // **`medusa-client.ts` tells the two catalogues apart by this field.** A
+    // product seeded without it is sold on the home page as a certificate,
+    // with VALUE zero and no address asked for -- P9a's defect, arriving
+    // through the seed instead.
+    await new MedusaMerchSeedTarget(containerFor(READY)).apply(tee());
+    const variants = createdInput().input.products[0]?.variants as { metadata: Record<string, string> }[];
+    expect(variants.length).toBeGreaterThan(1);
+    for (const variant of variants) {
+      expect(typeof variant.metadata.printful_variant_id).toBe("string");
+    }
+  });
+
+  it("declares one option carrying every size", async () => {
+    await new MedusaMerchSeedTarget(containerFor(READY)).apply(tee());
+    const product = createdInput().input.products[0] as {
+      options: { title: string; values: string[] }[];
+      variants: { title: string; sku: string }[];
+    };
+    expect(product.options[0]?.title).toBe("Size");
+    expect(product.options[0]?.values).toEqual(product.variants.map((variant) => variant.title));
+    expect(new Set(product.variants.map((variant) => variant.sku)).size).toBe(product.variants.length);
+  });
+
+  it("manages no inventory, because Printful prints on demand", async () => {
+    await new MedusaMerchSeedTarget(containerFor(READY)).apply(mug());
+    const variants = createdInput().input.products[0]?.variants as { manage_inventory: boolean }[];
+    expect(variants.every((variant) => variant.manage_inventory === false)).toBe(true);
+  });
+
+  describe("a product that is already there", () => {
+    const held = (record: MerchSeedRecord) => ({
+      ...READY,
+      product: [
+        {
+          id: "prod_1",
+          sales_channels: [{ id: "sc_other" }],
+          variants: record.variants.map((variant, index) => ({ id: `var_${String(index)}`, sku: variant.sku })),
+        },
+      ],
+    });
+
+    it("updates rather than creating a second", async () => {
+      await new MedusaMerchSeedTarget(containerFor(held(mug()))).apply(mug());
+      expect(createProductsRun).not.toHaveBeenCalled();
+      expect(updateProductsRun).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps a sales channel an operator added, rather than replacing the list", async () => {
+      await new MedusaMerchSeedTarget(containerFor(held(mug()))).apply(mug());
+      const input = updateProductsRun.mock.calls[0]?.[0] as unknown as {
+        input: { products: { sales_channels: { id: string }[] }[] };
+      };
+      expect(input.input.products[0]?.sales_channels.map((channel) => channel.id).sort()).toEqual(["sc_1", "sc_other"]);
+    });
+
+    it("matches variants by SKU, not by position", async () => {
+      // The SKU is what `orders.ts` resolves against Printful and what
+      // `sync.ts` sets as the variant's `external_id` there -- the one
+      // identifier both systems share. Matching by position rewrites the wrong
+      // row the first time a size is inserted.
+      const record = tee();
+      const shuffled = {
+        ...READY,
+        product: [
+          {
+            id: "prod_1",
+            sales_channels: [],
+            variants: [...record.variants].reverse().map((variant, index) => ({ id: `var_${String(index)}`, sku: variant.sku })),
+          },
+        ],
+      };
+      await new MedusaMerchSeedTarget(containerFor(shuffled)).apply(record);
+
+      const input = updateProductVariantsRun.mock.calls[0]?.[0] as unknown as {
+        input: { product_variants: { id: string; prices: { amount: number }[] }[] };
+      };
+      // The first declared variant is the last held one, so it must carry the
+      // last held id.
+      expect(input.input.product_variants[0]?.id).toBe(`var_${String(record.variants.length - 1)}`);
+    });
+
+    it("refuses when a declared variant is missing rather than half-updating", async () => {
+      const record = tee();
+      const short = {
+        ...READY,
+        product: [{ id: "prod_1", sales_channels: [], variants: [{ id: "var_0", sku: record.variants[0]!.sku }] }],
+      };
+      const target = new MedusaMerchSeedTarget(containerFor(short));
+      await expect(target.apply(record)).rejects.toThrow(/missing \d+ declared variant/);
+      expect(updateProductVariantsRun).not.toHaveBeenCalled();
+    });
   });
 });
