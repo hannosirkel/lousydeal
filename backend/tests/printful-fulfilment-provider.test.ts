@@ -114,12 +114,14 @@ describe("pricing", () => {
       { shipping: "STANDARD", rate: "5.22" },
     ]).calculatePrice({}, {}, { shipping_address: ADDRESS, items: [{ variant_sku: "LD-MUG-11", quantity: 1 }] });
 
-    // 5.22 grossed up at the worst EU rate, rounded up to the cent and in
+    // 5.22 grossed up at **Estonia's own 24%** since P14b -- it was the worst
+    // EU rate, 27%, which charged a Luxembourg buyer ten points nobody owed.
+    // Rounded up to the cent and in
     // **major units** -- P7c. This read 663 until then, which a cart would
     // have charged as $663.00. Decision `007` makes
     // every price on this site VAT-inclusive, and `shipping.ts` makes the net
     // recover Printful's charge exactly.
-    expect(price).toEqual({ calculated_amount: 6.63, is_calculated_price_tax_inclusive: true });
+    expect(price).toEqual({ calculated_amount: 6.48, is_calculated_price_tax_inclusive: true });
   });
 
   it("asks Printful with the catalogue's variant, not with the cart's words", async () => {

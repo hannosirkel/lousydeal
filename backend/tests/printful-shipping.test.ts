@@ -8,13 +8,14 @@
 
 import { describe, expect, it } from "vitest";
 
-import { WORST_VAT_RATE } from "../src/modules/printful/catalogue";
 import type { PrintfulClient } from "../src/modules/printful/client";
+import { EU_MEMBER_STATE_CODES, EU_STANDARD_VAT_PERCENTS } from "../src/commerce/tax-model";
 import {
   ShippingQuoteError,
   chargeForRate,
   isEuDestination,
   quoteShipping,
+  vatRateFor,
 } from "../src/modules/printful/shipping";
 
 const ART = "https://raw.githubusercontent.com/hannosirkel/lousydeal/0123456789abcdef0123456789abcdef01234567/design/merch/print-files";
@@ -115,9 +116,10 @@ describe("the gross-up, which is not a markup", () => {
       EE,
       ART,
     );
-    expect(quote?.amount).toBe(Math.ceil(5.22 * (1 + WORST_VAT_RATE) * 100) / 100);
+    // Estonia's own 24% since P14b, not Hungary's 27%.
+    expect(quote?.amount).toBe(Math.ceil(5.22 * 1.24 * 100) / 100);
     // What the merchant keeps after VAT is at least what Printful charged.
-    expect((quote?.amount ?? 0) / (1 + WORST_VAT_RATE)).toBeGreaterThanOrEqual(5.22);
+    expect((quote?.amount ?? 0) / 1.24).toBeGreaterThanOrEqual(5.22);
   });
 
   it("charges an export exactly what Printful charged, with no EU VAT on top", async () => {
@@ -129,6 +131,7 @@ describe("the gross-up, which is not a markup", () => {
         address,
         ART,
       );
+      // The rate itself, untouched: an export bears no EU VAT.
       expect(`${address.countryCode}: ${String(quote?.amount)}`).toBe(`${address.countryCode}: 12.78`);
     }
   });
@@ -136,8 +139,8 @@ describe("the gross-up, which is not a markup", () => {
   it("rounds up, because a cent short is the failure this exists to prevent", () => {
     // Reached by being tidy: a rate whose gross has a fraction of a cent,
     // rounded down, leaves the merchant paying the difference on every order.
-    expect(chargeForRate(5.22, "EE")).toBe(6.63);
-    expect(chargeForRate(5.22, "EE") / (1 + WORST_VAT_RATE)).toBeGreaterThanOrEqual(5.22);
+    expect(chargeForRate(5.22, "EE")).toBe(6.48);
+    expect(chargeForRate(5.22, "EE") / 1.24).toBeGreaterThanOrEqual(5.22);
     expect(chargeForRate(0.01, "EE")).toBe(0.02);
   });
 
@@ -278,7 +281,7 @@ describe("the scale, which is the thing P7c got wrong", () => {
   it("charges the EU rate within its own gross-up and no further", () => {
     for (const rate of [0.01, 5.22, 99.99]) {
       const charge = chargeForRate(rate, "EE");
-      const gross = rate * (1 + WORST_VAT_RATE);
+      const gross = rate * 1.24;
       expect(`${String(rate)}: ${String(charge >= gross && charge < gross + 0.01 + 1e-9)}`).toBe(`${String(rate)}: true`);
     }
   });
@@ -288,6 +291,61 @@ describe("the scale, which is the thing P7c got wrong", () => {
     // property rather than as a figure.
     for (const country of ["US", "EE"]) {
       expect(chargeForRate(5.22, country)).toBeLessThan(52.2);
+    }
+  });
+});
+
+
+describe("whose VAT the postage carries", () => {
+  /**
+   * **It was Hungary's, for everybody in the EU.** `WORST_VAT_RATE` was chosen
+   * when there was no rate table and the comment defending it said the
+   * over-recovery was "the direction that cannot hurt anybody".
+   *
+   * It is the buyer who was hurt. A larger gross-up is a larger charge, so a
+   * Luxembourg buyer at 17% paid ten points of postage nobody owed and the
+   * merchant kept it. P14a built the table; decision `013` made destination
+   * rates the arrangement.
+   */
+  it("charges each member state its own rate", () => {
+    // Three states, three rates, one Printful quote.
+    expect(chargeForRate(10, "LU")).toBe(11.7);
+    expect(chargeForRate(10, "EE")).toBe(12.4);
+    expect(chargeForRate(10, "HU")).toBe(12.7);
+  });
+
+  it("charges a Luxembourg buyer less than a Hungarian one, which it did not", () => {
+    // The property, rather than the figures: the charge follows the rate.
+    expect(chargeForRate(10, "LU")).toBeLessThan(chargeForRate(10, "HU"));
+  });
+
+  it("adds nothing at all outside the EU, which is unchanged", () => {
+    // An export bears no EU VAT, so grossing up a parcel to Brazil would be
+    // charging a tax nobody owes.
+    for (const country of ["US", "BR", "GB", "JP", "AU"]) {
+      expect(`${country}: ${String(chargeForRate(10, country))}`).toBe(`${country}: 10`);
+    }
+  });
+
+  it("reads the rate however the country arrives", () => {
+    expect(chargeForRate(10, "ee")).toBe(12.4);
+    expect(chargeForRate(10, " EE ")).toBe(12.4);
+  });
+
+  it("refuses rather than quietly charging no VAT for a state it has no rate for", () => {
+    // Returning zero would stop recovering that country's postage VAT --
+    // the merchant losing a fifth of it, silently, through a missing key.
+    // Unreachable while `EU_MEMBER_STATE_CODES` is derived from the table,
+    // which is why the two are derived from one thing.
+    expect(EU_MEMBER_STATE_CODES.every((code) => vatRateFor(code) > 0)).toBe(true);
+  });
+
+  it("agrees with the tax regions the store is configured with", () => {
+    // The postage and the goods are taxed at one rate: Art 78(b) puts
+    // transport inside the taxable amount. Two tables would eventually
+    // disagree, and the disagreement would be a misreported OSS return.
+    for (const code of EU_MEMBER_STATE_CODES) {
+      expect(`${code}: ${String(vatRateFor(code) * 100)}`).toBe(`${code}: ${String(EU_STANDARD_VAT_PERCENTS[code])}`);
     }
   });
 });

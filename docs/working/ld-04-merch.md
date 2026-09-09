@@ -955,7 +955,22 @@ here even though the answer to both is a person reading the Imprint address.
 and checkout content, a turnover counter, tests.
 
 - [x] **P14a** — a destination VAT rate per member state.
-- [ ] **P14b** — the two counters, and the postage grossed up at the buyer's rate rather than the worst.
+- [x] **P14b** — the postage grossed up at the buyer's own rate.
+- [ ] **P14c** — the two counters decision `013` asks for.
+
+**P14b.** The gross-up used `WORST_VAT_RATE` — Hungary's 27% — for every EU
+buyer, "for the same reason the shelf prices are derived at it: one number,
+safe everywhere, and no rate table to go stale". P14a built the table, so the
+argument is spent.
+
+**And the sentence defending it had the direction wrong.** It said the
+over-recovery was "at most ten points against a buyer in Luxembourg, which is
+the direction that cannot hurt anybody". It is the buyer who is hurt: a larger
+gross-up is a larger charge, so a Luxembourg buyer at 17% paid ten points of
+postage nobody owed and the merchant kept it.
+
+`catalogue.ts`'s `WORST_VAT_RATE` is untouched and still worst-case, because a
+**margin floor** wants the worst case and a **charge** wants the true one.
 
 **P14a.** `tax-model.ts` said "One rate, not twenty-seven" and charged every EU
 destination Estonia's 24%, on the Article 59c threshold reading `008` records.
