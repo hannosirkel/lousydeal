@@ -130,12 +130,40 @@ const cap = shell(1890, 765, `
   .rule.doubleup{margin-top:52px;box-shadow:0 -14px 0 ${REVERSE}}`);
 
 /* ---------------- 4. Sticker: 1200x1200 @300dpi ---------------------------
-   Scaled up: the first draft printed 3.4 x 3.1in on a 4in sticker and was not
-   square. Now 1080px (3.6in) with 60px of margin for the cutter.
-   CERTIFIED WORTHLESS becomes the StampMark rather than free-floating red
-   caps -- --stamp's licensed list includes the stamp mark and does not
-   include loose red text, and a sticker is the one surface where a stamp is
-   doing its actual job.                                                    */
+   **The operator settled the copy on 2026-09-09: "I make Lousy Deals".** The
+   composition before this one was built around the VALUE $0.00 gag with a
+   LOUSYDEAL.COM masthead, and both go.
+
+   The masthead goes because the line is first person. brand.md's share-row
+   reasoning is on the point exactly: somebody reporting what they did is not
+   the same register as a brand asking to be reposted. A masthead stacked over
+   a confession turns the bearer's voice into the shop's advertisement -- and
+   it would collapse this into the cap, which is already "I make my Lousy Deals
+   at lousydeal.com" between rules. The cap escapes that because its URL is
+   inside the sentence rather than attribution on top of it. The mug carries no
+   domain either, so an unattributed item is not new here.
+
+   The ledger goes because the tee owns it, and because $0.00 beside a $6
+   object of real value drifts toward the wall P9 defended -- on the tee the
+   figure is anchored by ITEM NOTHING / PRICE $5.00 and is plainly about the
+   certificate; free-floating on a sticker it is not.
+
+   **Sentence case, not caps.** brand.md licenses all-caps for labels, titles
+   and buttons; this is a sentence, which is the same rule the mug states in
+   its own comment. The two-line break is composition, not a copy change --
+   the cap's one sentence is set as two lines for the same reason. No full
+   stop, matching the cap.
+
+   The stamp stays and its words stay: --stamp's licensed list includes the
+   stamp mark and not loose red text, this is the one surface where a stamp is
+   doing its actual job, and the product is *named* Certified Worthless --
+   changing the words would rename a Medusa product, a handle and a synced
+   Printful product to make a design point.
+
+   **The height is explicit, and that is a fix rather than a flourish.** The
+   previous rule set only the width, so the height was whatever the content
+   stacked to: the file measured 3.60in x 3.35in on a 4in square die-cut, under
+   a comment claiming 1080px. It measures 3.60in x 3.60in now.             */
 const stampMark = (lines) => {
   const lh = 15, first = ((lines.length - 1) * lh) / 2;
   return `<svg class="stamp" viewBox="0 0 120 120">
@@ -145,20 +173,25 @@ const stampMark = (lines) => {
 };
 const sticker = shell(1200, 1200, `
   <div class="st">
-    <div class="dom">LOUSYDEAL.COM</div>
-    <div class="r"></div>
-    <div class="cap2">VALUE</div>
-    <div class="fig">$0.00</div>
+    <div class="d1">I make</div>
+    <div class="d2">Lousy Deals</div>
     <div class="r"></div>
     ${stampMark(["Certified", "worthless"])}
   </div>`, `
-  .st{width:1080px;color:${INK};text-align:center;border:10px solid ${INK};padding:96px 56px 66px;position:relative}
-  .dom{font-weight:700;font-size:78px;letter-spacing:${TRACK_DISPLAY};padding-bottom:34px}
-  .r{height:5px;background:${INK}}
-  .cap2{font-size:44px;letter-spacing:${TRACK};color:${INK};padding:48px 0 10px}
-  .fig{font-weight:700;font-size:248px;letter-spacing:0.02em;padding-bottom:44px}
-  .stamp{width:300px;height:300px;fill:none;stroke:${STAMP};stroke-width:1.5;
-         display:block;margin:-104px auto 0;background:transparent}
+  .st{width:1080px;height:1080px;color:${INK};text-align:center;border:10px solid ${INK};
+      display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 56px}
+  /* line-height is set because the file sets none: at 132px the default line
+     box floats on the font's own metrics, and the vertical budget is
+     arithmetic rather than hope. */
+  .d1,.d2{white-space:nowrap;font-weight:700;font-size:132px;line-height:1;letter-spacing:0.01em}
+  .d1{padding-bottom:12px}
+  .d2{padding-bottom:88px}
+  /* align-self:stretch because a rule inside a centred flex column collapses
+     to nothing without it -- the old block layout stretched it for free, and
+     losing it would leave the stamp striking empty paper. */
+  .r{height:5px;background:${INK};align-self:stretch}
+  .stamp{width:360px;height:360px;fill:none;stroke:${STAMP};stroke-width:1.5;
+         display:block;margin:-80px auto 0;background:transparent}
   .stamp text{fill:${STAMP};stroke:none;font-size:11px;font-weight:700;
               letter-spacing:${TRACK};text-transform:uppercase}`);
 
