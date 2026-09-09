@@ -1321,7 +1321,7 @@ port on the shared address, a NetworkPolicy rule and T13a's index-0 trap.
 branch is admitted for one thing — Medusa core's payment webhook — and its
 whole comment is about that one thing. Widening it would have meant either
 relocating the backend route under `hooks`, moving a path
-`printful-webhook.test.ts` pins in three places, or rewriting the path on the
+`printful-webhook.test.ts` pins in four places, or rewriting the path on the
 way through and losing the property that the resolver returns the backend's
 own spelling. `webhooks` is a sibling namespace holding exactly one path, the
 same defensive shape one place over, and **the backend is untouched**.
@@ -1341,7 +1341,66 @@ literal against the backend's `preserveRawBody` matcher: if those two drift,
 `req.rawBody` is absent, every genuine delivery answers 401, and it looks
 exactly like a wrong secret.
 
-Eleven mutations, eleven caught.
+**Reviewed twice, adversarially, and the review earned its keep.**
+
+One reviewer attacked the resolver with about fifty-five inputs — every
+percent-encoding, all dot-segment spellings including stacked `%25`, raw and
+encoded backslashes, NUL, CRLF, unicode separators, homoglyphs, 100 000-character
+segments, prefix confusions. Nothing escaped, and it proved something the
+first version only asserted: **returning before the shared normalisation
+re-check is safe for this branch because no attacker byte reaches its output**
+— it is a lookup table, not a derivation. It also confirmed the webhook route
+verifies before any read, write, enqueue or notification, which is stronger
+than Medusa core's payment hook. It found two real things:
+
+- **F1** — `forwardStoreApiRequest` buffered the whole body with no ceiling,
+  and the bypassed path is anonymous by design. Medusa refuses anything over
+  ~100 kb, but only *after* this process allocated it, so concurrent large
+  POSTs take down the storefront rather than the webhook. Capped at 256 kb,
+  **on the stream rather than on `content-length`**: a declared length is the
+  sender's claim about itself, and a chunked request carries none.
+- **F2** — the resolver is method-blind and `GET` is exported, so both
+  bypassed webhook paths forwarded `GET` and `HEAD`. Nothing leaked, but a
+  Medusa-shaped 404 is distinguishable from this route's own, which is a
+  liveness oracle for a backend that is otherwise not addressable. Both paths
+  are POST-only now, refused with the same empty 404 as an unresolved path.
+
+The other reviewer attacked the tests, and **found three guards that did not
+guard** — verified by mutation, not asserted:
+
+1. The status-passthrough test proved only "not hardcoded 200". Replacing
+   `status: upstream.status` with `status: 401` left all 83 tests green while
+   every store request in production would have answered 401. Now a sweep of
+   nine statuses through the one function.
+2. **The cross-workspace test was two decoupled substring checks.** Changing
+   the backend matcher's `method: "POST"` to `"GET"` passed every guard in
+   *both* workspaces while every real delivery lost `rawBody` and answered
+   401 — which is exactly the invisible failure the block exists to make
+   visible. One regex over matcher, method and `bodyParser` now.
+3. A comment claimed the segment loop caught a dropped length check. It does
+   not — every input in it has two segments. The comment is corrected rather
+   than the test padded, because a comment claiming coverage a test lacks
+   stops the next reader looking.
+
+It also corrected four factual claims: the `rawBody` hook is passed to
+Medusa's json, text **and** urlencoded parsers alike, not the json one; the
+backend pins the path in four places, not three; only *matcher*-side drift is
+silent, since proxy-side drift 404s visibly; and several comments still said
+"two namespaces". All fixed.
+
+**Fifteen mutations, fifteen caught**, and the ledger is written down because
+the reviewer rightly said an unchecked count is unfalsifiable: hardcoded
+status; matcher method; `preserveRawBody` moved to another matcher; dropped
+segment count; cap removed; cap raised; stream ceiling bypassed; verb refusal
+removed, narrowed to one path, and widened to all paths; derived path constant
+broken; signature header dropped; body re-serialised; gate deleted with the
+namespace kept; literal prefix-matched.
+
+**One process note, because it is the third time in this slice.** A batched
+edit script exited on a failed match and silently discarded four edits it had
+already made in memory — the `str.replace` no-op failure again, wearing a
+different hat. Every edit is written to disk on its own now, and the file was
+audited marker by marker afterwards rather than trusted.
 
 ### P13 — Gate E
 
