@@ -156,6 +156,9 @@ describe("readBackendRuntimeConfig", () => {
       // LD-04 P7a. `null` alongside the token, and for the same reason: a
       // deployment with no Printful store prints from no commit.
       printfulArtworkBaseUrl: null,
+      // LD-04 P11a. Nullable for the reason the token is: a deployment that
+      // cannot verify a webhook signature must accept nothing, not everything.
+      printfulWebhookSecret: null,
       stripe: {
         apiKey: "stripe-secret-key-value",
         webhookSecret: "stripe-webhook-secret-value",

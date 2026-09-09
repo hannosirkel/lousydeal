@@ -937,7 +937,25 @@ done casually.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/api/webhooks/printful/*`, `backend/src/notifications/*`, tests.
 
-- [ ] Tell the buyer it shipped, and where it is.
+- [x] **P11a** — the webhook, verified, and the parcel's status recorded.
+- [ ] **P11b** — the one email carrying the tracking number.
+
+**v2 webhooks, and that is the whole reason for v2 here.** Event signing was
+introduced with them; a v1 endpoint carries no signature at all, so it is a URL
+that marks orders shipped for anybody who learns it. Printful's own spec says
+to ignore an event whose signature is missing or invalid.
+
+**Two details that would each have produced a silent failure.** The secret is
+returned as *the hexadecimal representation of the key* and has to be decoded
+before it is used — keying with the string rejects every genuine event, and
+looks like a Printful outage. And the signature is over the **raw** body:
+`JSON.parse` then `JSON.stringify` moves whitespace and unescapes, so Medusa is
+asked to preserve the raw body for this one path.
+
+**Returned to sender and lost in transit** are `shipment_returned` and the
+absence of anything, and the answer to both is a person reading the Imprint
+address. P7d settled the liability: risk stays with the trader until the parcel
+reaches the buyer's hands.
 
 §7 asks for "status synchronization as reasonably required" and the first draft
 of this plan had no row for it. A buyer who has paid for a physical object and

@@ -136,6 +136,18 @@ export interface BackendRuntimeConfig {
    * has already ordered against.
    */
   readonly printfulArtworkBaseUrl: string | null;
+  /**
+   * The Printful webhook secret, **hex as Printful returns it**, or `null`.
+   *
+   * Nullable for the reason the token is: §23 keeps a live Printful store out
+   * until the publication gate, and a deployment with no secret verifies
+   * nothing — which `webhook.ts` turns into accepting nothing rather than
+   * accepting everything.
+   *
+   * Printful shows it **once**, when the subscription is created, so it is
+   * captured then and kept where the token is kept.
+   */
+  readonly printfulWebhookSecret: string | null;
 }
 
 /** What `notifications/smtp.ts` needs, read from the environment. */
@@ -244,6 +256,7 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
     smtp: readSmtpRuntimeConfig(environment),
     printfulApiToken: optionalEnv(environment, "PRINTFUL_API_TOKEN") ?? null,
     printfulArtworkBaseUrl: optionalEnv(environment, "PRINTFUL_ARTWORK_BASE_URL") ?? null,
+    printfulWebhookSecret: optionalEnv(environment, "PRINTFUL_WEBHOOK_SECRET") ?? null,
     merchant: readMerchantIdentity(environment),
     // Trailing slash removed here rather than at every use: a configured
     // `https://lousydeal.com/` would otherwise produce `//legal/withdraw`,
