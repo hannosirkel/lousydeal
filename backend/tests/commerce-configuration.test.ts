@@ -1,9 +1,14 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import type { MedusaContainer } from "@medusajs/framework/types";
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
 
 import { STRIPE_PAYMENT_PROVIDER_ID } from "../src/config/payment";
+import { PRINTFUL_FULFILMENT_IDENTIFIER } from "../src/modules/printful/fulfilment-provider";
+import { MERCH_SHIPPING_PROFILE } from "../src/scripts/seed-merch";
 import { EU_MEMBER_STATE_CODES } from "../src/commerce/tax-model";
 import {
   type CommerceRecord,
@@ -22,9 +27,32 @@ import {
  * workflow.
  */
 const updateStoresRun = vi.fn();
+
+/**
+ * LD-04 P7b's four applies each call a workflow directly too, and **three
+ * mutations survived because nothing drove them**: a flat price with a figure
+ * nobody quoted, the wrong provider id, and a missing sales-channel link. The
+ * records tell you what was declared; only these tell you what was sent.
+ */
+const createStockLocationsRun = vi.fn((_input: unknown) => ({ result: [{ id: "sloc_1" }] }));
+const linkSalesChannelsRun = vi.fn((_input: unknown) => undefined);
+const createLocationFulfillmentSetRun = vi.fn((_input: unknown) => ({ result: { id: "fuset_1" } }));
+const createServiceZonesRun = vi.fn((_input: unknown) => ({ result: [{ id: "serzo_1" }] }));
+const createShippingProfilesRun = vi.fn((_input: unknown) => ({ result: [{ id: "sp_1" }] }));
+const createShippingOptionsRun = vi.fn((_input: unknown) => ({ result: [{ id: "so_1" }] }));
+
 vi.mock("@medusajs/medusa/core-flows", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@medusajs/medusa/core-flows")>();
-  return { ...actual, updateStoresWorkflow: () => ({ run: updateStoresRun }) };
+  return {
+    ...actual,
+    updateStoresWorkflow: () => ({ run: updateStoresRun }),
+    createStockLocationsWorkflow: () => ({ run: createStockLocationsRun }),
+    linkSalesChannelsToStockLocationWorkflow: () => ({ run: linkSalesChannelsRun }),
+    createLocationFulfillmentSetWorkflow: () => ({ run: createLocationFulfillmentSetRun }),
+    createServiceZonesWorkflow: () => ({ run: createServiceZonesRun }),
+    createShippingProfilesWorkflow: () => ({ run: createShippingProfilesRun }),
+    createShippingOptionsWorkflow: () => ({ run: createShippingOptionsRun }),
+  };
 });
 
 /**
@@ -55,12 +83,78 @@ describe("commerceRecords", () => {
   // it: `commerceRecords`'s own doc gives the currency's tax treatment first
   // because it governs how every price is read, then the region, then the tax
   // regions. Reversing the array has to go red.
-  it("declares its records in dependency order: the currency, then the region, then one tax region per member state", () => {
+  it("declares its records in dependency order, delivery included", () => {
+    // The currency governs how every price is read, so it is first. The
+    // region is next. **LD-04 P7b inserts four**, and their order is not
+    // cosmetic: the set hangs off the location, the option needs both the
+    // zone and the profile to exist, and each apply throws by name rather
+    // than creating a second of something it could not find.
     expect(records.map((record) => record.kind)).toEqual([
       "store-currency",
       "region",
+      "stock-location",
+      "fulfillment-set",
+      "shipping-profile",
+      "shipping-option",
       ...EU_MEMBER_STATES.map(() => "tax-region"),
     ]);
+  });
+
+  describe("the delivery configuration P7a assumed and nothing built", () => {
+    it("puts the stock location in the sales channel's reach, which is the whole join", () => {
+      // `list-shipping-options-for-cart.js:135-152` walks from the cart's
+      // sales channel to its stock locations to their fulfillment sets. A
+      // location outside that walk offers a cart nothing, and P7's checkout
+      // would show the unavailable notice for every parcel.
+      const location = records.find((record) => record.kind === "stock-location");
+      expect(location).toMatchObject({ name: "Dispatch", countryCode: "ee" });
+    });
+
+    it("covers the same countries the region sells to", () => {
+      // A zone narrower than the region sells to a country it then refuses to
+      // post to. The operator ruled that out in as many words: "one extra
+      // return is ok but closing regions/countries is not".
+      const zone = records.find((record) => record.kind === "fulfillment-set");
+      const region = records.find((record) => record.kind === "region");
+      expect(zone).toBeDefined();
+      expect(region).toBeDefined();
+      if (zone?.kind !== "fulfillment-set" || region?.kind !== "region") throw new Error("unreachable");
+      expect(zone.countryCodes).toEqual(region.countryCodes);
+      expect(zone.countryCodes.length).toBeGreaterThanOrEqual(200);
+    });
+
+    it("names the profile `seed-merch.ts` already puts its products in", () => {
+      // Two names for one profile is two profiles, and an option in the wrong
+      // one is offered for nothing.
+      const profile = records.find((record) => record.kind === "shipping-profile");
+      expect(profile).toMatchObject({ name: MERCH_SHIPPING_PROFILE });
+    });
+
+    it("binds the option to the Printful provider, calculated and with no price", () => {
+      // **Calculated, not flat.** Printful quotes per address and per parcel
+      // -- $13.56 to Estonia against $25.56 to Brazil, measured -- so a flat
+      // rate would be wrong everywhere but one destination. And a `prices`
+      // entry would be a figure nobody quoted, charged to a buyer.
+      const option = records.find((record) => record.kind === "shipping-option");
+      expect(option).toMatchObject({
+        providerId: PRINTFUL_FULFILMENT_IDENTIFIER,
+        profileName: MERCH_SHIPPING_PROFILE,
+        serviceZoneName: "Worldwide",
+      });
+      expect(option).not.toHaveProperty("prices");
+      expect(option).not.toHaveProperty("amount");
+    });
+
+    it("gives the certificate no profile, which is constraint 4", () => {
+      // `seed-product.ts` sends no `shipping_profile_id` and
+      // `create-products.js:154` links one only when present. An option is
+      // offered only for profiles the cart's items are in, so a cart of
+      // certificates is offered nothing and asked for no address. Asserted
+      // against the seed rather than restated here.
+      const seed = readFileSync(join(__dirname, "../src/scripts/seed-product.ts"), "utf8");
+      expect(seed).not.toContain("shipping_profile_id");
+      expect(seed).not.toContain(MERCH_SHIPPING_PROFILE);
+    });
   });
 
   it("declares exactly one store-currency record, tax-inclusive", () => {
@@ -375,5 +469,180 @@ describe("MedusaCommerceConfigurationTarget applyStoreCurrency", () => {
     expect(updateStoresRun).toHaveBeenCalledTimes(1);
     expect(world.store.supported_currencies).toContainEqual({ currency_code: "usd", is_default: true });
     expect(world.store.supported_currencies).toContainEqual({ currency_code: "gbp", is_default: false });
+  });
+});
+
+
+describe("applying the delivery configuration", () => {
+  /**
+   * A container whose `query.graph` answers from a table of entities, so each
+   * apply can be run against "nothing exists yet" and against "it already
+   * does" without a database.
+   */
+  function containerFor(entities: Record<string, unknown[]>): MedusaContainer {
+    return {
+      resolve: (key: string) => {
+        if (key === ContainerRegistrationKeys.QUERY) {
+          return {
+            graph: ({ entity }: { entity: string }) => Promise.resolve({ data: entities[entity] ?? [] }),
+          };
+        }
+        throw new Error(`unexpected resolve(${key})`);
+      },
+    } as unknown as MedusaContainer;
+  }
+
+  const STORE = [{ id: "store_1", default_sales_channel_id: "sc_1" }];
+
+  beforeEach(() => {
+    for (const spy of [
+      createStockLocationsRun,
+      linkSalesChannelsRun,
+      createLocationFulfillmentSetRun,
+      createServiceZonesRun,
+      createShippingProfilesRun,
+      createShippingOptionsRun,
+    ]) {
+      spy.mockClear();
+    }
+  });
+
+  const record = <K extends CommerceRecord["kind"]>(kind: K) =>
+    commerceRecords().find((candidate) => candidate.kind === kind)!;
+
+  describe("the stock location", () => {
+    it("links it to the sales channel, which is the whole reason it exists", async () => {
+      // **The mutation that survived.** `list-shipping-options-for-cart.js`
+      // reaches fulfillment sets only through `sales_channels.stock_locations`,
+      // so an unlinked location offers every cart nothing -- and creating the
+      // location without linking it looks like success.
+      const target = new MedusaCommerceConfigurationTarget(containerFor({ store: STORE }));
+      await target.apply(record("stock-location"));
+
+      expect(createStockLocationsRun).toHaveBeenCalledTimes(1);
+      expect(linkSalesChannelsRun).toHaveBeenCalledWith({ input: { id: "sloc_1", add: ["sc_1"] } });
+    });
+
+    it("relinks an existing location rather than skipping it", async () => {
+      // The link is the kind of thing an operator removes in the Admin without
+      // meaning to. Restoring it costs one idempotent call.
+      const target = new MedusaCommerceConfigurationTarget(
+        containerFor({ store: STORE, stock_location: [{ id: "sloc_existing" }] }),
+      );
+      await target.apply(record("stock-location"));
+
+      expect(createStockLocationsRun).not.toHaveBeenCalled();
+      expect(linkSalesChannelsRun).toHaveBeenCalledWith({ input: { id: "sloc_existing", add: ["sc_1"] } });
+    });
+  });
+
+  describe("the shipping option", () => {
+    const ready = {
+      store: STORE,
+      service_zone: [{ id: "serzo_1" }],
+      shipping_profile: [{ id: "sp_1" }],
+    };
+
+    it("is calculated, and carries no price at all", async () => {
+      // **Two mutations survived here**: a `price_type: "flat"` with a figure
+      // beside it, and a different provider. A flat rate would be wrong
+      // everywhere but one destination, and a price here is a figure nobody
+      // quoted charged to a buyer -- §11 and §23 both.
+      const target = new MedusaCommerceConfigurationTarget(containerFor(ready));
+      await target.apply(record("shipping-option"));
+
+      const input = createShippingOptionsRun.mock.calls[0]?.[0] as unknown as { input: Record<string, unknown>[] };
+      expect(input.input[0]).toMatchObject({
+        price_type: "calculated",
+        provider_id: PRINTFUL_FULFILMENT_IDENTIFIER,
+        service_zone_id: "serzo_1",
+        shipping_profile_id: "sp_1",
+      });
+      expect(input.input[0]).not.toHaveProperty("prices");
+      expect(input.input[0]).not.toHaveProperty("amount");
+    });
+
+    it("refuses rather than creating one against a zone or profile it cannot find", async () => {
+      // Creating it anyway would bind the option to nothing and read as done.
+      const partials: Record<string, unknown[]>[] = [
+        { store: STORE, service_zone: [{ id: "serzo_1" }] },
+        { store: STORE, shipping_profile: [{ id: "sp_1" }] },
+      ];
+      for (const partial of partials) {
+        const target = new MedusaCommerceConfigurationTarget(containerFor(partial));
+        await expect(target.apply(record("shipping-option"))).rejects.toThrow(/must apply first/);
+      }
+      expect(createShippingOptionsRun).not.toHaveBeenCalled();
+    });
+
+    it("creates nothing when the option is already there", async () => {
+      const target = new MedusaCommerceConfigurationTarget(
+        containerFor({ ...ready, shipping_option: [{ id: "so_existing" }] }),
+      );
+      await target.apply(record("shipping-option"));
+      expect(createShippingOptionsRun).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("the fulfillment set and its zone", () => {
+    it("hangs the set on the location and the zone on the set", async () => {
+      const target = new MedusaCommerceConfigurationTarget(
+        containerFor({ store: STORE, stock_location: [{ id: "sloc_1", fulfillment_sets: [] }] }),
+      );
+      await target.apply(record("fulfillment-set"));
+
+      expect(createLocationFulfillmentSetRun).toHaveBeenCalledWith({
+        input: { location_id: "sloc_1", fulfillment_set_data: { name: "Shipping", type: "shipping" } },
+      });
+      const zone = createServiceZonesRun.mock.calls[0]?.[0] as unknown as {
+        input: { data: { fulfillment_set_id: string; geo_zones: { country_code: string }[] }[] };
+      };
+      expect(zone.input.data[0]?.fulfillment_set_id).toBe("fuset_1");
+      expect(zone.input.data[0]?.geo_zones.length).toBeGreaterThanOrEqual(200);
+      // Lower-cased, which is how Medusa stores a country code and how the
+      // cart's own `shipping_address.country_code` arrives.
+      expect(zone.input.data[0]?.geo_zones.every((geo) => geo.country_code === geo.country_code.toLowerCase())).toBe(true);
+    });
+
+    it("does not rewrite a zone that is already there", async () => {
+      // 250 rows deleted and recreated on every predeploy for no change --
+      // and a coverage an operator narrowed deliberately is not this row's to
+      // widen back.
+      const target = new MedusaCommerceConfigurationTarget(
+        containerFor({
+          store: STORE,
+          stock_location: [{ id: "sloc_1", fulfillment_sets: [{ id: "fuset_1", name: "Shipping" }] }],
+          service_zone: [{ id: "serzo_1" }],
+        }),
+      );
+      await target.apply(record("fulfillment-set"));
+
+      expect(createLocationFulfillmentSetRun).not.toHaveBeenCalled();
+      expect(createServiceZonesRun).not.toHaveBeenCalled();
+    });
+
+    it("refuses when the location it needs is absent", async () => {
+      const target = new MedusaCommerceConfigurationTarget(containerFor({ store: STORE }));
+      await expect(target.apply(record("fulfillment-set"))).rejects.toThrow(/must apply first/);
+    });
+  });
+
+  describe("the shipping profile", () => {
+    it("creates it under the name seed-merch.ts uses", async () => {
+      const target = new MedusaCommerceConfigurationTarget(containerFor({ store: STORE }));
+      await target.apply(record("shipping-profile"));
+
+      expect(createShippingProfilesRun).toHaveBeenCalledWith({
+        input: { data: [{ name: MERCH_SHIPPING_PROFILE, type: MERCH_SHIPPING_PROFILE }] },
+      });
+    });
+
+    it("creates nothing when it exists", async () => {
+      const target = new MedusaCommerceConfigurationTarget(
+        containerFor({ store: STORE, shipping_profile: [{ id: "sp_1" }] }),
+      );
+      await target.apply(record("shipping-profile"));
+      expect(createShippingProfilesRun).not.toHaveBeenCalled();
+    });
   });
 });

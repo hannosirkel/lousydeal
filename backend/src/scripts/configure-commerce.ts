@@ -63,18 +63,26 @@
 import type { ExecArgs, MedusaContainer } from "@medusajs/framework/types";
 import { ContainerRegistrationKeys, defaultCountries } from "@medusajs/framework/utils";
 import {
+  createLocationFulfillmentSetWorkflow,
   createRegionsWorkflow,
+  createServiceZonesWorkflow,
+  createShippingOptionsWorkflow,
+  createShippingProfilesWorkflow,
+  createStockLocationsWorkflow,
   createTaxRatesWorkflow,
   createTaxRegionsWorkflow,
   updateRegionsWorkflow,
   updateStoresWorkflow,
   updateTaxRatesWorkflow,
+  linkSalesChannelsToStockLocationWorkflow,
   updateTaxRegionsWorkflow,
 } from "@medusajs/medusa/core-flows";
 
 import { PRODUCT_TIERS } from "../commerce/product-model";
 import { ESTONIAN_STANDARD_VAT_PERCENT, EU_MEMBER_STATE_CODES, TAX_PROVIDER_ID, VAT_RATE_CODE, VAT_RATE_NAME } from "../commerce/tax-model";
 import { STRIPE_PAYMENT_PROVIDER_ID } from "../config/payment";
+import { PRINTFUL_FULFILMENT_IDENTIFIER } from "../modules/printful/fulfilment-provider";
+import { MERCH_SHIPPING_PROFILE } from "./seed-merch";
 
 /**
  * The one region every tier prices into, and the natural key `applyRegion`
@@ -95,6 +103,24 @@ export const REGION_NAME = "Worldwide";
 const WORLDWIDE_COUNTRY_CODES: readonly string[] = defaultCountries
   .map((country) => country.alpha2)
   .sort((left, right) => left.localeCompare(right));
+
+/**
+ * The names the four delivery records are looked up by.
+ *
+ * Natural keys an operator can see and edit in the Admin, like
+ * {@link REGION_NAME} — renaming one there makes the next `predeploy` find no
+ * match and create a second beside it. That is a known property of every
+ * record in this file rather than a new hazard.
+ *
+ * **`Dispatch` and not `Warehouse`.** Nothing is warehoused: Printful prints
+ * on demand and chooses its own facility. The location is a join, not a
+ * building.
+ */
+export const DISPATCH_LOCATION_NAME = "Dispatch";
+export const FULFILMENT_SET_NAME = "Shipping";
+export const SERVICE_ZONE_NAME = "Worldwide";
+/** What a buyer sees beside the postage. `brand.md` §4: a label states, it does not sell. */
+export const SHIPPING_OPTION_NAME = "Postage";
 
 /** All three tiers share one currency (decision 007); read it rather than restate it. */
 const STORE_CURRENCY = PRODUCT_TIERS[0]!.currency;
@@ -133,6 +159,72 @@ export type CommerceRecord =
        * This field is required, so no `CommerceRecord` can reach that branch.
        */
       readonly paymentProviderIds: readonly string[];
+    }
+  | {
+      /**
+       * Where parcels are said to leave from.
+       *
+       * **One location, and it is a fiction with a real job.** Printful prints
+       * in seven countries and decides which by itself — `submission.ts`
+       * records that its system chooses and cannot be told — so nothing here
+       * corresponds to a building. What it is for is a join:
+       * `core-flows/dist/cart/workflows/list-shipping-options-for-cart.js:135-152`
+       * starts from the cart's **sales channel**, walks to its stock
+       * locations, and takes their fulfillment sets. A location not linked to
+       * the channel offers a cart nothing, and P7's checkout would show the
+       * unavailable notice for every parcel.
+       */
+      readonly kind: "stock-location";
+      readonly key: string;
+      readonly name: string;
+      readonly countryCode: string;
+    }
+  | {
+      /**
+       * The set, its one service zone, and the countries that zone answers
+       * for.
+       *
+       * One record and not three, because none of the three is separately
+       * useful: a set with no zone offers nothing, and a zone covering nowhere
+       * matches nobody.
+       */
+      readonly kind: "fulfillment-set";
+      readonly key: string;
+      readonly locationName: string;
+      readonly name: string;
+      readonly serviceZoneName: string;
+      /** Matched against `cart.shipping_address.country_code` (`list-shipping-options-for-cart.js:204`). */
+      readonly countryCodes: readonly string[];
+    }
+  | {
+      /**
+       * The profile merch products belong to.
+       *
+       * **The certificate belongs to no profile and must not** — constraint 4.
+       * `seed-product.ts` sends no `shipping_profile_id` and
+       * `create-products.js:154` links one only when present, and an option is
+       * offered only for profiles the cart's items are in. So a cart of
+       * certificates is offered nothing and is asked for no address.
+       */
+      readonly kind: "shipping-profile";
+      readonly key: string;
+      readonly name: string;
+    }
+  | {
+      /**
+       * The option a cart selects, bound to the Printful provider.
+       *
+       * **Calculated, not flat**, and carrying no `prices`: Printful quotes per
+       * address and per parcel — $13.56 to Estonia against $25.56 to Brazil,
+       * measured — so a flat rate would be wrong everywhere but one
+       * destination. `fulfilment-provider.ts` is what answers instead.
+       */
+      readonly kind: "shipping-option";
+      readonly key: string;
+      readonly name: string;
+      readonly profileName: string;
+      readonly serviceZoneName: string;
+      readonly providerId: string;
     }
   | {
       /** One EU member state's tax region and its single, default rate. */
@@ -175,6 +267,41 @@ export function commerceRecords(): readonly CommerceRecord[] {
       taxInclusivePrices: true,
       automaticTaxes: true,
       paymentProviderIds: [STRIPE_PAYMENT_PROVIDER_ID],
+    },
+    // Physical delivery, in dependency order: the location, then the set and
+    // its zone on that location, then the profile, then the option that binds
+    // a profile to a zone and a provider. LD-04 P7b -- P7a wrote the provider
+    // and nothing pointed at it.
+    {
+      kind: "stock-location",
+      key: DISPATCH_LOCATION_NAME,
+      name: DISPATCH_LOCATION_NAME,
+      countryCode: "ee",
+    },
+    {
+      kind: "fulfillment-set",
+      key: FULFILMENT_SET_NAME,
+      locationName: DISPATCH_LOCATION_NAME,
+      name: FULFILMENT_SET_NAME,
+      serviceZoneName: SERVICE_ZONE_NAME,
+      // The same 250 the region carries. A zone narrower than the region
+      // would sell to a country it then refuses to post to, which is the
+      // shape of failure the operator ruled out: "one extra return is ok but
+      // closing regions/countries is not".
+      countryCodes: WORLDWIDE_COUNTRY_CODES,
+    },
+    {
+      kind: "shipping-profile",
+      key: MERCH_SHIPPING_PROFILE,
+      name: MERCH_SHIPPING_PROFILE,
+    },
+    {
+      kind: "shipping-option",
+      key: SHIPPING_OPTION_NAME,
+      name: SHIPPING_OPTION_NAME,
+      profileName: MERCH_SHIPPING_PROFILE,
+      serviceZoneName: SERVICE_ZONE_NAME,
+      providerId: PRINTFUL_FULFILMENT_IDENTIFIER,
     },
     ...EU_MEMBER_STATE_CODES.map<CommerceRecord>((countryCode) => ({
       kind: "tax-region",
@@ -226,7 +353,164 @@ export class MedusaCommerceConfigurationTarget implements CommerceConfigurationT
         return this.applyRegion(record);
       case "tax-region":
         return this.applyTaxRegion(record);
+      case "stock-location":
+        return this.applyStockLocation(record);
+      case "fulfillment-set":
+        return this.applyFulfilmentSet(record);
+      case "shipping-profile":
+        return this.applyShippingProfile(record);
+      case "shipping-option":
+        return this.applyShippingOption(record);
     }
+  }
+
+  /**
+   * The location, and its link to the sales channel — which is the half that
+   * matters and the half nothing here had.
+   *
+   * `list-shipping-options-for-cart.js:135-152` reaches fulfillment sets only
+   * through `sales_channels.stock_locations`, so an unlinked location is a
+   * location no cart can see. The link is applied on every run rather than
+   * only at creation: it is the kind of thing an operator can remove in the
+   * Admin without meaning to, and restoring it costs one idempotent call.
+   */
+  private async applyStockLocation(record: Extract<CommerceRecord, { kind: "stock-location" }>): Promise<void> {
+    const existing = await this.one<{ id: string }>("stock_location", ["id"], { name: record.key });
+    const id =
+      existing?.id ??
+      ((
+        await createStockLocationsWorkflow(this.container).run({
+          input: { locations: [{ name: record.name, address: { address_1: "", city: "", country_code: record.countryCode } }] },
+        })
+      ).result[0]?.id as string);
+
+    await linkSalesChannelsToStockLocationWorkflow(this.container).run({
+      input: { id, add: [await this.defaultSalesChannelId()] },
+    });
+  }
+
+  /**
+   * The set on the location, and the one zone on the set.
+   *
+   * Both are created only when absent and neither is updated: `geo_zones` on
+   * an existing zone is a replacement, and 250 countries rewritten on every
+   * `predeploy` is 250 rows deleted and recreated for no change. A zone whose
+   * coverage an operator has narrowed deliberately is also not this row's to
+   * widen back.
+   */
+  private async applyFulfilmentSet(record: Extract<CommerceRecord, { kind: "fulfillment-set" }>): Promise<void> {
+    const location = await this.one<{ id: string; fulfillment_sets?: { id?: string; name?: string }[] }>(
+      "stock_location",
+      ["id", "fulfillment_sets.id", "fulfillment_sets.name"],
+      { name: record.locationName },
+    );
+    if (location === undefined) {
+      throw new Error(`No stock location named ${record.locationName}; the stock-location record must apply first`);
+    }
+
+    const set = (location.fulfillment_sets ?? []).find((candidate) => candidate.name === record.name);
+    const setId =
+      set?.id ??
+      ((
+        await createLocationFulfillmentSetWorkflow(this.container).run({
+          input: { location_id: location.id, fulfillment_set_data: { name: record.name, type: "shipping" } },
+        })
+      ).result as { id?: string } | undefined)?.id;
+
+    const zone = await this.one<{ id: string }>("service_zone", ["id"], { name: record.serviceZoneName });
+    if (zone !== undefined) return;
+
+    if (typeof setId !== "string") {
+      // The workflow answered without an id, so there is nothing to hang a
+      // zone on. Refusing beats creating a zone against a set this cannot
+      // name, which would be a second zone on the next run.
+      const created = await this.one<{ fulfillment_sets?: { id?: string; name?: string }[] }>(
+        "stock_location",
+        ["fulfillment_sets.id", "fulfillment_sets.name"],
+        { name: record.locationName },
+      );
+      const found = (created?.fulfillment_sets ?? []).find((candidate) => candidate.name === record.name)?.id;
+      if (typeof found !== "string") throw new Error(`Could not resolve the ${record.name} fulfillment set`);
+      await this.createZone(found, record);
+      return;
+    }
+
+    await this.createZone(setId, record);
+  }
+
+  private async createZone(
+    fulfillmentSetId: string,
+    record: Extract<CommerceRecord, { kind: "fulfillment-set" }>,
+  ): Promise<void> {
+    await createServiceZonesWorkflow(this.container).run({
+      input: {
+        data: [
+          {
+            name: record.serviceZoneName,
+            fulfillment_set_id: fulfillmentSetId,
+            geo_zones: record.countryCodes.map((countryCode) => ({
+              type: "country" as const,
+              country_code: countryCode.toLowerCase(),
+            })),
+          },
+        ],
+      },
+    });
+  }
+
+  /** Created when absent and never renamed: the name is the key. */
+  private async applyShippingProfile(record: Extract<CommerceRecord, { kind: "shipping-profile" }>): Promise<void> {
+    const existing = await this.one<{ id: string }>("shipping_profile", ["id"], { name: record.key });
+    if (existing !== undefined) return;
+
+    await createShippingProfilesWorkflow(this.container).run({
+      input: { data: [{ name: record.name, type: record.name }] },
+    });
+  }
+
+  /**
+   * The option, bound to the profile, the zone and the provider.
+   *
+   * **No `prices` array**, which is what makes it calculated rather than flat:
+   * `create-shipping-options.d.ts` documents the pair, and the provider is
+   * asked per cart instead. A `prices` entry here would be a figure nobody
+   * quoted, charged to a buyer — §11 and §23 both.
+   */
+  private async applyShippingOption(record: Extract<CommerceRecord, { kind: "shipping-option" }>): Promise<void> {
+    const existing = await this.one<{ id: string }>("shipping_option", ["id"], { name: record.key });
+    if (existing !== undefined) return;
+
+    const zone = await this.one<{ id: string }>("service_zone", ["id"], { name: record.serviceZoneName });
+    const profile = await this.one<{ id: string }>("shipping_profile", ["id"], { name: record.profileName });
+    if (zone === undefined || profile === undefined) {
+      throw new Error(`Cannot create ${record.name}: the service zone and shipping profile must apply first`);
+    }
+
+    await createShippingOptionsWorkflow(this.container).run({
+      input: [
+        {
+          name: record.name,
+          service_zone_id: zone.id,
+          shipping_profile_id: profile.id,
+          provider_id: record.providerId,
+          price_type: "calculated",
+          type: { label: record.name, description: record.name, code: record.name.toLowerCase() },
+        },
+      ],
+    });
+  }
+
+  private async defaultSalesChannelId(): Promise<string> {
+    const store = await this.one<{ default_sales_channel_id?: string | null }>(
+      "store",
+      ["id", "default_sales_channel_id"],
+      {},
+    );
+    const id = store?.default_sales_channel_id;
+    if (typeof id !== "string") {
+      throw new Error("The store has no default sales channel; run Medusa's defaults first");
+    }
+    return id;
   }
 
   /**

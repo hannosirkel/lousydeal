@@ -564,7 +564,7 @@ P9c found the postage path doing the opposite.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/scripts/configure-commerce.ts`, tests.
 
-- [ ] The delivery configuration P7a assumed and nothing built.
+- [x] The delivery configuration P7a assumed and nothing built.
 
 Four new record kinds in `commerceRecords`, in dependency order: a stock
 location, a fulfillment set with a service zone over the same worldwide country
