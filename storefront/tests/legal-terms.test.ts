@@ -55,10 +55,19 @@ describe("what is sold", () => {
 describe("price and tax", () => {
   it("says the displayed price is the price charged and includes VAT", () => {
     // Decision `009`: the advertised price is what every buyer is charged, EU
-    // or not, and Estonia's VAT comes out of it rather than being added.
+    // or not, and Estonia's VAT comes out of it rather than being added. That
+    // promise survives P10 and is now scoped to the thing it is true of.
     expect(section("3")).toContain("price shown on the offer page is the price charged");
     expect(section("3")).toContain("includes value added tax");
-    expect(section("3")).toMatch(/nothing is added at checkout/i);
+
+    // **"nothing is added at checkout" was the third assertion here, and P10
+    // had to remove it rather than satisfy it.** Postage is added at checkout,
+    // so the unqualified sentence became false the moment a parcel could be in
+    // the cart -- and this guard would have required the document to keep
+    // saying it. What replaces it is the same promise made precisely: no tax
+    // line, no fee, nothing the buyer was not shown first.
+    expect(section("3")).not.toMatch(/\bnothing is added at checkout\b/i);
+    expect(section("3")).toMatch(/no tax line at checkout, no fee, and no charge you were not shown/i);
   });
 
   it("says who bears the VAT, since it is not the buyer", () => {
@@ -130,6 +139,128 @@ describe("delivery and withdrawal", () => {
   });
 });
 
+describe("posting a thing, which this shop had never done", () => {
+  it("keeps the parcel at our risk, which is the clause a trader gets wrong", () => {
+    // § 209(4) third sentence: in a consumer sale where carriage is provided,
+    // the handover obligation is discharged when the item reaches the buyer's
+    // possession -- not on handover to the carrier. § 214(2) passes risk at
+    // that same moment.
+    //
+    // **The temptation is real and it comes from our own supplier.** Printful's
+    // terms pass risk to *us* on delivery to the carrier, and a shop copying
+    // that sentence into its consumer terms would be writing a term § 237(1)
+    // voids, in the document a buyer reads after a parcel has gone missing.
+    const s = section("5");
+    expect(s).toContain("§ 209(4)");
+    expect(s).toContain("§ 214(2)");
+    expect(s).toMatch(/travels at our risk, not yours/i);
+    expect(s).toMatch(/not when we hand it to a courier/i);
+    // The property, not the phrasing: no sentence may put risk on the buyer at
+    // dispatch, however it is worded.
+    expect(s).not.toMatch(/risk[^.]*passes[^.]*(?:dispatch|courier|carrier|when we (?:post|send))/i);
+  });
+
+  it("states a delivery limit rather than a promise it has not measured", () => {
+    // § 209(6): absent an agreed time, without delay and no later than 30 days
+    // from conclusion. § 54(1) p 9 wants the delivery time given. A window
+    // invented here would bind us to a number nobody measured, which is §11's
+    // rule applied to a figure the trader acts on.
+    const s = section("5");
+    expect(s).toContain("§ 209(6)");
+    expect(s).toMatch(/30 days/);
+    expect(s).toMatch(/we do not promise a date/i);
+  });
+
+  it("says postage is added and where, since §3 opens by saying nothing is", () => {
+    // The old §3 said "nothing is added at checkout". With a parcel in the
+    // cart that reads as false, and the fix is not to delete the promise but
+    // to name the one exception and say it is shown first.
+    const s = section("3");
+    expect(s).toMatch(/postage is the one thing that is added/i);
+    expect(s).toMatch(/before you pay, never afterwards/i);
+    expect(s).toMatch(/the certificate is not posted and carries none/i);
+  });
+
+  it("flags import charges without inventing a figure for them", () => {
+    // § 54(1) p 6's fallback limb: where additional costs cannot reasonably be
+    // calculated in advance, the trader says that they may be payable. A
+    // customs authority's charge is exactly that, and §11 forbids naming an
+    // amount nobody computed.
+    const s = section("3");
+    expect(s).toContain("§ 54(1) p 6");
+    expect(s).toMatch(/import duty or local tax/i);
+    expect(s).toMatch(/cannot tell you the amount in advance/i);
+    expect(s).toMatch(/not ours to collect and not ours to keep/i);
+  });
+
+  it("does not extend the Article 59c sentence to goods, which it does not cover", () => {
+    // Decision `009` is about digital supplies. Goods are decision `013`:
+    // taxed where the parcel lands, accounted for in Estonia through OSS
+    // rather than by registering abroad. Leaving one sentence to cover both
+    // would have been the easy edit and the wrong one.
+    const s = section("3");
+    const article59c = s.split(/(?<=\.)\s+/).filter((sentence) => /59c/.test(sentence)).join(" ");
+    expect(article59c).toMatch(/for the certificate|that supply/i);
+    expect(s).toMatch(/follows where the parcel goes/i);
+    expect(s).toMatch(/instead of registering in each country/i);
+  });
+});
+
+describe("the withdrawal clause, once there are two clocks", () => {
+  it("gives the goods clock as well as the certificate's", () => {
+    // **Three mutations survived here before this block existed**, all of them
+    // in §6: collapsing the two clocks into one, letting a § 53(4) exception
+    // reach the goods, and dropping the split. §6 was rewritten and nothing
+    // guarded the rewrite -- the tests below it all predate LD-04 and are
+    // about the certificate.
+    //
+    // This clause is the one a buyer reads before paying, so an understated
+    // period here is worse than the same error in Refunds.
+    const s = section("6");
+    expect(s).toContain("§ 56(1¹)");
+    expect(s).toContain("§ 56(1³)");
+    expect(s).toMatch(/the day it reaches you/i);
+    expect(s).toMatch(/the day the last of them does/i);
+    expect(s).toMatch(/run separately/i);
+  });
+
+  it("does not let any § 53(4) exception reach a printed item", () => {
+    // p 2 and p 3 are the two a print-on-demand shop would reach for. Refunds
+    // §3 settles it at length; this clause must not quietly disagree, and a
+    // sentence claiming an exception here would remove a right the other
+    // document grants.
+    const s = section("6");
+    expect(s).toMatch(/no exception on the § 53\(4\) list covers a printed item/i);
+    expect(s).toMatch(/reaches nothing in a parcel/i);
+    expect(s).toMatch(/the consent box has no effect on them/i);
+    // The property: no sentence may assert an exception applies to goods.
+    //
+    // **Written once as a bare negative pattern, and it failed on the correct
+    // text.** `/§ 53\(4\)[^.]*covers a printed item/` matches the denial —
+    // "No exception on the § 53(4) list covers a printed item" — because
+    // nothing between them is a full stop. A pattern that cannot tell a claim
+    // from its negation is not a guard; it is a ban on the subject.
+    //
+    // So the unit is the sentence, and every sentence that connects the
+    // exception list to a printed item has to be one that denies it.
+    const claims = s
+      .split(/(?<=\.)\s+/)
+      .filter((sentence) => /§ 53\(4\)/.test(sentence) && /printed item/i.test(sentence))
+      .filter((sentence) => !/\bno exception\b/i.test(sentence));
+    expect(claims).toEqual([]);
+  });
+
+  it("does not make conclusion and supply coincide for a thing not yet made", () => {
+    // §4 said the contract is concluded "which is also the moment supply
+    // begins ... because there is nothing to prepare and nothing to send".
+    // True of the certificate and false of a mug, and the whole of §5's
+    // delivery limb depends on the distinction.
+    const s = section("4");
+    expect(s).toMatch(/for the certificate that is also the moment supply begins/i);
+    expect(s).toMatch(/the item does not exist yet when the contract is concluded/i);
+  });
+});
+
 describe("agreement with Refunds and Withdrawal", () => {
   it("puts the confirmation no later than the start of supply, as § 55(1) does", () => {
     // The first draft read "it is shown to you, and a confirmation is sent",
@@ -193,13 +324,20 @@ describe("disputes", () => {
     expect(section("12")).toContain("Endla 10A, 10122 Tallinn");
   });
 
-  it("warns that the committee's threshold is above every price here", () => {
-    // The Committee ordinarily takes disputes worth at least 30 euros, and the
-    // dearest tier is below that. Offering a route that will not carry the
-    // claim, without saying so, is the kind of unhelpful helpfulness §23 is
-    // about.
+  it("no longer claims the committee's threshold is above every price here", () => {
+    // **Inverted, and by the same reasoning as the merch ban above.** The
+    // dearest tier was below 30 euros; a shirt is not, and an order with
+    // postage is further above. The old assertion required the document to
+    // state something that had become false.
+    //
+    // What survives is the reason it was there: a route that will not carry
+    // the claim is worse than no route, so the document still says which side
+    // of the threshold a reader is on — without computing a conversion it
+    // cannot do, since the threshold is in euro and the catalogue is not.
     expect(section("12")).toContain("at least 30 euros");
-    expect(section("12")).toMatch(/every item sold here costs less/i);
+    expect(section("12")).not.toMatch(/every item sold here costs less/i);
+    expect(section("12")).toMatch(/depends on what you ordered/i);
+    expect(section("12")).toMatch(/worse than no route at all/i);
   });
 
   it("does not tell an EU consumer a forum is closed to them", () => {
@@ -239,8 +377,46 @@ describe("the register", () => {
     // builds gifting writes its clause". LD-03 built it, so §8 is that clause
     // and the guard is inverted below rather than deleted -- the claim it made
     // is now false and a guard asserting a false thing is worse than none.
-    expect(prose.toLowerCase()).not.toContain("t-shirt");
+    // **Merch was on this list until LD-04 P10, and the ban is now lifted
+    // rather than left to pass by accident.** The claim it protected -- that
+    // this document must not mention goods -- became false when the row
+    // landed, and a guard asserting a false thing is worse than none. The
+    // clause that replaces it is below.
     expect(prose.toLowerCase()).not.toContain("subscription");
+  });
+
+  it("describes the goods it now sells, and does not let them inherit the joke", () => {
+    // The inversion. §2's worthlessness clauses are the most valuable thing in
+    // this document and the most dangerous to over-apply: a mug is worth what
+    // a mug is worth, and a clause telling a buyer their shirt conferred
+    // nothing would be a misdescription of a physical object rather than the
+    // honest joke the certificate's clauses are.
+    const s = section("2");
+    expect(s).toMatch(/two kinds of thing are sold/i);
+    expect(s).toMatch(/ordinary objects/i);
+    expect(s).toMatch(/worth what such objects are worth/i);
+    expect(s).toMatch(/nothing in the paragraphs above about worthlessness is true of a printed item/i);
+    // And the reading instruction every later clause leans on.
+    expect(s).toMatch(/where these terms say the certificate/i);
+
+    // **Mutation deleted the sentence that says what the second kind *is* and
+    // this passed**, because "two kinds of thing are sold" and the
+    // worthlessness carve-out both survived. A document announcing two kinds
+    // and naming one is worse than one that never mentioned goods. § 54(1) p 4
+    // wants the main characteristics, so they are named.
+    expect(s).toMatch(/the second is printed goods/i);
+    for (const item of ["shirt", "mug", "cap", "sticker"]) expect(s).toContain(item);
+  });
+
+  it("keeps the certificate's own clauses intact while doing it", () => {
+    // The failure mode of a rewrite like this is dilution: scoping the
+    // worthlessness paragraphs to the certificate is one edit away from
+    // softening them. They are the clauses §23 turns on.
+    const s = section("2");
+    expect(s).toContain("numbered digital certificate");
+    expect(s).toMatch(/nothing else of value/i);
+    expect(s).toMatch(/no rights, no ownership, no entitlement/i);
+    expect(s).toMatch(/paying more does not get you more/i);
   });
 
   it("carries the gifting clause, and says who holds the contract", () => {

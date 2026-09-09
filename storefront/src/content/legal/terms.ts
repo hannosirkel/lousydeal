@@ -59,6 +59,32 @@
  * every right including the 14 days; the recipient has a certificate and no
  * contract. A clause that let a reader think otherwise would be worse than the
  * silence it replaces.
+ *
+ * **Merch was on the "not yet" list and LD-04 took it off.** `legal-terms`
+ * banned the word "t-shirt" here, for the same reason it once banned gifting:
+ * a term about a feature nobody can use is noise a lawyer has to read. P10
+ * inverts that guard rather than deleting it — the claim it protected is now
+ * false, and a guard asserting a false thing is worse than none. What the
+ * document has to carry instead:
+ *
+ *   §2  that two kinds of thing are sold, and that the worthlessness clauses
+ *       are about one of them. A mug is worth what a mug is worth.
+ *   §3  postage, which is the one charge added after the offer page; and the
+ *       import duty a customs authority outside the EU may levy, which
+ *       § 54(1) p 6 requires be flagged even though the amount is unknowable.
+ *       The Article 59c sentence stays, scoped to the certificate: goods are
+ *       taxed where the parcel lands, and decision `013` accounts for that in
+ *       Estonia rather than by registering abroad.
+ *   §4  that conclusion and supply coincide for the certificate and cannot for
+ *       a thing that does not exist yet.
+ *   §5  the § 209(6) thirty-day outside limit, and **§ 209(4) with § 214(2)**:
+ *       in a consumer sale the handover is complete when the parcel reaches
+ *       the buyer, so it travels at our risk. The tempting clause — risk
+ *       passing to the buyer on handover to the courier — is one the statute
+ *       does not allow, and Printful's own terms pass risk to *us* at exactly
+ *       that point, which is where the temptation comes from.
+ *   §6  the § 56(1¹) clock, and that no § 53(4) exception reaches the goods.
+ *   §12 the disputes threshold, which a shirt is above.
  */
 
 import type { LegalDocument } from "./types";
@@ -81,25 +107,32 @@ export const TERMS: LegalDocument = {
       number: "2",
       heading: "What you are buying",
       body: [
-        "You are buying a numbered digital certificate. You receive that and nothing else of value.",
+        "Two kinds of thing are sold here, and they are not alike.",
+        "The first is a numbered digital certificate. You receive that and nothing else of value.",
         "That is the description of the product, not a limitation on it. The certificate confers no rights, no ownership, no entitlement, no membership, no service, no discount and no benefit of any kind, now or later. It is not an investment, it is not a security, and it cannot be redeemed for anything.",
         "Three variants are sold. They cost different amounts and they deliver the same thing. Paying more does not get you more.",
+        "The second is printed goods: a shirt, a mug, a cap, a sticker, carrying the same joke as everything else here. Those are ordinary objects. They are worth what such objects are worth, they are made after you order them, and they are posted to you.",
+        "Nothing in the paragraphs above about worthlessness is true of a printed item, and no clause below treats one as though it were. Where these terms say the certificate they mean the certificate; where they say a printed item they mean something that arrives in a parcel.",
       ],
     },
     {
       number: "3",
       heading: "Price and tax",
       body: [
-        "The price shown on the offer page is the price charged. It includes value added tax where value added tax applies, and nothing is added at checkout: no tax line, no fee, and no charge you were not shown before you paid.",
-        "Where you are in the European Union, value added tax on this supply is currently accounted for in Estonia, because {merchantLegalName}'s cross-border supplies of this kind remain below the threshold in Article 59c of Directive 2006/112/EC. It is contained in the price rather than added to it, {merchantLegalName} bears it, and your total does not change because of where you are.",
+        "Every price shown includes value added tax where value added tax applies. There is no tax line at checkout, no fee, and no charge you were not shown before you paid.",
+        "For the certificate the price shown on the offer page is the price charged, and nothing whatever is added to it. Where you are in the European Union, value added tax on that supply is currently accounted for in Estonia, because {merchantLegalName}'s cross-border supplies of this kind remain below the threshold in Article 59c of Directive 2006/112/EC. It is contained in the price rather than added to it, {merchantLegalName} bears it, and your total does not change because of where you are.",
+        "A printed item has to be posted, so postage is the one thing that is added — and it is quoted and shown to you as its own line before you pay, never afterwards. The certificate is not posted and carries none.",
+        "The tax on a printed item follows where the parcel goes rather than where we are, and we account for it in Estonia instead of registering in each country. The rate differs from one country to the next. The price you are shown does not: the tax is inside it and {merchantLegalName} bears the difference.",
+        "If you are outside the European Union, the customs authority where you live may charge import duty or local tax on the parcel before it is released to you. That is charged by them, it is not ours to collect and not ours to keep, and we cannot tell you the amount in advance. § 54(1) p 6 of the Law of Obligations Act requires us to say that such a charge may fall due, and this is us saying it.",
       ],
     },
     {
       number: "4",
       heading: "How an order is made",
       body: [
-        "Displaying an item on this site is an invitation to order, not an offer. Your order is an offer to buy. We accept it when your payment succeeds, and the contract is concluded at that moment — which is also the moment supply begins under §5, because there is nothing to prepare and nothing to send.",
-        "Before you pay, you are shown what you are buying, the total you will be charged, and the consent described in §6. That box is not ticked for you, and it is a condition of ordering: without it we cannot supply immediately, and the order does not proceed. Payment is processed by Stripe Payments Europe, Ltd. We do not receive or store your card details.",
+        "Displaying an item on this site is an invitation to order, not an offer. Your order is an offer to buy. We accept it when your payment succeeds, and the contract is concluded at that moment.",
+        "For the certificate that is also the moment supply begins under §5, because there is nothing to prepare and nothing to send. For a printed item it is not: the item does not exist yet when the contract is concluded, and §5 says what happens next.",
+        "Before you pay, you are shown what you are buying, the total you will be charged including any postage, and the consent described in §6. That box is not ticked for you, and it is a condition of ordering: without it we cannot supply the certificate immediately, and the order does not proceed. Payment is processed by Stripe Payments Europe, Ltd. We do not receive or store your card details.",
       ],
     },
     {
@@ -110,6 +143,9 @@ export const TERMS: LegalDocument = {
         "You view it in a web browser. There is no account to create, no software to install, no file to download and no technical protection measure applied to it: a web browser is the whole of what you need. It is not interoperable with anything, because there is nothing for it to work with.",
         "We owe you a confirmation on a durable medium no later than the moment supply begins. § 55(1) sets that timing, and we send it: an email goes out as soon as your certificate exists, carrying what § 55(2) requires it to carry.",
         "Because supply here is the certificate existing, that email follows supply by moments rather than preceding it. §6 says what we do about that.",
+        "A printed item is made after you order it and sent to the address you gave. We do not promise a date. § 209(6) sets the outside limit where no date is agreed, and it binds us: without delay, and no later than 30 days after the contract is concluded. If it is going to take longer than that, we will tell you and you may treat the contract as at an end.",
+        "The parcel travels at our risk, not yours. Under § 209(4) our obligation to hand the item over is discharged when it reaches your possession — not when we hand it to a courier — and under § 214(2) the risk of loss or damage passes to you at the same moment. So if it does not arrive, or arrives broken, that is ours to put right. Write to {merchantEmail}.",
+        "For a printed item § 55(1) sets a later deadline for the same confirmation than it does for the certificate: no later than the item is delivered to you. The email goes out when you order, so it is comfortably inside it.",
       ],
     },
     {
@@ -117,7 +153,9 @@ export const TERMS: LegalDocument = {
       heading: "Your right of withdrawal",
       body: [
         "Under § 56(1) of the Estonian Law of Obligations Act (võlaõigusseadus), a consumer may withdraw from a distance contract within 14 days without giving a reason.",
+        "When those 14 days begin depends on what you bought. For the certificate § 56(1³) starts them the day the contract is concluded. For a printed item § 56(1¹) starts them the day it reaches you, and where an order arrives as more than one parcel, the day the last of them does. In a mixed order the two run separately.",
         "§ 53(4) p 7¹ of that Act removes the right for digital content not supplied on a physical medium, but only where supply began before the withdrawal period ended, you gave express prior consent to it beginning and acknowledged that you would thereby lose the right, and we gave you the confirmation required by § 55(1) and § 55(2) of the Act.",
+        "That point reaches the certificate and reaches nothing in a parcel. No exception on the § 53(4) list covers a printed item sold here: the two that come closest, p 2 and p 3, are about things made for your personal needs or to conditions you supplied, and these are fixed designs picked from a list. Your 14 days on a printed item run in full, and the consent box has no effect on them.",
         "The checkout asks for that consent, with the box unticked, and we do send that confirmation. Whether all three conditions were met for your order is a question of fact, and the third turns on timing: on this site supply begins the instant your payment succeeds, and the confirmation follows it.",
         "We do not answer that question in our own favour. If you tell us you are withdrawing, we will not refuse on the ground that § 53(4) p 7¹ has removed your right. This is set out in full in Refunds and Withdrawal, which states rights you have rather than rights we grant.",
         "If we did not tell you about the right of withdrawal, its time limit and how to use it, § 56(1⁶) extends the period to 12 months after the ordinary 14 days; and if we tell you late but within those 12 months, you have 14 days from being told.",
@@ -173,7 +211,7 @@ export const TERMS: LegalDocument = {
       body: [
         "Write to {merchantEmail} first. We would rather hear it than not.",
         "If we cannot resolve it between us, a consumer may put the matter to the Consumer Disputes Committee (tarbijavaidluste komisjon) at the Consumer Protection and Technical Regulatory Authority, Endla 10A, 10122 Tallinn, avaldus@komisjon.ee, +372 620 1700.",
-        "You should know before you write: the Committee ordinarily takes disputes worth at least 30 euros, and every item sold here costs less than that. We are telling you because a route that will not carry your claim is worse than no route at all.",
+        "You should know before you write: the Committee ordinarily takes disputes worth at least 30 euros. A certificate on its own costs less than that and would not reach it. An order of printed goods, with the postage, may be above it. Which yours is depends on what you ordered, and we are telling you because a route that will not carry your claim is worse than no route at all — and because this clause used to say every item sold here cost less, which stopped being true when the shop began posting things.",
         "A consumer resident in another European Union country may also approach the European Consumer Centre network, and the courts remain open to you wherever you live.",
       ],
     },
