@@ -517,9 +517,44 @@ fulfilment a real Medusa fulfilment rather than a side effect.
 ### P8 — The order reaches Printful
 
 **Repository:** `lousydeal`.
-**Files:** `backend/src/subscribers/order-placed.ts`, `backend/src/modules/printful/fulfil.ts`, tests.
+**Files:** `backend/src/subscribers/order-placed.ts`, `backend/src/modules/printful/submission.ts`,
+`backend/src/modules/deal/models/printful-submission.ts`, tests.
 
-- [ ] One Printful order per Medusa order, exactly once, with the merch lines only.
+- [x] **P8a** — the exactly-once argument, the table, and the submission logic.
+- [ ] **P8b** — the subscriber, the client's two order methods, confirmation, and the Privacy Policy paragraph.
+
+**Three facts measured against the live API on 2026-09-09, and each changed the
+design.** The plan said "a unique index plus `external_id`", and the first of
+these is why the index alone would not have been enough.
+
+1. **Printful enforces `external_id` uniqueness.** Creating the same one twice
+   answers `HTTP 400 … "Order with this External ID already exists"`,
+   `api_error_code: OR-13`. The field is documented only as "Order ID from the
+   external system", so this was established rather than assumed. It is the
+   constraint the whole argument rests on: a local index cannot stop a second
+   charge after a crash between the call and the write, because the fact to be
+   remembered was created somewhere else.
+2. **v2 cannot order what this store sells.** `POST /v2/orders` refuses
+   `source: "sync"` — "Source must be one of: catalog, warehouse,
+   product_template". Ordering through v2 would mean re-specifying the artwork
+   per order, which is the same artwork described twice and free to drift from
+   the pinned print files. **v1 takes `sync_variant_id`**, so P8 uses v1 to
+   create while `shipping.ts` uses v2 for rates.
+3. **Deleting an order cancels it and keeps the external id taken.** So a
+   successful look-up does not mean the item is coming, and `canceled` is a
+   recorded state rather than an absence.
+
+**A created order is a `draft`** and nothing prints a draft. Confirmation is a
+separate endpoint and it is the step that spends the money, so it belongs in
+P8b with the wiring rather than in the row working out idempotency. The
+behaviour is asserted in `printful-submission.test.ts` rather than left
+implied, so P8b has to change that test.
+
+**P8b also has to fix a guard P11 wrote.** `third-party-disclosure.test.ts`
+ties the Privacy Policy's "does not yet hand its orders over for printing" to
+`createFulfillment` being inert — but P8b wires the **subscriber**, and
+`createFulfillment` stays inert. **The guard would pass while the sentence
+became false.** It has to key on the subscriber's path instead.
 
 `order-placed.ts` already knows how to be idempotent — LD-02 settled the
 `idempotency_key` argument by reading Medusa's notification module rather than
