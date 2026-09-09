@@ -333,7 +333,7 @@ export async function setCartShippingAddress(
 export interface CartShippingOption {
   readonly id: string;
   readonly name: string;
-  /** Minor units, VAT-inclusive — `shipping.ts` grosses Printful's quote up. */
+  /** Major units, VAT-inclusive — `shipping.ts` grosses Printful's quote up, and P7c put it on this scale. */
   readonly amount: number;
 }
 

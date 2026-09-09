@@ -72,8 +72,13 @@ export interface ShippingQuote {
   /** Printful's own identifier for the service. */
   readonly id: string;
   readonly name: string;
-  /** Minor units, VAT-inclusive, what the buyer is charged. */
-  /** Major units, like every other amount on this path. See `chargeForRate`. */
+  /**
+   * Major units, VAT-inclusive, what the buyer is charged. See `chargeForRate`.
+   *
+   * **This carried both answers at once until Gate D.** P7c renamed the field
+   * and added the true line without removing the false one, on the path whose
+   * units were wrong by a hundred once already.
+   */
   readonly amount: number;
   /** Printful's estimate, repeated and attributed; `null` where it gave none. */
   readonly minDeliveryDays: number | null;
@@ -283,8 +288,15 @@ export async function quoteShipping(
     throw new ShippingQuoteError(`Printful quoted no usable shipping option to ${address.countryCode}`);
   }
 
-  // Cheapest first. § 56¹(3) caps a withdrawal refund at the cheapest ordinary
-  // delivery offered, so which one that is has to be a fact about the list
-  // rather than about the order Printful happened to return it in.
+  // Cheapest first, because the cheapest is what the checkout applies and a
+  // buyer should not pay more than Printful's lowest quote for the same
+  // parcel. Which one that is has to be a fact about the list rather than
+  // about the order Printful happened to return it in.
+  //
+  // **It used to cite § 56¹(3) for this, and P10 established that reading is
+  // wrong.** That provision caps a refund only where the buyer *expressly
+  // chose* a method other than the cheapest ordinary one offered; this shop
+  // offers one method, so nothing is capped and the whole postage comes back.
+  // The sort is right and the reason was not.
   return [...quotes].sort((first, second) => first.amount - second.amount);
 }
