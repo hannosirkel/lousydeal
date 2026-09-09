@@ -61,8 +61,9 @@
  */
 
 import type { ExecArgs, MedusaContainer } from "@medusajs/framework/types";
-import { ContainerRegistrationKeys, defaultCountries } from "@medusajs/framework/utils";
+import { ContainerRegistrationKeys, defaultCountries, Modules } from "@medusajs/framework/utils";
 import {
+  batchLinksWorkflow,
   createLocationFulfillmentSetWorkflow,
   createRegionsWorkflow,
   createServiceZonesWorkflow,
@@ -81,7 +82,7 @@ import {
 import { PRODUCT_TIERS } from "../commerce/product-model";
 import { ESTONIAN_STANDARD_VAT_PERCENT, EU_MEMBER_STATE_CODES, TAX_PROVIDER_ID, VAT_RATE_CODE, VAT_RATE_NAME } from "../commerce/tax-model";
 import { STRIPE_PAYMENT_PROVIDER_ID } from "../config/payment";
-import { PRINTFUL_FULFILMENT_IDENTIFIER } from "../modules/printful/fulfilment-provider";
+import { PRINTFUL_FULFILMENT_PROVIDER_ID } from "../modules/printful/fulfilment-provider";
 import { MERCH_SHIPPING_PROFILE } from "./seed-merch";
 
 /**
@@ -200,11 +201,26 @@ export type CommerceRecord =
       /**
        * The profile merch products belong to.
        *
-       * **The certificate belongs to no profile and must not** — constraint 4.
-       * `seed-product.ts` sends no `shipping_profile_id` and
-       * `create-products.js:154` links one only when present, and an option is
-       * offered only for profiles the cart's items are in. So a cart of
-       * certificates is offered nothing and is asked for no address.
+       * **The certificate belongs to no profile**, and `seed-product.ts` keeps
+       * it that way: it sends no `shipping_profile_id` and
+       * `create-products.js:154` links one only when present. Verified against
+       * a real database — `product_shipping_profile` holds the four merch
+       * handles and none of the three tiers.
+       *
+       * **P7b said that was what kept postage away from a certificate cart,
+       * and that was wrong.** Measured on 2026-09-09: a certificate-only cart
+       * with an address *is* offered this option.
+       * `list-shipping-options-for-cart.js:203-208` filters on
+       * `fulfillment_set_id` and the address and nothing else —
+       * `shipping_profile_id` is selected as a field and is not a filter. The
+       * profile matters when a cart is completed, not when options are listed.
+       *
+       * What actually keeps a certificate free of postage is two other things,
+       * and they are worth naming because the profile was getting the credit:
+       * the storefront never asks, since `cartNeedsAddress` is false for a
+       * cart with nothing to post; and `calculatePrice` refuses, because
+       * `readShippingContext` finds no merch line. Measured: adding this
+       * option to a certificate-only cart answers **500**, not a charge.
        */
       readonly kind: "shipping-profile";
       readonly key: string;
@@ -301,7 +317,7 @@ export function commerceRecords(): readonly CommerceRecord[] {
       name: SHIPPING_OPTION_NAME,
       profileName: MERCH_SHIPPING_PROFILE,
       serviceZoneName: SERVICE_ZONE_NAME,
-      providerId: PRINTFUL_FULFILMENT_IDENTIFIER,
+      providerId: PRINTFUL_FULFILMENT_PROVIDER_ID,
     },
     ...EU_MEMBER_STATE_CODES.map<CommerceRecord>((countryCode) => ({
       kind: "tax-region",
@@ -386,6 +402,38 @@ export class MedusaCommerceConfigurationTarget implements CommerceConfigurationT
 
     await linkSalesChannelsToStockLocationWorkflow(this.container).run({
       input: { id, add: [await this.defaultSalesChannelId()] },
+    });
+
+    /*
+     * **And the fulfilment provider, which is a second link and a separate
+     * refusal.** `validate-fulfillment-providers.js` rejects a shipping option
+     * whose provider is not enabled for its service zone's location —
+     * "Providers (printful_printful) are not enabled for the service location"
+     * — so without this the option cannot be created at all. The Admin does it
+     * through `POST /admin/stock-locations/:id/fulfillment-providers`, which
+     * is `batchLinksWorkflow` over the same two modules.
+     *
+     * Skipped when already linked: `batchLinksWorkflow` creates rows, and
+     * creating a link that exists is not something to find out about on a
+     * live database.
+     */
+    const linked = await this.one<{ fulfillment_providers?: { id?: string }[] }>(
+      "stock_location",
+      ["id", "fulfillment_providers.id"],
+      { id },
+    );
+    const providers = (linked?.fulfillment_providers ?? []).map((provider) => provider.id);
+    if (providers.includes(PRINTFUL_FULFILMENT_PROVIDER_ID)) return;
+
+    await batchLinksWorkflow(this.container).run({
+      input: {
+        create: [
+          {
+            [Modules.STOCK_LOCATION]: { stock_location_id: id },
+            [Modules.FULFILLMENT]: { fulfillment_provider_id: PRINTFUL_FULFILMENT_PROVIDER_ID },
+          },
+        ],
+      },
     });
   }
 

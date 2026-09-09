@@ -593,6 +593,57 @@ product scale, that is $663.00 of postage.**
 It is not fixed by reasoning, because reasoning is what produced it. P6b and
 P7b together make a real cart possible; this row reads the number off one.
 
+### P7d — What a real boot found
+
+**Repository:** `lousydeal`.
+**Files:** `backend/src/modules/printful/fulfilment-provider.ts`,
+`backend/src/scripts/configure-commerce.ts`, tests.
+
+- [x] Run the whole thing once, against Postgres, Redis and a live Printful.
+
+Everything from P6b back to P7a had only ever met fixtures. One boot found
+**four things**, three of which stopped the application dead:
+
+1. **The provider module exported a bare class.** Medusa reads `services` off a
+   provider module and iterates; a class is not iterable, so a deployment with
+   a Printful token dies at startup with `moduleProviderServices is not
+   iterable`. Nothing caught it for four rows because §23 keeps the token out
+   of every deployment — **the first boot with one was the first boot that
+   could fail**.
+2. **The provider id is `printful_printful`, not `printful`.** Medusa composes
+   it from the service's `static identifier` and the module option `id`, the
+   way its own `manual_manual` is composed. `configure:commerce` refused with
+   `Could not resolve 'fp_printful'`.
+3. **The provider has to be linked to the stock location**, separately from the
+   sales channel. Without it, `validate-fulfillment-providers.js` refuses to
+   create the option: "Providers (printful_printful) are not enabled for the
+   service location".
+4. **P7b's reason for constraint 4 was wrong.**
+   `list-shipping-options-for-cart.js:203-208` filters on the fulfillment set
+   and the address only; `shipping_profile_id` is selected as a field and is
+   **not a filter**. A certificate-only cart with an address *is* offered
+   Postage. What keeps postage off it is the storefront never asking
+   (`cartNeedsAddress` is false) and `calculatePrice` refusing — measured: a
+   500, not a charge. The comment and the test now say so.
+
+**And the measurement P7c was written for.** A cart holding one mug, delivered
+to Tallinn:
+
+| | |
+| --- | --- |
+| `item_total` | **15** |
+| `shipping_total` | **6.93** |
+| `total` | **21.93** |
+
+Major units, end to end. Before P7c that postage read **693**, which the
+checkout would have shown as $693.00 on a $15 mug.
+
+Two other rows confirmed against the live Store API at the same time:
+`*variants.metadata` **does** arrive, carrying `printful_variant_id` on the four
+merch products and on none of the three tiers (P9a's discriminator, whose
+failure mode was silence); and every price comes back in major units — 5, 10,
+25 for the tiers and 32, 15, 29, 6 for the merch (P6b's conversion).
+
 ### P8 — The order reaches Printful
 
 **Repository:** `lousydeal`.
