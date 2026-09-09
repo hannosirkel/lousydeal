@@ -45,6 +45,51 @@ describe("the right itself", () => {
     expect(section("2")).toMatch(/day the contract is concluded/i);
   });
 
+  it("starts the clock for goods where § 56(1¹) starts it, not where the certificate's starts", () => {
+    // § 56(1¹): physical possession by the consumer, or by a third party they
+    // named who is *not* the carrier. The whole substance of P10 is that this
+    // is a different day from § 56(1³)'s, and a document carrying only the
+    // digital rule understates a merch buyer's period by however long the post
+    // took.
+    //
+    // **Asserted on the paragraph that does the work, not on the section.**
+    // Mutation swapped § 56(1¹) for § 56(1³) in the operative sentence and the
+    // section-wide `toContain` passed, because the split-order paragraph below
+    // cites § 56(1¹) too. Each rule is now tied to the clause that states it,
+    // and each is checked against the other's provision as well -- a citation
+    // present somewhere is not a citation in the right place.
+    const paragraphs = REFUNDS.sections.find((candidate) => candidate.number === "2")?.body ?? [];
+
+    const goods = paragraphs.filter((paragraph) => /physical possession/i.test(paragraph)).join(" ");
+    expect(goods).toContain("§ 56(1¹)");
+    expect(goods).not.toContain("§ 56(1³)");
+    expect(goods).toMatch(/not the courier/i);
+
+    const certificate = paragraphs.filter((paragraph) => /day the contract is concluded/i.test(paragraph)).join(" ");
+    expect(certificate).toContain("§ 56(1³)");
+    expect(certificate).not.toContain("§ 56(1¹)");
+  });
+
+  it("runs a split order from the last parcel, which is the rule Printful makes real", () => {
+    // § 56(1¹) p 1 for several things delivered separately, p 2 for one thing
+    // handed over in parts. Not hypothetical: the catalogue is fulfilled from
+    // different facilities, so a two-item order arrives as two parcels on two
+    // days and the later one is the one that counts.
+    const s = section("2");
+    expect(s).toContain("§ 56(1¹) p 1");
+    expect(s).toMatch(/the last of them/i);
+    expect(s).toMatch(/\bp 2\b/);
+    expect(s).toMatch(/last part/i);
+  });
+
+  it("keeps the two clocks apart in a mixed order", () => {
+    // Nothing in the Act makes the certificate's supply date touch the goods
+    // period or the reverse. A buyer who took one date for the whole order
+    // would have the wrong answer for half of it.
+    expect(section("2")).toMatch(/run separately/i);
+    expect(section("2")).toMatch(/neither moves the other/i);
+  });
+
   it("says the seller cannot contract out of it", () => {
     // § 62 voids a departure to the consumer's detriment; § 56²(9) voids a term
     // that hinders the exercise of the right. Both belong on a page a buyer
@@ -88,6 +133,40 @@ describe("the exception", () => {
 
   it("cites the European provision as well as the Estonian one", () => {
     expect(section("3")).toContain("Article 16(m)");
+  });
+
+  it("scopes § 53(4) p 7¹ to the certificate, since it reaches nothing in a parcel", () => {
+    // By its own words the point is about digital content *not supplied on a
+    // physical medium*. Left unscoped in a shop that posts things, the section
+    // reads as a general position about "your order" -- which is the reading
+    // that would cost a buyer a right they still have.
+    expect(section("3")).toMatch(/reaches nothing that arrives in a parcel/i);
+  });
+
+  it("says no exception reaches a printed item, and names the two that come closest", () => {
+    // § 53(4) p 2 (made for the consumer's personal needs) and p 3 (made to
+    // conditions they supplied) are the two a print-on-demand shop would be
+    // tempted by. Neither fits a fixed design picked from a list, and the
+    // Commission reads Article 16(c) the same way at 2021/C 525/01.
+    //
+    // The temptation is real and worth naming: a shop that made this claim
+    // would never have to take a shirt back.
+    const s = section("3");
+    expect(s).toMatch(/no exception on the § 53\(4\) list reaches a printed item/i);
+    expect(s).toMatch(/\bp 2\b/);
+    expect(s).toMatch(/\bp 3\b/);
+    expect(s).toContain("2021/C 525/01");
+    expect(s).toMatch(/not personalisation/i);
+  });
+
+  it("does not claim an Estonian authority it could not find", () => {
+    // Constraint 10: a claim is bounded, cited or executed. No Estonian court
+    // or committee decision on print-on-demand was located, so the document
+    // says the reading is the Commission's and says which way it resolved the
+    // gap. Asserting a domestic authority here would be the fabrication §11
+    // forbids, in the document least able to afford it.
+    expect(section("3")).toMatch(/found no Estonian decision either way/i);
+    expect(section("3")).toMatch(/leaves you with the right/i);
   });
 });
 
@@ -182,6 +261,58 @@ describe("the refund", () => {
   });
 });
 
+describe("sending a printed item back", () => {
+  it("gives the consumer's own deadline, and says dispatch is enough", () => {
+    // § 56²(1): 14 days from *making the declaration*, not from our receiving
+    // it, and the obligation is met by sending within them.
+    const s = section("6.1");
+    expect(s).toContain("§ 56²(1)");
+    expect(s).toMatch(/14 days after you told us/i);
+    expect(s).toMatch(/even if it reaches us later/i);
+  });
+
+  it("says where it goes, through the resolver rather than a hard-coded address", () => {
+    // Decision `004`. A return address written into prose is one that stops
+    // being true silently.
+    const s = section("6.1");
+    expect(s).toContain("{merchantAddress}");
+    expect(s).toContain("{merchantLegalName}");
+  });
+
+  it("puts the return cost on the buyer only by doing the thing that permits it", () => {
+    // § 56²(3) shifts the direct cost to the consumer *only where the trader
+    // told them beforehand*, and § 54(1) p 14 is that duty. The paragraph has
+    // to be the disclosure, not a report that one was made elsewhere -- and
+    // § 54(8) is the sanction, which the document states against itself.
+    const s = section("6.1");
+    expect(s).toContain("§ 56²(3)");
+    expect(s).toContain("§ 54(1) p 14");
+    expect(s).toContain("§ 54(8)");
+    expect(s).toMatch(/you pay the direct cost/i);
+    expect(s).toMatch(/this paragraph is us doing that/i);
+  });
+
+  it("states the diminished-value rule with the half that cuts against us", () => {
+    // § 56²(4): liability only for use beyond ascertaining nature, properties
+    // and functioning -- the shop test -- and *none at all* where the trader
+    // failed the § 54(1) p 12 and p 13 duties. A document giving only the
+    // first half would overstate what a buyer owes.
+    const s = section("6.1");
+    expect(s).toContain("§ 56²(4)");
+    expect(s).toContain("§ 54(1) p 12");
+    expect(s).toMatch(/as you could handle it in a shop/i);
+    expect(s).toMatch(/no loss in value at all/i);
+  });
+
+  it("says the returned item is not resold, which is a fact about us and not a condition on them", () => {
+    // The uncomfortable one. Print-on-demand means a withdrawal is a total
+    // loss for the shop, and the temptation is to let a buyer infer they
+    // should not exercise the right. The paragraph says the opposite in as
+    // many words.
+    expect(section("6.1")).toMatch(/our problem and not a reason for you to keep something/i);
+  });
+});
+
 describe("non-conformity, which is not withdrawal", () => {
   it("gives the § 54(1) p 18 reminder that statutory remedies exist", () => {
     expect(section("7")).toContain("§ 54(1) p 18");
@@ -204,6 +335,49 @@ describe("non-conformity, which is not withdrawal", () => {
     expect(section("7")).toContain("§ 62¹²(1)");
     expect(section("7")).toMatch(/two years/i);
     expect(section("7")).toMatch(/one year/i);
+  });
+
+  it("cites the goods division for goods, which is the plan's own mistake corrected", () => {
+    // **`ld-04-merch.md` said "§ 62¹¹'s two years applies to goods too". It
+    // does not.** § 62¹¹ is headed *digitaalse sisu või digitaalse teenuse*
+    // and sits in the division § 62⁵ confines to digital content and digital
+    // services. For a thing in a parcel the provision is § 218(2), with
+    // § 218(2²)'s one-year presumption.
+    //
+    // The failure this guards is not a missing citation but a plausible wrong
+    // one: two years is the right number under both, so a document citing
+    // § 62¹¹ for a mug would state the correct period under the wrong law and
+    // read perfectly.
+    const s = section("7");
+    expect(s).toContain("§ 218(2)");
+    expect(s).toContain("§ 218(2²)");
+    expect(s).toContain("§ 237(1)");
+    expect(s).toMatch(/two years of the item being handed over/i);
+    // And the § 62 division must still be there for the certificate, so this
+    // is not satisfied by deleting the digital limb.
+    expect(s).toContain("§ 62¹¹(1)");
+    expect(s).toContain("§ 62²²(1)");
+  });
+
+  it("names the goods remedies from the sales chapter, not the digital one", () => {
+    // § 222(1) repair or replacement, § 222(2¹) our narrow right to decline,
+    // § 223(1)'s five grounds for termination. Structurally parallel to
+    // § 62¹⁴ and a different provision.
+    const s = section("7");
+    expect(s).toContain("§ 222(1)");
+    expect(s).toContain("§ 223(1)");
+    expect(s).toMatch(/five grounds/i);
+    expect(s).toMatch(/your choice again, not ours/i);
+  });
+
+  it("states the two-month notice duty, which runs against the buyer", () => {
+    // § 220(1) second sentence: a consumer must notify within two months of
+    // learning of the fault. It is the one rule in this section that costs the
+    // reader something, which is exactly why omitting it would be the kind of
+    // selective accuracy this document exists to avoid.
+    const s = section("7");
+    expect(s).toContain("§ 220(1)");
+    expect(s).toMatch(/within two months of learning of it/i);
   });
 
   it("does not assert that worthlessness excludes those remedies", () => {
@@ -239,7 +413,7 @@ describe("what this document does not do", () => {
   });
 
   it("keeps the joke out of the statutory paragraphs", () => {
-    for (const number of ["2", "3", "5", "5.1", "6", "7"]) {
+    for (const number of ["2", "3", "5", "5.1", "6", "6.1", "7"]) {
       expect(section(number)).not.toMatch(/lousy|poor judgment|regrettab/i);
     }
     expect(prose).not.toContain("!");
@@ -251,6 +425,67 @@ describe("what this document does not do", () => {
     const withoutTheThreshold = prose.replace(/at least 30 euros/g, "");
     expect(withoutTheThreshold).not.toMatch(/[$€£]\s?\d/);
     expect(withoutTheThreshold).not.toMatch(/\b\d+(?:\.\d{2})?\s?(?:dollars|euros)\b/i);
+  });
+});
+
+describe("the two kinds of thing, kept apart", () => {
+  it("tells the reader which word means which, before relying on the distinction", () => {
+    // Every date in the document now depends on it. A reader who did not know
+    // that "a printed item" was a defined term would take the certificate's
+    // answers for the whole order.
+    const s = section("1");
+    expect(s).toMatch(/where a paragraph says the certificate/i);
+    expect(s).toMatch(/a printed item/i);
+    expect(s).toMatch(/where it says neither/i);
+  });
+
+  it("says the consent box has no effect on anything posted", () => {
+    // The trap this row exists to close. One box on one checkout, and a cart
+    // that can hold a mug -- a buyer could reasonably read the acknowledgement
+    // as covering the order. It does not, and no box could: § 53(4) p 7¹ is
+    // limited to digital content off a physical medium and § 55(2)'s
+    // confirmation limb applies only where the object is digital content.
+    const s = section("4");
+    expect(s).toMatch(/about the certificate and nothing else/i);
+    expect(s).toMatch(/no effect at all on a shirt/i);
+    // The strong form, and the honest one: not "we choose not to rely on it"
+    // but "the law provides no such box for goods".
+    expect(s).toMatch(/the law provides none for goods/i);
+  });
+
+  it("gives the § 55(1) deadline that applies to goods, which is a different one", () => {
+    // § 55(1): the confirmation is due no later than the item is delivered,
+    // where for the certificate it is due no later than supply begins. The
+    // second is the hard one and the first is comfortable, and saying which is
+    // which is what stops §4 reading as though one deadline governed both.
+    expect(section("4")).toMatch(/no later than the item is delivered/i);
+  });
+
+  it("says the withdrawal button covers goods, since § 56⁴ turns on how not what", () => {
+    expect(section("5")).toMatch(/how a contract was concluded and not on what was sold/i);
+  });
+});
+
+describe("the disputes threshold, which the merch inverted", () => {
+  it("no longer claims every price is below it", () => {
+    // §8 said the €30 threshold was "more than anything sold here costs". The
+    // catalogue now holds a shirt at more than that and a cart can hold two,
+    // so the sentence became false the moment merch was orderable -- the same
+    // shape as the confirmation guards C13 had to invert, found by asking what
+    // this row made untrue rather than by a test failing.
+    expect(prose).not.toMatch(/more than anything sold here costs/i);
+    expect(prose).not.toMatch(/every item sold here costs less/i);
+  });
+
+  it("says which side of it a reader is on, without computing a conversion", () => {
+    // The threshold is in euro and the catalogue prices in another currency,
+    // so no honest sentence can tell a given reader the answer. It says what
+    // decides it instead. A figure here would also breach the ban below on
+    // this document naming an amount of its own.
+    const s = section("8");
+    expect(s).toContain("at least 30 euros");
+    expect(s).toMatch(/depends on what you ordered/i);
+    expect(s).toMatch(/would rather say that than tell you the route is closed/i);
   });
 });
 

@@ -585,7 +585,7 @@ one.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/content/legal/refunds.ts`, `terms.ts`, `checkout.ts`, `storefront/tests/legal-*.test.ts`.
 
-- [ ] Correct every document that currently describes a shop with one digital product.
+- [x] Correct every document that currently describes a shop with one digital product.
 
 This is the row the slice actually turns on, and it is legal work rather than
 code. What is wrong the moment a mug is orderable:
@@ -614,6 +614,11 @@ code. What is wrong the moment a mug is orderable:
   > price and the outbound delivery up to the cheapest standard option we
   > offered."
 
+  **The last clause of that draft was not used**, for the § 56¹(3) reason above:
+  with one delivery method there is nothing dearer to have chosen, and the
+  sentence would have understated the refund by capping something that cannot
+  be exceeded.
+
   Printful does not accept consumer returns of on-demand goods, so the parcel
   comes to the registered address. **The operator confirms they are content to
   receive it, or this position changes.**
@@ -629,7 +634,7 @@ code. What is wrong the moment a mug is orderable:
   | --- | --- |
   | Clock for goods, and the last-item rule | **§ 56(1¹)**, p 1 |
   | Refund including outbound delivery | **§ 56¹(1)** |
-  | Capped at the cheapest ordinary delivery offered | **§ 56¹(3)** |
+  | ~~Capped at the cheapest ordinary delivery offered~~ — **misread.** It bites only where the buyer *expressly chose* a method other than the cheapest ordinary one offered. This shop offers one method, so the whole postage is refunded | **§ 56¹(3)** |
   | Trader may withhold until return or proof of dispatch | **§ 56¹(5)** |
   | Consumer returns within 14 days | **§ 56²(1)** |
   | Consumer bears direct return cost — **only if told beforehand** | **§ 56²(3)** |
@@ -646,8 +651,14 @@ code. What is wrong the moment a mug is orderable:
   promise. Withholding until the goods come back is a **lawful** condition, and
   it lives in that same section. The clause and the guard have to be written
   together, or the guard will reject a sentence the statute permits.
-- **Non-conformity.** § 62¹¹'s two years applies to goods too, and the current
-  wording is about a certificate.
+- **Non-conformity.** ~~§ 62¹¹'s two years applies to goods too~~ — **wrong, and
+  the row corrected it.** § 62¹¹ is headed *digitaalse sisu või digitaalse
+  teenuse* and sits in the division § 62⁵ confines to digital content and
+  digital services. The provision for a thing in a parcel is **§ 218(2)**, with
+  § 218(2²)'s one-year presumption, § 220(1)'s two months to notify, § 222 and
+  § 223's remedies, and § 237(1) where the certificate has § 62²²(1). The number
+  two years is the same under both, which is what made the wrong citation read
+  perfectly.
 
 **No sentence in this row is written to be clever.** Where the answer is
 uncomfortable — and at least one is — the document says the uncomfortable thing,

@@ -174,5 +174,64 @@ describe("the refund promise", () => {
     for (const match of promise.matchAll(/\bunless\b(.{0,40})/gi)) {
       expect(match[1]).toMatch(/expressly ask/i);
     }
+
+    /**
+     * **"until" is the word LD-04 had to add, and leaving it unbanned would
+     * have been the hole.**
+     *
+     * § 56¹(5) permits a trader to withhold repayment until the goods are
+     * returned or shown to have been sent. That is a lawful condition on the
+     * refund promise and it lives in this same section, so the ban above
+     * cannot simply be widened to cover it — widening would forbid a sentence
+     * the statute allows. But a word left merely unlisted is a word a future
+     * Gate D can use: "we refund you until we decide otherwise" would pass a
+     * ban that never mentions it.
+     *
+     * So it is permitted by name, exactly as "unless" is, and every occurrence
+     * has to be the statutory one.
+     */
+    for (const match of promise.matchAll(/\buntil\b(.{0,60})/gi)) {
+      expect(match[1]).toMatch(/you have (?:returned|sent)/i);
+    }
+  });
+
+  const promiseParagraphs = () =>
+    REFUNDS.sections
+      .filter((section) => section.body.some((paragraph) => /§ 56¹\(1\)/.test(paragraph)))
+      .flatMap((section) => section.body);
+
+  it("takes the withholding right no further than § 56¹(5) does", () => {
+    // Two limits in the subsection, and both cut against us. It applies only
+    // where the object of the contract is the handing over of a thing, so
+    // withholding a certificate buyer's money would be unlawful -- there is
+    // nothing they could return to release it. And it is unavailable to a
+    // trader who agreed to collect the item.
+    const withholding = promiseParagraphs()
+      .filter((paragraph) => /§ 56¹\(5\)/.test(paragraph))
+      .join(" ");
+    expect(withholding).not.toBe("");
+    expect(withholding).toMatch(/printed item/i);
+    expect(withholding).toMatch(/nothing is ever held back on a certificate/i);
+    expect(withholding).toMatch(/agreed to collect/i);
+  });
+
+  it("returns the delivery charge too, which § 56¹(1) names and a refund clause forgets", () => {
+    // § 56¹(1) returns "kõik tarbijalt lepingu alusel saadud tasud, muu hulgas
+    // tarbija kantud asja kättetoimetamise kulud" -- everything received,
+    // *including the delivery costs the consumer bore*. A clause promising
+    // only "the price" understates it by the whole of the postage.
+    const promise = promiseParagraphs().join(" ");
+    expect(promise).toMatch(/delivery costs you bore/i);
+
+    // § 56¹(3) is the cap, and the plan for this row misread it as a general
+    // one. It bites only where the buyer expressly chose a method other than
+    // the cheapest ordinary one offered, and this shop offers a single method
+    // -- `fulfilment-provider.ts` returns one option and the checkout applies
+    // the cheapest rate. So the whole of the postage comes back, and the
+    // tempting wording the plan drafted ("up to the cheapest standard option
+    // we offered") would have understated the refund.
+    expect(promise).toContain("§ 56¹(3)");
+    expect(promise).toMatch(/the whole of the postage comes back/i);
+    expect(promise).not.toMatch(/up to the cheapest/i);
   });
 });
