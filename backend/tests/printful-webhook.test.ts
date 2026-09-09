@@ -257,11 +257,11 @@ describe("the route's own wiring, which a unit test cannot reach", () => {
     expect(source).toMatch(/event === null[\s\S]*?status\(200\)/);
   });
 
-  it("sends no email, because a redelivery must not send a second", () => {
-    // P11b writes the message, and what stops a retry sending it twice is a
-    // row that already says shipped -- the same argument `fulfilment-provider`
-    // makes about spending money in a retryable method.
-    expect(source).not.toMatch(/sendConfirmation|notification|sendMail|transport/i);
+  it("tells the buyer, which P11a deliberately did not", () => {
+    // **This asserted the opposite until P11b**, which is the point of having
+    // written it: P11a recorded and said nothing, and the guard held it to
+    // that. `parcel-shipped.test.ts` holds the sending itself to being once.
+    expect(source).toContain("tellTheBuyer");
   });
 
   it("reads the stripping, so a broken regex cannot pass by emptying the file", () => {

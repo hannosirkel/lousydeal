@@ -27,16 +27,23 @@
  *                               way retrying changes nothing.
  *   signed and handled          200.
  *
- * **It records and does not email.** The message to the buyer is P11b, and
- * keeping it out of here is the same argument `fulfilment-provider.ts` makes
- * about `createFulfillment`: a retried delivery must not send a second email,
- * and the thing that makes it not do so is a row that already says shipped.
+ * **It records, and then tells the buyer once.** A redelivered event must not
+ * send a second message, and two things stop it: the row is read before it is
+ * written, so an event arriving against a submission already marked
+ * `shipment_sent` records and says nothing; and the notification carries an
+ * idempotency key derived from the order, which Medusa's notification module
+ * enforces inside a transaction
+ * (`@medusajs/notification/dist/services/notification-module-service.js:39-75`).
+ *
+ * The first is the cheap check and the second is the one that survives two
+ * deliveries arriving together. Neither is a reason to skip the other.
  */
 
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils";
 
 import { readBackendRuntimeConfig } from "../../../config/runtime";
+import { buildParcelShipped } from "../../../notifications/parcel-shipped";
 import { DEAL_MODULE } from "../../../modules/deal";
 import {
   PRINTFUL_SIGNATURE_HEADER,
@@ -48,6 +55,7 @@ interface SubmissionRow {
   readonly id: string;
   readonly order_id: string;
   readonly printful_order_id: string | null;
+  readonly printful_status: string | null;
 }
 
 interface Submissions {
@@ -93,6 +101,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
     return;
   }
 
+  // Read before written: an event arriving against a row that already says
+  // shipped is a redelivery, and it records without telling anybody twice.
+  const alreadyShipped = row.printful_status === "shipment_sent";
+
   await submissions.updatePrintfulSubmissions({
     id: row.id,
     printful_status: event.type,
@@ -103,5 +115,68 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
   });
 
   logger.info(`printful ${event.type} recorded for order ${row.order_id}`);
+
+  if (event.type === "shipment_sent" && !alreadyShipped) {
+    await tellTheBuyer(req, row.order_id, event.shipment);
+  }
+
   res.status(200).json({ ok: true });
+}
+
+/**
+ * One message, to the address the order carries.
+ *
+ * **Failures are logged and swallowed.** A parcel that shipped has shipped
+ * whatever the mail server did, and answering Printful with a non-2xx would
+ * earn six redeliveries of an event already recorded — which would then find
+ * the row saying shipped and send nothing anyway. The buyer is better served
+ * by an operator reading a log line than by a retry storm.
+ */
+async function tellTheBuyer(
+  req: MedusaRequest,
+  orderId: string,
+  shipment: { readonly trackingNumber: string | null; readonly trackingUrl: string | null; readonly carrier: string | null },
+): Promise<void> {
+  const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER);
+
+  try {
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
+    const { data } = await query.graph({
+      entity: "order",
+      fields: ["id", "display_id", "email"],
+      filters: { id: orderId },
+    });
+    const order = data[0] as { display_id?: unknown; email?: unknown } | undefined;
+    const address = typeof order?.email === "string" ? order.email : null;
+    if (address === null) {
+      logger.error(`no shipped message sent for order ${orderId}: the order carries no email address`);
+      return;
+    }
+
+    const runtime = readBackendRuntimeConfig(process.env);
+    const displayId = typeof order?.display_id === "number" ? `#${String(order.display_id)}` : orderId;
+    const message = buildParcelShipped({ orderDisplayId: displayId, ...shipment }, runtime.merchant);
+    if (message === null) {
+      logger.error(`no shipped message sent for order ${orderId}: the trader identity is incomplete`);
+      return;
+    }
+
+    await req.scope.resolve(Modules.NOTIFICATION).createNotifications({
+      to: address,
+      channel: "email",
+      template: "parcel-shipped",
+      content: message,
+      // The second guard, and the one that survives two deliveries arriving
+      // together: the module enforces this inside a transaction.
+      idempotency_key: `lousydeal:parcel-shipped:${orderId}`,
+    });
+    // The address is not logged, for the reason `order-placed.ts` gives: it is
+    // the one piece of personal data here, and a log line outlives the order
+    // record's own retention.
+    logger.info(`shipped message sent for order ${orderId}`);
+  } catch (error) {
+    logger.error(
+      `shipped message failed for order ${orderId}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
