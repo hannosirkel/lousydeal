@@ -1465,7 +1465,7 @@ audited marker by marker afterwards rather than trusted.
 **Repository:** `lousydeal`.
 **Files:** the record.
 
-- [ ] Buy a shirt.
+- [x] Buy a shirt.
 
 A real order on the test environment: certificate plus merch in one cart, a
 Stripe test card, a real address, a real shipping quote, and a real Printful
@@ -1535,6 +1535,128 @@ nothing is printed and nobody is charged for a joke.
 LD-02's Gate E found a defect that made every paid order produce nothing while
 1,318 tests passed. This one has a physical object and a courier in it.
 
+## What it did, 2026-09-09
+
+A real stack: PostgreSQL and Redis on the digests `deploys` runs, the server
+`medusa build` produces, the predeploy chain in its real order, the operator's
+**real Stripe test keys** and the **real Printful test-store token**. A cart
+holding a certificate and a shirt, a real Tallinn address, a real Printful
+shipping quote, a real Stripe test card, and a real Printful order.
+
+**Seven orders were placed before one worked**, and the three defects between
+them were each enough on their own to make every merch order fail. All three
+were invisible to 2,287 passing tests.
+
+### The postage session, confirmed by measurement rather than argument
+
+Finding 17 was fixed in P12h on a reading of Medusa's source. This run watched
+it happen:
+
+```text
+session before attach: pi_…3yc at 37.00
+attached Postage; total with postage: 43.48
+that PaymentIntent now: canceled (3700)
+session after attach:  pi_…4bu at 43.48  → succeeded
+```
+
+Medusa cancelled the goods-only intent the moment the shipping method changed
+the total, at the goods-only amount, exactly as the code reading said. P12h's
+rule — no session until the amount is final — is what the working order used.
+
+### 1. `PRINTFUL_ARTWORK_BASE_URL` reaches no deployment
+
+`medusa-config.ts` registers the fulfilment module only when the Printful
+token **and** the artwork base are both set; `configure-commerce.ts` then
+creates a shipping option owned by `printful_printful` unconditionally. The
+variable is set nowhere — not in `orange`, not in `deploys` — so predeploy dies
+with *"Unable to retrieve the fulfillment provider with id: printful_printful"*.
+P3a carried the token and nothing carried this. **A deployment cannot run its
+predeploy chain**, which no test in either repository would ever notice. It is
+an operator row, recorded below.
+
+### 2. Medusa returns `quantity` as a `BigNumber`, and `quantityOf` wanted a number
+
+Measured on the running server:
+
+```text
+detailType: "object", detailCtor: "BigNumber", raw: "1", itemQty: "undefined"
+```
+
+`typeof raw !== "number"` was therefore true of **every line ever placed**, so
+`quantityOf` returned `null`, the merch line was counted unorderable, the plan
+carried no lines, and `submitPrintfulOrder` recorded **`skipped` — which is
+terminal**. The buyer paid, nothing was ordered, nothing would ever retry, and
+the only trace was one line in a log.
+
+The tests passed because every one of them writes `{ detail: { quantity: 1 } }`
+— a plain number, the one shape production never sends. `order-placed.ts` has
+read *money* through `amount()` since LD-02 for exactly this reason, and
+`vat-thresholds.test.ts` writes the trap down in as many words. The knowledge
+was in the repository; this function did not have it.
+
+Fixed twice over. `quantityOf` reads the shape Medusa sends, and the subscriber
+now asks for `items.quantity` as well, so the fallback `from-order.ts`
+documents — and had a passing test for — can actually fire. **And a second
+lock**: an order that yields no lines *and* had something it could not read is
+recorded `failed`, retryable and loud, rather than `skipped`. This class of bug
+now surfaces instead of settling.
+
+### 3. The variant look-up read a shape Printful does not return
+
+`orders.ts` declared `result.sync_variant.id`. Measured:
+
+```text
+GET /store/variants/@LD-TEE-L → 200
+result keys: id, external_id, sync_product_id, name, synced, variant_id, sku, …
+```
+
+The sync variant **is** `result`. There is no wrapper, so the read was
+`undefined` for every SKU the store really holds and `syncVariantIdFor` threw
+"Printful holds no sync variant" every time. **No merch order could ever have
+been placed.**
+
+This file's own header had the measurement right the whole time — *"`LD-STK-4`
+returns `id: 5488997617`"*. The shape was invented between reading it and
+typing it, probably from `/store/products/{id}`, which really does answer
+`{ sync_product, sync_variants }`. **The test stub encoded the invention**, so
+the stub and the code agreed with each other and with nothing else. Corrected
+to the measured response, with an inverted test so restoring the belief fails.
+
+### The order that worked
+
+```text
+printful order 175783215 placed for order order_01M23ZV86PPQHNBJS8ZAZ7WEAK
+  external_id : order_01M23ZV86PPQHNBJS8ZAZ7WEAK
+  items       : 5488997556 × 1  (Original Purchase Receipt / White / L)
+  recipient   : Tallinn, EE
+  status      : failed
+  total       : 13.48 EUR — never taken
+```
+
+**Option 2 behaved exactly as documented.** Confirmation was attempted for
+real, the charge could not go through against an account with no billing
+method, and the order parked as `failed`: nothing printed, nothing charged.
+Local record `submitted`/`pending` at creation, which is what the API answered
+at that moment; the transition to `failed` arrives by webhook, which is P15b/c
+and not yet subscribed. P12i is what makes that arrival recoverable rather
+than terminal.
+
+### What Gate E did not exercise, and why
+
+- **The React checkout.** The card was confirmed through Stripe's API rather
+  than through Elements in a browser: this host has no browser driver, and
+  what Gate E is for is the assembly behind the form. The form's own rules —
+  the pay gate, the quote-in-flight refusal, the session sequencing — are unit
+  tested, and the sequencing half was confirmed against the live server above.
+- **The § 55 confirmation email.** Mail is all-or-nothing in `runtime.ts` and
+  this run configured none, so the subscriber refused to send and said so at
+  error, which is the designed behaviour. Sending a real message to a real
+  address was not something to do unprompted.
+- **The parcel-shipped email and the webhook**, which need P15b and P15c —
+  and under option 2 nothing ships, so no event would fire regardless.
+- **P12i's mapping of a remote `failed`**, because the local row was already
+  `submitted` and `settled()` correctly stops re-reading it.
+
 ---
 
 ## What this slice does not do
@@ -1566,21 +1688,36 @@ Two things need a human, and one needs a decision.
    re-deriving** — a $25 shirt absorbing 27% destination VAT nets $19.69 against
    a 3XL costing $19.58. P14 blocks Gate E. This needs EMTA or an Estonian VAT
    adviser, and Printful's routing table; it is not mine to settle.
-2. **An Article 28 processing agreement with Printful**, and confirmation of
+2. **`PRINTFUL_ARTWORK_BASE_URL` has no path to any deployment, and predeploy
+   fails without it.** Gate E found it: `medusa-config.ts` registers the
+   fulfilment module only when the token *and* the artwork base are both
+   present, and `configure-commerce.ts` unconditionally creates a shipping
+   option owned by that provider — so the chain dies with "Unable to retrieve
+   the fulfillment provider with id: printful_printful". P3a carried the token
+   and nothing carried this. It is not a secret, so it does not need the
+   OpenBao path: a plain value on the Application patch is enough. It must be
+   **commit-pinned** — `assertPinnedArtworkBase` refuses a branch URL, because
+   a shirt somebody received last month must still be reproducible from the
+   same address — and the commit it names has to be one where
+   `design/merch/print-files/` holds the four files. Gate E used
+   `https://raw.githubusercontent.com/hannosirkel/lousydeal/<commit>/design/merch/print-files`
+   and Printful fetched from it.
+
+3. **An Article 28 processing agreement with Printful**, and confirmation of
    where they process. P11 writes the disclosure; it cannot create the
    agreement.
-3. **Return costs — resolved, pending one confirmation.** P10 takes the position
+4. **Return costs — resolved, pending one confirmation.** P10 takes the position
    that the consumer pays return postage, which § 56²(3) permits if § 54(1) p 14
    is discharged first. All that is left is the operator confirming they are
    content to receive returned parcels at the registered address, because
    Printful will not.
-4. **`VALUE` — resolved.** `NOT $0.00`, per P9. Recorded here because it is the
+5. **`VALUE` — resolved.** `NOT $0.00`, per P9. Recorded here because it is the
    operator's gag and they may want a different answer.
-5. **Authority for the legal rows.** Decision `011` gave LD-09 an exception for
+6. **Authority for the legal rows.** Decision `011` gave LD-09 an exception for
    legal drafting inside a slice and said the rule stands for every other one.
    P10 and P11 need the same exception recorded, or they do not run.
-6. **The sticker's copy**, which P2 proposes and the operator settles.
-7. ~~**The Access bypass** for `/print-files/*`.~~ **Not needed.** Printful
+7. **The sticker's copy**, which P2 proposes and the operator settles.
+8. ~~**The Access bypass** for `/print-files/*`.~~ **Not needed.** Printful
    fetched the print files from this public repository at a pinned commit,
    measured on 2026-09-08. A commit-pinned raw URL is also a better artefact
    than a served one: it cannot change under a product that has already been

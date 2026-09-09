@@ -42,9 +42,33 @@ function fakeClient(responder: (call: Call) => unknown) {
   return { calls, orders: createPrintfulOrders(client) };
 }
 
-/** The variant look-up, which every create makes first. */
+/**
+ * The variant look-up, which every create makes first.
+ *
+ * **This stub was the reason the suite stayed green while no order could be
+ * placed.** It answered `{ result: { sync_variant: { id } } }` — a shape
+ * Printful does not return — and `orders.ts` read exactly that shape, so the
+ * two agreed with each other and with nothing else. Gate E found it against
+ * the live store: the sync variant *is* `result`, with no wrapper.
+ *
+ * Copied from the measured response on 2026-09-09, fields and all, so a
+ * reader can see what the endpoint really says.
+ */
 const variant = (call: Call) =>
-  call.path.startsWith("/store/variants/@") ? { result: { sync_variant: { id: 5488997617 } } } : undefined;
+  call.path.startsWith("/store/variants/@")
+    ? {
+        code: 200,
+        result: {
+          id: 5488997617,
+          external_id: "LD-STK-4",
+          sync_product_id: 468606500,
+          name: "Original Purchase Receipt / White / L",
+          synced: true,
+          variant_id: 535,
+          sku: null,
+        },
+      }
+    : undefined;
 
 describe("finding an order that may not exist", () => {
   it("asks v2 by external id, in the @ form the spec documents", async () => {
@@ -211,5 +235,53 @@ describe("an answer this cannot read", () => {
   it("accepts an id that arrives as a string, since it is an identifier", async () => {
     const { orders } = fakeClient(() => ({ data: { id: "175705264", status: "draft" } }));
     expect(await orders.findByExternalId("o")).toEqual({ id: "175705264", status: "draft" });
+  });
+});
+
+describe("reading the variant look-up, which Gate E found inverted", () => {
+  /**
+   * **Every merch order failed on this, and every test passed.**
+   *
+   * `GET /store/variants/@{external_id}` returns the sync variant as `result`
+   * itself. `orders.ts` declared `result.sync_variant.id` and read it, so the
+   * id was `undefined` for every SKU the store really holds,
+   * `syncVariantIdFor` threw "Printful holds no sync variant", and no order
+   * was ever created. The stub above agreed with the belief rather than with
+   * Printful, which is what kept it invisible.
+   *
+   * This file's own header had the measurement right the whole time —
+   * "`LD-STK-4` returns `id: 5488997617`".
+   */
+  it("takes the id from result itself, as the endpoint answers it", async () => {
+    const { calls, orders } = fakeClient((call) =>
+      variant(call) ?? { result: { id: 175705264, status: "draft" } },
+    );
+
+    await orders.create({
+      externalId: "order_01",
+      lines: [{ sku: "LD-STK-4", quantity: 1 }],
+      recipient: RECIPIENT,
+    });
+
+    const create = calls.find((call) => call.method === "POST" && call.path === "/orders");
+    expect((create?.body as { items: { sync_variant_id: number }[] }).items[0]?.sync_variant_id).toBe(5488997617);
+  });
+
+  it("refuses the wrapper shape, so nobody restores the belief", async () => {
+    // Inverted deliberately: if a later change reads `sync_variant.id` again,
+    // this response -- the real one -- must stop resolving.
+    const { orders } = fakeClient((call) =>
+      call.path.startsWith("/store/variants/@")
+        ? { result: { sync_variant: { id: 5488997617 } } }
+        : { result: { id: 175705264, status: "draft" } },
+    );
+
+    await expect(
+      orders.create({
+        externalId: "order_01",
+        lines: [{ sku: "LD-STK-4", quantity: 1 }],
+        recipient: RECIPIENT,
+      }),
+    ).rejects.toThrow(/holds no sync variant/);
   });
 });
