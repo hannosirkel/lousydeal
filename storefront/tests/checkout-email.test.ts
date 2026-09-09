@@ -45,6 +45,7 @@ const html = renderToStaticMarkup(
       // LD-04 P7: a certificate-only cart. The address block and the postage
       // row are absent, and nothing this file asserts changes.
       needsAddress: false,
+      needsConsent: true,
       currencyCode: "usd",
   }),
 );

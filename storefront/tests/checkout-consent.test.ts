@@ -10,6 +10,8 @@
  * touches Stripe, so four lines of `vi.mock` render the actual markup.
  */
 
+import { readFileSync } from "node:fs";
+
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -23,7 +25,7 @@ import {
   CONSENT_REQUIRED_NOTICE,
   PRICE_NOTICE,
 } from "../src/content/checkout";
-import { payDisabled } from "../src/lib/checkout-rules";
+import { cartHasCertificate, cartNeedsAddress, payDisabled } from "../src/lib/checkout-rules";
 import { PayButton } from "../src/app/checkout/PaymentForm";
 
 // Nothing asserted below touches Stripe; these four exist only so the module
@@ -63,6 +65,20 @@ describe("the express consent", () => {
   it("carries no exclamation mark and no second sentence of persuasion", () => {
     expect(CONSENT_LABEL).not.toContain("!");
   });
+
+  it("scopes the acknowledgement to the certificate, because a cart can hold a mug", () => {
+    // **LD-04 P10's named deliverable, and nothing guarded it.** Mutation
+    // reverted "for that certificate" and every test passed.
+    //
+    // Unscoped, a buyer with a shirt and a certificate in one cart reads "I
+    // will lose my right of withdrawal" as covering the order. It cannot:
+    // § 53(4) p 7¹ reaches only digital content off a physical medium, and no
+    // consent of any kind removes the right for goods. A box that appeared to
+    // take it would be the § 56²(9) term -- one that hinders the exercise of
+    // the right -- which is void, and worse, it would have worked on a reader
+    // who believed it.
+    expect(CONSENT_LABEL).toMatch(/right of withdrawal for that certificate/i);
+  });
 });
 
 describe("the rendered checkout form", () => {
@@ -74,6 +90,7 @@ describe("the rendered checkout form", () => {
       // LD-04 P7: a certificate-only cart, which posts nothing. The address
       // block and the postage row are absent, and the pay gate is unchanged.
       needsAddress: false,
+      needsConsent: true,
       currencyCode: "usd",
     }),
   );
@@ -166,5 +183,122 @@ describe("the price notice", () => {
 describe("the empty cart", () => {
   it("is a document, not a sentence", () => {
     expect(CART_EMPTY_NOTICE).toContain("No items of record");
+  });
+});
+
+describe("a cart with no certificate in it", () => {
+  /**
+   * **§ 53(4) p 7¹ is about digital content, and merch alone is a state
+   * `isPayableCart` admits deliberately.** A buyer ordering one mug was being
+   * asked to request the immediate supply of a certificate they were not
+   * buying — and then refused payment until they said yes to it.
+   *
+   * That is not a cosmetic defect. It is a control that does nothing, which
+   * `brand.md` calls a lie, blocking a lawful order.
+   */
+  const html = renderToStaticMarkup(
+    createElement(PayButton, {
+      cartId: "cart_1",
+      fetchJson: (async () => ({})) as never,
+      countries: [{ iso_2: "ee", display_name: "Estonia" }],
+      needsAddress: true,
+      needsConsent: false,
+      currencyCode: "usd",
+    }),
+  );
+
+  it("shows no consent box at all", () => {
+    // Absent, not unticked and not disabled -- the same disposition the
+    // address block takes for a cart with nothing to post. Asserted on the id,
+    // because the label's words appear in the legal documents this page links.
+    expect(html).not.toContain('id="checkout-consent"');
+    expect(html).not.toContain(CONSENT_LABEL);
+  });
+
+  it("does not tell the buyer to tick something that is not there", () => {
+    expect(html).not.toContain(CONSENT_REQUIRED_NOTICE);
+  });
+
+  it("hands the gate the fact rather than a constant, which a render cannot show", () => {
+    // **Asserted against the source, for the reason P7 recorded when it did
+    // the same for `shippingSettled`.** A merch-only cart always needs an
+    // address, so postage is unsettled at first render and the button is
+    // disabled either way -- hard-coding `consentRequired: true` produces
+    // identical markup. Mutation found exactly that.
+    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+      .replace(/\/\/.*$/gm, "");
+    expect(source).toContain("consentRequired: needsConsent,");
+    // The stripping is checked too, so a broken regex cannot pass by emptying
+    // the file -- `checkout-address.test.ts` settled this shape first.
+    expect(source).toContain("export function PayButton");
+  });
+
+  it("does not hold the pay control shut waiting for it", () => {
+    // The half that matters. Hiding the box while the gate still demanded it
+    // would leave a buyer with a disabled button and no way to learn why --
+    // strictly worse than the bug it replaced.
+    expect(payDisabled({ stripeReady: true, submitting: false, consented: false, consentRequired: false })).toBe(
+      false,
+    );
+  });
+
+  it("still holds it shut for everything else", () => {
+    // The gate did not become a no-op. Postage is still unsettled here, which
+    // is P7's condition and unaffected by consent.
+    expect(
+      payDisabled({
+        stripeReady: true,
+        submitting: false,
+        consented: false,
+        consentRequired: false,
+        shippingSettled: false,
+      }),
+    ).toBe(true);
+    expect(
+      payDisabled({ stripeReady: false, submitting: false, consented: false, consentRequired: false }),
+    ).toBe(true);
+    expect(
+      payDisabled({ stripeReady: true, submitting: true, consented: false, consentRequired: false }),
+    ).toBe(true);
+  });
+});
+
+describe("which carts have consent to give", () => {
+  const CERTIFICATES = ["worthless-certificate", "premium-nothing"];
+
+  it("finds one where there is one", () => {
+    expect(cartHasCertificate([{ quantity: 1, handle: "worthless-certificate" }], CERTIFICATES)).toBe(true);
+  });
+
+  it("finds none in a cart of merch", () => {
+    expect(cartHasCertificate([{ quantity: 1, handle: "this-mug-cost-extra" }], CERTIFICATES)).toBe(false);
+  });
+
+  it("finds one in a cart holding both, which is the ordinary upsell", () => {
+    const both = [
+      { quantity: 1, handle: "worthless-certificate" },
+      { quantity: 2, handle: "this-mug-cost-extra" },
+    ];
+    expect(cartHasCertificate(both, CERTIFICATES)).toBe(true);
+    // Not the negation of the other rule: a mixed cart answers true to both,
+    // which is why this is its own function rather than `!cartNeedsAddress`.
+    expect(cartNeedsAddress(both, CERTIFICATES)).toBe(true);
+  });
+
+  it("treats an unidentifiable line as merch, which is the cautious direction", () => {
+    // `cartNeedsAddress` already treats a null handle as something to post. A
+    // line Medusa gave no handle for therefore gets an address asked for and
+    // no consent demanded -- rather than the reverse, which would demand
+    // consent to supply a certificate that may not be there.
+    const unknown = [{ quantity: 1, handle: null }];
+    expect(cartHasCertificate(unknown, CERTIFICATES)).toBe(false);
+    expect(cartNeedsAddress(unknown, CERTIFICATES)).toBe(true);
+  });
+
+  it("finds none in an empty cart, which answers false to both", () => {
+    expect(cartHasCertificate([], CERTIFICATES)).toBe(false);
+    expect(cartNeedsAddress([], CERTIFICATES)).toBe(false);
   });
 });

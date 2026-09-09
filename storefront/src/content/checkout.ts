@@ -171,6 +171,31 @@ export const GIFT_CONFIRMATION_NOTE =
 export const PRICE_NOTICE = "Price includes VAT where applicable. The amount shown is the amount charged.";
 
 /**
+ * The same disclosure, for a cart with a parcel in it.
+ *
+ * **"The amount charged" becomes "the amount we charge", and that is the whole
+ * of the change.** A customs authority outside the European Union may levy
+ * import duty or local tax before releasing a parcel, and the original
+ * sentence reads as a promise that nothing further can ever be asked of the
+ * buyer — which is not ours to make.
+ *
+ * § 54(1) p 6 has a fallback limb for exactly this: where an additional cost
+ * cannot reasonably be calculated in advance, the trader says that it may be
+ * payable. So **no figure appears here and none could** — §11 forbids naming
+ * an amount nobody computed, and this one turns on a tariff, a destination and
+ * a valuation we never see.
+ *
+ * Shown only where something is posted. A certificate crosses no border.
+ */
+export const POSTED_PRICE_NOTICE =
+  "Price includes VAT where applicable, and postage is quoted and shown as its own line before you pay. The amount shown is the amount we charge. A parcel sent outside the European Union may also attract import duty or local tax before it is released to you, charged by the customs authority where you live rather than by us, and we cannot tell you that amount in advance.";
+
+/** Which of the two the page shows, decided by whether anything is posted. */
+export function priceNotice(hasPostedGoods: boolean): string {
+  return hasPostedGoods ? POSTED_PRICE_NOTICE : PRICE_NOTICE;
+}
+
+/**
  * The express consent VÕS § 53(4) p 7¹ requires, worded as `brand.md` §4
  * carries it.
  *
@@ -185,7 +210,7 @@ export const PRICE_NOTICE = "Price includes VAT where applicable. The amount sho
  * which is why no page tells a buyer it already is.
  */
 export const CONSENT_LABEL =
-  "I request that supply of the digital certificate begin immediately, and I acknowledge that I will lose my right of withdrawal once supply has begun.";
+  "I request that supply of the digital certificate begin immediately, and I acknowledge that I will lose my right of withdrawal for that certificate once supply has begun.";
 
 /** Shown in place of the pay control until the box is ticked. */
 export const CONSENT_REQUIRED_NOTICE = "Payment cannot begin until that box is ticked.";
@@ -210,10 +235,53 @@ export const PAY_LABEL = "Order with obligation to pay";
  * and 11 are answered rather than omitted: nothing here continues, and saying
  * so is shorter than making a reader infer it from silence.
  */
-export const ORDER_SUMMARY_LINES: readonly string[] = [
-  "You are ordering one numbered digital certificate. It is shown to you as soon as you have paid, it confers nothing, and it is the whole of what you receive.",
-  "This is a single purchase. There is no subscription, no renewal, no minimum term and nothing to cancel later.",
-];
+const CERTIFICATE_ALONE =
+  "You are ordering one numbered digital certificate. It is shown to you as soon as you have paid, it confers nothing, and it is the whole of what you receive.";
+
+/** True of every cart here, and § 54(1) p 10 and p 11 answered rather than omitted. */
+const SINGLE_PURCHASE =
+  "This is a single purchase. There is no subscription, no renewal, no minimum term and nothing to cancel later.";
+
+export const ORDER_SUMMARY_LINES: readonly string[] = [CERTIFICATE_ALONE, SINGLE_PURCHASE];
+
+/**
+ * The § 62²(2) summary, for a cart that can now hold three different shapes.
+ *
+ * **The first line above says "it is the whole of what you receive", and in a
+ * cart with a mug in it that is false.** § 62²(2)'s sanction is that a buyer
+ * is not bound by an order transmitted without this information — so getting
+ * it wrong is not a cosmetic failure, and a line describing the wrong goods is
+ * worse than a line describing none.
+ *
+ * Three shapes, because `isPayableCart` admits three: a certificate alone, a
+ * certificate with merch, and merch alone. The last is not hypothetical — the
+ * Store API's line-item route is public, and `order-placed.ts` already handles
+ * an order that issues no certificate.
+ *
+ * **The third line is § 54(1) p 14 discharged where it counts.** That duty is
+ * what § 56²(3) conditions the return cost on, and Refunds §6.1 performs it in
+ * a document reached from the footer. Saying it beside the pay control as well
+ * costs one sentence and removes the argument about whether a footer link is
+ * information given "before the contract is concluded".
+ */
+export function orderSummaryLines({
+  hasCertificate,
+  hasPostedGoods,
+}: {
+  readonly hasCertificate: boolean;
+  readonly hasPostedGoods: boolean;
+}): readonly string[] {
+  const what = hasCertificate
+    ? hasPostedGoods
+      ? "You are ordering one numbered digital certificate, which is shown to you as soon as you have paid and confers nothing, together with the printed goods in the total above. Those are made after you order them and posted to the address you give."
+      : CERTIFICATE_ALONE
+    : "You are ordering the printed goods in the total above. They are made after you order them and posted to the address you give. No certificate is issued, because you have not ordered one.";
+
+  const returns =
+    "If you change your mind about a printed item you have 14 days from receiving it, you send it back at your own cost, and we return the price and the postage you paid. Refunds and Withdrawal says how.";
+
+  return hasPostedGoods ? [what, SINGLE_PURCHASE, returns] : [what, SINGLE_PURCHASE];
+}
 export const PAYING_LABEL = "Paying";
 
 /** The one place the loading cursor belongs: a state inside a rendered page. */

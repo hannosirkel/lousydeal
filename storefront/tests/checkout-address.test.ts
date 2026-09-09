@@ -33,6 +33,7 @@ const render = (needsAddress: boolean, countries = [{ iso_2: "ee", display_name:
       fetchJson: (() => Promise.resolve({})) as unknown as FetchJson,
       countries,
       needsAddress,
+      needsConsent: true,
       currencyCode: "usd",
     }),
   );

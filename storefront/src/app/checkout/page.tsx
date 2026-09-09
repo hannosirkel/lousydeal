@@ -43,11 +43,11 @@ import {
   CART_LINK_LABEL,
   CART_NOT_SINGLE_NOTICE,
   CHECKOUT_DOCUMENT,
-  ORDER_SUMMARY_LINES,
-  PRICE_NOTICE,
+  orderSummaryLines,
+  priceNotice,
   RETURN_LABEL,
 } from "../../content/checkout";
-import { cartNeedsAddress, isPayableCart } from "../../lib/checkout-rules";
+import { cartHasCertificate, cartNeedsAddress, isPayableCart } from "../../lib/checkout-rules";
 import { createStoreFetchJson, getDefaultRegion, listTiers } from "../../lib/medusa-client";
 import { formatMoney } from "../../lib/money";
 import { getCheckoutCart } from "../../lib/store-checkout";
@@ -124,6 +124,11 @@ export default async function CheckoutPage() {
 
   const region = await getDefaultRegion(fetchJson);
 
+  /* Both decided on the page rather than in the component, so each is a rule a
+     test can call -- `checkout-rules.ts` says at its head why that matters. */
+  const needsAddress = cartNeedsAddress(cart.lines, certificateHandles);
+  const hasCertificate = cartHasCertificate(cart.lines, certificateHandles);
+
   return (
     <main>
       <DocumentFrame
@@ -137,12 +142,12 @@ export default async function CheckoutPage() {
         <Ledger>
           <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currencyCode)} />
         </Ledger>
-        <FinePrint>{PRICE_NOTICE}</FinePrint>
+        <FinePrint>{priceNotice(needsAddress)}</FinePrint>
         {/* § 62²(2): the § 54(1) p 4, 10 and 11 information, immediately
             before the order is transmitted. p 6, the total with taxes, is the
             ledger row above. The subsection's sanction is that a buyer is not
             bound by an order made without it. */}
-        {ORDER_SUMMARY_LINES.map((line) => (
+        {orderSummaryLines({ hasCertificate, hasPostedGoods: needsAddress }).map((line) => (
           <p key={line} className="notice">
             {line}
           </p>
@@ -154,7 +159,11 @@ export default async function CheckoutPage() {
           currencyCode={cart.currencyCode}
           /* LD-04 P7. Decided from the cart's own lines, here rather than in
              the component, so the rule is one a test can call. */
-          needsAddress={cartNeedsAddress(cart.lines, certificateHandles)}
+          needsAddress={needsAddress}
+          /* LD-04 P10. A cart with no certificate has no § 53(4) p 7¹ consent
+             to give, so the box is not shown and the gate does not wait for
+             it. Decided here for the same reason `needsAddress` is. */
+          needsConsent={hasCertificate}
         />
       </DocumentFrame>
     </main>

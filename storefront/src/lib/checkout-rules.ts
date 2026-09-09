@@ -29,6 +29,20 @@ export interface PayGateInput {
    * became stricter would be a gate nobody reviewed.
    */
   readonly shippingSettled?: boolean;
+  /**
+   * LD-04 P10: this cart contains a certificate, so there is consent to give.
+   *
+   * `false` for a cart holding merch alone — a state `isPayableCart` admits
+   * deliberately, and one the public line-item route makes reachable. § 53(4)
+   * p 7¹ is about digital content, so a buyer ordering only a mug is being
+   * asked to consent to the immediate supply of something they are not
+   * buying. **Requiring that tick would block a lawful order behind a
+   * meaningless act**, and `brand.md` calls a control that does nothing a lie.
+   *
+   * Optional and defaulting to `true`, so the certificate's gate is unchanged
+   * and no existing caller silently loosened.
+   */
+  readonly consentRequired?: boolean;
 }
 
 /**
@@ -36,10 +50,16 @@ export interface PayGateInput {
  *
  * Consent is a condition of payment, not a courtesy: VÕS § 53(4) p 7¹ needs
  * the buyer's express prior consent before supply begins, and supply begins
- * when this control is used. The other two conditions are mechanical.
+ * when this control is used. The other conditions are mechanical.
  */
-export function payDisabled({ stripeReady, submitting, consented, shippingSettled = true }: PayGateInput): boolean {
-  return !stripeReady || submitting || !consented || !shippingSettled;
+export function payDisabled({
+  stripeReady,
+  submitting,
+  consented,
+  shippingSettled = true,
+  consentRequired = true,
+}: PayGateInput): boolean {
+  return !stripeReady || submitting || (consentRequired && !consented) || !shippingSettled;
 }
 
 /** One cart line, as the checkout needs to judge it. */
@@ -94,6 +114,23 @@ export interface CartLine {
  */
 export function cartNeedsAddress(lines: readonly CartLine[], certificateHandles: readonly string[]): boolean {
   return lines.some((line) => line.handle === null || !certificateHandles.includes(line.handle));
+}
+
+/**
+ * Whether this cart contains a certificate at all.
+ *
+ * The mirror of the rule above, and the question the consent box turns on. It
+ * is deliberately not `!cartNeedsAddress(...)`: a cart holding both answers
+ * `true` to each, and a cart holding neither — an empty one — answers `false`
+ * to both.
+ *
+ * A line whose handle Medusa did not give is **not** a certificate here, which
+ * is the cautious direction: `cartNeedsAddress` treats the same line as
+ * something to post. An unidentifiable line therefore gets an address asked
+ * for and no consent demanded, rather than the reverse.
+ */
+export function cartHasCertificate(lines: readonly CartLine[], certificateHandles: readonly string[]): boolean {
+  return lines.some((line) => line.handle !== null && certificateHandles.includes(line.handle));
 }
 
 export function isPayableCart(lines: readonly CartLine[], certificateHandles: readonly string[]): boolean {
