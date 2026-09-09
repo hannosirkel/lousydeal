@@ -115,9 +115,9 @@ describe("the gross-up, which is not a markup", () => {
       EE,
       ART,
     );
-    expect(quote?.amountMinor).toBe(Math.ceil(5.22 * (1 + WORST_VAT_RATE) * 100));
+    expect(quote?.amount).toBe(Math.ceil(5.22 * (1 + WORST_VAT_RATE) * 100) / 100);
     // What the merchant keeps after VAT is at least what Printful charged.
-    expect((quote?.amountMinor ?? 0) / 100 / (1 + WORST_VAT_RATE)).toBeGreaterThanOrEqual(5.22);
+    expect((quote?.amount ?? 0) / (1 + WORST_VAT_RATE)).toBeGreaterThanOrEqual(5.22);
   });
 
   it("charges an export exactly what Printful charged, with no EU VAT on top", async () => {
@@ -129,16 +129,16 @@ describe("the gross-up, which is not a markup", () => {
         address,
         ART,
       );
-      expect(`${address.countryCode}: ${String(quote?.amountMinor)}`).toBe(`${address.countryCode}: 1278`);
+      expect(`${address.countryCode}: ${String(quote?.amount)}`).toBe(`${address.countryCode}: 12.78`);
     }
   });
 
   it("rounds up, because a cent short is the failure this exists to prevent", () => {
     // Reached by being tidy: a rate whose gross has a fraction of a cent,
     // rounded down, leaves the merchant paying the difference on every order.
-    expect(chargeForRate(5.22, "EE")).toBe(663);
-    expect(chargeForRate(5.22, "EE") / 100 / (1 + WORST_VAT_RATE)).toBeGreaterThanOrEqual(5.22);
-    expect(chargeForRate(0.01, "EE")).toBe(2);
+    expect(chargeForRate(5.22, "EE")).toBe(6.63);
+    expect(chargeForRate(5.22, "EE") / (1 + WORST_VAT_RATE)).toBeGreaterThanOrEqual(5.22);
+    expect(chargeForRate(0.01, "EE")).toBe(0.02);
   });
 
   it("knows which destinations are in the union", () => {
@@ -248,5 +248,46 @@ describe("what it refuses to invent", () => {
 
   it("throws when asked to post nothing", async () => {
     await expect(quoteShipping(stub([]), [], EE, ART)).rejects.toThrow(/Nothing to post/);
+  });
+});
+
+
+describe("the scale, which is the thing P7c got wrong", () => {
+  /**
+   * **The charge is on the same scale as the rate, and nothing said so.**
+   *
+   * `calculatePrice`'s answer becomes a shipping option's `amount`, and
+   * `list-shipping-options-for-cart-with-pricing.js:320-338` builds that field
+   * from two branches into one shape -- a flat option from the pricing
+   * module's `calculated_amount`, a calculated one from the provider's return.
+   * Both write `amount` on the same object, so both are major units, which is
+   * what `money.ts` establishes for the pricing module's side.
+   *
+   * The old assertions pinned exact figures (`663`, `1278`) and every one of
+   * them was consistent with a hundredfold overcharge, because they were
+   * derived from the same wrong expression they were checking. This asserts
+   * the relationship instead.
+   */
+  it("charges within a fifth of what Printful quoted, never a multiple of it", () => {
+    for (const rate of [0.01, 1, 5.22, 12.5, 99.99]) {
+      const charge = chargeForRate(rate, "US");
+      expect(`${String(rate)}: ${String(charge >= rate && charge < rate + 0.01 + 1e-9)}`).toBe(`${String(rate)}: true`);
+    }
+  });
+
+  it("charges the EU rate within its own gross-up and no further", () => {
+    for (const rate of [0.01, 5.22, 99.99]) {
+      const charge = chargeForRate(rate, "EE");
+      const gross = rate * (1 + WORST_VAT_RATE);
+      expect(`${String(rate)}: ${String(charge >= gross && charge < gross + 0.01 + 1e-9)}`).toBe(`${String(rate)}: true`);
+    }
+  });
+
+  it("is never a hundred times the rate, which is what it used to be", () => {
+    // The single assertion that would have caught this, stated as the
+    // property rather than as a figure.
+    for (const country of ["US", "EE"]) {
+      expect(chargeForRate(5.22, country)).toBeLessThan(52.2);
+    }
   });
 });
