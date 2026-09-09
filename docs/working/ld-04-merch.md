@@ -1240,12 +1240,41 @@ and the guard that exists to catch exactly that has a frozen list.
   charged, nothing sent, no line anywhere, and no later attempt because
   `skipped` is settled. A test blesses it, calling the case "a bug upstream".
 
-- **17.** **The Stripe session is created before the postage exists.** The session is
+- **17. Fixed in P12h, and it was worse than filed.** **The Stripe session is created before the postage exists.** The session is
   initiated on mount against a goods-only total; attaching the shipping
   method changes the cart total, which by the code's own citation drops the
-  session. Nothing re-initiates one. Either a confusing first-attempt failure
-  on every merch order, or an authorisation for the goods without the
-  postage. **Measure before Gate E.**
+  session. Nothing re-initiates one.
+
+  A reviewer read the chain end to end in the installed code and it is
+  **deterministic, not a race**: `addShippingMethodToCartWorkflow` runs
+  `refreshCartItemsWorkflow` runs `refreshPaymentCollectionForCartWorkflow`,
+  which compares `payment_collection.raw_amount` against a freshly re-fetched
+  `cart.raw_total` and, where they differ, runs `deletePaymentSessionsWorkflow`
+  — and `deletePaymentSession` calls the provider before deleting the row, so
+  for Stripe it is `deletePayment` → `cancelPayment` →
+  `paymentIntents.cancel`. **Every cart with a parcel in it, every time.** The
+  buyer completes the card form against a cancelled PaymentIntent and
+  `confirmPayment` fails at the last step with Stripe's own developer-facing
+  wording; the pay gate's `shippingSettled` guarantees the control only lights
+  up *after* the session has been destroyed. Healable only by reloading the
+  page and retyping the address, which is why it could survive casual testing.
+
+  So the main-path symptom is not the mispricing it was filed as: it is a dead
+  checkout. The goods-only *charge* is reachable on one leak path — the
+  provider's cancel failing, which `deletePaymentSessionsStep` swallows with a
+  log line, leaving a live goods-only intent while the collection amount has
+  already been raised. Completion does not compare amounts; `complete-cart.js`
+  says so in its own documentation.
+
+  Fixed by inverting the nesting. `<Elements>` used to wrap the whole form, so
+  binding a new session — which needs a remount, the installed
+  `@stripe/react-stripe-js` treating `options.clientSecret` as immutable —
+  would have taken the buyer's email, address, inscription and gift with it.
+  Now the form is the parent and the card is a slot, **no session is created
+  until the amount is final**, and a changed postage creates a fresh one. The
+  rule is `paymentSessionNeeded` in `checkout-rules.ts` rather than a
+  condition inside an effect, because this suite has no DOM and an effect's
+  body can only be read, not run.
 
 - **18. Fixed in P12g, and a third thing found with it.** **The pay gate accepts a stale quote.** The quote effect does not reset
   `shippingAmount` when a new quote starts, and `payDisabled` ignores
