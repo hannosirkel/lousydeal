@@ -158,6 +158,14 @@ export interface StoreCalculatedPrice {
 export interface StoreProductVariant {
   readonly id: string;
   readonly calculated_price?: StoreCalculatedPrice | null;
+  readonly sku?: string | null;
+  readonly title?: string | null;
+  /**
+   * `seed-merch.ts` writes the Printful mapping here and `seed-product.ts`
+   * writes nothing. That is what tells the two catalogues apart — see
+   * {@link isMerchProduct}.
+   */
+  readonly metadata?: Record<string, unknown> | null;
 }
 
 export interface StoreProduct {
@@ -177,7 +185,48 @@ export interface Tier {
   readonly currencyCode: string;
 }
 
-const TIER_PRODUCT_FIELDS = ["id", "title", "handle", "*variants", "*variants.calculated_price"].join(",");
+/**
+ * `*variants.metadata` is asked for **explicitly** rather than trusted to
+ * arrive inside `*variants`.
+ *
+ * The whole split below turns on that field, and its absence does not look
+ * like an error: every product would read as a certificate, which is exactly
+ * the state this row is fixing. A discriminator that fails closed into the bug
+ * it fixes is worse than none, so `listMerch` refuses to be silently empty —
+ * see the note there.
+ */
+const PRODUCT_FIELDS = [
+  "id",
+  "title",
+  "handle",
+  "*variants",
+  "*variants.calculated_price",
+  "*variants.metadata",
+].join(",");
+
+/**
+ * Whether a product is something printed and posted.
+ *
+ * **Decided from the data, not from a list of handles.** A handle list in the
+ * storefront would be a second copy of `catalogue.ts`, free to drift the day a
+ * product is added — and drifting quietly, because a merch product mistaken
+ * for a certificate is sold with `VALUE` zero and no address asked for.
+ *
+ * The Printful mapping is the honest discriminator: a product carrying it is
+ * by construction something Printful prints, and one without it cannot be
+ * ordered from Printful at all. `seed-merch.ts` writes it on every variant and
+ * `seed-product.ts` writes no metadata whatever.
+ *
+ * The shipping profile would say the same thing — `seed-merch.ts` calls it
+ * "the whole of the difference here" — and is not used because the Store API's
+ * exposure of `shipping_profile_id` on a product is not something this file
+ * can check from here. The mapping arrives with the variants, which it can.
+ */
+export function isMerchProduct(product: StoreProduct): boolean {
+  return (product.variants ?? []).some(
+    (variant) => typeof variant.metadata?.printful_variant_id === "string",
+  );
+}
 
 /**
  * The one region this store prices into (`backend/src/scripts/configure-commerce.ts`
@@ -201,10 +250,15 @@ export async function getDefaultRegion(fetchJson: FetchJson): Promise<StoreRegio
  * on its first variant -- no region resolved, or genuinely unpriced -- is
  * left out rather than rendered with a fabricated amount.
  */
-export async function listTiers(fetchJson: FetchJson): Promise<Tier[]> {
+async function listProducts(fetchJson: FetchJson): Promise<readonly StoreProduct[]> {
   const region = await getDefaultRegion(fetchJson);
-  const query = new URLSearchParams({ region_id: region.id, fields: TIER_PRODUCT_FIELDS });
+  const query = new URLSearchParams({ region_id: region.id, fields: PRODUCT_FIELDS });
   const { products } = await fetchJson<{ products: readonly StoreProduct[] }>(`/store/products?${query.toString()}`);
+  return products;
+}
+
+export async function listTiers(fetchJson: FetchJson): Promise<Tier[]> {
+  const products = (await listProducts(fetchJson)).filter((product) => !isMerchProduct(product));
 
   return products.flatMap((product) => {
     const variant = product.variants?.[0];
@@ -220,5 +274,66 @@ export async function listTiers(fetchJson: FetchJson): Promise<Tier[]> {
         currencyCode: price.currency_code,
       },
     ];
+  });
+}
+
+/** One printed thing, as the upsell renders it. */
+export interface MerchItem {
+  readonly id: string;
+  readonly handle: string;
+  readonly title: string;
+  readonly variants: readonly {
+    readonly variantId: string;
+    /** Medusa's variant title, which `seed-merch.ts` sets from the size. */
+    readonly size: string;
+    readonly amount: number;
+    readonly currencyCode: string;
+  }[];
+}
+
+/**
+ * The printed things, each with every priced variant it has.
+ *
+ * Every variant, not the first: a shirt has sizes and a buyer has to pick one,
+ * which is the one place merch differs from a tier. A variant with no
+ * `calculated_price` is dropped for the reason `listTiers` drops one — a
+ * fabricated amount is worse than an absent row — and a product left with no
+ * priced variants is dropped with it, because an item nobody can buy is not an
+ * offer.
+ *
+ * **The failure mode worth naming is silence.** If `*variants.metadata` ever
+ * stops arriving — a fields list edited, a Medusa upgrade that changes what
+ * `*variants` expands to — then every product reads as a certificate,
+ * `listTiers` returns shirts again, the home page offers one at `VALUE` zero,
+ * and the checkout asks nobody for an address. The defect this row removes
+ * would come back with no test failing.
+ *
+ * There is no runtime check that distinguishes "no merch in this store" from
+ * "the field did not arrive", because the two are the same answer. What is
+ * guarded instead is the thing that would actually cause it:
+ * `medusa-client.test.ts` asserts `PRODUCT_FIELDS` names `*variants.metadata`,
+ * so an edit that drops it fails rather than quietly changing what the shop
+ * sells.
+ */
+export async function listMerch(fetchJson: FetchJson): Promise<MerchItem[]> {
+  const products = await listProducts(fetchJson);
+  const merch = products.filter((product) => isMerchProduct(product));
+
+  return merch.flatMap((product) => {
+    const variants = (product.variants ?? []).flatMap((variant) => {
+      const price = variant.calculated_price;
+      if (price == null) return [];
+      return [
+        {
+          variantId: variant.id,
+          // The size, as Medusa titled the variant. `seed-merch.ts` sets it
+          // and "One size" is a real answer rather than a missing one.
+          size: variant.title ?? "",
+          amount: price.calculated_amount,
+          currencyCode: price.currency_code,
+        },
+      ];
+    });
+    return variants.length === 0 ? [] : [{ id: product.id, handle: product.handle, title: product.title, variants }];
   });
 }

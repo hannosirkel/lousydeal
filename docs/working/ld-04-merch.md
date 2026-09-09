@@ -597,7 +597,29 @@ happened rather than a silent failure.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/content/merch.ts`, the cart page, `globals.css`, tests.
 
-- [ ] The upsell, in the identity, claiming nothing that is not measured.
+- [x] **P9a** — tell the two catalogues apart, which nothing did.
+- [ ] **P9b** — the upsell, in the identity, claiming nothing that is not measured.
+
+**A defect found while starting this row, and it outranked the upsell.**
+`listTiers` fetched `/store/products` with **no filter** and called every
+product a tier. Harmless while the store held three certificates; a defect the
+moment `seed-merch.ts` ran:
+
+- the home page offers a Gildan shirt as a tier, with `VALUE` zero, `RETURN
+  -100%` and an empty description;
+- **`checkout/page.tsx` derives `certificateHandles` from that same call**, so a
+  mug counts as a certificate — `cartNeedsAddress` returns false, no address is
+  asked for and no postage is quoted;
+- `isPayableCart` reads a certificate and a mug as two certificates and refuses
+  payment.
+
+Every rule P7 and P10c built is defeated by it, and **every test passed**,
+because each of those tests passes its handle list in by hand.
+
+The two are told apart by the Printful mapping `seed-merch.ts` writes on every
+variant, not by a list of handles — a handle list in the storefront would be a
+second copy of `catalogue.ts`, free to drift the day a product is added, and
+drifting silently.
 
 §7's UX concept, which this row takes literally:
 
