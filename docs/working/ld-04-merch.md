@@ -660,6 +660,12 @@ code. What is wrong the moment a mug is orderable:
   two years is the same under both, which is what made the wrong citation read
   perfectly.
 
+**The offer page's own terms are P9's, not this row's.** `TERMS_OF_OFFER`
+line 3 says "nothing is added at checkout", and that stays true until the
+upsell exists to add something. Correcting it now would describe a mechanism
+this repository does not have, which `terms.ts` bans in as many words. **P9
+owns it, and P9's Gate D should fail if it ships without it.**
+
 **No sentence in this row is written to be clever.** Where the answer is
 uncomfortable — and at least one is — the document says the uncomfortable thing,
 which is the standard the refunds document already set.
