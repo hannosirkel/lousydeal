@@ -225,25 +225,32 @@ describe("the recipient the browser never sees", () => {
     expect(offending).toEqual([]);
   });
 
-  it("says only what Printful gets today, and is tied to the code that decides", () => {
-    // **The sentence and the stub have to change together.** §5 says nothing
-    // has been sent to Printful to be printed, and that is true only while
-    // `createFulfillment` is inert. P8 makes it place an order; when it does,
-    // this assertion fails and the paragraph must be rewritten -- which is the
-    // point of writing it this way rather than describing P8's flow early.
-    const provider = readFileSync(`${backend}/modules/printful/fulfilment-provider.ts`, "utf8");
-    // The method body, taken to the closing brace at method indentation. A
-    // regex spanning the signature cannot work -- its return type contains
-    // braces, which is how the first version of this failed.
-    const start = provider.indexOf("createFulfillment(");
-    expect(start).toBeGreaterThan(-1);
-    const body = provider.slice(start, provider.indexOf("\n  }", start));
-    expect(body).toContain("return Promise.resolve({ data: {}, labels: [] });");
-    // And nothing in it reaches Printful. This is the half that will fail when
-    // P8 lands, which is the point.
-    expect(body).not.toMatch(/\brequest\s*[(<]/);
-    expect(body).not.toMatch(/this\.client/);
-    expect(privacyProse).toMatch(/does not yet hand its orders over for printing/i);
+  it("says the order goes to Printful, because the subscriber now sends it", () => {
+    // **P11 wrote this guard and keyed it on the wrong thing.** It tied §5's
+    // "does not yet hand its orders over for printing" to `createFulfillment`
+    // being inert -- but the order is placed from the *subscriber*, and
+    // `createFulfillment` is inert still and always will be. The guard would
+    // have passed while the sentence became false, which is the exact failure
+    // it was written to prevent, one file to the left.
+    //
+    // Keyed on the path that actually sends.
+    const subscriber = readFileSync(`${backend}/subscribers/order-placed.ts`, "utf8");
+    expect(subscriber).toContain("submitPrintfulOrder(");
+    expect(privacyProse).toMatch(/the order goes to Printful so the item can be made/i);
+    expect(privacyProse).not.toMatch(/does not yet hand its orders over/i);
+  });
+
+  it("claims no more goes than does, which is measured from the order body", () => {
+    // `orders.ts` sends `external_id`, `recipient` and `items`. §5 says the
+    // email address, the amount and the certificate stay here, and that is
+    // checkable: none of them appears in the request this builds.
+    const orders = readFileSync(`${backend}/modules/printful/orders.ts`, "utf8");
+    const body = orders.slice(orders.indexOf('client.request<V1OrderResponse>("POST", "/orders"'));
+    const request = body.slice(0, body.indexOf("});"));
+    for (const absent of ["email", "total", "amount", "dedication", "display_name", "slug"]) {
+      expect(`${absent}: ${String(request.includes(absent))}`).toBe(`${absent}: false`);
+    }
+    expect(privacyProse).toMatch(/not your email address, not what you paid/i);
   });
 
   it("names the address as what goes with a quote, and not the name", () => {

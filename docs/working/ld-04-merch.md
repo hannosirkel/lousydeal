@@ -522,7 +522,7 @@ fulfilment a real Medusa fulfilment rather than a side effect.
 
 - [x] **P8a** — the exactly-once argument, the table, and the submission logic.
 - [x] **P8b** — the three order methods, and confirmation.
-- [ ] **P8c** — the subscriber, the Privacy Policy paragraph, and the guard P11 wrote.
+- [x] **P8c** — the subscriber, the Privacy Policy paragraph, and the guard P11 wrote.
 
 **Three facts measured against the live API on 2026-09-09, and each changed the
 design.** The plan said "a unique index plus `external_id`", and the first of

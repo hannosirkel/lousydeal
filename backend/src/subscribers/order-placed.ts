@@ -17,6 +17,10 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework";
 import { ContainerRegistrationKeys, Modules, OrderWorkflowEvents } from "@medusajs/framework/utils";
 
 import { PRODUCT_TIERS } from "../commerce/product-model";
+import { createPrintfulClient } from "../modules/printful/client";
+import { printfulSubmissionFrom } from "../modules/printful/from-order";
+import { createPrintfulOrders } from "../modules/printful/orders";
+import { submitPrintfulOrder, type SubmissionStore } from "../modules/printful/submission";
 import type { MerchantIdentity } from "../config/merchant";
 import { readBackendRuntimeConfig } from "../config/runtime";
 import { DEAL_MODULE } from "../modules/deal";
@@ -191,11 +195,35 @@ export default async function orderPlaced({
         "items.product_handle",
         "items.total",
         "items.detail.quantity",
+        // LD-04 P8c. The SKU is what `orders.ts` resolves against the store,
+        // and the address is where the parcel goes. Neither is read by the
+        // certificate half, and both are absent from an order of certificates.
+        "items.variant_sku",
+        "shipping_address.first_name",
+        "shipping_address.last_name",
+        "shipping_address.address_1",
+        "shipping_address.city",
+        "shipping_address.country_code",
+        "shipping_address.postal_code",
+        "shipping_address.province",
       ],
       filters: { id: orderId },
     });
 
     const order = data[0] as QueriedOrder | undefined;
+
+    // **Before the certificate, and outside its control flow.** An order with
+    // no certificate returns early below -- correctly, there is nothing to
+    // issue -- and merch alone is exactly that order. Placing this call after
+    // that return would mean the one cart shape that is nothing but parcels
+    // never reached Printful at all.
+    //
+    // Its own try/catch for the same reason: the two are independent
+    // obligations to the same buyer. A certificate that fails to issue must
+    // not stop a paid-for shirt being printed, and a Printful outage must not
+    // stop the § 55 confirmation going out.
+    await submitMerch({ container, logger, order, orderId });
+
     const line = certificateLine(order?.items);
     // Still read, and still required. LD-04 P6a moved the *certificate's*
     // amount onto its own line; the § 55 confirmation is about the order and
@@ -294,6 +322,72 @@ export default async function orderPlaced({
  * it impossible for a send. What this closes is the ordinary case, which is
  * sequential redelivery after a worker restart or a Stripe retry.
  */
+/**
+ * Places the Printful order for whatever in this order has to be posted.
+ *
+ * **Silent where the deployment has no Printful.** §23 keeps a live store out
+ * until the publication gate, so `printfulApiToken` is `null` on the
+ * deployments that exist today and nothing here is reachable. That is not a
+ * degraded mode: without a token the checkout cannot quote postage either, so
+ * a cart holding a parcel cannot be paid for in the first place.
+ *
+ * Errors are logged and swallowed. `submitPrintfulOrder` has already written
+ * down what happened -- that is what the `printful_submission` row is for --
+ * and rethrowing here would take the certificate's confirmation down with it.
+ */
+async function submitMerch({
+  container,
+  logger,
+  order,
+  orderId,
+}: {
+  container: SubscriberArgs["container"];
+  logger: { info(message: string): void; error(message: string): void };
+  order: QueriedOrder | undefined;
+  orderId: string;
+}): Promise<void> {
+  const runtime = readBackendRuntimeConfig(process.env);
+  if (runtime.printfulApiToken === null) return;
+
+  const plan = printfulSubmissionFrom(order, PRODUCT_TIERS.map((tier) => tier.handle), new Date());
+  if (plan === null) {
+    logger.error(`printful submission skipped for order ${orderId}: the order has no readable id`);
+    return;
+  }
+
+  // Said before the attempt, not after, and said even when the order still
+  // goes: a line that cannot be ordered is a parcel arriving short, and
+  // nothing downstream would ever mention it.
+  if (plan.unorderable > 0) {
+    logger.error(
+      `order ${orderId} has ${String(plan.unorderable)} line(s) that cannot be ordered from Printful; ` +
+        `${String(plan.input.lines.length)} will be`,
+    );
+  }
+
+  try {
+    const submissions = container.resolve(DEAL_MODULE) as SubmissionStore;
+    const orders = createPrintfulOrders(createPrintfulClient({ token: runtime.printfulApiToken }));
+    const record = await submitPrintfulOrder(submissions, orders, plan.input);
+
+    if (record.status === "skipped") return;
+    if (record.status === "submitted") {
+      logger.info(`printful order ${record.printful_order_id ?? "?"} placed for order ${orderId}`);
+      return;
+    }
+    // `canceled` and `failed` are both a buyer who has paid and may get
+    // nothing, which is the one outcome that has to reach a person.
+    logger.error(
+      `printful order for ${orderId} is ${record.status} after ${String(record.attempts)} attempt(s): ` +
+        `${record.last_error ?? "no reason recorded"}`,
+    );
+  } catch (error) {
+    logger.error(
+      `printful submission failed for order ${orderId}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
 const notificationKey = {
   confirmation: (dealId: string) => `lousydeal:order-confirmation:${dealId}`,
   gift: (dealId: string) => `lousydeal:gift-message:${dealId}`,
