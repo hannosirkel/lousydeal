@@ -18,7 +18,7 @@ import { join, relative, sep } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { listTiers, type FetchJson, type StoreProduct, type StoreRegion } from "../src/lib/medusa-client";
+import { isMerchProduct, listMerch, listTiers, type FetchJson, type StoreProduct, type StoreRegion } from "../src/lib/medusa-client";
 import { addLineToCart, createCart } from "../src/lib/store-cart";
 
 /**
@@ -212,5 +212,125 @@ describe("no hardcoded price literal in any .ts or .tsx file under storefront/sr
 
   it.each(sources)("%s carries no hand-typed currency amount ($/€/£ followed by digits)", (_file, source) => {
     expect(source).not.toMatch(PRICE_SIGIL_PATTERN);
+  });
+});
+
+describe("telling the two catalogues apart", () => {
+  /**
+   * **`listTiers` listed every product in the store and called each one a
+   * tier.** That was harmless while the store held three certificates and
+   * became a defect the moment `seed-merch.ts` ran:
+   *
+   *  - the home page offers a Gildan shirt with `VALUE` zero and `RETURN -100%`;
+   *  - `checkout/page.tsx` derives `certificateHandles` from this same call, so
+   *    a mug counts as a certificate — `cartNeedsAddress` returns false, **no
+   *    address is asked for and no postage is quoted**;
+   *  - `isPayableCart` reads a certificate and a mug as two certificates and
+   *    refuses payment.
+   *
+   * Every rule P7 and P10c built is defeated by it, and every test passed,
+   * because each of those tests passes its handle list in by hand.
+   */
+  const merchVariant = {
+    id: "variant_mug",
+    title: "11 oz",
+    calculated_price: { calculated_amount: 1500, currency_code: "usd" },
+    metadata: { printful_variant_id: "1320" },
+  };
+  const certificateVariant = {
+    id: "variant_tier",
+    title: "Default",
+    calculated_price: { calculated_amount: 500, currency_code: "usd" },
+  };
+
+  const MUG = {
+    id: "prod_mug",
+    handle: "this-mug-cost-extra",
+    title: "This Mug Cost Extra",
+    variants: [merchVariant],
+  } as unknown as StoreProduct;
+
+  const TEE = {
+    id: "prod_tee",
+    handle: "original-purchase-receipt",
+    title: "Original Purchase Receipt",
+    variants: [
+      { ...merchVariant, id: "variant_tee_s", title: "S" },
+      { ...merchVariant, id: "variant_tee_m", title: "M" },
+      // Unpriced: dropped for the reason `listTiers` drops one.
+      { id: "variant_tee_l", title: "L", metadata: { printful_variant_id: "4013" } },
+    ],
+  } as unknown as StoreProduct;
+
+  const mixed = [...FIXTURE_PRODUCTS, MUG, TEE];
+
+  it("keeps printed things out of the tier list entirely", async () => {
+    // The assertion that would have failed before this row: three tiers, not
+    // five, from a store holding both.
+    const tiers = await listTiers(stubStoreApi(mixed));
+    expect(tiers.map((tier) => tier.handle)).toEqual(["lousy-deal", "lousy-deal-plus", "lousy-deal-pro"]);
+  });
+
+  it("is what the checkout derives its certificate handles from", async () => {
+    // `checkout/page.tsx` calls exactly this and passes the result to
+    // `cartNeedsAddress`, `cartHasCertificate` and `isPayableCart`. A mug in
+    // this list means no address is asked for and no postage is quoted.
+    const handles = (await listTiers(stubStoreApi(mixed))).map((tier) => tier.handle);
+    expect(handles).not.toContain("this-mug-cost-extra");
+    expect(handles).not.toContain("original-purchase-receipt");
+  });
+
+  it("lists the printed things, with every priced variant", async () => {
+    const merch = await listMerch(stubStoreApi(mixed));
+    expect(merch.map((item) => item.handle)).toEqual(["this-mug-cost-extra", "original-purchase-receipt"]);
+    expect(merch[1]?.variants.map((variant) => variant.size)).toEqual(["S", "M"]);
+  });
+
+  it("carries the size, because a shirt is the one thing here with a choice in it", async () => {
+    const merch = await listMerch(stubStoreApi(mixed));
+    expect(merch[0]?.variants).toEqual([
+      { variantId: "variant_mug", size: "11 oz", amount: 1500, currencyCode: "usd" },
+    ]);
+  });
+
+  it("drops an item no variant of which can be priced", async () => {
+    const unpriced = { ...MUG, variants: [{ id: "v", title: "x", metadata: { printful_variant_id: "1" } }] };
+    expect(await listMerch(stubStoreApi([unpriced as unknown as StoreProduct]))).toEqual([]);
+  });
+
+  it("returns nothing for a store that holds only certificates", async () => {
+    expect(await listMerch(stubStoreApi())).toEqual([]);
+  });
+
+  it("classifies one product at a time, which is what both lists are built on", () => {
+    expect(isMerchProduct(MUG)).toBe(true);
+    expect(isMerchProduct(FIXTURE_PRODUCTS[0] as StoreProduct)).toBe(false);
+  });
+
+  it("decides from the Printful mapping rather than a list of handles", () => {
+    // A handle list here would be a second copy of `catalogue.ts`, free to
+    // drift the day a product is added -- and drifting quietly, which is the
+    // shape of the bug being fixed.
+    expect(
+      isMerchProduct({ id: "p", handle: "invented-next-year", title: "T", variants: [merchVariant] } as never),
+    ).toBe(true);
+  });
+
+  it("treats a product with no variants as not merch", () => {
+    expect(isMerchProduct({ id: "p", handle: "h", title: "T" } as never)).toBe(false);
+    expect(isMerchProduct({ id: "p", handle: "h", title: "T", variants: [] } as never)).toBe(false);
+  });
+
+  it("ignores metadata that is present but not the mapping", () => {
+    const other = { ...certificateVariant, metadata: { something_else: "1" } };
+    expect(isMerchProduct({ id: "p", handle: "h", title: "T", variants: [other] } as never)).toBe(false);
+  });
+
+  it("asks the API for the field the whole split turns on", () => {
+    // **The realistic regression.** Drop `*variants.metadata` from the fields
+    // list and every product reads as a certificate again -- silently, with
+    // the shop selling shirts at VALUE zero and asking nobody for an address.
+    const source = readFileSync(new URL("../src/lib/medusa-client.ts", import.meta.url), "utf8");
+    expect(source).toContain('"*variants.metadata"');
   });
 });
