@@ -414,7 +414,7 @@ Creation is idempotent: run it twice, get four products, not eight.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/scripts/*`, `backend/src/modules/printful/*`, tests.
 
-- [ ] Four real Medusa products, with variants, priced, and shipping-required.
+- [x] Four real Medusa products, with variants, priced, and shipping-required. **P6b** wrote the target this row left as a seam, and **P7d** created all four in a real Medusa.
 
 > **This was ticked and should not have been.** Found on 2026-09-09 while
 > building P9c. `seed-merch.ts` defines `merchSeedRecords`, `seedMerch` and a
@@ -516,7 +516,7 @@ could not be fetched and does not proceed to payment.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/modules/printful/fulfilment-provider.ts`, `medusa-config.ts`, a seed script, tests.
 
-- [ ] Turn a Printful quote into a line the buyer pays.
+- [x] Turn a Printful quote into a line the buyer pays. **P7b** built the delivery configuration this row assumed, and **P7d** watched a real cart be offered it.
 
 > **Also ticked prematurely, and found the same day.** The provider is written,
 > registered and tested; `calculatePrice` asks P7's rate function and refuses
@@ -582,16 +582,24 @@ certificate must still reach payment without an address.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/modules/printful/shipping.ts`, `fulfilment-provider.ts`, tests.
 
-- [ ] Charge what Printful quoted, on the scale Medusa reads.
+- [x] Charge what Printful quoted, on the scale Medusa reads.
 
-`chargeForRate` returns `Math.ceil(gross * 100)` — minor units — and
-`fulfilment-provider.ts` hands it to Medusa as `calculated_amount`. Every other
-amount in this codebase on that path is a major-unit decimal, and P7a's own
-test asserts `663` for a $5.22 rate as correct. **If Medusa reads it on the
-product scale, that is $663.00 of postage.**
+`chargeForRate` returned `Math.ceil(gross * 100)` — minor units — into a
+`calculated_amount` every other amount on that path treats as major. A $5.22
+rate to Estonia became `663`, which a cart reads as **$663.00 of postage**.
 
-It is not fixed by reasoning, because reasoning is what produced it. P6b and
-P7b together make a real cart possible; this row reads the number off one.
+**Settled by reading Medusa, and then measured.**
+`list-shipping-options-for-cart-with-pricing.js:320-338` builds a shipping
+option's `amount` from two branches into one field — a **flat** option from the
+pricing module's `calculated_amount`, a **calculated** one from whatever the
+provider returned — so the two are necessarily on one scale, and `money.ts`
+already established which. P7d then put a mug in a real cart: `item_total` 15,
+`shipping_total` **6.93**, `total` 21.93.
+
+**This row's record did not land when the row did**, and Gate D found it. The
+commit touched four source files and neither document; the `str.replace` that
+was meant to tick it matched nothing and said nothing, and the PR body claimed
+a record that did not exist.
 
 ### P7d — What a real boot found
 
@@ -1084,7 +1092,156 @@ This row builds three things, none of which is a tax filing:
 **Repository:** `lousydeal`.
 **Files:** the findings, in this document.
 
-- [ ] Review every row against the contract, §23, and the legal position.
+- [x] Review every row against the contract, §23, and the legal position.
+
+Two adversarial reviewers, one on the money and correctness paths and one on
+the legal and disclosure surfaces, plus my own audit of the plan's own claims.
+**Twenty-one findings.** The shape of them, before the list: the statute work
+P10 and P11 did is sound — a reviewer read every citation against the in-force
+redaction and found none wrong — but **three whole surfaces escaped the sweep**,
+and the guard that exists to catch exactly that has a frozen list.
+
+### Fixed in P12a
+
+1. **A merch-only cart could not be paid for, silently.** `handleSubmit` kept
+   an unconditional `!consented` guard. P10c stopped rendering the consent box
+   for a cart with no certificate and taught `payDisabled` to stop waiting for
+   it — and did not touch the submit handler, so `consented` stayed `false`
+   forever with no control that could change it. The button enabled, the click
+   did nothing: no error, no request, no state. **Every merch-alone order — a
+   state `isPayableCart` admits deliberately and P10c spent a row making
+   lawful — was unpayable.** The guard's own comment records why it exists: a
+   previous Gate D completed a cart with the box visibly unticked, because
+   `form.requestSubmit()` ignores `disabled`. It stays, scoped.
+
+2. **The province was collected and thrown away.** `readShippingContext`
+   declared `province` and never read it, so `state_code` never reached
+   Printful — which answers "State code is missing" for the United States and
+   Australia, measured. The checkout demands the province in exactly those
+   countries, marks it required, and blocks the quote until it is filled; the
+   quote then discarded it and failed. **No US, AU, CA or JP buyer could buy
+   merch at all.** Both halves were tested: `quoteShipping` with a `stateCode`
+   handed in, `readShippingContext` with an Estonian address that needs none.
+   The composition was tested nowhere.
+
+3. **The § 55 confirmation named `items[0]`.** `certificateLine` finds which
+   line is the certificate; `sendConfirmation` read the first one, a leftover
+   from when there was only ever one. A buyer who added a mug before a
+   certificate got a statutory confirmation reading `ITEM: This Mug Cost
+   Extra`.
+
+### Found and not yet fixed
+
+- **4.** **A merch-only order gets no § 55 confirmation at all**, and four surfaces
+   say it does. `sendConfirmation` is reached only after the no-certificate
+   early return. § 55(1) makes it due no later than delivery of the goods, so
+   this is a breach on every merch-only order — asserted as discharged in
+   Terms §5, Refunds §4, Privacy §3 and `EMAIL_HINT`.
+
+- **5.** **The confirmation misquotes the consent box, dropping the scoping.** It
+   reproduces "I acknowledge that I will lose my right of withdrawal once
+   supply has begun"; the box says "…**for that certificate** once supply has
+   begun". P10c added that phrase precisely so no buyer could read the box as
+   waiving anything about a mug. **The durable record claims the buyer signed
+   the wider waiver** — an overstatement in the trader's favour on the one
+   document a dispute turns on. Nothing compares the two constants.
+
+- **6.** **The confirmation's own copy was never updated for goods.** It states the
+   withdrawal clock as running from conclusion (false for a printed item —
+   § 56(1¹)); says "A numbered digital certificate, and nothing else of value"
+   (false for a mixed order); says "nothing was added at checkout" (postage
+   is); and still carries **the inverted €30 sentence** that Terms §12 and
+   Refunds §8 were corrected to remove.
+
+- **7.** **The Imprint was never corrected.** §3 says "A numbered digital
+   certificate, and nothing else of value" — Terms §2 now says two kinds of
+   thing are sold. §4 carries the inverted €30 claim **and cites the Terms for
+   it**, which is the document that explicitly retracts it. The banned-phrase
+   guard is scoped to `REFUNDS` alone; the suite's own header says a guard
+   aimed at one file is not a guard on a claim.
+
+- **8.** **Refunds §5 says "we send no email at all", and a test requires it.**
+   False since LD-02, and the withdrawal route sends the § 56⁴(4) receipt —
+   `withdrawals/route.ts` sends both copies and the page's own success text
+   says so. `legal-refunds.test.ts` asserts the sentence, so **removing the
+   falsehood fails the build**: the Backblaze shape the privacy suite warns
+   about. It escaped the consistency guard because "we send no email at all"
+   matches neither of its two patterns.
+
+- **9.** **Privacy §9 says "We hold no name".** False three ways: §4 of the same
+   document says the order holds the delivery name, §6 says a gift recipient's
+   name is held, and the withdrawal form stores one. The plan flagged §4 and §9
+   together; §4 was corrected and §9 was not — in the section about exercising
+   GDPR rights.
+
+- **10.** **Terms §3 rests the certificate's VAT on a threshold decision `013` says
+  was surrendered.** Registering for OSS gives up the Article 59c
+  simplification, and P14a's destination rates take effect 1 October 2026.
+  The buyer-facing consequence stays true; the stated reason will not be.
+
+- **11.** **Terms §6 and Refunds §4/§6 disclaim the exception at different widths.**
+  The Terms promise never to refuse on § 53(4) p 7¹ at all; Refunds §4
+  disclaims only the third condition, and §6 says that where all three are
+  met "there is nothing to return". A buyer reading one is promised something
+  the other withdraws.
+
+- **12.** **"It is a condition of ordering" is no longer true of every order.** P10c
+  made the box conditional on the cart holding a certificate; Terms §4 and
+  Refunds §4 both state the condition unscoped.
+
+- **13.** **Privacy §3 enumerates "three things" and omits the inscription fields** —
+  a name and a dedication, typed by the buyer, stored on the deal and
+  **published**. Article 13 completeness, and a false count pinned by a test.
+
+- **14.** **The consistency guard's surface list is frozen at nine** and collects
+  nothing LD-04 added: `GIFT_CONFIRMATION_NOTE`, `orderSummaryLines`'
+  output, `POSTED_PRICE_NOTICE`, `ADDRESS_NOTE`, all of `merch.ts` — and the
+  backend confirmation copy, which is outside the guard's repository half
+  entirely. **That is where findings 5 and 6 survived undetected.**
+
+- **15.** **Baldrick still says "There is one product and I know most of it."**
+
+- **16.** **The `skipped` state hides a paid order that will never be printed.** A
+  merch order whose address `recipientFrom` refuses records `skipped`, which
+  is terminal and which the subscriber logs at no level at all. Buyer
+  charged, nothing sent, no line anywhere, and no later attempt because
+  `skipped` is settled. A test blesses it, calling the case "a bug upstream".
+
+- **17.** **The Stripe session is created before the postage exists.** The session is
+  initiated on mount against a goods-only total; attaching the shipping
+  method changes the cart total, which by the code's own citation drops the
+  session. Nothing re-initiates one. Either a confusing first-attempt failure
+  on every merch order, or an authorisation for the goods without the
+  postage. **Measure before Gate E.**
+
+- **18.** **The pay gate accepts a stale quote.** The quote effect does not reset
+  `shippingAmount` when a new quote starts, and `payDisabled` ignores
+  `quoting` — so a buyer who edits the address and pays inside the window
+  pays the old postage. Estonia to Brazil is $6.48 against a measured $25.56.
+
+- **19.** **A late `shipment_sent` retry overwrites `shipment_returned`.** The route
+  records whatever arrived without comparing `occurredAt` to the state it
+  holds, and nulls `shipped_at` on every other event. Printful retries over
+  about eighteen hours, so the ordering is not hypothetical.
+
+- **20.** **`order_failed` and `order_canceled` webhooks reach nobody.** The
+  submission path calls these "the one outcome that has to reach a person"
+  and logs at error; the same outcome arriving later by webhook is logged at
+  info, leaves the local `status` at `submitted`, and tells no one.
+
+- **21.** **Two stale doc comments on the money path that already had a 100× bug**,
+  one directly contradicting the line above it, plus a superseded § 56¹(3)
+  citation in `shipping.ts` that P10 corrected in the documents.
+
+**And one finding about the record itself**, which is why the list above is
+written out in full rather than summarised: **P7c's commit touched four source
+files and neither document.** The `str.replace` meant to tick the row matched
+nothing and said nothing, `git add -A` committed only what had changed, and I
+read the test count instead of the diff. The plan still carried the bug in the
+present tense and `status.md` still called the postage "unknown, and suspected
+wrong by 100×". P11a's operator row failed the same way. Both corrected here;
+the edits in this row were applied through a helper that **exits non-zero when
+a replacement matches nothing**.
 
 ### P13 — Gate E
 
@@ -1097,6 +1254,29 @@ A real order on the test environment: certificate plus merch in one cart, a
 Stripe test card, a real address, a real shipping quote, and a real Printful
 order in the test store — **placed as a draft and cancelled, not confirmed**, so
 nothing is printed and nobody is charged for a joke.
+
+> **Gate D: this procedure is impossible as the code now stands.** P8b made
+> confirmation part of submission — `submitPrintfulOrder` confirms a draft
+> because a draft that nobody confirms is never printed, and leaving it
+> unconfirmed was P8a's loose end. So a Gate E order would be **confirmed
+> automatically**, which is the step that spends money.
+>
+> Three ways out, and the row has to choose one before it runs:
+>
+> 1. **Cancel immediately after.** Simplest, and it exercises the real path
+>    including confirmation. Printful cancels rather than deletes and keeps the
+>    external id — P8a measured that — so the order stays visible as
+>    `canceled`, which is the honest artefact. Whether a confirmed-then-
+>    cancelled order is billed is **not known and must be established before
+>    the run, not after**.
+> 2. **A test store with no billing attached**, where confirmation fails on its
+>    own. Safe, but it verifies that confirmation is refused rather than that
+>    it works — which is the half Gate E most wants to see.
+> 3. **Do not confirm for this run**, by whatever narrow means, and accept that
+>    the confirmation call is the one step Gate E does not exercise.
+>
+> The plan's own sentence — "nothing is printed and nobody is charged for a
+> joke" — is the constraint. It was written before P8b and is still right.
 
 LD-02's Gate E found a defect that made every paid order produce nothing while
 1,318 tests passed. This one has a physical object and a courier in it.
