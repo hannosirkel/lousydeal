@@ -200,10 +200,67 @@ describe("commerceRecords", () => {
   // The row's whole tax claim: a tax region for each EU member state, all
   // at Estonia's rate, and none for anywhere else -- no rest-of-world
   // region exists to bring VAT to a destination outside the Union.
-  it("declares exactly one tax region per EU member state, at Estonia's rate, and none wider", () => {
+  it("declares exactly one tax region per EU member state, at that state's own rate", () => {
+    // **Estonia's rate for everybody until decision `013`**, which registered
+    // the Union OSS and with it opted into destination taxation. This
+    // asserted `ratePercent: 24` for all 27 and would have held the shop to
+    // reporting Estonian VAT to twenty-six other authorities.
     expect(taxRegions.map((record) => record.countryCode)).toEqual([...EU_MEMBER_STATES]);
     for (const record of taxRegions) {
-      expect(record).toMatchObject({ ratePercent: 24, providerId: "tp_system" });
+      expect(record).toMatchObject({ providerId: "tp_system" });
+    }
+  });
+
+  it("carries the rate each of these 27 literal figures says, not a derived one", () => {
+    /**
+     * **Written out here rather than read from `tax-model.ts`**, the way
+     * `EU_MEMBER_STATES` is and for the same reason: comparing that table to
+     * itself would let a rate be changed with the suite still green, and ship
+     * a deployment reporting the wrong figure to a tax authority.
+     *
+     * Two agreeing full-27 compilations — Tax Foundation, January 2026, and
+     * ASD Group, June 2026 — with every rate that moved since 2024 checked
+     * against the instrument that moved it. The truth-maker is a member
+     * state's law, not this file: when one changes its rate, both sides are
+     * edited together, on purpose.
+     */
+    const RATES: Readonly<Record<string, number>> = {
+      AT: 20, BE: 21, BG: 20, CY: 19, CZ: 21, DE: 19, DK: 25,
+      EE: 24, ES: 21, FI: 25.5, FR: 20, GR: 24, HR: 25, HU: 27,
+      IE: 23, IT: 22, LT: 21, LU: 17, LV: 21, MT: 18, NL: 21,
+      PL: 23, PT: 23, RO: 21, SE: 25, SI: 22, SK: 23,
+    };
+
+    for (const record of taxRegions) {
+      if (record.kind !== "tax-region") throw new Error("unreachable");
+      expect(`${record.countryCode}: ${String(record.ratePercent)}`).toBe(
+        `${record.countryCode}: ${String(RATES[record.countryCode])}`,
+      );
+    }
+  });
+
+  it("holds the four rates a stale source gets wrong", () => {
+    // The ones that moved, and the ones a table copied from an old PDF still
+    // shows at the old figure. Finland is outside the 2025-26 window and is
+    // the likeliest of the four to be missed.
+    const moved = { SK: 23, EE: 24, RO: 21, FI: 25.5 };
+    for (const [code, rate] of Object.entries(moved)) {
+      const region = taxRegions.find((record) => record.countryCode === code);
+      expect(`${code}: ${String(region?.kind === "tax-region" ? region.ratePercent : undefined)}`).toBe(
+        `${code}: ${String(rate)}`,
+      );
+    }
+  });
+
+  it("names each rate after its own country, so an operator can read the list", () => {
+    // Twenty-seven rates all called "Estonian VAT" is a screen nobody can use.
+    // The *code* is deliberately still `EE-VAT` -- see `tax-model.ts`: it is a
+    // natural key, and changing it leaves a second default rate in every
+    // region that already has one.
+    for (const record of taxRegions) {
+      if (record.kind !== "tax-region") throw new Error("unreachable");
+      expect(record.name).toBe(`${record.countryCode} VAT`);
+      expect(record.code).toBe("EE-VAT");
     }
   });
 

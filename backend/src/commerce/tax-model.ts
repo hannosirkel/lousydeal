@@ -27,15 +27,79 @@
  * 22%."*
  * <https://www.emta.ee/en/business-client/taxes-and-payment/value-added-tax/vat-rates-and-supply-exempt-tax/standard-vat-rate>
  *
- * ## One rate, not twenty-seven
+ * ## Twenty-seven rates, not one — and decision `013` is why
  *
- * Every EU destination is charged **Estonia's domestic rate**. The supplier
- * -- Aislopica OÜ -- is established in Estonia and VAT registered there, and
- * on the operator's reading of Article 59c its supplies are below the
- * threshold that would otherwise require each destination's own rate.
- * `docs/decisions/008-plepic-tax-treatment.md` has the full chain, the
- * citations, and what reopens this file when the threshold is crossed; it is
- * not restated here.
+ * This said "One rate, not twenty-seven": every EU destination charged
+ * Estonia's domestic rate, on the operator's reading of Article 59c that its
+ * cross-border supplies were below the threshold requiring each destination's
+ * own. `008` has that chain and says what reopens the question.
+ *
+ * **The operator registered for the Union One Stop Shop on 2026-09-09**, which
+ * is what reopened it. OSS *is* destination-rate taxation: registering is the
+ * opt-in, and the threshold simplification goes with it.
+ *
+ * **The rates take effect on 1 October 2026, not today.** Article 57d of
+ * Implementing Regulation (EU) No 282/2011 starts the Union scheme on the
+ * first day of the quarter after the application, and EMTA's own page carries
+ * the same rule with an on-point example. Applying them to a supply made in
+ * September would misreport that quarter — and cannot happen here, because §23
+ * keeps live payment keys out until the publication gate, so this deployment
+ * can make no supply at all before then.
+ *
+ * **One thing the operator should check against the ledger rather than take
+ * from this file.** Destination liability and OSS registration are different
+ * questions: if cross-border B2C supplies had already crossed the €10,000
+ * Article 59c threshold earlier in 2026, destination VAT was due from the
+ * supply that crossed it, registration or no registration. Nothing sold here
+ * has crossed anything — the shop has never taken a live payment — but the
+ * rule is written down because it is the trap, not the registration date.
+ *
+ * ## Where these numbers come from
+ *
+ * The European Commission's periodic "VAT rates applied in the Member States"
+ * PDF was **discontinued after January 2021**, and its OSS portal now points
+ * at the Taxes in Europe Database instead. TEDB is the designated source and
+ * is an interactive application; this table was not read out of it.
+ *
+ * What it rests on is two independent full-27 compilations that agree on every
+ * rate — Tax Foundation, January 2026, and ASD Group, June 2026 — with every
+ * rate that moved since 2024 corroborated separately against the change that
+ * moved it:
+ *
+ *   SK  20% → 23%    1 January 2025   (VAT Act amendment, signed 18.10.2024)
+ *   EE  22% → 24%    1 July 2025      (EMTA, and this file's own header)
+ *   RO  19% → 21%    1 August 2025    (Law No. 141/2025, promulgated 25.07)
+ *   FI  24% → 25.5%  1 September 2024 (outside the window, and the one a
+ *                                      stale source is most likely to miss)
+ *
+ * No member state has a standard-rate change effective during 2026. Lithuania
+ * debated 22% in 2025 and did not adopt it; Romania also merged its reduced
+ * rates, which is irrelevant here but marks any Romanian source predating
+ * August 2025 as stale throughout.
+ *
+ * **A manual pass against TEDB before the publication gate is a gate item**,
+ * not something this file claims to have done.
+ *
+ * ## What this table does not answer
+ *
+ * **Special territories, and they are wrong today in both directions.** Medusa
+ * routes tax on `country_code`, so a delivery to the Canary Islands resolves as
+ * Spain, to Åland as Finland, to Heligoland as Germany — and each of those is
+ * **outside the EU VAT area entirely** under Article 6 of the Directive, so the
+ * correct answer is no EU VAT at all. Portugal is worse than a boolean: the
+ * Azores are 16% and Madeira 22% against a mainland 23%, routed by island.
+ * Greece reduces to 17% on some Aegean islands, expanded on 1 January 2026, and
+ * whether a foreign distance seller may apply it is **unresolved** — 24% is the
+ * conservative answer and over-remits rather than under-remits.
+ *
+ * Northern Ireland is the other half: **goods** delivered there are inside the
+ * EU VAT area under the Windsor Framework and go through Union OSS at the UK's
+ * 20%, while **digital services to NI are out of scope entirely**. So the one
+ * shop needs two different answers for the same postcode depending on which of
+ * its two products is in the parcel.
+ *
+ * None of that is built here. It is a row of its own, and it is recorded in
+ * `status.md` rather than left for somebody to discover from a tax bill.
  *
  * ## No VAT outside the EU
  *
@@ -58,6 +122,55 @@
  * asked of it is asked.
  */
 
+
+/**
+ * Each member state's standard rate, as a percentage.
+ *
+ * Sorted by code, and the same 27 {@link EU_MEMBER_STATE_CODES} names — the
+ * list below is what that constant is now derived from, so the two cannot
+ * disagree about which countries exist.
+ *
+ * Percentages and not fractions, because that is what Medusa's `tax_rate.rate`
+ * takes and converting in two places is how a rate ends up a hundredth of
+ * itself. Finland is `25.5` and is the reason this is not an integer.
+ */
+export const EU_STANDARD_VAT_PERCENTS: Readonly<Record<string, number>> = {
+  AT: 20,
+  BE: 21,
+  BG: 20,
+  CY: 19,
+  CZ: 21,
+  DE: 19,
+  DK: 25,
+  EE: 24,
+  ES: 21,
+  FI: 25.5,
+  FR: 20,
+  GR: 24,
+  HR: 25,
+  HU: 27,
+  IE: 23,
+  IT: 22,
+  LT: 21,
+  LU: 17,
+  LV: 21,
+  MT: 18,
+  NL: 21,
+  PL: 23,
+  PT: 23,
+  RO: 21,
+  SE: 25,
+  SI: 22,
+  SK: 23,
+};
+
+/**
+ * Estonia's own rate, still named because two other things read it: the
+ * merchant's own accounting, and anything asking what this company charges at
+ * home rather than what a buyer's country charges.
+ */
+export const ESTONIAN_STANDARD_VAT_PERCENT = EU_STANDARD_VAT_PERCENTS.EE!;
+
 /**
  * The 27 EU member states, ISO 3166-1 alpha-2, sorted.
  *
@@ -68,28 +181,31 @@
  * written out literally there, so either edit goes red until that list is
  * changed too.
  */
-export const EU_MEMBER_STATE_CODES: readonly string[] = [
-  "AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GR", "HR",
-  "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT", "RO", "SE", "SI",
-  "SK",
-];
+export const EU_MEMBER_STATE_CODES: readonly string[] = Object.keys(EU_STANDARD_VAT_PERCENTS).sort();
 
 /**
- * Estonia's standard VAT rate, as a percentage.
+ * What the Admin shows against a rate, per country.
  *
- * 24% since 1 July 2025, up from 22%. See this file's header for the
- * Estonian Tax and Customs Board citation -- change both together, because
- * the header is the only thing that says which rate a reader is looking at.
+ * Per country because twenty-seven rates all called "Estonian VAT" is a
+ * screen an operator cannot read, and because the name is the only place the
+ * destination appears — the code below is deliberately not per-country.
  */
-export const ESTONIAN_STANDARD_VAT_PERCENT = 24;
-
-/** What the Admin shows an operator against this rate. */
-export const VAT_RATE_NAME = "Estonian VAT";
+export function vatRateName(countryCode: string): string {
+  return `${countryCode.toUpperCase()} VAT`;
+}
 
 /**
  * The rate's code, and the natural key its upsert addresses within a tax
  * region. Changing this string does not rename a rate -- it creates a second
  * one beside the first.
+ *
+ * **So it keeps the value it has always had, and the value is now a
+ * misnomer.** `EE-VAT` was the code when every region carried Estonia's rate;
+ * a German region's rate is keyed `EE-VAT` too. Making it `${country}-VAT`
+ * would read better and would leave the old rate behind in every region that
+ * already has one — two rates in one region, both `is_default`, on a database
+ * nobody was watching. The key is a key. {@link vatRateName} is what a person
+ * reads.
  */
 export const VAT_RATE_CODE = "EE-VAT";
 
