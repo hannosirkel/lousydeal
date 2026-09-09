@@ -7,7 +7,11 @@
  * at this same public hostname.
  *
  * Ported from `plepic/storefront/src/lib/store-api-transport.ts`, narrowed to
- * two namespaces: this repository allows `store` and `hooks`, never `static`.
+ * three namespaces: this repository allows `store`, `hooks` and `webhooks`,
+ * never `static`. The third is not a Medusa namespace at all -- it is this
+ * application's own, holding the one route Printful posts to (LD-04 P15a),
+ * and like `hooks` it is an allowlist of exactly one path rather than of a
+ * namespace.
  * `POST /hooks/payment/:provider` (`node_modules/@medusajs/medusa/dist/api/hooks/payment/[provider]/route.js`,
  * matched by `node_modules/@medusajs/medusa/dist/api/hooks/middlewares.js`)
  * is mounted unconditionally -- `dist/loaders/api.js:40-53` loads the whole
@@ -34,7 +38,8 @@
  * **The origin promise holds on the request path and the response path, not
  * just the first.** `resolveStoreApiPath` and its five defences (below) are
  * what stop a browser from ever making this proxy *ask* the backend for
- * something outside `/store/` or `/hooks/`. Two further, independent things
+ * something outside `/store/`, the one `/hooks/` path or the one
+ * `/webhooks/` path. Two further, independent things
  * stop the backend's own *answer* from telling the browser where it came from:
  * {@link forwardedRequestHeaders} forwards an allowlist, not everything the
  * browser sent, so a browser `Cookie`, `Authorization` or a spoofed
@@ -54,7 +59,14 @@ import { STRIPE_PROVIDER_ID } from "../../../../lib/store-payment";
 const MOUNT_PREFIX = "/api/store/";
 
 /**
- * The only Medusa namespaces this route will forward to.
+ * The only namespaces this route will forward to.
+ *
+ * **Two of the three are Medusa's and the third is this application's.**
+ * `webhooks` names no Medusa surface: `backend/src/api/webhooks/printful` is
+ * a route this repository wrote, and the namespace exists so Printful has a
+ * path through the storefront's Access gate to reach it (LD-04 P15a). Like
+ * `hooks`, it is admitted for exactly one path and `resolveStoreApiPath`
+ * refuses the rest of it.
  *
  * `store` is the Store API T9 built this proxy for. `hooks` is added at T18:
  * `POST /hooks/payment/:provider` is already mounted unconditionally (see the
@@ -74,7 +86,7 @@ const MOUNT_PREFIX = "/api/store/";
  * rather than by editing this literal, so `tsc` catches an attempt at the
  * former.
  */
-export const ALLOWED_NAMESPACES: ReadonlySet<string> = new Set(["store", "hooks"]);
+export const ALLOWED_NAMESPACES: ReadonlySet<string> = new Set(["store", "hooks", "webhooks"]);
 
 /**
  * The provider segment {@link resolveStoreApiPath} admits under `hooks`,
@@ -101,6 +113,46 @@ const STRIPE_WEBHOOK_PROVIDER_SEGMENT = STRIPE_PROVIDER_ID.slice("pp_".length);
 
 /** The one path {@link resolveStoreApiPath} admits under `hooks` -- see its hooks branch. */
 const STRIPE_WEBHOOK_PATH = `/hooks/payment/${STRIPE_WEBHOOK_PROVIDER_SEGMENT}`;
+
+/**
+ * The one path {@link resolveStoreApiPath} admits under `webhooks`, and the
+ * reason that namespace exists at all.
+ *
+ * **Its counterpart is `backend/src/api/middlewares.ts`**, which sets
+ * `preserveRawBody` for this exact matcher, with `method: "POST"`. The two
+ * are one string in two workspaces, and `store-checkout.test.ts` asserts they
+ * agree.
+ *
+ * **The drift matrix is not symmetric, and only one half of it is silent.**
+ * If *this* literal moves, the backend has no route at the forwarded path and
+ * answers 404: visible, logged, retried. If the *matcher* moves -- or merely
+ * names a different method -- the route still exists, but `req.rawBody` is
+ * absent, so it computes no signature and answers 401 to **every delivery
+ * including the genuine ones**, logging that the request "was not signed with
+ * this deployment's secret". That half presents exactly as a wrong secret
+ * does, and it is the half worth a cross-workspace test. Printful retries at
+ * 1, 4, 16, 64, 256 and 1024 minutes and then the event is gone for good, so
+ * a buyer is never told their parcel shipped and a cancellation never reaches
+ * the local record.
+ *
+ * The backend route is deliberately **not** relocated under `hooks` to reuse
+ * that branch. `hooks` is admitted for one thing -- Medusa core's payment
+ * webhook -- and its whole comment is about that one thing; parking an
+ * application route inside it would blur the one branch in this file whose
+ * narrowness is load-bearing, and would move a path that
+ * `backend/tests/printful-webhook.test.ts` pins in four places for no gain --
+ * three `readFileSync` locations and a URL literal.
+ */
+const PRINTFUL_WEBHOOK_SEGMENT = "printful";
+
+/**
+ * The one path {@link resolveStoreApiPath} admits under `webhooks`.
+ *
+ * **Derived, not written out twice.** The constant above it warns about
+ * exactly this: a second hand-written literal agrees with a rename right up
+ * until it doesn't.
+ */
+const PRINTFUL_WEBHOOK_PATH = `/webhooks/${PRINTFUL_WEBHOOK_SEGMENT}`;
 
 /**
  * The origin dot segments are resolved against when {@link resolveStoreApiPath}
@@ -230,6 +282,17 @@ function isRefusedSegment(segment: string): boolean {
  * target still sits under `store`" holds on its own rather than only because
  * the segment refusals above happened to be complete.
  *
+ * **`webhooks` behaves exactly as `hooks` does here**, and for the same
+ * reason: it too gets a narrower gate of its own that returns -- admitted or
+ * refused -- for every input in that namespace, so the fifth line is
+ * unreachable for it as well. That is safe for both branches on a stronger
+ * ground than "unreachable": the fifth defence exists to re-validate a path
+ * *derived from* caller input, and neither branch derives anything. Each
+ * returns a compile-time constant, so no attacker byte reaches the output at
+ * all. **A future edit that returns something computed from `segments` would
+ * lose that property silently**, which is what the two branches' own tests
+ * are written against.
+ *
  * These five are written to apply to every namespace, `hooks` included --
  * but the fifth is unreachable for `hooks` in practice. `hooks` also gets a
  * sixth, narrower gate of its own (the `namespace === "hooks"` branch below),
@@ -310,6 +373,28 @@ export function resolveStoreApiPath(pathname: string): string | null {
     return STRIPE_WEBHOOK_PATH;
   }
 
+  // The same sixth gate again, for the same reason and in the same shape:
+  // `webhooks` is in ALLOWED_NAMESPACES for exactly one path, not for a
+  // namespace. Admitting the namespace and stopping at the general defences
+  // would let the tail of this function resolve `/webhooks/<anything>` --
+  // every future sibling route, admitted the day somebody adds one and
+  // noticed by nobody.
+  //
+  // **Both segments are compared undecoded, and this gate is the simpler of
+  // the two for a stated reason.** The Stripe branch above decodes its third
+  // segment because that segment is an Express route *parameter*, resolved
+  // with `decodeURIComponent`, so two spellings genuinely are one request.
+  // `/webhooks/printful` has no parameter in it: both segments are literal
+  // route segments, and the rule this file already records for those is that
+  // an encoded spelling is a guess rather than a proven equivalence, so it is
+  // refused. `%70rintful` and `%77ebhooks` reach nothing.
+  if (namespace === "webhooks") {
+    if (segments.length !== 2 || segments[1] !== PRINTFUL_WEBHOOK_SEGMENT) {
+      return null;
+    }
+    return PRINTFUL_WEBHOOK_PATH;
+  }
+
   const normalized = new URL(`/${upstreamPath}`, NORMALIZATION_BASE).pathname;
   if (!normalized.startsWith(`/${namespace}/`)) {
     return null;
@@ -366,7 +451,31 @@ export function resolveStoreApiTarget(upstreamPath: string, search: string, back
  * because a denylist did not name them, is exactly the defect this allowlist
  * replaces. See `tests/store-checkout.test.ts` for the header proven absent.
  */
-const FORWARDED_REQUEST_HEADERS = ["content-type", "accept", "stripe-signature"] as const;
+const FORWARDED_REQUEST_HEADERS = [
+  "content-type",
+  "accept",
+  "stripe-signature",
+  // Printful's own signature, and without it this proxy would deliver a body
+  // the backend cannot verify: `webhook.ts` reads exactly this header, and a
+  // delivery arriving without it is refused like an unsigned one. T18a found
+  // the identical failure for `stripe-signature`.
+  //
+  // **`content-type` is load-bearing for the same route**, not merely polite.
+  // Medusa's bodyparser passes one `verify` hook to its json, text and
+  // urlencoded parsers alike (`framework/dist/http/middlewares/bodyparser.js`),
+  // and that hook is what sets `rawBody` -- so what matters is not the *json*
+  // parser, as an earlier version of this comment said, but that Express runs
+  // a body parser at all, which it decides from this header. Drop it and none
+  // of the three matches, there is no raw body to sign over, and every
+  // genuine event answers 401.
+  //
+  // **`x-pf-webhook-public-key` is deliberately absent.** Printful sends it to
+  // say *which* configuration signed an event, where one URL serves several;
+  // this deployment holds one secret and `webhook.ts` never reads it. It is
+  // recorded here rather than left unmentioned so that a later change serving
+  // several configurations knows this was a decision and not an oversight.
+  "x-pf-webhook-signature",
+] as const;
 
 /** Forwards only {@link FORWARDED_REQUEST_HEADERS}, then sets the one credential the browser never carries. */
 function forwardedRequestHeaders(request: Request, publishableKey: string): Headers {
@@ -455,6 +564,70 @@ function forwardedResponseHeaders(response: Response): Headers {
  */
 export type StoreApiFetch = (target: URL, init: RequestInit) => Promise<Response>;
 
+/**
+ * The most this proxy will hold in memory for one request body.
+ *
+ * **Review finding F1, and the webhook is what made it urgent.** This
+ * function buffers the whole body before forwarding it, and the bypassed
+ * webhook path is reachable by anyone, unauthenticated, by design -- the
+ * signature is checked at the backend, which is downstream of this
+ * allocation. Medusa itself refuses anything over Express's ~100 kb default
+ * (`framework/dist/http/middlewares/bodyparser.js` passes an undefined
+ * `limit`), but only *after* this process has already allocated it, so a few
+ * concurrent large POSTs take down the storefront rather than the webhook.
+ *
+ * 256 kb is far above anything this proxy legitimately carries -- a Printful
+ * event is a few kilobytes and a cart operation less -- and far below what
+ * hurts.
+ */
+const MAX_FORWARDED_BODY_BYTES = 256 * 1024;
+
+/** What a body over {@link MAX_FORWARDED_BODY_BYTES} gets, instead of being buffered. */
+const PAYLOAD_TOO_LARGE = 413;
+
+/**
+ * Reads a request body, refusing rather than buffering past the cap.
+ *
+ * **The cap is enforced on the stream, not on `content-length`.** A declared
+ * length is the sender's claim about itself: a chunked request carries none
+ * at all, and one that lies would be believed. Reading with a ceiling is
+ * bounded whatever the sender says, and costs one loop.
+ */
+async function readCappedBody(request: Request): Promise<ArrayBuffer | null> {
+  const declared = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_FORWARDED_BODY_BYTES) return null;
+
+  const stream = request.body;
+  if (stream === null) return new ArrayBuffer(0);
+
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_FORWARDED_BODY_BYTES) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  // One allocation at the end, from chunks already counted against the cap.
+  const body = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body.buffer;
+}
+
 /** Forwards one allowed request while preserving its method, query, headers and raw body. */
 export async function forwardStoreApiRequest(
   request: Request,
@@ -463,7 +636,10 @@ export async function forwardStoreApiRequest(
   fetchImpl: StoreApiFetch = fetch,
 ): Promise<Response> {
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
-  const body = hasBody ? await request.arrayBuffer() : undefined;
+  const body = hasBody ? await readCappedBody(request) : undefined;
+  if (body === null) {
+    return new Response(null, { status: PAYLOAD_TOO_LARGE });
+  }
   const upstream = await fetchImpl(target, {
     method: request.method,
     headers: forwardedRequestHeaders(request, publishableKey),
@@ -480,10 +656,42 @@ export async function forwardStoreApiRequest(
 
 export const dynamic = "force-dynamic";
 
+/**
+ * The resolved paths that exist for one sender and one verb.
+ *
+ * **Review finding F2.** `resolveStoreApiPath` answers about paths and knows
+ * nothing about methods, and `GET` is exported for a future store read -- so
+ * the two webhook paths, which are the ones carved out of the Access gate and
+ * therefore the only ones an anonymous caller can reach, forwarded `GET` and
+ * `HEAD` to Medusa as well. Nothing leaked: both backend routes are POST-only
+ * and the response scrubbing holds. But a 404 shaped by Medusa is
+ * distinguishable from this route's own empty one, which makes the pair a
+ * liveness oracle for a backend that is otherwise not addressable at all --
+ * and neither verb has a legitimate caller here.
+ */
+const POST_ONLY_PATHS: ReadonlySet<string> = new Set([STRIPE_WEBHOOK_PATH, PRINTFUL_WEBHOOK_PATH]);
+
+/**
+ * Whether a resolved path refuses this method.
+ *
+ * Its own exported function, for the reason `checkout-rules.ts` gives about
+ * the pay gate: a condition written inline in a handler can only be tested by
+ * reading the file, and reading a file proves the words rather than the rule.
+ */
+export function methodRefused(method: string, upstreamPath: string): boolean {
+  return method !== "POST" && POST_ONLY_PATHS.has(upstreamPath);
+}
+
 async function handle(request: Request): Promise<Response> {
   const requestUrl = new URL(request.url);
   const upstreamPath = resolveStoreApiPath(requestUrl.pathname);
   if (upstreamPath === null) {
+    return new Response(null, { status: 404 });
+  }
+  // The same empty 404 an unresolved path gets, deliberately: a webhook path
+  // answering one shape to GET and another to a path that does not resolve
+  // would be the oracle this refusal exists to close.
+  if (methodRefused(request.method, upstreamPath)) {
     return new Response(null, { status: 404 });
   }
 

@@ -1349,6 +1349,117 @@ wrong by 100×". P11a's operator row failed the same way. Both corrected here;
 the edits in this row were applied through a helper that **exits non-zero when
 a replacement matches nothing**.
 
+### P15 — Printful can reach the webhook
+
+**Repository:** `lousydeal`.
+**Files:** `storefront/src/app/api/store/[...path]/route.ts` and its tests.
+
+- [x] **P15a** — a public path that resolves to the webhook.
+- [ ] **P15b** — the Access bypass, in the infrastructure repository. *Operator.*
+- [ ] **P15c** — the subscription, and the secret. *Operator.*
+
+**P11a built a webhook nothing could reach.** Measured on 2026-09-09: an
+unsigned POST to the Stripe hook path answers 200 from the origin, and the
+same POST to `/webhooks/printful` answers a 302 to the Cloudflare Access
+login. The backend has no public hostname at all — T10 and decision `010` —
+and the storefront host is gated but for one narrow bypass, carved for Stripe.
+
+**The shape, and the alternative it was chosen over.** The obvious move is to
+give the backend its own hostname with an unauthenticated bypass. It **fails
+open**: behind a bypass on that host there is no second gate, so a bypass
+drawn one character too wide exposes the whole Medusa API, Admin included —
+which is the blast radius decision `010` already names. Behind a bypass on the
+*storefront* host there is `resolveStoreApiPath`, so the same careless bypass
+exposes only what the resolver resolves. A regression there is a 404: lost
+webhooks, retried for about eighteen hours and visible in logs, rather than an
+exposed Admin. It also costs one literal instead of an `externalIPs` entry, a
+port on the shared address, a NetworkPolicy rule and T13a's index-0 trap.
+
+**And not by widening the `hooks` branch**, which was the first design. That
+branch is admitted for one thing — Medusa core's payment webhook — and its
+whole comment is about that one thing. Widening it would have meant either
+relocating the backend route under `hooks`, moving a path
+`printful-webhook.test.ts` pins in four places, or rewriting the path on the
+way through and losing the property that the resolver returns the backend's
+own spelling. `webhooks` is a sibling namespace holding exactly one path, the
+same defensive shape one place over, and **the backend is untouched**.
+
+**Both segments are compared undecoded**, and this gate is simpler than the
+Stripe one for a stated reason: that branch decodes its provider segment
+because Express resolves a route *parameter* with `decodeURIComponent`, so two
+spellings are one request. Nothing in `/webhooks/printful` is a parameter.
+
+**Two things the review found that the tests would not have caught.** The
+existing Stripe delivery probe signs over canonical JSON — `JSON.stringify(JSON.parse(x))`
+reproduces it byte for byte — so a re-serialisation in the forward path would
+have passed it; the Printful probe uses a body with an escaped solidus, a
+unicode escape, interior spaces and a trailing newline, and asserts the body
+really is one that re-encoding changes. And nothing anywhere pinned the proxy's
+literal against the backend's `preserveRawBody` matcher: if those two drift,
+`req.rawBody` is absent, every genuine delivery answers 401, and it looks
+exactly like a wrong secret.
+
+**Reviewed twice, adversarially, and the review earned its keep.**
+
+One reviewer attacked the resolver with about fifty-five inputs — every
+percent-encoding, all dot-segment spellings including stacked `%25`, raw and
+encoded backslashes, NUL, CRLF, unicode separators, homoglyphs, 100 000-character
+segments, prefix confusions. Nothing escaped, and it proved something the
+first version only asserted: **returning before the shared normalisation
+re-check is safe for this branch because no attacker byte reaches its output**
+— it is a lookup table, not a derivation. It also confirmed the webhook route
+verifies before any read, write, enqueue or notification, which is stronger
+than Medusa core's payment hook. It found two real things:
+
+- **F1** — `forwardStoreApiRequest` buffered the whole body with no ceiling,
+  and the bypassed path is anonymous by design. Medusa refuses anything over
+  ~100 kb, but only *after* this process allocated it, so concurrent large
+  POSTs take down the storefront rather than the webhook. Capped at 256 kb,
+  **on the stream rather than on `content-length`**: a declared length is the
+  sender's claim about itself, and a chunked request carries none.
+- **F2** — the resolver is method-blind and `GET` is exported, so both
+  bypassed webhook paths forwarded `GET` and `HEAD`. Nothing leaked, but a
+  Medusa-shaped 404 is distinguishable from this route's own, which is a
+  liveness oracle for a backend that is otherwise not addressable. Both paths
+  are POST-only now, refused with the same empty 404 as an unresolved path.
+
+The other reviewer attacked the tests, and **found three guards that did not
+guard** — verified by mutation, not asserted:
+
+1. The status-passthrough test proved only "not hardcoded 200". Replacing
+   `status: upstream.status` with `status: 401` left all 83 tests green while
+   every store request in production would have answered 401. Now a sweep of
+   nine statuses through the one function.
+2. **The cross-workspace test was two decoupled substring checks.** Changing
+   the backend matcher's `method: "POST"` to `"GET"` passed every guard in
+   *both* workspaces while every real delivery lost `rawBody` and answered
+   401 — which is exactly the invisible failure the block exists to make
+   visible. One regex over matcher, method and `bodyParser` now.
+3. A comment claimed the segment loop caught a dropped length check. It does
+   not — every input in it has two segments. The comment is corrected rather
+   than the test padded, because a comment claiming coverage a test lacks
+   stops the next reader looking.
+
+It also corrected four factual claims: the `rawBody` hook is passed to
+Medusa's json, text **and** urlencoded parsers alike, not the json one; the
+backend pins the path in four places, not three; only *matcher*-side drift is
+silent, since proxy-side drift 404s visibly; and several comments still said
+"two namespaces". All fixed.
+
+**Fifteen mutations, fifteen caught**, and the ledger is written down because
+the reviewer rightly said an unchecked count is unfalsifiable: hardcoded
+status; matcher method; `preserveRawBody` moved to another matcher; dropped
+segment count; cap removed; cap raised; stream ceiling bypassed; verb refusal
+removed, narrowed to one path, and widened to all paths; derived path constant
+broken; signature header dropped; body re-serialised; gate deleted with the
+namespace kept; literal prefix-matched.
+
+**One process note, because it is the third time in this slice.** A batched
+edit script exited on a failed match and silently discarded four edits it had
+already made in memory — the `str.replace` no-op failure again, wearing a
+different hat. Every edit is written to disk on its own now, and the file was
+audited marker by marker afterwards rather than trusted.
+
 ### P13 — Gate E
 
 **Repository:** `lousydeal`.

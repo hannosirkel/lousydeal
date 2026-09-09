@@ -13,7 +13,7 @@
 
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -21,6 +21,7 @@ import { describe, expect, it } from "vitest";
 import {
   ALLOWED_NAMESPACES,
   forwardStoreApiRequest,
+  methodRefused,
   resolveStoreApiPath,
   resolveStoreApiTarget,
   type StoreApiFetch,
@@ -306,16 +307,19 @@ function medusaApiNamespaces(): readonly string[] {
 }
 
 describe("the store-api namespace allowlist admits exactly what it declares", () => {
-  // This is the one place the two names are written out. Everything else in
+  // This is the one place the three names are written out. Everything else in
   // this file asserts a property computed from `ALLOWED_NAMESPACES` itself;
   // only this assertion notices if that declaration's *membership* ever
-  // changes. Concretely: adding a third name here (say, "admin") makes this
+  // changes. Concretely: adding a fourth name here (say, "admin") makes this
   // assertion fail, while the property test below -- which derives its own
   // expectation from `ALLOWED_NAMESPACES.has(...)` -- passes regardless,
   // because it checks that the mechanism matches the declaration, not that
   // the declaration itself is the intended one.
-  it("declares exactly store and hooks, and nothing else", () => {
-    expect([...ALLOWED_NAMESPACES].sort()).toEqual(["hooks", "store"]);
+  it("declares exactly store, hooks and webhooks, and nothing else", () => {
+    // Hand-written, never derived. A fourth name arriving here on purpose is
+    // a one-line edit to this list; a fourth name arriving by accident is
+    // this assertion failing, which is the whole point of writing it out.
+    expect([...ALLOWED_NAMESPACES].sort()).toEqual(["hooks", "store", "webhooks"]);
   });
 
   it("resolves or refuses every namespace Medusa actually mounts, exactly as ALLOWED_NAMESPACES says it should", () => {
@@ -332,8 +336,12 @@ describe("the store-api namespace allowlist admits exactly what it declares", ()
         // allowlist (see the dedicated describe block below): declared in
         // ALLOWED_NAMESPACES, but a bare `hooks/probe` is still refused
         // because it is not `hooks/payment/<the registered provider>`. This
-        // is the one namespace where "declared" and "resolves a same-shape
-        // probe" deliberately diverge.
+        // is one of two namespaces where "declared" and "resolves a
+        // same-shape probe" deliberately diverge -- `webhooks` is the other,
+        // and it is absent from this loop only because Medusa's own `dist/api`
+        // has no directory by that name. Its equivalent probe is asserted in
+        // the `webhooks` block below, where a bare `webhooks/probe` is
+        // refused for the same reason a bare `hooks/probe` is.
         expect(resolved).toBeNull();
         continue;
       }
@@ -354,7 +362,7 @@ describe("resolveStoreApiTarget", () => {
 });
 
 describe("forwardStoreApiRequest header hygiene", () => {
-  it("forwards only the allowlist (content-type, accept, stripe-signature), and attaches the publishable key server-side", async () => {
+  it("forwards only the allowlist (content-type, accept, the two signatures), and attaches the publishable key server-side", async () => {
     let seenInit: RequestInit | undefined;
     const fetchImpl: StoreApiFetch = async (_target, init) => {
       seenInit = init;
@@ -369,6 +377,8 @@ describe("forwardStoreApiRequest header hygiene", () => {
         "content-type": "application/json",
         accept: "application/json",
         "stripe-signature": "t=1,v1=deadbeef",
+        "x-pf-webhook-signature": "0f1e2d3c4b5a",
+        "x-pf-webhook-public-key": "cHVibGljLWtleQ==",
         [STORE_PUBLISHABLE_KEY_HEADER]: "pk_spoofed_by_the_browser",
         cookie: "session=browser-cookie-that-must-not-reach-medusa",
         authorization: "Bearer browser-supplied-token",
@@ -392,6 +402,17 @@ describe("forwardStoreApiRequest header hygiene", () => {
     // `200` (`hooks/payment/[provider]/route.js` enqueues before verifying).
     // Proven present here, and exercised end to end below.
     expect(headers.get("stripe-signature")).toBe("t=1,v1=deadbeef");
+    // The same failure as Major 1's, one provider over: `webhook.ts` reads
+    // exactly this header, and a delivery that arrives without it is refused
+    // like an unsigned one -- 401 on every genuine event, looking precisely
+    // like a wrong secret.
+    expect(headers.get("x-pf-webhook-signature")).toBe("0f1e2d3c4b5a");
+    // **And its companion is deliberately not forwarded.** Printful sends
+    // `x-pf-webhook-public-key` to say which configuration signed an event,
+    // where one URL serves several; this deployment holds one secret and
+    // nothing reads it. Asserted as an absence so the decision is visible
+    // rather than merely unimplemented.
+    expect(headers.has("x-pf-webhook-public-key")).toBe(false);
     expect(headers.get(STORE_PUBLISHABLE_KEY_HEADER)).toBe("pk_real");
 
     // Everything else the browser sent -- the hop-by-hop set this route used
@@ -411,7 +432,7 @@ describe("forwardStoreApiRequest header hygiene", () => {
     // The full set Medusa receives is exactly the allowlist plus the key --
     // nothing extra rode along.
     expect([...headers.keys()].sort()).toEqual(
-      ["accept", "content-type", "stripe-signature", STORE_PUBLISHABLE_KEY_HEADER].sort(),
+      ["accept", "content-type", "stripe-signature", "x-pf-webhook-signature", STORE_PUBLISHABLE_KEY_HEADER].sort(),
     );
   });
 
@@ -451,6 +472,89 @@ describe("forwardStoreApiRequest header hygiene", () => {
 
     expect(seenHeaders?.get("stripe-signature")).toBe("t=1700000000,v1=exact-delivery-signature");
     expect(seenBody).toBe(rawBody);
+  });
+
+  /**
+   * The same probe for Printful, **with a body the Stripe one could not have
+   * caught a re-serialisation with.**
+   *
+   * The Stripe probe above signs over
+   * `{"id":"evt_1","object":"event",...}` — canonical JSON, where
+   * `JSON.stringify(JSON.parse(x))` reproduces the input byte for byte. So a
+   * mutation inserting a parse-and-restringify in the forward path passes it.
+   * This body is chosen so that it cannot: an escaped solidus, a unicode
+   * escape, interior spaces and a trailing newline all move or vanish the
+   * moment anything re-encodes it, and an HMAC over the result stops matching
+   * every genuine event.
+   */
+  it("carries the Printful signature and a body no re-encoding could survive", async () => {
+    const requestPath = "/api/store/webhooks/printful";
+    const upstreamPath = resolveStoreApiPath(requestPath);
+    expect(upstreamPath).toBe("/webhooks/printful");
+    if (upstreamPath === null) throw new Error("unreachable: asserted above");
+
+    const rawBody = '{ "type": "shipment_sent",\n  "url": "https:\\/\\/example.invalid\\/t",\n  "carrier": "Postimees \\u00e9" }\n';
+    let seenHeaders: Headers | undefined;
+    let seenBody: string | undefined;
+    const fetchImpl: StoreApiFetch = async (_target, init) => {
+      seenHeaders = new Headers(init.headers);
+      seenBody = new TextDecoder().decode(init.body as ArrayBuffer);
+      return new Response(null, { status: 200 });
+    };
+
+    const request = new Request(`https://storefront.example${requestPath}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-pf-webhook-signature": "0f1e2d3c4b5a6978" },
+      body: rawBody,
+    });
+
+    await forwardStoreApiRequest(request, new URL(`https://backend.invalid${upstreamPath}`), "pk_real", fetchImpl);
+
+    expect(seenHeaders?.get("x-pf-webhook-signature")).toBe("0f1e2d3c4b5a6978");
+    expect(seenBody).toBe(rawBody);
+    // Not vacuous: the body really is one that re-encoding changes, so the
+    // assertion above is testing what it claims to.
+    expect(JSON.stringify(JSON.parse(rawBody))).not.toBe(rawBody);
+  });
+
+  it("hands back a refusal as a refusal, so Printful retries it", async () => {
+    /**
+     * **A 200 here would be worse than the 401.** Printful retries a non-2xx
+     * at 1, 4, 16, 64, 256 and 1024 minutes, and that schedule is the window
+     * in which a rotated secret can be fixed without losing the event. A
+     * proxy that swallowed the status — answering 200 because the forward
+     * "succeeded" — would spend that window silently.
+     */
+    const fetchImpl: StoreApiFetch = async () =>
+      new Response('{"ok":false}', { status: 401, headers: { "content-type": "application/json" } });
+
+    const response = await forwardStoreApiRequest(
+      new Request("https://storefront.example/api/store/webhooks/printful", { method: "POST", body: "{}" }),
+      new URL("https://backend.invalid/webhooks/printful"),
+      "pk_real",
+      fetchImpl,
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe('{"ok":false}');
+  });
+
+  it("hands back whatever status the backend chose, rather than one of its own", async () => {
+    // **The test above proves "not hardcoded 200" and nothing more**, which a
+    // reviewer demonstrated by replacing `status: upstream.status` with
+    // `status: 401`: the suite stayed green while every store request in
+    // production would have answered 401. A single status can only ever
+    // prove a single status. Several, through the one function, prove the
+    // wire.
+    for (const status of [200, 201, 204, 302, 400, 401, 409, 500, 503]) {
+      const response = await forwardStoreApiRequest(
+        new Request("https://storefront.example/api/store/store/products"),
+        new URL("https://backend.invalid/store/products"),
+        "pk_real",
+        async () => new Response(status === 204 ? null : "{}", { status }),
+      );
+      expect(`${String(status)} -> ${String(response.status)}`).toBe(`${String(status)} -> ${String(status)}`);
+    }
   });
 
   it("strips content-encoding and content-length from the response, but keeps other upstream headers", async () => {
@@ -1110,5 +1214,281 @@ describe("the postage field, labelled once and in the right scale", () => {
 
   it("reads the file, so a bad path cannot pass by finding nothing", () => {
     expect(source).toContain("export");
+  });
+});
+
+describe("the webhooks namespace, which is one path and not a namespace", () => {
+  /**
+   * **Printful cannot reach the backend, and this is the door it comes
+   * through.** The backend has no public hostname by design (T10, decision
+   * `010`); the storefront does. So the webhook arrives at
+   * `/api/store/webhooks/printful` and this proxy forwards it to the
+   * backend's `/webhooks/printful`, whose `preserveRawBody` matcher and HMAC
+   * check do the actual verifying.
+   *
+   * **The alternative was giving the backend its own public hostname with an
+   * unauthenticated Access bypass, and it fails open.** Behind a bypass on
+   * that host there is no second gate: a bypass drawn one character too wide
+   * exposes the whole Medusa API, Admin included -- which decision `010`'s
+   * own Consequences section already names as the blast radius. Behind a
+   * bypass on *this* host there is this resolver, so the same careless
+   * bypass exposes only what the resolver resolves. A regression here is a
+   * 404 -- lost webhooks, retried for about eighteen hours and visible in
+   * logs -- rather than an exposed Admin.
+   *
+   * Which is only true while `webhooks` stays an allowlist of exactly one
+   * path, the way `hooks` is. Hence this block.
+   */
+  it("resolves the one path, to the canonical backend spelling", () => {
+    expect(resolveStoreApiPath("/api/store/webhooks/printful")).toBe("/webhooks/printful");
+  });
+
+  it("refuses every other second segment, exactly rather than nearly", () => {
+    // **What this proves is the comparison, not the length.** An earlier
+    // version of this comment claimed a dropped `segments.length !== 2` would
+    // fail here too; a reviewer showed it does not, because every input below
+    // has exactly two segments. The length check is proved by the next test,
+    // which is where the nested and bare shapes live. Written down because a
+    // comment claiming coverage a test does not have is worse than no
+    // comment: it stops the next reader looking for the case.
+    //
+    // A `startsWith`, a case-insensitive compare, or a compare against the
+    // wrong constant all die here.
+    for (const segment of ["Printful", "PRINTFUL", "printfulEVIL", "printfu", "printful2", "payment"]) {
+      expect(`${segment}: ${String(resolveStoreApiPath(`/api/store/webhooks/${segment}`))}`).toBe(`${segment}: null`);
+    }
+  });
+
+  it("refuses a nested, trailing or bare path", () => {
+    // `segments.length !== 2` is what these prove, and a prefix match is what
+    // they are written against: `/webhooks/printful/anything` forwarded would
+    // be a namespace admitted one segment at a time.
+    for (const path of [
+      "/api/store/webhooks/printful/extra",
+      "/api/store/webhooks/printful/",
+      "/api/store/webhooks",
+      "/api/store/webhooks/",
+    ]) {
+      expect(`${path}: ${String(resolveStoreApiPath(path))}`).toBe(`${path}: null`);
+    }
+  });
+
+  it("compares the admitted segment undecoded, because it is not a route parameter", () => {
+    // The asymmetry the `hooks` branch documents: it decodes its *provider*
+    // segment because Express resolves that route param with
+    // `decodeURIComponent`, so two spellings are one request. Nothing in
+    // `/webhooks/printful` is a param, so an encoded spelling is a guess
+    // about somebody else's router rather than a proven equivalence -- and
+    // Express would 404 it anyway.
+    expect(resolveStoreApiPath("/api/store/webhooks/%70rintful")).toBeNull();
+    // **This one is refused a gate earlier**, by `ALLOWED_NAMESPACES.has` on
+    // the undecoded namespace, and it is kept here rather than moved because
+    // it pins the property this branch depends on: if the namespace were
+    // decoded before that membership test, `/%77ebhooks/printful` would fall
+    // through to the generic tail and leave the namespace by the back door.
+    expect(resolveStoreApiPath("/api/store/%77ebhooks/printful")).toBeNull();
+  });
+
+  it("refuses a bare probe at the namespace, which is what a deleted gate would admit", () => {
+    // **The mutation that matters most, because it passes by hand.** Adding
+    // `webhooks` to ALLOWED_NAMESPACES and forgetting the gate leaves the
+    // generic tail of `resolveStoreApiPath` resolving `/webhooks/<anything>`
+    // -- the whole namespace, including every sibling route somebody adds
+    // later and nobody re-reads this file for.
+    expect(resolveStoreApiPath("/api/store/webhooks/probe")).toBeNull();
+  });
+
+  it("refuses a tab splice on this branch's own segment count", () => {
+    // Mirrors the `hooks` case, and proves the same thing about the same
+    // branch: what refuses this is *this* gate's `length !== 2`, not the
+    // shared normalization re-check below it -- which this branch returns
+    // before ever reaching.
+    expect(resolveStoreApiPath("/api/store/webhooks/.\t./admin/users")).toBeNull();
+  });
+});
+
+describe("the two workspaces agree about where the Printful webhook lives", () => {
+  /**
+   * **One string, two workspaces, and a disagreement is invisible from
+   * either.** This proxy forwards to `/webhooks/printful`;
+   * `backend/src/api/middlewares.ts` sets `preserveRawBody` for that exact
+   * matcher and for nothing else.
+   *
+   * If they ever drift, `req.rawBody` is absent, the route computes no
+   * signature, and it answers 401 to **every delivery including the genuine
+   * ones** -- logging that the request "was not signed with this deployment's
+   * secret", which is exactly what a wrong secret looks like. Printful
+   * retries at 1, 4, 16, 64, 256 and 1024 minutes and then the event is gone:
+   * a buyer never told their parcel shipped, a cancellation never reaching
+   * the local record, and nothing anywhere saying so.
+   *
+   * The backend's own suite pins its half. Nothing pinned the two halves
+   * together until this.
+   */
+  const backendRoot = fileURLToPath(new URL("../../backend/", import.meta.url));
+
+  it("resolves to a path the backend actually serves, with a POST handler on it", () => {
+    const resolved = resolveStoreApiPath("/api/store/webhooks/printful");
+    expect(resolved).toBe("/webhooks/printful");
+    // `src/api/<path>/route.ts` is how Medusa maps a file to a route, so the
+    // tree is the declaration.
+    const routeFile = join(backendRoot, "src/api", `${resolved ?? ""}`.slice(1), "route.ts");
+    expect(existsSync(routeFile)).toBe(true);
+    // **Existence is not service.** A file exporting only `GET` is a file at
+    // the right path that answers nothing Printful sends.
+    expect(readFileSync(routeFile, "utf8")).toMatch(/export async function POST\(/);
+  });
+
+  it("resolves to the path the backend preserves the raw body for, on the verb it will arrive by", () => {
+    /**
+     * **One route object, one regex, and the review is why.**
+     *
+     * This was two independent `toContain` calls -- one for the matcher, one
+     * for `preserveRawBody: true` -- with nothing tying them to the same
+     * entry and nothing pinning the method at all. A reviewer changed
+     * `method: "POST"` to `"GET"` in `backend/src/api/middlewares.ts` and
+     * **every guard in both workspaces stayed green**, while every real
+     * delivery lost `rawBody` and answered 401. Moving the `bodyParser` key
+     * to a different matcher entry passed the whole storefront suite too.
+     *
+     * That is precisely the invisible failure this block exists to make
+     * visible, and the block could not see it. So the three facts are
+     * asserted as one shape.
+     */
+    const middlewares = readFileSync(join(backendRoot, "src/api/middlewares.ts"), "utf8");
+    const path = String(resolveStoreApiPath("/api/store/webhooks/printful"));
+    expect(middlewares).toMatch(
+      new RegExp(
+        `matcher:\\s*"${path}",\\s*method:\\s*"POST",\\s*bodyParser:\\s*\\{\\s*preserveRawBody:\\s*true`,
+      ),
+    );
+  });
+
+  it("reads the same header name the backend reads", () => {
+    // **The same drift class as the path**, and unpinned until the review
+    // said so: the storefront hand-writes the header in its allowlist while
+    // the backend reads `PRINTFUL_SIGNATURE_HEADER`. If those two diverge the
+    // allowlist strips the signature, every genuine delivery answers 401, and
+    // it is invisible from either side -- the identical failure the matcher
+    // test above is written against.
+    const proxy = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/app/api/store/[...path]/route.ts"),
+      "utf8",
+    );
+    const backendHeader = readFileSync(join(backendRoot, "src/modules/printful/webhook.ts"), "utf8").match(
+      /PRINTFUL_SIGNATURE_HEADER = "([^"]+)"/,
+    );
+    expect(backendHeader?.[1]).toBe("x-pf-webhook-signature");
+    expect(proxy).toContain(`"${String(backendHeader?.[1])}",`);
+  });
+});
+
+describe("what the one unauthenticated public path will and will not do", () => {
+  /**
+   * The webhook path is carved out of the Cloudflare Access gate by design —
+   * the HMAC signature on the body is the only credential, and it is checked
+   * at the backend. So everything this proxy does *before* forwarding is
+   * done for anonymous callers, and an adversarial review went looking for
+   * what that buys them.
+   */
+  it("refuses a body past the cap rather than buffering it", async () => {
+    // **Finding F1.** `arrayBuffer()` had no ceiling. Medusa would refuse
+    // anything over Express's ~100 kb default -- but only after this process
+    // had already allocated the whole thing, so a few concurrent large POSTs
+    // take down the storefront rather than the webhook.
+    const oversized = "x".repeat(300 * 1024);
+    let forwarded = false;
+    const response = await forwardStoreApiRequest(
+      new Request("https://storefront.example/api/store/webhooks/printful", {
+        method: "POST",
+        body: oversized,
+      }),
+      new URL("https://backend.invalid/webhooks/printful"),
+      "pk_real",
+      async () => {
+        forwarded = true;
+        return new Response(null, { status: 200 });
+      },
+    );
+
+    expect(response.status).toBe(413);
+    // And it is refused *here*, not passed upstream to be refused there.
+    expect(forwarded).toBe(false);
+  });
+
+  it("still carries an ordinary webhook, which is a few kilobytes", async () => {
+    // The other half, and the reason the cap is 256 kb rather than something
+    // clever: a cap that refused real traffic would be an outage that looks
+    // like a signature problem.
+    let seenBody: string | undefined;
+    const response = await forwardStoreApiRequest(
+      new Request("https://storefront.example/api/store/webhooks/printful", {
+        method: "POST",
+        body: JSON.stringify({ type: "shipment_sent", padding: "y".repeat(8 * 1024) }),
+      }),
+      new URL("https://backend.invalid/webhooks/printful"),
+      "pk_real",
+      async (_target, init) => {
+        seenBody = new TextDecoder().decode(init.body as ArrayBuffer);
+        return new Response(null, { status: 200 });
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(seenBody).toContain("shipment_sent");
+  });
+
+  it("refuses a body whose declared length is over the cap without reading it", async () => {
+    // A sender that announces the size gets refused on the announcement.
+    // Belt and braces with the stream ceiling above, which is what covers a
+    // chunked request and a sender that lies.
+    const request = new Request("https://storefront.example/api/store/webhooks/printful", {
+      method: "POST",
+      headers: { "content-length": String(10 * 1024 * 1024) },
+      body: "small in fact",
+    });
+    const response = await forwardStoreApiRequest(
+      request,
+      new URL("https://backend.invalid/webhooks/printful"),
+      "pk_real",
+      async () => new Response(null, { status: 200 }),
+    );
+    expect(response.status).toBe(413);
+  });
+});
+
+describe("the verbs a webhook path answers", () => {
+  /**
+   * **Finding F2.** `resolveStoreApiPath` answers about paths and knows
+   * nothing about methods, and this route exports `GET` for a future store
+   * read — so the two paths carved out of the Access gate, which are the only
+   * ones an anonymous caller can reach at all, forwarded `GET` and `HEAD` to
+   * Medusa too. Nothing leaked: both backend routes are POST-only and the
+   * response scrubbing holds. But a 404 shaped by Medusa is distinguishable
+   * from this route's own empty one, which makes the pair a liveness oracle
+   * for a backend that is otherwise not addressable — and neither verb has a
+   * caller.
+   */
+  it("refuses every verb but POST on both webhook paths", () => {
+    for (const path of ["/webhooks/printful", `/hooks/payment/${STRIPE_PROVIDER_ID.slice("pp_".length)}`]) {
+      for (const method of ["GET", "HEAD", "PUT", "PATCH", "DELETE", "OPTIONS", "post", "Post"]) {
+        expect(`${method} ${path}: ${String(methodRefused(method, path))}`).toBe(`${method} ${path}: true`);
+      }
+      expect(`POST ${path}: ${String(methodRefused("POST", path))}`).toBe(`POST ${path}: false`);
+    }
+  });
+
+  it("leaves ordinary store paths alone, which do read", () => {
+    // The refusal is scoped to the two paths that have exactly one sender.
+    // Applying it to `store` would break the GET this proxy exists to allow.
+    for (const method of ["GET", "POST"]) {
+      expect(`${method}: ${String(methodRefused(method, "/store/products"))}`).toBe(`${method}: false`);
+    }
+  });
+
+  it("covers the Stripe path too, not only the one this row added", () => {
+    // Both are bypassed at the edge, so both are reachable anonymously; the
+    // finding applies to the pair.
+    expect(methodRefused("GET", `/hooks/payment/${STRIPE_PROVIDER_ID.slice("pp_".length)}`)).toBe(true);
   });
 });
