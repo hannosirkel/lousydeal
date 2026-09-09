@@ -27,7 +27,7 @@ const RECIPIENT = {
   province: null,
 };
 
-const LINES = [{ syncVariantId: 5488997617, quantity: 1 }];
+const LINES = [{ sku: "LD-STK-4", quantity: 1 }];
 
 const INPUT = {
   orderId: "order_01",
@@ -67,10 +67,10 @@ function fakeStore(seed: PrintfulSubmissionRecord[] = []) {
 }
 
 /** Printful, with the `external_id` uniqueness the live API was measured to have. */
-function fakePrintful(options: { failCreate?: Error; seed?: RemotePrintfulOrder[] } = {}) {
+function fakePrintful(options: { failCreate?: Error; failConfirm?: Error; seed?: RemotePrintfulOrder[] } = {}) {
   const remote = new Map<string, RemotePrintfulOrder>();
   for (const order of options.seed ?? []) remote.set("order_01", order);
-  const calls = { create: 0, find: 0 };
+  const calls = { create: 0, find: 0, confirm: 0 };
   return {
     calls,
     remote,
@@ -86,9 +86,18 @@ function fakePrintful(options: { failCreate?: Error; seed?: RemotePrintfulOrder[
           // OR-13, measured: "Order with this External ID already exists".
           return Promise.reject(new Error("Printful POST /orders failed with 400: Order with this External ID already exists"));
         }
+        // Measured: a v1 create answers `draft`. Nothing prints a draft.
         const created = { id: `pf_${externalId}`, status: "draft" };
         remote.set(externalId, created);
         return Promise.resolve(created);
+      },
+      confirm: (printfulOrderId: string) => {
+        calls.confirm += 1;
+        if (options.failConfirm) return Promise.reject(options.failConfirm);
+        const key = [...remote.keys()].find((k) => remote.get(k)?.id === printfulOrderId);
+        const confirmed = { id: printfulOrderId, status: "pending" };
+        if (key !== undefined) remote.set(key, confirmed);
+        return Promise.resolve(confirmed);
       },
     } satisfies PrintfulOrders,
   };
@@ -127,24 +136,94 @@ describe("the ordinary case", () => {
   });
 });
 
-describe("what a created order actually is, today", () => {
-  it("is a draft, recorded as submitted, with the draft still visible", async () => {
-    // **Asserted rather than left implied, because it is a loose end.** A v1
-    // create yields `status: draft` -- measured against the live API -- and
-    // nobody prints a draft until it is confirmed through a separate
-    // endpoint.
-    //
-    // Correct for this row, which works out how to place an order exactly once
-    // and stops there; confirmation is the step that spends the money. Wrong
-    // the moment anything treats `submitted` as "a parcel is coming". P8b
-    // confirms, and when it does this assertion fails and must change with it.
+describe("confirming, which is the call that spends the money", () => {
+  /**
+   * **P8a recorded a draft as `submitted` and said so in a failing-on-purpose
+   * assertion; this is that assertion inverted.** A created order is a draft,
+   * nothing prints a draft, and confirmation is a separate endpoint that v2
+   * describes as starting fulfilment in the production facility.
+   */
+  it("confirms a freshly created order and records what came back", async () => {
     const { store } = fakeStore();
-    const result = await submitPrintfulOrder(store, fakePrintful().orders, INPUT);
+    const printful = fakePrintful();
 
+    const result = await submitPrintfulOrder(store, printful.orders, INPUT);
+
+    expect(printful.calls.confirm).toBe(1);
     expect(result.status).toBe("submitted");
-    // The honest half, and what makes the gap findable in the database rather
-    // than only in this comment: the remote word is kept as it came.
+    expect(result.printful_status).toBe("pending");
+    expect(result.submitted_at).not.toBeNull();
+  });
+
+  it("confirms a recovered draft, which is what a crash between the two leaves", async () => {
+    // The case this two-call shape exists for. An atomic create-and-confirm
+    // would make this crash indistinguishable from one that never created
+    // anything.
+    const printful = fakePrintful();
+    printful.remote.set("order_01", { id: "pf_order_01", status: "draft" });
+    const { store } = fakeStore();
+
+    const result = await submitPrintfulOrder(store, printful.orders, INPUT);
+
+    expect(printful.calls.confirm).toBe(1);
+    expect(result.status).toBe("submitted");
+  });
+
+  it("does not confirm an order that is already past draft", async () => {
+    // Confirming twice is not obviously harmless and there is no reason to
+    // find out.
+    const printful = fakePrintful();
+    printful.remote.set("order_01", { id: "pf_order_01", status: "pending" });
+    const { store } = fakeStore();
+
+    await submitPrintfulOrder(store, printful.orders, INPUT);
+
+    expect(printful.calls.confirm).toBe(0);
+  });
+
+  it("leaves an unconfirmed draft retryable rather than calling it submitted", async () => {
+    // **The failure that would otherwise be silent.** The order exists and
+    // will never be printed. Recording `submitted` would be the shop telling
+    // itself a parcel was coming.
+    const printful = fakePrintful({ failConfirm: new Error("Printful POST /v2/orders/1/confirmation failed with 500: upstream") });
+    const { store } = fakeStore();
+
+    const result = await submitPrintfulOrder(store, printful.orders, INPUT);
+
+    expect(result.status).toBe("failed");
     expect(result.printful_status).toBe("draft");
+    expect(result.submitted_at).toBeNull();
+    expect(result.last_error).toContain("500");
+  });
+
+  it("does not throw when confirmation fails, because the order exists", async () => {
+    // Throwing would be right if nothing had happened. Something has: the
+    // order is placed and the external id is taken, so the next redelivery
+    // must reach the confirmation rather than the create.
+    const printful = fakePrintful({ failConfirm: new Error("upstream") });
+    const { store } = fakeStore();
+
+    await expect(submitPrintfulOrder(store, printful.orders, INPUT)).resolves.toBeDefined();
+
+    const working = fakePrintful();
+    working.remote.set("order_01", { id: "pf_order_01", status: "draft" });
+    const second = await submitPrintfulOrder(store, working.orders, INPUT);
+
+    expect(working.calls.create).toBe(1);
+    expect(working.calls.confirm).toBe(1);
+    expect(second.status).toBe("submitted");
+  });
+
+  it("records a draft that survives confirmation with a reason a person can read", async () => {
+    const printful = {
+      findByExternalId: () => Promise.resolve(null),
+      create: () => Promise.resolve({ id: "pf_1", status: "draft" }),
+      confirm: () => Promise.resolve({ id: "pf_1", status: "draft" }),
+    };
+    const { store } = fakeStore();
+    const result = await submitPrintfulOrder(store, printful, INPUT);
+    expect(result.status).toBe("failed");
+    expect(result.last_error).toMatch(/still a draft/i);
   });
 });
 
@@ -325,7 +404,11 @@ describe("a failure that really is one", () => {
   });
 
   it("survives something thrown that is not an Error", async () => {
-    const printful = { findByExternalId: () => Promise.resolve(null), create: () => Promise.reject("nope") };
+    const printful = {
+      findByExternalId: () => Promise.resolve(null),
+      create: () => Promise.reject("nope"),
+      confirm: () => Promise.reject(new Error("unreachable")),
+    };
     const { store, rows } = fakeStore();
     await expect(submitPrintfulOrder(store, printful, INPUT)).rejects.toBeDefined();
     expect(rows[0]?.last_error).toBe("nope");

@@ -92,9 +92,16 @@ export interface RemotePrintfulOrder {
   readonly status: string;
 }
 
-/** One thing to be printed and posted. */
+/**
+ * One thing to be printed and posted.
+ *
+ * The SKU, not a Printful id. `orders.ts` resolves it through the join
+ * `sync.ts` already made — each sync variant's `external_id` is its SKU — so
+ * nothing here or upstream has to carry a mapping that Printful is already
+ * keeping and that cannot drift from the products because it is them.
+ */
 export interface PrintfulOrderLine {
-  readonly syncVariantId: number;
+  readonly sku: string;
   readonly quantity: number;
 }
 
@@ -122,6 +129,12 @@ export interface PrintfulOrders {
     readonly recipient: PrintfulRecipient;
     readonly lines: readonly PrintfulOrderLine[];
   }): Promise<RemotePrintfulOrder>;
+  /**
+   * **The call that spends the money.** A created order is a `draft` and
+   * nothing prints a draft; v2 describes this as starting fulfilment in the
+   * production facility.
+   */
+  confirm(printfulOrderId: string): Promise<RemotePrintfulOrder>;
 }
 
 export interface PrintfulSubmissionInput {
@@ -138,25 +151,30 @@ export interface PrintfulSubmissionInput {
  *
  * Both spellings of cancelled, because the field is somebody else's and the
  * live API answered `canceled` while its own documentation uses both.
- *
- * **`draft` is deliberately not in this set, and that is a loose end P8b must
- * close.** A v1 create yields `status: draft` — measured — and a draft is
- * printed by nobody until it is confirmed through a separate endpoint. So this
- * function currently records a created order as `submitted` when what exists
- * is an unconfirmed draft.
- *
- * That is correct for *this* row, which places the order and stops:
- * confirmation is the step that spends the money, and it belongs in the row
- * that wires this to a paid order rather than in the one that works out how to
- * be idempotent. It would be wrong the moment anything relies on `submitted`
- * meaning "a parcel is coming". `printful-submission.test.ts` states the
- * current behaviour as a fact rather than leaving it implied, so the row that
- * changes it has to change that test too.
  */
 const NOT_GOING_TO_BE_MADE = new Set(["canceled", "cancelled", "failed"]);
 
+/** Printful's word for an order that exists and has not been sent to a facility. */
+const DRAFT = "draft";
+
+/**
+ * **P8a recorded a draft as `submitted`, and P8b closes that.**
+ *
+ * A created order is a draft — measured — and nothing prints a draft. So a
+ * draft is not a success, and it is not a permanent failure either: it is an
+ * order that exists and needs one more call. Mapping it to `failed` makes it
+ * **retryable**, and a retry finds the existing order by `external_id` and
+ * confirms it rather than creating a second one.
+ *
+ * That is the whole reason confirmation is a separate call here rather than a
+ * `?confirm=1` on the create. A crash between creating and confirming leaves a
+ * recoverable draft; an atomic create-and-confirm would leave the same crash
+ * indistinguishable from a create that never happened.
+ */
 function statusFor(remote: RemotePrintfulOrder): PrintfulSubmissionStatus {
-  return NOT_GOING_TO_BE_MADE.has(remote.status.toLowerCase()) ? "canceled" : "submitted";
+  const status = remote.status.toLowerCase();
+  if (NOT_GOING_TO_BE_MADE.has(status)) return "canceled";
+  return status === DRAFT ? "failed" : "submitted";
 }
 
 /**
@@ -209,32 +227,14 @@ export async function submitPrintfulOrder(
       recipient: input.recipient,
       lines: input.lines,
     });
-    return await record(submissions, existing, {
-      order_id: input.orderId,
-      status: statusFor(created),
-      printful_order_id: created.id,
-      printful_status: created.status,
-      last_error: null,
-      submitted_at: input.submittedAt,
-      attempts,
-    });
+    return await settle(submissions, orders, existing, input, created, attempts);
   } catch (error) {
     // **The question the error was trying to answer.** Not "was this OR-13",
     // which couples us to Printful's wording; and it is the right question for
     // a lost response too, where there is no error code to read because the
     // create succeeded and the answer never arrived.
     const already = await orders.findByExternalId(input.orderId);
-    if (already !== null) {
-      return await record(submissions, existing, {
-        order_id: input.orderId,
-        status: statusFor(already),
-        printful_order_id: already.id,
-        printful_status: already.status,
-        last_error: null,
-        submitted_at: input.submittedAt,
-        attempts,
-      });
-    }
+    if (already !== null) return await settle(submissions, orders, existing, input, already, attempts);
 
     // Printful has nothing for this order, so nothing was ordered and nothing
     // was charged. Recorded as failed and rethrown: an order that took a
@@ -250,6 +250,50 @@ export async function submitPrintfulOrder(
     });
     throw error;
   }
+}
+
+/**
+ * Confirms the order if it still needs it, then writes the row.
+ *
+ * Reached from both paths — a fresh create and a recovered one — because a
+ * recovered order is exactly as likely to be an unconfirmed draft. That is the
+ * case a crash between create and confirm leaves behind, and the one this
+ * two-call shape exists to make recoverable.
+ *
+ * A confirmation that fails is not rethrown. The order exists, it is not lost,
+ * and the row says `failed` with the reason — which makes the next redelivery
+ * try the confirmation again instead of the create. Throwing would be right if
+ * nothing had happened; something has.
+ */
+async function settle(
+  submissions: SubmissionStore,
+  orders: PrintfulOrders,
+  existing: PrintfulSubmissionRecord | undefined,
+  input: PrintfulSubmissionInput,
+  remote: RemotePrintfulOrder,
+  attempts: number,
+): Promise<PrintfulSubmissionRecord> {
+  let current = remote;
+  let error: string | null = null;
+
+  if (current.status.toLowerCase() === DRAFT) {
+    try {
+      current = await orders.confirm(current.id);
+    } catch (confirmation) {
+      error = messageOf(confirmation);
+    }
+  }
+
+  const status = statusFor(current);
+  return await record(submissions, existing, {
+    order_id: input.orderId,
+    status,
+    printful_order_id: current.id,
+    printful_status: current.status,
+    last_error: error ?? (status === "failed" ? "Printful order is still a draft and will not be printed" : null),
+    submitted_at: status === "submitted" ? input.submittedAt : null,
+    attempts,
+  });
 }
 
 /**

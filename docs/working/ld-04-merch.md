@@ -521,7 +521,8 @@ fulfilment a real Medusa fulfilment rather than a side effect.
 `backend/src/modules/deal/models/printful-submission.ts`, tests.
 
 - [x] **P8a** — the exactly-once argument, the table, and the submission logic.
-- [ ] **P8b** — the subscriber, the client's two order methods, confirmation, and the Privacy Policy paragraph.
+- [x] **P8b** — the three order methods, and confirmation.
+- [ ] **P8c** — the subscriber, the Privacy Policy paragraph, and the guard P11 wrote.
 
 **Three facts measured against the live API on 2026-09-09, and each changed the
 design.** The plan said "a unique index plus `external_id`", and the first of
@@ -544,11 +545,22 @@ these is why the index alone would not have been enough.
    successful look-up does not mean the item is coming, and `canceled` is a
    recorded state rather than an absence.
 
-**A created order is a `draft`** and nothing prints a draft. Confirmation is a
-separate endpoint and it is the step that spends the money, so it belongs in
-P8b with the wiring rather than in the row working out idempotency. The
-behaviour is asserted in `printful-submission.test.ts` rather than left
-implied, so P8b has to change that test.
+**A created order is a `draft`** and nothing prints a draft. **P8b closed
+this**, and the shape it chose is the point: confirmation stays a *separate*
+call rather than a `?confirm=1` on the create, and a draft maps to `failed`
+rather than to `submitted`.
+
+That makes a draft **retryable**. A crash between creating and confirming
+leaves an order the next redelivery finds by `external_id` and confirms; an
+atomic create-and-confirm would make that same crash indistinguishable from one
+that never created anything. The order is placed either way, so a failed
+confirmation is recorded and **not** rethrown — throwing would be right if
+nothing had happened.
+
+**A SKU resolves through the join `sync.ts` already made.** That file sets each
+sync variant's `external_id` to the SKU, so `GET /store/variants/@{sku}` answers
+directly — measured. Nothing new is stored, and the mapping cannot drift from
+the products because it is them.
 
 **P8b also has to fix a guard P11 wrote.** `third-party-disclosure.test.ts`
 ties the Privacy Policy's "does not yet hand its orders over for printing" to
