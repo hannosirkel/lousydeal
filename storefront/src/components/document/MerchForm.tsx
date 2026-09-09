@@ -1,0 +1,59 @@
+/**
+ * The control that adds a printed thing, with its size.
+ *
+ * **A `<select>` and not five buttons.** A shirt has five sizes and four rows
+ * of five controls is twenty controls in a screen reader's list, all reading
+ * `ADD`. One select per row names what it is choosing.
+ *
+ * **No `<select>` at all where there is one size.** A control with a single
+ * option is a control that does nothing, which `brand.md` calls a lie; the
+ * hidden field carries the only variant there is, exactly as `OrderForm` does
+ * for a tier.
+ *
+ * It does not share `OrderForm`, and that is deliberate rather than
+ * duplication: the two post to different actions, and P9b's whole finding was
+ * that "add a certificate" and "add a thing" had been made the same operation
+ * once already.
+ */
+
+import { MERCH_ADD_LABEL, MERCH_SIZE_LABEL } from "../../content/merch";
+import { Button } from "./Button";
+
+export interface MerchFormProps {
+  readonly action: (formData: FormData) => Promise<void>;
+  /** The item's name, for the accessible name of both controls. */
+  readonly title: string;
+  readonly variants: readonly { readonly variantId: string; readonly size: string }[];
+}
+
+export function MerchForm({ action, title, variants }: MerchFormProps) {
+  const only = variants.length === 1 ? variants[0] : undefined;
+  const selectId = `merch-size-${variants[0]?.variantId ?? "none"}`;
+
+  return (
+    <form action={action} className="merch-form">
+      {only === undefined ? (
+        <>
+          {/* Labelled by the item, not by the word "Size" alone: four selects
+              all called Size are four identical entries in a controls list. */}
+          <label className="visually-hidden" htmlFor={selectId}>
+            {MERCH_SIZE_LABEL}, {title}
+          </label>
+          <select id={selectId} name="variantId" defaultValue={variants[0]?.variantId} required>
+            {variants.map((variant) => (
+              <option key={variant.variantId} value={variant.variantId}>
+                {variant.size}
+              </option>
+            ))}
+          </select>
+        </>
+      ) : (
+        <input type="hidden" name="variantId" value={only.variantId} />
+      )}
+      <Button type="submit">
+        {MERCH_ADD_LABEL}
+        <span className="visually-hidden"> {title}</span>
+      </Button>
+    </form>
+  );
+}
