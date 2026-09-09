@@ -547,7 +547,7 @@ fulfilment a real Medusa fulfilment rather than a side effect.
 **Repository:** `lousydeal`.
 **Files:** `backend/src/scripts/seed-merch.ts`, `package.json`, tests.
 
-- [ ] A `MedusaMerchSeedTarget`, and a command that runs it.
+- [x] A `MedusaMerchSeedTarget`, and a command that runs it.
 
 Mirrors `MedusaProductSeedTarget`: look up by handle, create or update, never a
 bare create. It differs in three ways and each is why it is not a copy —
