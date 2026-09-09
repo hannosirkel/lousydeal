@@ -74,12 +74,24 @@ describe("price and tax", () => {
     expect(section("3")).toContain("{merchantLegalName} bears it");
   });
 
-  it("states the condition the Estonian rate depends on", () => {
-    // `backend/src/commerce/tax-model.ts` records that one rate applies only
-    // under the Article 59c threshold. A clause that drops the condition
-    // becomes false the day it is crossed, with nothing linking it back.
-    expect(section("3")).toContain("Article 59c");
-    expect(section("3")).toMatch(/below the threshold/i);
+  it("rests the rate on nothing that decision `013` gave away", () => {
+    // **Inverted at Gate D, and this is what the old version was for.** It
+    // required the clause to cite Article 59c and say the shop was *below*
+    // that threshold -- true when `008` reasoned it, false the moment the
+    // operator registered for the Union OSS on 2026-09-09, because the
+    // threshold simplification goes with the registration. A guard that
+    // pins a reason keeps the reason alive after it stops being one.
+    expect(section("3")).not.toContain("Article 59c");
+    expect(section("3")).not.toMatch(/below the threshold/i);
+  });
+
+  it("gives the rule that replaced it: your rate, our return", () => {
+    // Inverted rather than deleted -- the ban above must not be satisfiable
+    // by a clause that explains nothing at all.
+    const s = section("3");
+    expect(s).toMatch(/Value added tax follows where you are rather than where we are/);
+    expect(s).toMatch(/Union One Stop Shop return/);
+    expect(s).toMatch(/instead of registering in each country/);
   });
 
   it("names no amount", () => {
@@ -193,16 +205,20 @@ describe("posting a thing, which this shop had never done", () => {
     expect(s).toMatch(/not ours to collect and not ours to keep/i);
   });
 
-  it("does not extend the Article 59c sentence to goods, which it does not cover", () => {
-    // Decision `009` is about digital supplies. Goods are decision `013`:
-    // taxed where the parcel lands, accounted for in Estonia through OSS
-    // rather than by registering abroad. Leaving one sentence to cover both
-    // would have been the easy edit and the wrong one.
+  it("covers both kinds of thing in the one sentence, because after `013` there is one rule", () => {
+    // **This test used to require the opposite**, and correctly: while the
+    // certificate rested on the Article 59c threshold and goods did not,
+    // one sentence covering both would have been the easy edit and the
+    // wrong one. OSS collapsed the two rules into one, so the scoping that
+    // was load-bearing became a second paragraph saying the same thing
+    // slightly differently -- which is how two clauses start to disagree.
     const s = section("3");
-    const article59c = s.split(/(?<=\.)\s+/).filter((sentence) => /59c/.test(sentence)).join(" ");
-    expect(article59c).toMatch(/for the certificate|that supply/i);
-    expect(s).toMatch(/follows where the parcel goes/i);
-    expect(s).toMatch(/instead of registering in each country/i);
+    expect(s).toMatch(/for the certificate and for a printed item alike/);
+    expect(s).not.toMatch(/The tax on a printed item follows where the parcel goes/);
+    // And the buyer-facing consequence survived the rewrite, which is the
+    // half of the clause that was true throughout.
+    expect(s).toMatch(/\{merchantLegalName\} bears it/);
+    expect(s).toMatch(/a buyer in Hungary and a buyer in Luxembourg pay the same figure/);
   });
 });
 

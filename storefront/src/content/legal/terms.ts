@@ -72,9 +72,12 @@
  *   §3  postage, which is the one charge added after the offer page; and the
  *       import duty a customs authority outside the EU may levy, which
  *       § 54(1) p 6 requires be flagged even though the amount is unknowable.
- *       The Article 59c sentence stays, scoped to the certificate: goods are
- *       taxed where the parcel lands, and decision `013` accounts for that in
- *       Estonia rather than by registering abroad.
+ *       **The Article 59c sentence is gone, and Gate D is why.** It rested
+ *       the certificate's Estonian rate on being *below* that threshold —
+ *       a simplification decision `013` surrendered by registering for the
+ *       Union OSS on 2026-09-09, which is destination-rate taxation by
+ *       definition. One sentence now covers both kinds of thing, because
+ *       after `013` there is only one rule: your rate, our return.
  *   §4  that conclusion and supply coincide for the certificate and cannot for
  *       a thing that does not exist yet.
  *   §5  the § 209(6) thirty-day outside limit, and **§ 209(4) with § 214(2)**:
@@ -120,9 +123,9 @@ export const TERMS: LegalDocument = {
       heading: "Price and tax",
       body: [
         "Every price shown includes value added tax where value added tax applies. There is no tax line at checkout, no fee, and no charge you were not shown before you paid.",
-        "For the certificate the price shown on the offer page is the price charged, and nothing whatever is added to it. Where you are in the European Union, value added tax on that supply is currently accounted for in Estonia, because {merchantLegalName}'s cross-border supplies of this kind remain below the threshold in Article 59c of Directive 2006/112/EC. It is contained in the price rather than added to it, {merchantLegalName} bears it, and your total does not change because of where you are.",
+        "For the certificate the price shown on the offer page is the price charged, and nothing whatever is added to it.",
         "A printed item has to be posted, so postage is the one thing that is added — and it is quoted and shown to you as its own line before you pay, never afterwards. The certificate is not posted and carries none.",
-        "The tax on a printed item follows where the parcel goes rather than where we are, and we account for it in Estonia instead of registering in each country. The rate differs from one country to the next. The price you are shown does not: the tax is inside it and {merchantLegalName} bears the difference.",
+        "Value added tax follows where you are rather than where we are, for the certificate and for a printed item alike: a buyer in the European Union is charged their own country's rate, and we account for all of it in Estonia through a Union One Stop Shop return instead of registering in each country. The rate differs from one country to the next. The price you are shown does not: the tax is inside it, {merchantLegalName} bears it, and a buyer in Hungary and a buyer in Luxembourg pay the same figure for the same thing.",
         "If you are outside the European Union, the customs authority where you live may charge import duty or local tax on the parcel before it is released to you. That is charged by them, it is not ours to collect and not ours to keep, and we cannot tell you the amount in advance. § 54(1) p 6 of the Law of Obligations Act requires us to say that such a charge may fall due, and this is us saying it.",
       ],
     },

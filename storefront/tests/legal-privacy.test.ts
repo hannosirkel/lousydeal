@@ -144,11 +144,26 @@ describe("what the checkout asks for", () => {
     // The count is asserted, not just the list. C3b added a third field, and a
     // test that only looked for "the country you are in" would have passed a
     // notice still telling a reader there were two.
-    const asked = claim(section("3"), /Our own code asks you for three things/);
+    // **Four since Gate D, and the count is why this test exists.** It read
+    // "three things" and omitted the two lines that go on the certificate --
+    // a name and a dedication, personal data by design and *published*. An
+    // enumeration that undercounts is an Article 13 gap, and this guard
+    // asserted the undercount.
+    const asked = claim(section("3"), /Our own code asks you for four things/);
     expect(asked).toMatch(/your email address/i);
     expect(asked).toMatch(/the country you are in/i);
     expect(asked).toMatch(/the consent described in Refunds and Withdrawal/i);
-    expect(section("3")).not.toMatch(/asks you for two things/i);
+    expect(asked).toMatch(/the two lines that go on the certificate/i);
+    expect(section("3")).not.toMatch(/asks you for (?:two|three) things/i);
+  });
+
+  it("says the certificate lines are published, which is what makes them different", () => {
+    // The one thing here a buyer hands over *for* publication. The checkout
+    // says so before they type; the policy that enumerates has to say it too.
+    const s = section("3");
+    expect(s).toMatch(/both public/i);
+    expect(s).toMatch(/anybody with its address can read/i);
+    expect(s).toMatch(/Neither is your billing name/i);
   });
 
   it("says what the email address is for, and that the confirmation is sent", () => {
@@ -196,7 +211,7 @@ describe("the address, once there is something to post", () => {
     // back to. Article 13 requires the categories collected, and a policy that
     // describes a field without saying it is asked for has not given them.
     const s = section("3");
-    expect(s).toMatch(/it asks for a fourth: where to send it/i);
+    expect(s).toMatch(/it asks for a fifth: where to send it/i);
     expect(s).toMatch(/asked for only when there is a parcel/i);
     expect(s).toMatch(/a certificate is never a parcel/i);
   });

@@ -332,3 +332,43 @@ describe("what every surface says is sold", () => {
     expect(documentProse(PRIVACY)).toMatch(/delivery name you typed/i);
   });
 });
+
+describe("the exception, disclaimed at the same width in both documents", () => {
+  /**
+   * **Gate D found the two promising different things.** The Terms said "we
+   * will not refuse on the ground that § 53(4) p 7¹ has removed your right" —
+   * the whole exception disclaimed. Refunds §4 disclaimed only the third
+   * condition, and §6 then said that where all three are met "there is nothing
+   * to return".
+   *
+   * A buyer reading the Terms was promised a refund on any certificate
+   * withdrawal; a buyer reading Refunds §6 was told that ticking the box and
+   * getting the email left them with nothing. Both cannot be what the shop
+   * does, and neither document said which governs.
+   *
+   * Resolved in the buyer's favour, because that is the direction a promise
+   * already made can be resolved in: §6 now says the promise governs and
+   * names the Terms clause that makes it.
+   */
+  it("does not leave a buyer with nothing where a promise says otherwise", () => {
+    const refunds = documentProse(REFUNDS);
+    expect(refunds).not.toMatch(/there is nothing to return on a withdrawal/i);
+    expect(refunds).toMatch(/we will not refuse on that ground, and that promise is what governs/i);
+  });
+
+  it("points at the clause that makes the promise, in the other document", () => {
+    // A cross-reference is what stops the two drifting again: correcting one
+    // now reads oddly against the other.
+    expect(documentProse(REFUNDS)).toMatch(/The Terms of Service say the same in §6/);
+    expect(documentProse(TERMS)).toMatch(/we will not refuse on the ground that § 53\(4\) p 7¹ has removed your right/);
+  });
+
+  it("still refuses to tell anybody the exception was met for their order", () => {
+    // Which is the older rule and unchanged: whether the third condition was
+    // satisfied turns on timing this site cannot settle, and the trader does
+    // not get to answer it in its own favour.
+    for (const document of [REFUNDS, TERMS]) {
+      expect(documentProse(document)).toMatch(/not (?:a question we will answer in our own favour|answer that question in our own favour)/i);
+    }
+  });
+});

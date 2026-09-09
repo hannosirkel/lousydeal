@@ -1197,16 +1197,21 @@ and the guard that exists to catch exactly that has a frozen list.
    together; §4 was corrected and §9 was not — in the section about exercising
    GDPR rights.
 
-- **10.** **Terms §3 rests the certificate's VAT on a threshold decision `013` says
+- **10. Fixed in P12f.** **Terms §3 rests the certificate's VAT on a threshold decision `013` says
   was surrendered.** Registering for OSS gives up the Article 59c
   simplification, and P14a's destination rates take effect 1 October 2026.
   The buyer-facing consequence stays true; the stated reason will not be.
+  §3 now states one rule for both kinds of thing — your rate, our return —
+  and the two guards that pinned the threshold **are inverted**, because a
+  guard on a reason keeps the reason alive after it stops being one.
 
-- **11.** **Terms §6 and Refunds §4/§6 disclaim the exception at different widths.**
+- **11. Fixed in P12f.** **Terms §6 and Refunds §4/§6 disclaim the exception at different widths.**
   The Terms promise never to refuse on § 53(4) p 7¹ at all; Refunds §4
   disclaims only the third condition, and §6 says that where all three are
   met "there is nothing to return". A buyer reading one is promised something
-  the other withdraws.
+  the other withdraws. Resolved in the buyer's favour — the direction a
+  promise already made can be resolved in — and cross-referenced both ways so
+  correcting one alone reads oddly against the other.
 
 - **12. Dissolved by the upsell decision, in P12c.** Every payable cart holds a
   certificate now, so the box is a condition of ordering again and the
@@ -1215,9 +1220,11 @@ and the guard that exists to catch exactly that has a frozen list.
   made the box conditional on the cart holding a certificate; Terms §4 and
   Refunds §4 both state the condition unscoped.
 
-- **13.** **Privacy §3 enumerates "three things" and omits the inscription fields** —
+- **13. Fixed in P12f.** **Privacy §3 enumerates "three things" and omits the inscription fields** —
   a name and a dedication, typed by the buyer, stored on the deal and
   **published**. Article 13 completeness, and a false count pinned by a test.
+  Four now, with the published-by-design fields named as such; the test that
+  pinned three counts four and bans both smaller numbers.
 
 - **14. Fixed in P12d.** **The consistency guard's surface list is frozen at nine** and collects
   nothing LD-04 added: `GIFT_CONFIRMATION_NOTE`, `orderSummaryLines`'
@@ -1277,9 +1284,16 @@ and the guard that exists to catch exactly that has a frozen list.
   and logs at error; the same outcome arriving later by webhook is logged at
   info, leaves the local `status` at `submitted`, and tells no one.
 
-- **21.** **Two stale doc comments on the money path that already had a 100× bug**,
+- **21. Fixed in P12f.** **Two stale doc comments on the money path that already had a 100× bug**,
   one directly contradicting the line above it, plus a superseded § 56¹(3)
   citation in `shipping.ts` that P10 corrected in the documents.
+  **A comment fix is invisible to every behavioural test**, and the first
+  mutation run proved it: restoring the contradiction passed the whole suite.
+  So both files are now read as text — the label form `Minor units,` is
+  banned, the past-tense sentences recording P7c's correction are deliberately
+  still allowed to say the word, and each comment's own reason is asserted
+  against its own slice, because the first inverted guard read a sentence a
+  hundred lines away and let the field be gutted.
 
 **And one finding about the record itself**, which is why the list above is
 written out in full rather than summarised: **P7c's commit touched four source
