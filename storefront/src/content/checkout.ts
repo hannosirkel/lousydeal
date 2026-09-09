@@ -270,6 +270,12 @@ export const ADDRESS_NOTE =
 /** Shown while the postage is being quoted, so the total is never silently stale. */
 export const SHIPPING_PENDING_NOTICE = "Postage is quoted once the address is complete.";
 
+/** The ledger row the postage appears on, in the register every other row uses. */
+export const SHIPPING_LABEL = "Postage";
+
+/** Shown while Printful is being asked, so a pause is never mistaken for free. */
+export const SHIPPING_QUOTING_LABEL = "Asking Printful";
+
 /**
  * Shown when Printful could not be asked.
  *

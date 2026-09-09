@@ -50,12 +50,20 @@ import { loadStripe } from "@stripe/stripe-js";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "../../components/document/Button";
+import { formatMoney } from "../../lib/money";
 import { FinePrint } from "../../components/document/FinePrint";
 import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
 import {
   CONSENT_LABEL,
   CONSENT_REQUIRED_NOTICE,
+  ADDRESS_HEADING,
+  ADDRESS_LABELS,
+  ADDRESS_NOTE,
   COUNTRY_LABEL,
+  SHIPPING_LABEL,
+  SHIPPING_PENDING_NOTICE,
+  SHIPPING_QUOTING_LABEL,
+  SHIPPING_UNAVAILABLE_NOTICE,
   EMAIL_HINT,
   EMAIL_LABEL,
   INSCRIPTION_LABELS,
@@ -77,7 +85,21 @@ import { payDisabled } from "../../lib/checkout-rules";
 import { GIFT_LIMITS, previewGiftText } from "../../lib/gift";
 import { INSCRIPTION_LIMITS, sanitiseInscription } from "../../lib/inscription";
 import type { FetchJson, StoreFetchInit, StoreRegionCountry } from "../../lib/medusa-client";
-import { setCartCountry, setCartEmail, setCartInscriptionAndGift } from "../../lib/store-checkout";
+import {
+  listCartShippingOptions,
+  setCartCountry,
+  setCartEmail,
+  setCartInscriptionAndGift,
+  setCartShippingAddress,
+  setCartShippingMethod,
+} from "../../lib/store-checkout";
+import {
+  ADDRESS_LIMITS,
+  EMPTY_SHIPPING_ADDRESS,
+  addressComplete,
+  needsProvince,
+  type ShippingAddressInput,
+} from "../../lib/shipping-address";
 import { completeCheckoutCart, createPaymentCollection, initiateStripePaymentSession } from "../../lib/store-payment";
 
 /** This route's own mount point (`src/app/api/store/[...path]/route.ts`), never the backend origin. */
@@ -106,10 +128,20 @@ interface PaymentFormProps {
   readonly stripePublishableKey: string;
   /** The region's own countries (`./page.tsx`'s `getDefaultRegion`), not a list this file writes. */
   readonly countries: readonly StoreRegionCountry[];
+  /**
+   * LD-04 P7: whether this cart holds anything that has to be posted.
+   *
+   * Decided by `cartNeedsAddress` on the page, from the cart's own lines. A
+   * certificate goes nowhere, and asking everyone for a postcode in order to
+   * sell them a PDF would be collecting data the shop does not need.
+   */
+  readonly needsAddress: boolean;
+  /** The cart's own currency, for the postage row. */
+  readonly currencyCode: string;
 }
 
 /** Creates the cart's Stripe session, then renders the Payment Element once a client secret exists. */
-export function PaymentForm({ cartId, stripePublishableKey, countries }: PaymentFormProps) {
+export function PaymentForm({ cartId, stripePublishableKey, countries, needsAddress, currencyCode }: PaymentFormProps) {
   const stripePromise = useMemo(() => loadStripe(stripePublishableKey), [stripePublishableKey]);
   const fetchJson = useMemo(() => createProxyFetchJson(), []);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -170,15 +202,39 @@ export function PaymentForm({ cartId, stripePublishableKey, countries }: Payment
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret }}>
-      <PayButton cartId={cartId} fetchJson={fetchJson} countries={countries} />
+      <PayButton
+        cartId={cartId}
+        fetchJson={fetchJson}
+        countries={countries}
+        needsAddress={needsAddress}
+        currencyCode={currencyCode}
+      />
     </Elements>
   );
 }
+
+/**
+ * What a browser's autofill calls each field.
+ *
+ * Named rather than omitted: a buyer typing a postal address into a form that
+ * refuses to autofill is a buyer typing a postal address, and the tokens are
+ * the ones the HTML specification defines.
+ */
+const AUTOCOMPLETE = {
+  name: "name",
+  line1: "address-line1",
+  city: "address-level2",
+  postcode: "postal-code",
+  province: "address-level1",
+} as const;
 
 interface PayButtonProps {
   readonly cartId: string;
   readonly fetchJson: FetchJson;
   readonly countries: readonly StoreRegionCountry[];
+  readonly needsAddress: boolean;
+  /** The cart's own currency, for the postage row. */
+  readonly currencyCode: string;
 }
 
 /**
@@ -192,7 +248,7 @@ interface PayButtonProps {
  * `@stripe/react-stripe-js` render the real markup -- the real default, the
  * real `disabled`.
  */
-export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
+export function PayButton({ cartId, fetchJson, countries, needsAddress, currencyCode }: PayButtonProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -216,6 +272,20 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
   // `handleSubmit` reads below is always one of `countries`' own rows, never
   // a placeholder string this file invented.
   const [countryCode, setCountryCode] = useState<string>(countries[0]?.iso_2 ?? "");
+  /**
+   * LD-04 P7. The postal address, and the postage quoted for it.
+   *
+   * `shippingAmount` is `null` until Medusa has priced the parcel through
+   * P7a's provider, and the pay control stays off until it is not — because
+   * until a shipping method is on the cart the total is the goods alone, and
+   * paying there takes the buyer's money without the postage in it.
+   */
+  const [address, setAddress] = useState<ShippingAddressInput>(EMPTY_SHIPPING_ADDRESS);
+  const [shippingAmount, setShippingAmount] = useState<number | null>(null);
+  const [shippingError, setShippingError] = useState<string | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const setField = (field: keyof ShippingAddressInput, value: string) =>
+    setAddress((current) => ({ ...current, [field]: value.slice(0, ADDRESS_LIMITS[field]) }));
   /**
    * Where the s 55(1)-(2) confirmation goes. C3b.
    *
@@ -252,6 +322,50 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
   const [giftRecipientEmail, setGiftRecipientEmail] = useState("");
   const [giftSenderName, setGiftSenderName] = useState("");
   const [giftMessage, setGiftMessage] = useState("");
+
+  /**
+   * Quote the postage as soon as there is an address complete enough to quote.
+   *
+   * Medusa is what calls Printful, through P7a's provider, so this writes the
+   * address to the cart and then asks Medusa for options. A failure leaves
+   * `shippingAmount` at `null` and shows the notice that carries no figure:
+   * §11 forbids a fabricated one and §23 requires the final price to be
+   * explicit.
+   */
+  useEffect(() => {
+    if (!needsAddress || !addressComplete(address, countryCode)) {
+      setShippingAmount(null);
+      return;
+    }
+    let cancelled = false;
+    setQuoting(true);
+    setShippingError(null);
+    void (async () => {
+      try {
+        await setCartShippingAddress(fetchJson, cartId, { ...address, countryCode });
+        const options = await listCartShippingOptions(fetchJson, cartId);
+        const cheapest = [...options].sort((first, second) => first.amount - second.amount)[0];
+        if (cheapest === undefined) throw new Error(SHIPPING_UNAVAILABLE_NOTICE);
+        const applied = await setCartShippingMethod(fetchJson, cartId, cheapest.id);
+        if (!cancelled) setShippingAmount(applied.shippingAmount);
+      } catch {
+        // The thrown message is not shown. It is Medusa's or Printful's, and
+        // a buyer reading "Printful quoted no usable shipping option to XX"
+        // learns nothing they can act on.
+        if (!cancelled) {
+          setShippingAmount(null);
+          setShippingError(SHIPPING_UNAVAILABLE_NOTICE);
+        }
+      } finally {
+        if (!cancelled) setQuoting(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // `address` and `countryCode` are the whole of the input; `fetchJson` and
+    // `cartId` are stable for the life of this component.
+  }, [needsAddress, address, countryCode, fetchJson, cartId]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -298,7 +412,17 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
             }
           : null,
       });
-      await setCartCountry(fetchJson, cartId, countryCode);
+      // LD-04 P7. The country alone still stands in for an address on a
+      // certificate-only cart, where it exists to resolve a tax region and
+      // nothing is posted. With a parcel, the whole address is written --
+      // already done by the quoting effect above, and repeated here because a
+      // buyer may have edited a field after the last quote and the cart must
+      // carry what they last typed.
+      if (needsAddress) {
+        await setCartShippingAddress(fetchJson, cartId, { ...address, countryCode });
+      } else {
+        await setCartCountry(fetchJson, cartId, countryCode);
+      }
 
       // `redirect: "if_required"` keeps a standard test-mode card on this
       // page; `return_url` still has to be an absolute URL because Stripe
@@ -487,6 +611,47 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
         </FinePrint>
       </details>
 
+      {/* LD-04 P7. Shown only when the cart holds something that is posted --
+          `cartNeedsAddress` on the page decides, from the cart's own lines. A
+          certificate goes nowhere, and asking everyone for a postcode in order
+          to sell them a PDF would be collecting data the shop does not need. */}
+      {needsAddress ? (
+        <fieldset className="address">
+          <legend>{ADDRESS_HEADING}</legend>
+          {/* Why it is asked for, said before it is given rather than after --
+              the shape `INSCRIPTION_NOTE` and the gift note both take. */}
+          <FinePrint>{ADDRESS_NOTE}</FinePrint>
+          {(["name", "line1", "city", "postcode"] as const).map((field) => (
+            <p className="field" key={field}>
+              <label htmlFor={`checkout-address-${field}`}>{ADDRESS_LABELS[field]}</label>
+              <input
+                id={`checkout-address-${field}`}
+                type="text"
+                value={address[field]}
+                maxLength={ADDRESS_LIMITS[field]}
+                required
+                autoComplete={AUTOCOMPLETE[field]}
+                onChange={(event) => { setField(field, event.target.value); }}
+              />
+            </p>
+          ))}
+          {needsProvince(countryCode) ? (
+            <p className="field">
+              <label htmlFor="checkout-address-province">{ADDRESS_LABELS.province}</label>
+              <input
+                id="checkout-address-province"
+                type="text"
+                value={address.province}
+                maxLength={ADDRESS_LIMITS.province}
+                required
+                autoComplete="address-level1"
+                onChange={(event) => { setField("province", event.target.value); }}
+              />
+            </p>
+          ) : null}
+        </fieldset>
+      ) : null}
+
       {/* Collects the one field the row asks for, sourced from `countries` --
           the region's own list, not free text -- and read by `setCartCountry`
           on submit. A certificate ships nowhere, so this stands in for a
@@ -506,6 +671,25 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
           ))}
         </select>
       </p>
+
+      {/* The postage, once there is one. Never a guess: a failure shows a
+          notice carrying no figure at all, because §11 forbids a fabricated
+          one and §23 requires the final price to be explicit. */}
+      {needsAddress ? (
+        <Ledger>
+          <LedgerRow
+            label={SHIPPING_LABEL}
+            value={
+              shippingAmount !== null
+                ? formatMoney(shippingAmount, currencyCode)
+                : quoting
+                  ? SHIPPING_QUOTING_LABEL
+                  : SHIPPING_PENDING_NOTICE
+            }
+          />
+        </Ledger>
+      ) : null}
+      {shippingError === null ? null : <p className="notice payment-error">{shippingError}</p>}
 
       <p className="consent">
         {/* `required` as well as the disabled control: it is the native
@@ -535,7 +719,16 @@ export function PayButton({ cartId, fetchJson, countries }: PayButtonProps) {
           does not gate. */}
       <Button
         type="submit"
-        disabled={payDisabled({ stripeReady: stripe !== null, submitting, consented })}
+        disabled={payDisabled({
+          stripeReady: stripe !== null,
+          submitting,
+          consented,
+          // Settled when there is nothing to post, or when Medusa has priced
+          // the parcel and put a method on the cart. A separate
+          // "is the address complete" flag would be redundant: an incomplete
+          // address never quotes, so `shippingAmount` is already `null`.
+          shippingSettled: !needsAddress || shippingAmount !== null,
+        })}
       >
         {submitting ? PAYING_LABEL : PAY_LABEL}
       </Button>
