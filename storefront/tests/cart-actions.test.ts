@@ -60,11 +60,16 @@ describe("addToCart", () => {
     await expect(addToCart(new FormData())).rejects.toThrow(/missing variantId/);
   });
 
-  it("exports exactly one action, because every export here is a POST endpoint", async () => {
+  it("exports exactly two actions, because every export here is a POST endpoint", async () => {
     // Next gives each export of a `"use server"` module a public action id, so
     // anything exported is reachable by any visitor with any arguments.
+    //
+    // **One until LD-04 P9c.** The count is asserted rather than a maximum,
+    // for the reason the guard existed at one: a helper accidentally exported
+    // from this module is a public POST endpoint, and nothing else in the
+    // repository would notice.
     const actions = await import("../src/lib/cart-actions");
-    expect(Object.keys(actions)).toEqual(["addToCart"]);
+    expect(Object.keys(actions).sort()).toEqual(["addMerchToCart", "addToCart"]);
   });
 
   it("adds one, and does not read a quantity from the form", async () => {

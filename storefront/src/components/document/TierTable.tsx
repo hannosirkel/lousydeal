@@ -30,8 +30,13 @@ import { TIER_TABLE_HEADINGS } from "../../content/home";
 export interface TierRow {
   readonly id: string;
   readonly title: string;
-  /** The tier's own quotation. The row header links to it. */
-  readonly href: string;
+  /**
+   * The tier's own quotation. The row header links to it.
+   *
+   * Optional since LD-04 P9c: a printed thing has no page of its own, and a
+   * link to one that does not exist is worse than a name that is not a link.
+   */
+  readonly href?: string;
   readonly description: string;
   readonly value: string;
   readonly price: string;
@@ -61,23 +66,41 @@ function Cell({
   );
 }
 
-export function TierTable({ rows }: { readonly rows: readonly TierRow[] }) {
+/**
+ * The headings, as a parameter since LD-04 P9c.
+ *
+ * The merch upsell is the same table with different words in it — five
+ * columns, the same stacked-below-640px behaviour, the same measured
+ * accessibility decision about dropping the header row. A second table
+ * component would be a second copy of all of that, and the two would drift.
+ */
+export function TierTable({
+  rows,
+  headings = TIER_TABLE_HEADINGS,
+}: {
+  readonly rows: readonly TierRow[];
+  // The keys of the tier table's own headings, with the values widened to
+  // `string`. `as const` makes `TIER_TABLE_HEADINGS` a type of five literals,
+  // which no other set of five words satisfies -- and the point of the
+  // parameter is that another set is passed.
+  readonly headings?: Readonly<Record<keyof typeof TIER_TABLE_HEADINGS, string>>;
+}) {
   return (
     <table className="tier-table">
       <thead>
         <tr>
-          <th scope="col">{TIER_TABLE_HEADINGS.item}</th>
-          <th scope="col">{TIER_TABLE_HEADINGS.description}</th>
+          <th scope="col">{headings.item}</th>
+          <th scope="col">{headings.description}</th>
           <th scope="col" data-align="figure">
-            {TIER_TABLE_HEADINGS.value}
+            {headings.value}
           </th>
           <th scope="col" data-align="figure">
-            {TIER_TABLE_HEADINGS.price}
+            {headings.price}
           </th>
           {/* The action column's heading is for a screen reader reaching the
               submit control; sighted readers get the button's own label. */}
           <th scope="col">
-            <span className="visually-hidden">{TIER_TABLE_HEADINGS.action}</span>
+            <span className="visually-hidden">{headings.action}</span>
           </th>
         </tr>
       </thead>
@@ -87,16 +110,16 @@ export function TierTable({ rows }: { readonly rows: readonly TierRow[] }) {
             {/* `th scope="row"` rather than a fourth `td`: the tier name is
                 what the other four cells are about, and a screen reader
                 reading a cell out of order gets told which row it is in. */}
-            <th scope="row" data-label={TIER_TABLE_HEADINGS.item}>
+            <th scope="row" data-label={headings.item}>
               <span className="cell-value">
-                <a href={row.href}>{row.title}</a>
+                {row.href === undefined ? row.title : <a href={row.href}>{row.title}</a>}
               </span>
             </th>
-            <Cell label={TIER_TABLE_HEADINGS.description}>{row.description}</Cell>
-            <Cell label={TIER_TABLE_HEADINGS.value} align="figure">
+            <Cell label={headings.description}>{row.description}</Cell>
+            <Cell label={headings.value} align="figure">
               {row.value}
             </Cell>
-            <Cell label={TIER_TABLE_HEADINGS.price} align="figure">
+            <Cell label={headings.price} align="figure">
               {row.price}
             </Cell>
             <td className="tier-action">{row.action}</td>

@@ -22,8 +22,14 @@ import { Baldrick } from "../../components/baldrick/Baldrick";
 import { Button } from "../../components/document/Button";
 import { DocumentFrame } from "../../components/document/DocumentFrame";
 import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
+import { MerchForm } from "../../components/document/MerchForm";
+import { Rule } from "../../components/document/Rule";
+import { TierTable } from "../../components/document/TierTable";
 import { CART_DOCUMENT, CART_EMPTY_NOTICE, CART_LABELS, CHECKOUT_LABEL, RETURN_LABEL } from "../../content/checkout";
-import { createStoreFetchJson, StoreApiError } from "../../lib/medusa-client";
+import { MERCH_APOLOGY, MERCH_HEADING, MERCH_TABLE_HEADINGS } from "../../content/merch";
+import { addMerchToCart } from "../../lib/cart-actions";
+import { createStoreFetchJson, listMerch, StoreApiError } from "../../lib/medusa-client";
+import { merchRowData } from "../../lib/merch-rows";
 import { formatMoney } from "../../lib/money";
 import { getCart } from "../../lib/store-cart";
 import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-session";
@@ -96,6 +102,12 @@ export default async function CartPage() {
     throw new Error(`cart ${cart.id} came back with no total; refusing to show a summary without one`);
   }
 
+  // §7's upsell, and it is fetched here rather than passed down because the
+  // decision it offers belongs to this page. A store with no merch renders
+  // nothing at all -- not a heading over an empty table, which would be a
+  // question with no answers under it.
+  const merch = merchRowData(await listMerch(fetchJson));
+
   return (
     <main>
       <DocumentFrame title={CART_DOCUMENT.title} form={CART_DOCUMENT.form} revision={CART_DOCUMENT.revision}>
@@ -111,6 +123,28 @@ export default async function CartPage() {
         </Ledger>
         {/* The only route to `/checkout` a shopper reaches by clicking. */}
         <Button href="/checkout">{CHECKOUT_LABEL}</Button>
+        {merch.length === 0 ? null : (
+          <>
+            <Rule />
+            <h2 className="upsell-heading">{MERCH_HEADING}</h2>
+            <TierTable
+              headings={MERCH_TABLE_HEADINGS}
+              rows={merch.map((row) => ({
+                id: row.id,
+                title: row.title,
+                description: row.sizes,
+                value: row.value,
+                price: row.price,
+                // No `href`: a printed thing has no page of its own, and a
+                // link to one that does not exist is worse than plain text.
+                variantId: row.variants[0]?.variantId ?? "",
+                action: <MerchForm action={addMerchToCart} title={row.title} variants={row.variants} />,
+              }))}
+            />
+            {/* Beneath the table, and the whole of the apology. */}
+            <p className="notice">{MERCH_APOLOGY}</p>
+          </>
+        )}
       </DocumentFrame>
       {/* Both of this file's returns carry him, and the empty one is not an
           afterthought: a cart with nothing in it is where somebody is most

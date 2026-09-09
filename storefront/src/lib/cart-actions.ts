@@ -123,3 +123,38 @@ export async function addToCart(formData: FormData): Promise<void> {
   cookieStore.set(CART_ID_COOKIE, cartId, CART_COOKIE_OPTIONS);
   redirect("/cart");
 }
+
+/**
+ * Puts one printed thing in the cart, keeping everything already in it.
+ *
+ * **It clears nothing, and that is the whole difference from `addToCart`.**
+ * Adding a mug is not changing your mind about which mug; a buyer who wants a
+ * shirt and a cap wants both. The one-certificate rule is `addToCart`'s and
+ * stays there — nothing here can create a second certificate, because nothing
+ * here adds a certificate.
+ *
+ * **It does not validate that the variant is merch, and could not usefully.**
+ * `POST /store/carts/:id/line-items` is public, so anything this refuses is
+ * reachable anyway; what actually holds the line is `isPayableCart`, which
+ * refuses a cart with two certificates however they arrived. This is the same
+ * disposition `addToCart` records: not a security boundary, a way of keeping
+ * an honest buyer out of a state that cannot be certified.
+ *
+ * The quantity is one and is not read from the form, for `addToCart`'s reason.
+ * A buyer who wants two mugs presses the control twice, and Medusa merges the
+ * lines.
+ */
+export async function addMerchToCart(formData: FormData): Promise<void> {
+  const variantId = formData.get("variantId");
+  if (typeof variantId !== "string") {
+    throw new Error("addMerchToCart: missing variantId");
+  }
+
+  const fetchJson = createStoreFetchJson(requireStoreClientConfig());
+  const cookieStore = await cookies();
+  const cartId = await cartToAddTo(fetchJson, cookieStore.get(CART_ID_COOKIE)?.value, () => false);
+  await addLineToCart(fetchJson, cartId, variantId, 1);
+
+  cookieStore.set(CART_ID_COOKIE, cartId, CART_COOKIE_OPTIONS);
+  redirect("/cart");
+}

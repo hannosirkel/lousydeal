@@ -599,7 +599,30 @@ happened rather than a silent failure.
 
 - [x] **P9a** — tell the two catalogues apart, which nothing did.
 - [x] **P9b** — adding a certificate must not delete the merch.
-- [ ] **P9c** — the upsell, in the identity, claiming nothing that is not measured.
+- [x] **P9c** — the upsell, in the identity, claiming nothing that is not measured.
+
+`TERMS_OF_OFFER` line 3 is corrected with it, which P10b recorded as this
+row's debt: "nothing is added at checkout" stayed true only until there was
+something to add.
+
+**Two things found while building it, both money and neither in this row's
+scope:**
+
+1. **`MerchSeedTarget` has no Medusa implementation.** `seedMerch` takes a
+   seam and nothing satisfies it, so the four products have never been created
+   in Medusa and cannot be. That is why P9a's defect was latent rather than
+   live. A row has to write the target, and it is the row that must also settle
+   (2).
+2. **The unit conversion is unsettled for merch, and looks wrong for
+   postage.** `seed-product.ts` stores `amountMinor / 100`, and `money.ts`
+   records the research: every amount the storefront formats is a **major-unit
+   decimal**. `chargeForRate` returns `Math.ceil(gross * 100)` — minor units —
+   and `fulfilment-provider.ts` hands that to Medusa as `calculated_amount`.
+   **If Medusa reads a fulfilment provider's calculated price on the same scale
+   as a product price, a $5.22 rate is charged as $663.00.** P7a's own test
+   asserts `663` as correct. Not fixed here: it needs a live cart to confirm
+   which scale Medusa applies, and guessing at a money bug is how the first one
+   arrived.
 
 **A second defect of the same family**, found the same way. `addToCart`
 removed *every* line before adding the chosen tier. "Replace what is in the
