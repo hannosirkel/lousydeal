@@ -155,7 +155,7 @@ export class PrintfulFulfilmentProviderService extends AbstractFulfillmentProvid
     if (cheapest === undefined) throw new ShippingQuoteError("Printful returned no shipping option");
 
     return {
-      calculated_amount: cheapest.amountMinor,
+      calculated_amount: cheapest.amount,
       // Decision `007`: every price on this site includes VAT, and `shipping.ts`
       // grosses the quote up so the net recovers Printful's charge exactly.
       is_calculated_price_tax_inclusive: true,

@@ -57,7 +57,8 @@ export interface ShippingQuote {
   readonly id: string;
   readonly name: string;
   /** Minor units, VAT-inclusive, what the buyer is charged. */
-  readonly amountMinor: number;
+  /** Major units, like every other amount on this path. See `chargeForRate`. */
+  readonly amount: number;
   /** Printful's estimate, repeated and attributed; `null` where it gave none. */
   readonly minDeliveryDays: number | null;
   readonly maxDeliveryDays: number | null;
@@ -127,15 +128,35 @@ export function isEuDestination(countryCode: string): boolean {
 }
 
 /**
- * What the buyer is charged for a rate Printful quoted, in minor units.
+ * What the buyer is charged for a rate Printful quoted, **in major units**.
  *
- * Rounded up. A rounding that went down would leave the merchant a cent short
- * of Printful's charge on some orders, which is the whole failure this
- * function exists to prevent, reached by being tidy.
+ * Rounded up to the cent. A rounding that went down would leave the merchant a
+ * cent short of Printful's charge on some orders, which is the whole failure
+ * this function exists to prevent, reached by being tidy.
+ *
+ * **It returned minor units until P7c, and that was a hundredfold
+ * overcharge.** The scale is not a matter of taste. `calculatePrice`'s answer
+ * becomes a shipping option's `amount`, and
+ * `core-flows/dist/cart/workflows/list-shipping-options-for-cart-with-pricing.js:320-338`
+ * builds that field from two branches into one shape: a **flat** option takes
+ * it from the pricing module's `calculated_amount`, a **calculated** one takes
+ * it from whatever the provider returned. Both write `amount` on the same
+ * object, so the two are necessarily on one scale — and
+ * `storefront/src/lib/money.ts` establishes which, citing
+ * `pricing-module.js:238-240` and the `amountMinor / 100` every price is
+ * seeded with. Major units.
+ *
+ * So a $5.22 rate to Estonia was `Math.ceil(5.22 * 1.27 * 100)` = **663**,
+ * which the cart would have read as **$663.00 of postage** and the checkout
+ * shown as exactly that. P7a's own test asserted `663` for the untaxed case as
+ * correct, so the suite agreed with the bug throughout.
  */
 export function chargeForRate(rate: number, countryCode: string): number {
   const gross = isEuDestination(countryCode) ? rate * (1 + WORST_VAT_RATE) : rate;
-  return Math.ceil(gross * 100);
+  // Ceil at the cent, then express in major units. The rounding rule is about
+  // money and the scale is about Medusa; doing both in one expression is how
+  // the two came to be confused.
+  return Math.ceil(gross * 100) / 100;
 }
 
 export async function quoteShipping(
@@ -200,7 +221,7 @@ export async function quoteShipping(
           typeof option.shipping_method_name === "string" && option.shipping_method_name.trim().length > 0
             ? option.shipping_method_name.trim()
             : id,
-        amountMinor: chargeForRate(rate, address.countryCode),
+        amount: chargeForRate(rate, address.countryCode),
         minDeliveryDays: number(option.min_delivery_days),
         maxDeliveryDays: number(option.max_delivery_days),
         departsFrom: typeof departure === "string" && departure.length > 0 ? departure.toUpperCase() : null,
@@ -216,5 +237,5 @@ export async function quoteShipping(
   // Cheapest first. § 56¹(3) caps a withdrawal refund at the cheapest ordinary
   // delivery offered, so which one that is has to be a fact about the list
   // rather than about the order Printful happened to return it in.
-  return [...quotes].sort((first, second) => first.amountMinor - second.amountMinor);
+  return [...quotes].sort((first, second) => first.amount - second.amount);
 }
