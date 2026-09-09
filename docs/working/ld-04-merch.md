@@ -1240,10 +1240,32 @@ and the guard that exists to catch exactly that has a frozen list.
   on every merch order, or an authorisation for the goods without the
   postage. **Measure before Gate E.**
 
-- **18.** **The pay gate accepts a stale quote.** The quote effect does not reset
+- **18. Fixed in P12g, and a third thing found with it.** **The pay gate accepts a stale quote.** The quote effect does not reset
   `shippingAmount` when a new quote starts, and `payDisabled` ignores
   `quoting` — so a buyer who edits the address and pays inside the window
   pays the old postage. Estonia to Brazil is $6.48 against a measured $25.56.
+
+  A reviewer established what Medusa does with an attached method when the
+  address changes: `refreshCartShippingMethodsWorkflow` runs unconditionally
+  on every cart update and **re-prices or removes** the method, so the
+  server-side outcome of paying on a stale quote is a *failed* payment rather
+  than a wrong one — `handleSubmit` writes the address before `confirmPayment`.
+  The window where it is neither is between `confirmPayment` and
+  `completeCheckoutCart`: a quote landing there changes the total after the
+  card is charged, Medusa answers a changed total by deleting the payment
+  session, Stripe cannot cancel a *succeeded* PaymentIntent, and
+  `deletePaymentSessionsStep` swallows that failure with a log line. The
+  capture is then recorded against the new total. Closed from both sides: no
+  submit starts while a quote is in flight, and no quote starts while a submit
+  is.
+
+  **And `paySubmitBlocked` did not take `shippingSettled` at all** — the
+  parameter was `Omit`-ed away. The same `requestSubmit()` bypass this
+  codebase has already patched once for consent could submit a merch cart
+  with no method attached: the session still matches the goods-only total, so
+  Stripe charges, and completion throws at `validate-shipping`. Charged and
+  refunded for a parcel nobody could post. The two rules now take the same
+  input, and the agreement sweep covers it.
 
 - **19. Fixed in P12e.** **A late `shipment_sent` retry overwrites `shipment_returned`.** The route
   records whatever arrived without comparing `occurredAt` to the state it
