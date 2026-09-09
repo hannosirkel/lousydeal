@@ -938,7 +938,20 @@ done casually.
 **Files:** `backend/src/api/webhooks/printful/*`, `backend/src/notifications/*`, tests.
 
 - [x] **P11a** — the webhook, verified, and the parcel's status recorded.
-- [ ] **P11b** — the one email carrying the tracking number.
+- [x] **P11b** — the one email carrying the tracking number. **P11a is complete, and with it every build row of LD-04.**
+
+**Sent once, by two guards that do different jobs.** The submission row is read
+before it is written, so a redelivery against one already marked
+`shipment_sent` records and says nothing — cheap, and it covers the ordinary
+retry. The notification's idempotency key covers two deliveries arriving
+together, which the read cannot, and Medusa enforces it inside a transaction.
+
+**It promises no arrival date and says why.** Constraint 7, and the same rule
+P9c applies to the shelf. Silence would read as an oversight in the one message
+a buyer opens looking for exactly that.
+
+It works with no tracking number, which is the ordinary case for the first
+hours, and says so rather than printing an empty line.
 
 **v2 webhooks, and that is the whole reason for v2 here.** Event signing was
 introduced with them; a v1 endpoint carries no signature at all, so it is a URL
