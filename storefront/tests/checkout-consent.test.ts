@@ -25,7 +25,7 @@ import {
   CONSENT_REQUIRED_NOTICE,
   PRICE_NOTICE,
 } from "../src/content/checkout";
-import { cartHasCertificate, cartNeedsAddress, payDisabled } from "../src/lib/checkout-rules";
+import { cartHasCertificate, cartNeedsAddress, payDisabled, paySubmitBlocked } from "../src/lib/checkout-rules";
 import { PayButton } from "../src/app/checkout/PaymentForm";
 
 // Nothing asserted below touches Stripe; these four exist only so the module
@@ -300,5 +300,66 @@ describe("which carts have consent to give", () => {
   it("finds none in an empty cart, which answers false to both", () => {
     expect(cartHasCertificate([], CERTIFICATES)).toBe(false);
     expect(cartNeedsAddress([], CERTIFICATES)).toBe(false);
+  });
+});
+
+describe("the submit handler's own rule, which had drifted from the gate", () => {
+  /**
+   * **Gate D found these were the same rule written twice, and the copy was
+   * stale.** `payDisabled` learned `consentRequired` in P10c; the submit
+   * handler kept an unconditional `!consented`. For a cart with no
+   * certificate the box is never rendered, so `consented` could never become
+   * true — the button enabled, the click did nothing, and **every merch-alone
+   * order was unpayable, silently**.
+   *
+   * It stays a separate function rather than becoming the same call, because
+   * it answers a different question: `disabled` is an attribute and
+   * `form.requestSubmit()` ignores it. An earlier Gate D completed a cart with
+   * the box visibly unticked by exactly that route.
+   */
+  it("lets a merch-only cart through, which is the defect", () => {
+    expect(
+      paySubmitBlocked({ stripeReady: true, submitting: false, consented: false, consentRequired: false }),
+    ).toBe(false);
+  });
+
+  it("still refuses a certificate cart whose box is unticked", () => {
+    // The reason the handler checks at all: `form.requestSubmit()` ignores
+    // `disabled`, so the visible control is not the enforcement.
+    expect(paySubmitBlocked({ stripeReady: true, submitting: false, consented: false })).toBe(true);
+    expect(
+      paySubmitBlocked({ stripeReady: true, submitting: false, consented: false, consentRequired: true }),
+    ).toBe(true);
+  });
+
+  it("agrees with the pay gate on consent, which is what drifted", () => {
+    // The two rules answer different questions and must not disagree about
+    // this one. Asserted across every combination rather than by inspection.
+    for (const consented of [true, false]) {
+      for (const consentRequired of [true, false]) {
+        const gate = payDisabled({ stripeReady: true, submitting: false, consented, consentRequired });
+        const submit = paySubmitBlocked({ stripeReady: true, submitting: false, consented, consentRequired });
+        expect(`${String(consented)}/${String(consentRequired)}: ${String(submit)}`).toBe(
+          `${String(consented)}/${String(consentRequired)}: ${String(gate)}`,
+        );
+      }
+    }
+  });
+
+  it("refuses before Stripe is ready, and while one is already in flight", () => {
+    expect(paySubmitBlocked({ stripeReady: false, submitting: false, consented: true })).toBe(true);
+    expect(paySubmitBlocked({ stripeReady: true, submitting: true, consented: true })).toBe(true);
+  });
+
+  it("is what the handler calls, rather than a second copy of the same words", () => {
+    // The whole finding was a duplicated rule. A source assertion is the only
+    // thing that stops it being duplicated again -- an event-driven test would
+    // pass against a re-inlined copy.
+    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+    expect(source).toMatch(/paySubmitBlocked\(\{[^}]*consentRequired: needsConsent/);
+    expect(source).not.toMatch(/submitting \|\| !consented/);
+    expect(source).toContain("export function PayButton");
   });
 });

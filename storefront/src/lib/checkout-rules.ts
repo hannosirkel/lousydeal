@@ -62,6 +62,31 @@ export function payDisabled({
   return !stripeReady || submitting || (consentRequired && !consented) || !shippingSettled;
 }
 
+/**
+ * Whether a submit must be refused, as opposed to whether the control looks
+ * available.
+ *
+ * **These were the same rule written twice, and Gate D found the copy had
+ * drifted.** `payDisabled` learned `consentRequired` in P10c; the submit
+ * handler kept an unconditional `!consented`, so for a cart with no
+ * certificate the button enabled and the click did nothing — no error, no
+ * request, no state — on every merch-alone order.
+ *
+ * It is a separate rule and not the same call, because it answers a different
+ * question: `disabled` is an attribute, and `form.requestSubmit()` ignores it.
+ * A previous Gate D completed a cart with the box visibly unticked by exactly
+ * that route, which is why the handler checks at all. What it must not do is
+ * check something *different*.
+ */
+export function paySubmitBlocked({
+  stripeReady,
+  submitting,
+  consented,
+  consentRequired = true,
+}: Omit<PayGateInput, "shippingSettled">): boolean {
+  return !stripeReady || submitting || (consentRequired && !consented);
+}
+
 /** One cart line, as the checkout needs to judge it. */
 export interface CartLine {
   readonly quantity: number;

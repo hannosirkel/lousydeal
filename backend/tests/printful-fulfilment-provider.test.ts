@@ -198,3 +198,60 @@ describe("what it does not do", () => {
     expect(calls).toEqual([]);
   });
 });
+
+describe("the province, which the form demands and the quote discarded", () => {
+  /**
+   * **Gate D found it declared and never read.** `ContextLike` named
+   * `province`; the returned address did not carry it; `quoteShipping` omits
+   * `state_code` when it is absent; and Printful answers "State code is
+   * missing" for the United States and Australia — measured, and the reason
+   * `shipping-address.ts` demands the field in exactly four countries.
+   *
+   * So the checkout asked a US buyer for a state, marked it required, refused
+   * to quote until it was filled — and then threw it away and failed. **No US,
+   * AU, CA or JP buyer could buy merch at all.**
+   *
+   * Both halves were tested. `quoteShipping` was driven with a `stateCode`
+   * handed in directly, and `readShippingContext` only ever with an Estonian
+   * address that needs none. The composition was tested nowhere, which is
+   * where the defect lived.
+   */
+  const withProvince = (province: unknown) =>
+    readShippingContext({
+      shipping_address: { ...ADDRESS, country_code: "us", province },
+      items: [{ variant_sku: "LD-MUG-11", quantity: 1 }],
+    });
+
+  it("carries the province through to the quote", () => {
+    expect(withProvince("NY")?.address).toMatchObject({ countryCode: "US", stateCode: "NY" });
+  });
+
+  it("omits it entirely where there is none, rather than sending an empty one", () => {
+    // `shipping.ts` already refuses to send an empty `state_code`, and
+    // Printful rejects one. Absent is the answer for most of the world.
+    expect(withProvince(undefined)?.address).not.toHaveProperty("stateCode");
+    expect(withProvince(null)?.address).not.toHaveProperty("stateCode");
+    expect(withProvince("   ")?.address).not.toHaveProperty("stateCode");
+  });
+
+  it("reaches Printful as state_code, which is the field it refuses without", async () => {
+    // End to end across the seam the defect fell through: a context with a
+    // province, through `calculatePrice`, into the request body.
+    const calls: unknown[] = [];
+    await provider(RATE, calls).calculatePrice({}, {}, {
+      shipping_address: { ...ADDRESS, country_code: "us", province: "NY" },
+      items: [{ variant_sku: "LD-MUG-11", quantity: 1 }],
+    });
+    expect(calls[0]).toMatchObject({ recipient: expect.objectContaining({ state_code: "NY" }) });
+  });
+
+  it("sends no state_code for a country that needs none", async () => {
+    const calls: unknown[] = [];
+    await provider(RATE, calls).calculatePrice({}, {}, {
+      shipping_address: ADDRESS,
+      items: [{ variant_sku: "LD-MUG-11", quantity: 1 }],
+    });
+    const body = calls[0] as { recipient: Record<string, unknown> };
+    expect(Object.keys(body.recipient)).not.toContain("state_code");
+  });
+});
