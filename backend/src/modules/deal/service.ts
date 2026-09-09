@@ -29,8 +29,9 @@ import { MedusaService } from "@medusajs/framework/utils";
 // either way.
 import { issueDeal, type DealIssuanceInput, type DealStore, type IssuedDeal } from "./issue";
 import { LousyDeal } from "./models/lousy-deal";
+import { PrintfulSubmission } from "./models/printful-submission";
 
-export default class DealModuleService extends MedusaService({ LousyDeal }) {
+export default class DealModuleService extends MedusaService({ LousyDeal, PrintfulSubmission }) {
   /**
    * Mints the order's certificate, or returns the one it already has.
    *
