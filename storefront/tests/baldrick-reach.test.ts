@@ -55,12 +55,18 @@ const routes: ReadonlyArray<readonly [string, string]> = readdirSync(appDir, {
 const mounts = routes.filter(([, source]) => /<Baldrick\b/.test(source)).map(([entry]) => entry);
 
 /**
- * The three, named.
+ * The four, named.
  *
- * A purchase order, a quotation, and the cart. All three are places somebody is
- * deciding whether to buy, which is the only place a sales assistant belongs.
+ * A purchase order, a quotation, a product specification, and the cart. All
+ * four are places somebody is deciding whether to buy, which is the only place
+ * a sales assistant belongs.
+ *
+ * **Three until LD-04 gave the printed things pages of their own.** The rule
+ * did not move: `goods/[handle]` is somebody looking at a shirt and deciding,
+ * which is the same moment as `deal/[handle]`. A list-based guard is only
+ * worth its lines if the list is argued with when it grows.
  */
-const EXPECTED = ["cart/page.tsx", "deal/[handle]/page.tsx", "page.tsx"];
+const EXPECTED = ["cart/page.tsx", "deal/[handle]/page.tsx", "goods/[handle]/page.tsx", "page.tsx"];
 
 describe("the scan itself", () => {
   it("finds the routes it claims to be scanning", () => {

@@ -32,7 +32,7 @@ import { MERCH_APOLOGY, MERCH_HEADING, MERCH_TABLE_HEADINGS,
 } from "../../content/merch";
 import { addMerchToCart, removeFromCart } from "../../lib/cart-actions";
 import { createStoreFetchJson, listMerch, StoreApiError } from "../../lib/medusa-client";
-import { merchRowData } from "../../lib/merch-rows";
+import { goodsImagePath, goodsPath, merchRowData } from "../../lib/merch-rows";
 import { formatMoney } from "../../lib/money";
 import { getCart } from "../../lib/store-cart";
 import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-session";
@@ -171,11 +171,16 @@ export default async function CartPage() {
                 title: row.title,
                 // §7's upsell said what a thing costs and never what it was.
                 ...(row.kind === null ? {} : { subtitle: row.kind }),
+                // **This row declined to link, and the page it declined to
+                // link to now exists.** The reasoning was sound when written --
+                // a link to nothing is worse than plain text -- and the
+                // operator reported the consequence: four joke titles, no
+                // picture, nothing to click.
+                href: goodsPath(row.handle),
+                thumbnail: goodsImagePath(row.handle),
                 description: row.sizes,
                 value: row.value,
                 price: row.price,
-                // No `href`: a printed thing has no page of its own, and a
-                // link to one that does not exist is worse than plain text.
                 variantId: row.variants[0]?.variantId ?? "",
                 action: <MerchForm action={addMerchToCart} title={row.title} variants={row.variants} />,
               }))}

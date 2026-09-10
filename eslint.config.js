@@ -30,8 +30,14 @@ export default tseslint.config(
     files: ["design/**/*.mjs"],
     languageOptions: {
       globals: {
+        // `Buffer` and `fetch` since LD-04's `fetch-mockups.mjs`, which asks
+        // Printful for the product photographs and writes them to disk. Node
+        // has had both globally for years; the block above already makes the
+        // same argument for `process` and `URL`.
+        Buffer: "readonly",
         console: "readonly",
         document: "readonly",
+        fetch: "readonly",
         process: "readonly",
         URL: "readonly",
       },
