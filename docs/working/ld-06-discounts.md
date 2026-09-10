@@ -348,7 +348,10 @@ A refusal is `422` with a stable reason — `unknown_code`, `no_certificate`,
 **Verified on a running Medusa, not only by fakes.** The smoke suite gains a
 case: a $5 cart in `EE` takes `BALDRICK20` and reads `total` 6 with one
 surcharge line, `is_tax_inclusive` true, and `tax_total` inside the 6 rather
-than beside it. Re-applying leaves one line. `BLACKFRIDAY` leaves a line at 0.
+than beside it. The cart's surcharge line reads `variant_id` as `null`, not
+absent. D2's classifier treats an absent value as "not a surcharge", so this is
+the premise it rests on, and D4 is the first row that can measure it.
+Re-applying leaves one line. `BLACKFRIDAY` leaves a line at 0.
 An unknown code leaves the cart unchanged. The smoke suite cannot create a
 Stripe session or complete an order, so the session refresh and the metadata's
 arrival on the order line are confirmed in D10's Gate E order.
