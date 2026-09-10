@@ -13,7 +13,10 @@
  * would keep a second copy of every request in memory for the benefit of one.
  */
 
-import { defineMiddlewares } from "@medusajs/framework/http";
+import { defineMiddlewares, validateAndTransformBody } from "@medusajs/framework/http";
+import { z } from "@medusajs/framework/zod";
+
+export const PostStoreCartSurcharge = z.object({ code: z.string().trim().min(1).max(64) }).strict();
 
 export default defineMiddlewares({
   routes: [
@@ -21,6 +24,11 @@ export default defineMiddlewares({
       matcher: "/webhooks/printful",
       method: "POST",
       bodyParser: { preserveRawBody: true },
+    },
+    {
+      matcher: "/store/carts/:id/surcharge",
+      method: "POST",
+      middlewares: [validateAndTransformBody(PostStoreCartSurcharge)],
     },
   ],
 });

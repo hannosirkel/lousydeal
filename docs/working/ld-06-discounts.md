@@ -310,7 +310,7 @@ deriving its own permission.
 `backend/tests/surcharge-route.test.ts`,
 `backend/tests/smoke/store-api.test.ts`.
 
-- [ ] Apply a code to a cart, server-priced and tax-inclusive, replacing any
+- [x] Apply a code to a cart, server-priced and tax-inclusive, replacing any
       surcharge already there, through workflows that refresh the payment
       collection.
 
@@ -338,8 +338,9 @@ and Medusa would capture that.
 top level. Their lock steps are skipped inside it (constraint 8), so this is
 the only lock there is. It keeps two concurrent applies — a double-submit, two
 tabs — and Medusa's own line-item route off the cart until the removal and the
-addition have both run. `surcharge-route.test.ts` fires two applies at once and
-asserts one surcharge line, as `printful-submission.test.ts` tests its race.
+addition have both run. `store-api.test.ts` fires two applies at once against a
+running Medusa and asserts one surcharge line, as
+`printful-submission.test.ts` tests its race.
 
 A refusal is `422` with a stable reason — `unknown_code`, `no_certificate`,
 `completed` — that the storefront maps to copy. Status text is not parsed.
@@ -575,6 +576,8 @@ checked against the repository before it was accepted.
 | The figure guard admitted four codes he does not all say; float rounding is not half-up; D9 implied a metadata query | D7 admits one; D1 uses integer cents; D9 says it filters in code |
 | **Pass 2, major.** Constraint 8 said the composed workflows lock the cart themselves. Inside a sub-workflow Medusa skips their lock steps, so D4 would have run unlocked | Constraint 8, a new fact row, and D4 take the lock at top level and test two concurrent applies |
 | Pass 2, minor: three public writes rather than two; `CartLine` literals in `checkout-consent.test.ts`; a stale constraint number in `status.md`; an off-by-one citation | Constraint 6 names the third; D3 makes the field optional; the rest corrected |
+| **D4 Gate D.** The first full validation result predated the serialized workflow-error fix | Re-ran `bash scripts/validate` against the final diff: 91 files and 2,492 tests passed |
+| D4's concurrency paragraph named the focused route test, but only the real-Medusa smoke test exercises concurrent requests | Corrected the paragraph to name `store-api.test.ts`; no implementation change |
 
 ## What this slice does not do
 

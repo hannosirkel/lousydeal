@@ -89,6 +89,18 @@ interface StoreProduct {
   readonly variants?: readonly StoreVariant[];
 }
 
+interface StoreCartLine {
+  readonly id?: unknown;
+  readonly quantity?: unknown;
+  readonly unit_price?: unknown;
+  readonly total?: unknown;
+  readonly tax_total?: unknown;
+  readonly variant_id?: unknown;
+  readonly is_tax_inclusive?: unknown;
+  readonly requires_shipping?: unknown;
+  readonly metadata?: unknown;
+}
+
 /** A publishable key, and the region every price is computed in. Set by `beforeAll`. */
 let publishableKey = "";
 let regionId = "";
@@ -134,6 +146,50 @@ function catalogueRequest(countryCode: string): string {
   url.searchParams.set("region_id", regionId);
   url.searchParams.set("country_code", countryCode.toLowerCase());
   return `${url.pathname}${url.search}`;
+}
+
+async function firstTierVariantId(): Promise<string> {
+  const catalogue = await store(catalogueRequest(EU_PRICING_COUNTRY));
+  expect(catalogue.status, catalogue.text).toBe(200);
+  const products = sequence(
+    record(catalogue.body, "products response")["products"],
+    "products",
+  ) as readonly StoreProduct[];
+  const product = products.find((candidate) => candidate.handle === PRODUCT_TIERS[0]!.handle);
+  return String(record(sequence(product!.variants, "variants")[0], "variant")["id"]);
+}
+
+async function createCertificateCart(): Promise<{ readonly id: string; readonly variantId: string }> {
+  const created = await store("/store/carts", {
+    method: "POST",
+    body: JSON.stringify({ region_id: regionId, shipping_address: { country_code: EU_PRICING_COUNTRY.toLowerCase() } }),
+  });
+  expect(created.status, created.text).toBe(200);
+  const id = String(record(record(created.body, "cart response")["cart"], "cart")["id"]);
+  const variantId = await firstTierVariantId();
+  const withLine = await store(`/store/carts/${id}/line-items`, {
+    method: "POST",
+    body: JSON.stringify({ variant_id: variantId, quantity: 1 }),
+  });
+  expect(withLine.status, withLine.text).toBe(200);
+  return { id, variantId };
+}
+
+async function applyCode(cartId: string, code: string) {
+  return await store(`/store/carts/${cartId}/surcharge`, {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
+}
+
+function cartFrom(responseBody: unknown): Record<string, unknown> {
+  return record(record(responseBody, "cart response")["cart"], "cart");
+}
+
+function surchargeLines(cart: Record<string, unknown>): readonly StoreCartLine[] {
+  return sequence(cart["items"], "items")
+    .map((item) => record(item, "line item") as StoreCartLine)
+    .filter((item) => item.variant_id === null);
 }
 
 function record(value: unknown, label: string): Record<string, unknown> {
@@ -210,9 +266,11 @@ describe("the catalogue request the storefront makes", () => {
       record(response.body, "products response")["products"],
       "products",
     ) as readonly StoreProduct[];
-    expect(products, "the Store catalogue must contain exactly the three seeded tiers").toHaveLength(
-      PRODUCT_TIERS.length,
-    );
+    const tierHandles = new Set(PRODUCT_TIERS.map((tier) => tier.handle));
+    expect(
+      products.filter((product) => tierHandles.has(String(product.handle))),
+      "the Store catalogue must contain exactly the three seeded certificate tiers",
+    ).toHaveLength(PRODUCT_TIERS.length);
 
     const byHandle = new Map(products.map((product) => [String(product.handle), product]));
 
@@ -326,6 +384,99 @@ describe("a cart can be created and a tier added to it", () => {
     expect(line, "the cart carries no line item for the variant just added").toBeDefined();
     expect(line!["quantity"]).toBe(1);
     expect(line!["unit_price"]).toBe(firstTier.amountMinor / 100);
+  });
+});
+
+describe("a worse-discount code changes a real cart", () => {
+  it("keeps Estonia's VAT inside the $6 total and creates one variant-less line", async () => {
+    const cart = await createCertificateCart();
+    const applied = await applyCode(cart.id, "BALDRICK20");
+
+    expect(applied.status, applied.text).toBe(200);
+    const updated = cartFrom(applied.body);
+    expect(updated["total"]).toBe(6);
+    expect(updated["tax_total"]).toBeCloseTo(6 - 6 / (1 + ESTONIAN_STANDARD_VAT_PERCENT / 100), 6);
+    const lines = surchargeLines(updated);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({
+      quantity: 1,
+      unit_price: 1,
+      total: 1,
+      variant_id: null,
+      is_tax_inclusive: true,
+      requires_shipping: false,
+      metadata: { internal_type: "baldrick_surcharge", code: "BALDRICK20", base_amount_major: 5, percentage: 20 },
+    });
+    expect(lines[0]!.tax_total).toBeCloseTo(1 - 1 / (1 + ESTONIAN_STANDARD_VAT_PERCENT / 100), 6);
+  });
+
+  it("leaves one line after repeat and concurrent applications", async () => {
+    const cart = await createCertificateCart();
+    const first = await applyCode(cart.id, "SAVE10");
+    expect(first.status, first.text).toBe(200);
+    const repeated = await applyCode(cart.id, "SAVE10");
+    expect(repeated.status, repeated.text).toBe(200);
+    expect(surchargeLines(cartFrom(repeated.body))).toHaveLength(1);
+
+    const concurrent = await Promise.all([applyCode(cart.id, "BALDRICK20"), applyCode(cart.id, "BALDRICK20")]);
+    for (const response of concurrent) expect(response.status, response.text).toBe(200);
+    const reread = await store(`/store/carts/${cart.id}`);
+    expect(reread.status, reread.text).toBe(200);
+    const lines = surchargeLines(cartFrom(reread.body));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ quantity: 1, unit_price: 1, variant_id: null });
+  });
+
+  it("keeps BLACKFRIDAY as a visible zero-dollar line", async () => {
+    const cart = await createCertificateCart();
+    const applied = await applyCode(cart.id, "BLACKFRIDAY");
+
+    expect(applied.status, applied.text).toBe(200);
+    const updated = cartFrom(applied.body);
+    expect(updated["total"]).toBe(5);
+    expect(surchargeLines(updated)).toEqual([
+      expect.objectContaining({ quantity: 1, unit_price: 0, total: 0, variant_id: null }),
+    ]);
+  });
+
+  it("rejects an unknown code without changing the cart", async () => {
+    const cart = await createCertificateCart();
+    const before = await store(`/store/carts/${cart.id}`);
+    expect(before.status, before.text).toBe(200);
+    const rejected = await applyCode(cart.id, "NOT-A-CODE");
+    expect(rejected.status, rejected.text).toBe(422);
+    expect(record(rejected.body, "refusal")["reason"]).toBe("unknown_code");
+    const after = await store(`/store/carts/${cart.id}`);
+    expect(after.status, after.text).toBe(200);
+    expect(cartFrom(after.body)["total"]).toBe(cartFrom(before.body)["total"]);
+    expect(surchargeLines(cartFrom(after.body))).toHaveLength(0);
+  });
+
+  it("returns the stable refusal when the cart has no certificate", async () => {
+    const created = await store("/store/carts", {
+      method: "POST",
+      body: JSON.stringify({ region_id: regionId }),
+    });
+    expect(created.status, created.text).toBe(200);
+    const cartId = String(cartFrom(created.body)["id"]);
+
+    const rejected = await applyCode(cartId, "BALDRICK20");
+    expect(rejected.status, rejected.text).toBe(422);
+    expect(record(rejected.body, "refusal")["reason"]).toBe("no_certificate");
+    const reread = await store(`/store/carts/${cartId}`);
+    expect(reread.status, reread.text).toBe(200);
+    expect(surchargeLines(cartFrom(reread.body))).toHaveLength(0);
+  });
+
+  it("refuses the custom write without the store's publishable key", async () => {
+    const cart = await createCertificateCart();
+    const response = await json(`/store/carts/${cart.id}/surcharge`, {
+      method: "POST",
+      body: JSON.stringify({ code: "BALDRICK20" }),
+    });
+
+    expect(response.status, response.text).toBe(400);
+    expect(response.text).toContain("x-publishable-api-key");
   });
 });
 
