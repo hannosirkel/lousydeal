@@ -1720,6 +1720,32 @@ at that moment; the transition to `failed` arrives by webhook, which is P15b/c
 and not yet subscribed. P12i is what makes that arrival recoverable rather
 than terminal.
 
+### Confirmed working on the deployment, 2026-09-10
+
+The operator completed a checkout. Driven through the deployed backend
+beforehand, against a Tallinn address:
+
+```text
+options listed: 1  Postage/calculated
+ATTACHED postage = 6.48   cart total = 38.48
+```
+
+Real postage from Printful, on the real deployment, through the buyer's own
+path this time.
+
+**Three things had to be true at once, and each hid the next.** The predeploy
+Job was never told Printful existed, so it skipped the shipping option by
+design; telling it made `medusa db:migrate` want a directory a read-only
+filesystem would not give it; and with both fixed the storefront still
+discarded the option because it demanded a price a calculated option does not
+carry until it is attached. Only the third was visible from the code alone.
+
+**And twice a merged fix looked ineffective because Argo had not rolled the
+new image.** The digest bump was in `deploys` and the running pod was the
+previous build. Argo is `automated` with `selfHeal`, so this should not need a
+nudge; it needed one both times. Worth a look before it costs a third round
+trip — a long polling interval, or no webhook from `deploys`.
+
 ### What Gate E missed, found in production on 2026-09-10
 
 **Merch was unbuyable through the checkout on every environment, and this row
@@ -1942,3 +1968,20 @@ asked, and what the answer was, is the part worth keeping.
 
 The §23 legal gate gains everything in P10, P11 and P14. It was already seven
 items.
+
+## Two things closed at their current state, 2026-09-10
+
+**The sticker's cut.** The print files are rendered with `omitBackground: true`,
+so Printful's kiss-cut follows the artwork's shape rather than the 4″ square the
+row described. Raised as a question and closed as a decision: **the cut-to-shape
+sticker is what ships.** It is a one-line change to `design/merch/render.mjs` if
+that is ever revisited, and revisiting it means re-syncing the product and
+re-fetching its photograph, so it is not a change to make casually.
+
+**Argo CD's sync cadence.** Twice during this slice a merged fix looked
+ineffective because the running pod was the previous image while the digest bump
+sat in `deploys`. The Application is `automated` with `selfHeal` and should not
+have needed a nudge; it needed one both times. Closed as **observed and
+tolerated**: the workaround is a manual sync, it costs a minute, and it happens
+on deploys rather than on anything a visitor touches. Written down so the third
+occurrence is recognised as a pattern rather than investigated from scratch.

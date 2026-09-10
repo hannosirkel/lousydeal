@@ -126,7 +126,7 @@ before either environment sends anything.
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-02-certificates.md`, `docs/working/status.md`.
 
-- [ ] Land the plan and move the resume point to it.
+- [x] Land the plan and move the resume point to it.
 
 ### C1 — The deal module: what a deal is, its serial, and its slug
 
@@ -906,7 +906,7 @@ preconditions are absent until C10 and C11.
 `lousydeal/base/worker.yaml`, `lousydeal/base/predeploy-job.yaml`,
 `lousydeal/README.md`, `lousydeal/tests/*`.
 
-- [ ] Add an `allow-smtp-submission-egress` policy and the SMTP environment to
+- [x] Add an `allow-smtp-submission-egress` policy and the SMTP environment to
       the workloads that send, with committed values that are placeholders the
       Orange patch supersedes.
 
@@ -929,7 +929,7 @@ it does not.
 `roles/argocd/templates/lousydeal-application.yaml.j2`,
 `inventory-example/group_vars/orange.yml`, `roles/argocd/tasks/lousydeal.yml`.
 
-- [ ] Extend both environments with the four non-secret SMTP values and project
+- [x] Extend both environments with the four non-secret SMTP values and project
       `SMTP_USERNAME`/`SMTP_PASSWORD` from OpenBao, following the pattern the
       reference project already uses.
 
@@ -1004,7 +1004,7 @@ the number that makes it slow is thousands, not hundreds.
 `storefront/tests/legal-refunds.test.ts`,
 `storefront/tests/checkout-consent.test.ts`.
 
-- [ ] Rewrite every statement that a confirmation is not sent, state the
+- [x] Rewrite every statement that a confirmation is not sent, state the
       withdrawal position that now applies, and invert the guards that
       currently assert the opposite.
 
@@ -1032,7 +1032,7 @@ reserves that to the operator and a qualified human reader.
 `storefront/tests/withdrawal.test.ts`,
 `backend/tests/withdrawal-receipt.test.ts`.
 
-- [ ] Record a withdrawal and send its acknowledgement on a durable medium
+- [x] Record a withdrawal and send its acknowledgement on a durable medium
       without delay, as § 56⁴(4) requires.
 
 LD-09 built the button and said in the page itself that the receipt was LD-02's.

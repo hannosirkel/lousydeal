@@ -135,7 +135,7 @@ the visual work *and* the print-on-demand provider, per the operator's ruling of
 `docs/working/fresh-build.md`, `docs/working/status.md`,
 `docs/current/brand.md`, `docs/working/ld-09-visual-identity.md` (this file).
 
-- [ ] Record the operator's 2026-09-05 direction that Terms, Refunds &
+- [x] Record the operator's 2026-09-05 direction that Terms, Refunds &
       Withdrawal, Privacy and Imprint are drafted as finished copy in this
       slice, against §23 and §25 which place them after the build. State what
       does **not** move: the Legal gate stays an operator gate, no agent closes
@@ -155,7 +155,7 @@ failure constraint 9 exists for.
 `storefront/src/fonts/LDMono-Bold.woff2`, `storefront/src/fonts/OFL.txt`,
 `storefront/src/app/layout.tsx`, `storefront/tests/tokens.test.ts`.
 
-- [ ] Serve IBM Plex Mono from committed OFL files through `next/font/local`,
+- [x] Serve IBM Plex Mono from committed OFL files through `next/font/local`,
       and declare every token in [`brand.md`](../current/brand.md) §3 as a CSS
       custom property on `:root`. Verified by a test asserting the stylesheet
       declares each named token exactly once, that no colour literal appears
@@ -199,7 +199,7 @@ use.
 `storefront/tests/runtime-config.test.ts`,
 `storefront/tests/merchant.test.ts`.
 
-- [ ] Add the `MERCHANT_*` runtime configuration and the placeholder resolver
+- [x] Add the `MERCHANT_*` runtime configuration and the placeholder resolver
       decision `004` specifies, and render the masthead and footer on every
       page. Verified by a test asserting that a resolved value substitutes,
       that an unconfigured value renders the named gap rather than the token or
@@ -226,7 +226,7 @@ This row falsifies `runtime-config.ts`'s own header, which states there is no
 `storefront/tests/document-components.test.ts`,
 `storefront/tests/money.test.ts`.
 
-- [ ] Build the six motifs of [`brand.md`](../current/brand.md) §3 and the one
+- [x] Build the six motifs of [`brand.md`](../current/brand.md) §3 and the one
       money formatter every surface shares. Verified by tests rendering each
       component with `renderToStaticMarkup` and asserting the semantics rather
       than the classes: `LedgerRow` emits `dl`/`dt`/`dd`, `StampMark` carries an
@@ -261,7 +261,7 @@ author.
 `storefront/src/app/globals.css`, `storefront/tests/home-page.test.ts`,
 `docs/current/brand.md`.
 
-- [ ] Render the home page as `FORM LD-1` per [`brand.md`](../current/brand.md)
+- [x] Render the home page as `FORM LD-1` per [`brand.md`](../current/brand.md)
       §4: masthead, offer ledger, tier table, terms-of-offer fine print. Keep
       the existing server action and cookie behaviour exactly as LD-01 left it.
       Verified by a test asserting the three tiers render as table rows with
@@ -299,7 +299,7 @@ same deferral the footer's legal column already carries.
 `storefront/tests/tier-page.test.ts`, `storefront/tests/home-page.test.ts`,
 `docs/current/brand.md`.
 
-- [ ] Render `/deal/[handle]` as a quotation, with the tier's ledger, the
+- [x] Render `/deal/[handle]` as a quotation, with the tier's ledger, the
       more expensive tiers under `UPGRADES AVAILABLE`, the acquire button, and
       the withdrawal fine print. An unknown handle is a 404, not an empty
       document. Verified by a test asserting the upgrade list for the cheapest
@@ -346,7 +346,7 @@ sensible at the same time.
 `storefront/src/app/globals.css`, `storefront/tests/system-pages.test.ts`,
 `docs/current/brand.md`.
 
-- [ ] Render the error and loading states as
+- [x] Render the error and loading states as
       [`brand.md`](../current/brand.md) §4's system-pages table describes them:
       `PROCESSING ERROR` as a document, and a single blinking block cursor
       drawn in CSS rather than set as a glyph. Verified by a test asserting
@@ -405,7 +405,7 @@ quietly widening it.
 `storefront/src/app/cart/page.tsx`, `storefront/src/app/checkout/page.tsx`,
 `storefront/tests/cart-actions.test.ts`.
 
-- [ ] Share the `addToCart` Server Action, which V4 and V5 each carry a
+- [x] Share the `addToCart` Server Action, which V4 and V5 each carry a
       byte-identical copy of, and move `CART_ID_COOKIE` out of the home page's
       route module, which three other files import it from. Verified by a test
       asserting the cookie's attributes as one object, that the action refuses
@@ -435,7 +435,7 @@ rather than in it.
 `storefront/src/app/globals.css`,
 `storefront/tests/checkout-consent.test.ts`, `docs/current/brand.md`.
 
-- [ ] Render the cart as `ORDER SUMMARY` and the checkout as `PAYMENT
+- [x] Render the cart as `ORDER SUMMARY` and the checkout as `PAYMENT
       AUTHORISATION`, with the total explicit above an unticked consent
       checkbox that the pay control is disabled behind. Verified by a test
       asserting the payment control is disabled while consent is unticked and
@@ -479,7 +479,7 @@ computation of a figure the API already gives.
 `storefront/src/app/globals.css`, `storefront/tests/certificate.test.ts`,
 `docs/current/brand.md`.
 
-- [ ] Build the certificate against a typed model — inscription, tier, amount,
+- [x] Build the certificate against a typed model — inscription, tier, amount,
       serial, issue date, layout version — and render one specimen record at
       `/design/certificate`. Verified by a test asserting the empty-inscription
       case renders "the bearer" and looks deliberate rather than truncated, and
@@ -528,7 +528,7 @@ the runtime's ICU data — the reason that file gives for not using it.
 `storefront/tests/no-unresolved-placeholder.test.ts`,
 `docs/current/brand.md`.
 
-- [ ] Render a legal document from structured content — numbered sections, a
+- [x] Render a legal document from structured content — numbered sections, a
       table of contents, the closing line and date — and ship the imprint as
       the first one. Verified by a test that walks **every** legal content file
       in the directory, resolves it against a configuration with all fields
@@ -562,7 +562,7 @@ Decision `004`'s named-visible-gap rule is executed here, not described.
 `storefront/tests/legal-terms.test.ts`,
 `storefront/tests/certificate.test.ts`.
 
-- [ ] Draft the Terms: seller identity; that the customer receives a numbered
+- [x] Draft the Terms: seller identity; that the customer receives a numbered
       digital certificate and nothing else of value, and that this is the
       point; that the displayed price is the price charged and includes VAT
       where it applies; order process; immediate delivery; acceptable use of
@@ -598,7 +598,7 @@ unpublished site.
 `storefront/src/app/legal/refunds/page.tsx`,
 `storefront/tests/legal-refunds.test.ts`.
 
-- [ ] Draft the withdrawal policy: the 14-day statutory right of **VÕS
+- [x] Draft the withdrawal policy: the 14-day statutory right of **VÕS
       § 56(1)**, the digital-content exception of **§ 53(4) p 7¹**, and all
       three conditions that exception requires — including the trader's
       § 55(1)–(2) confirmation, which the checkout alone does not satisfy.
@@ -1098,7 +1098,7 @@ piece of vector artwork the identity admits, and it is the same SVG.
 `deploys/lousydeal/overlays/test/kustomization.yaml`,
 `deploys/lousydeal/README.md`.
 
-- [ ] Supply every `MERCHANT_*` value the storefront reads, in both overlays,
+- [x] Supply every `MERCHANT_*` value the storefront reads, in both overlays,
       so no legal document renders a gap in either environment. Verified by
       rendering both overlays and asserting each variable is present and
       non-empty.
@@ -1233,8 +1233,54 @@ report.
 
 | Value | Needed by | State |
 | --- | --- | --- |
-| Registry code | imprint, terms | not supplied — **renders as a named gap on `/legal/imprint` today** |
-| VAT number | imprint, terms | registered, number not supplied — **renders as a named gap on `/legal/imprint` today** |
-| Whether registry code and VAT number may be committed to `deploys` | V14 | operator decision |
-| Hosting arrangement as it should be described to a data subject | V11 | operator confirmation |
-| Retention periods for order and inscription data | V11 | operator decision |
+| Registry code | imprint, terms | **supplied** 2026-09-07, in the private `orange.yml`; the imprint renders no gap |
+| VAT number | imprint, terms | **supplied** 2026-09-07, same place, same verification |
+| Whether registry code and VAT number may be committed to `deploys` | V14 | **yes** — `deploys/lousydeal/base/storefront.yaml` carries all six as a fallback the Orange patch supersedes, so a manifest applied without Orange still publishes a lawful imprint |
+| Hosting arrangement as it should be described to a data subject | V11 | **confirmed**; Privacy §4 describes it |
+| Retention periods for order and inscription data | V11 | **decided** 2026-09-10: the inscription is part of the order record and is kept the same seven years Estonian accounting law requires. Separating it would mean a second record of who wrote what, which is more data about that person and not less |
+
+## The gate closes, 2026-09-10
+
+**The operator closed every remaining item at its current state.** §23 reserves
+these to the operator and a qualified human reader, and this is that decision
+being taken rather than deferred again. Recorded here in full, because a gate
+closed without a written position is a gate that reopens the first time anybody
+asks what was decided.
+
+**Items 8, 10, 12, 13, 17 and 18 close on the position the documents already
+state.** Each was a judgement where a pragmatic reading and a supervisory
+authority's could diverge; the drafting takes a position, the position is cited,
+and the operator accepts it. Nothing in the documents changes. What closing
+means is that the divergence is an accepted exposure and not a blocker:
+
+- **8 · The consent is a condition of ordering**, and § 56²(9) voids a term
+  hindering the exercise of the right. Accepted: a digital product supplied
+  immediately cannot be sold any other way, and the alternative — a delay before
+  supply — is worse for the buyer than the term is.
+- **10 · The Estonian annex wording** is the redaction in force
+  13.06.2014–26.05.2022. Accepted: it is the last published text, and §5.1
+  matches it line for line.
+- **12 · § 56(1⁶): 14 days or 12 months.** Accepted as 14 days; V12 and V15
+  established that the § 54(1) p 12 information is on every page including the
+  offer page, which is what the twelve-month extension turns on.
+- **13 · The acknowledgement** of losing a right that, on this analysis, is
+  never lost for an order placed here. Accepted: it is required by § 56²(3) p 2
+  to make the supply lawful before the period expires, and saying it plainly is
+  better than not asking.
+- **17 · `__stripe_mid` is a 365-day device identifier** under this site's own
+  domain, for fingerprinting, with no consent asked. Accepted: the notice states
+  the position rather than resolving the ePrivacy question, which is the honest
+  form of it.
+- **18 · Stripe as an independent controller** for fraud and regulatory checks
+  and a processor for the payment. Accepted: Privacy §5 says both, and whether
+  an Art 26 arrangement is required for the overlap is left as stated.
+
+**Item 15 closes differently, and the difference matters.** It is the only one
+that was work: no deletion job exists for the seven-year accounting record the
+Privacy Policy states, and nothing in either repository deletes or ages out
+anything. Closing it means **retention is enforced by hand, not by code.** The
+obligation is real and the first record does not reach seven years old until
+2033, so nothing is overdue; what is now true is that nothing will delete it
+unless somebody does. That is a deliberate choice and not an oversight, and it
+is written here so the next reader does not mistake a closed item for a built
+one.

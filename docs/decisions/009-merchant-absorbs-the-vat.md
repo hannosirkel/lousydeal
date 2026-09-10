@@ -158,3 +158,24 @@ avoiding the question by configuring no tax at all (`007`).
   59c threshold is crossed, or the row that finally collects an address at
   checkout, all reopen work adjacent to this record — the last of those
   reopens the address-gap section above specifically.
+
+## Reopened by the OSS registration, and closed again 2026-09-10
+
+**Registering for Union OSS most likely moves the $5 certificate to destination
+VAT.** A single absorbed Estonian 24% becomes one between 17% and 27%, decided
+by where the buyer is. `013` recorded this as reopening the present decision;
+the operator closed it on 2026-09-10 at its current state.
+
+**Closed means the decision stands unchanged: absorbed, never itemised, one
+price everywhere.** What moves is the *margin*, not the price — a Hungarian
+buyer at 27% leaves less than an Estonian at 24% and a Luxembourgish one at 17%
+leaves more. On a $5 product the spread between the extremes is under fifty
+cents, which is the reason this was never a pricing problem.
+
+**It adds no filing**, because the OSS return is already being made for merch.
+The certificate joins rows that exist.
+
+**What is accepted, stated as the exposure it is:** the returns will apportion
+certificate revenue by destination at rates this document does not tabulate, and
+that apportionment is prepared by hand at return time like every other part of
+`014`'s reporting. Nothing in the checkout knows about it and nothing needs to.

@@ -121,7 +121,7 @@ dependency order: G1 before G2, G2 before G4, G4 before G5.
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-03-gifting.md`, `docs/working/status.md`.
 
-- [ ] Land the plan and move the resume point to it.
+- [x] Land the plan and move the resume point to it.
 
 ### G1 — Gift metadata on the deal
 
@@ -130,7 +130,7 @@ dependency order: G1 before G2, G2 before G4, G4 before G5.
 `backend/src/modules/deal/migrations/*` (generated),
 `backend/src/modules/deal/issue.ts`, `backend/tests/deal-model.test.ts`.
 
-- [ ] Record who a gift went to, on the deal, without making a gift a status.
+- [x] Record who a gift went to, on the deal, without making a gift a status.
 
 §16 names "gift metadata" among the deal's fields. Four nullable columns —
 recipient name, recipient email, sender name, message — and a deal is a gift if
@@ -153,7 +153,7 @@ afternoon to that and the row records it so this one does not.
 `storefront/src/lib/gift.ts`, `tests/fixtures/gift-cases.json`,
 `backend/tests/gift.test.ts`, `storefront/tests/gift.test.ts`.
 
-- [ ] Filter the four gift fields the way §5's two are filtered, from one
+- [x] Filter the four gift fields the way §5's two are filtered, from one
       specification both workspaces run.
 
 The shared-filter arrangement C3c built: a character-identical filter in both
@@ -179,7 +179,7 @@ accident rather than a decision.
 `storefront/src/content/checkout.ts`, `storefront/src/lib/store-checkout.ts`,
 `storefront/tests/checkout-gift.test.ts`.
 
-- [ ] Collect the four fields, only when the buyer asks to gift, and say what
+- [x] Collect the four fields, only when the buyer asks to gift, and say what
       happens to them.
 
 `brand.md` forbids a toggle that does nothing; this is the row that gives it
@@ -208,7 +208,7 @@ round.
 `backend/src/notifications/order-confirmation.ts`,
 `backend/tests/gift-message.test.ts`.
 
-- [ ] Build the recipient's message, and add one line to the buyer's
+- [x] Build the recipient's message, and add one line to the buyer's
       confirmation, without either becoming the other.
 
 **The recipient's message carries the certificate link, the sender's name if
@@ -235,7 +235,7 @@ acceptable; guessing is not.
 **Files:** `backend/src/subscribers/order-placed.ts`,
 `backend/tests/order-placed-gift.test.ts`.
 
-- [ ] Send the recipient's message once per gift, never twice, and never
+- [x] Send the recipient's message once per gift, never twice, and never
       instead of the buyer's confirmation.
 
 **Order matters and is asserted.** The buyer's § 55 confirmation is a legal
@@ -261,7 +261,7 @@ intent.
 `storefront/src/lib/store-deal.ts`, `backend/tests/store-deal-route.test.ts`,
 `storefront/tests/certificate-privacy.test.ts`.
 
-- [ ] Prove the recipient's name and address reach no public surface.
+- [x] Prove the recipient's name and address reach no public surface.
 
 Constraint 4, enforced rather than intended. The deal endpoint publishes an
 allowlist of eight fields and its test asserts the key set exactly; four new
@@ -287,7 +287,7 @@ recipient may reach the total either.
 `storefront/tests/legal-terms.test.ts`,
 `storefront/tests/legal-consistency.test.ts`.
 
-- [ ] State the basis and retention for an address the data subject never gave
+- [x] State the basis and retention for an address the data subject never gave
       us, and write the gifting clause the Terms deferred.
 
 **This is the row with the sharpest legal question in the slice**, and it is not
@@ -315,7 +315,7 @@ lesson C13 learned twice.
 **Repository:** `lousydeal`.
 **Files:** `docs/current/brand.md`.
 
-- [ ] Replace "No gift toggle" with what the control now is, and specify the
+- [x] Replace "No gift toggle" with what the control now is, and specify the
       recipient's email as a document.
 
 The mail LD-02 sends has no visual specification; it was written as content and
