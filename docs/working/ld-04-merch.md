@@ -1804,23 +1804,31 @@ asked, and what the answer was, is the part worth keeping.
      crosses €100,000. **One gap**: the exemption applies only from the day
      EMTA communicates the `EX` number, due around 28 October, while
      destination taxation starts 1 October.
-   - **Spain is not coverable at all.** It never transposed the scheme, has no
-     domestic threshold, and is before the Court of Justice over it. Three
-     options — register there, accept the exposure `013` records, or refuse the
-     Spanish *parcel* at quote time, which is lawful under Regulation (EU)
-     2018/302 so long as it keys on the delivery address. **`015` deliberately
-     does not choose**: option 3 costs `013`'s "no destination allow-list"
-     principle one narrow case, and that principle is the operator's.
+   - **Spain is not coverable at all**, and **the operator settled it on
+     2026-09-10: the exposure is accepted and no country is closed.** Spain
+     never transposed the scheme, has no domestic threshold, and is before the
+     Court of Justice over it, so the alternatives were a Spanish registration
+     that would dwarf the trade it legalises or refusing the Spanish parcel —
+     which would have spent `013`'s "no destination allow-list" on the one case
+     that tested it. Printful charges Spanish VAT on the Barcelona-to-Spain
+     dispatch as a cost line, so the transaction is not untaxed; what is
+     accepted is the trader's own missing output VAT, until ViDA closes it in
+     2028. **An accepted exposure that nobody measures is an assumed one**, so
+     `report:vat-thresholds` now counts supplies dispatched and delivered
+     inside one member state, per country — Spain as the exposure, Latvia
+     beside it as the case the `EX` number covers.
    - **IOSS is closed, by elimination.** The Commission's SME Explanatory
      Notes make the small-enterprise scheme and IOSS **mutually exclusive**, so
      taking IOSS would forfeit the `EX` number and reopen Latvia. The
      import-charges disclosure Terms §3 already carries is what the law
      requires.
 
-   The code now records `departsFrom`, `customsFeesPossible` and `quotedFor` on
-   the shipping method, because Art 369g(2) itemises the OSS return **per
-   Member State of dispatch** and the quote is the only moment that fact
-   exists.
+   The code records `departsFrom`, `customsFeesPossible` and `quotedFor` on the
+   shipping method, because Art 369g(2) itemises the OSS return **per Member
+   State of dispatch** and the quote is the only moment that fact exists — and
+   the threshold report now reads it back. **This bullet is closed.** What
+   remains of VAT in this slice is four questions for EMTA, listed in `015`,
+   none of which blocks anything.
 
    > **As written on 2026-09-08, before `013`:** The 2026-09-08 ruling
    — below €10,000, charge Estonian VAT — holds for the certificate and for

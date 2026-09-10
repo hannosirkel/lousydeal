@@ -1,7 +1,8 @@
 # 015. Where the parcel is dispatched from
 
-**Date:** 2026-09-10. **Status:** Latvia settled, IOSS settled and closed,
-**Spain open and the operator's to decide**. Extends
+**Date:** 2026-09-10. **Status:** settled. Latvia covered, IOSS closed, and
+**Spain settled by the operator on 2026-09-10: the exposure is accepted and no
+country is closed.** Extends
 [`013`](./013-the-vat-arrangement.md), whose Latvia row this confirms, whose
 Spain row gains a third option, and whose "IOSS — nothing to do" row gains a
 hard reason instead of a judgement.
@@ -86,10 +87,26 @@ that does not exist. The options are:
    the same terms. **The certificate is unaffected**; only the parcel is
    refused.
 
-**This decision does not choose.** Option 3 costs `013`'s "no destination
-allow-list" principle one narrow case, and that principle is the operator's.
-What this decision does is make the choice *implementable* and, until it is
-made, keep the fact recorded.
+### The operator chose option 2, on 2026-09-10
+
+**The exposure is accepted and sales stay open to every country**, which keeps
+`013`'s "no destination allow-list" intact rather than spending it on the one
+case that would have tested it. The operator also records the cost side:
+**Printful charges Spanish VAT on a Barcelona-to-Spain dispatch**, on the
+invoice to the trader, so the transaction is not untaxed — what is missing is
+the trader's own Spanish output VAT, which is the exposure being accepted.
+
+It remains non-compliance from the first ES→ES sale, and the honest reasons to
+accept it are that a Spanish registration would dwarf the trade it legalises,
+that the volumes are near zero, and that ViDA's 2028 end-date closes it — on
+the same transposition Spain is currently before the Court for not doing.
+
+**An accepted exposure that nobody measures is an assumed one**, so the
+condition attached to accepting it is that it is counted:
+`report:vat-thresholds` now reports supplies dispatched and delivered inside
+one member state, per country. Latvia appears in the same line and is covered
+by the `EX` number; Spain is the figure that matters, and it is a figure rather
+than a guess.
 
 ## IOSS — closed, by elimination rather than convenience
 
@@ -142,9 +159,14 @@ fact needed in three months is the wrong trade. The absence is written as
 ## What is not built, and why
 
 - **The sellability rule** — refusing an option where `departsFrom` equals the
-  destination and that country is not Estonia or an `EX`-exempt state. It is
-  written up because it is the mechanism for both the Spanish decision and the
-  October gap, and it is not built because the Spanish decision is not made.
+  destination and that country is not Estonia or an `EX`-exempt state.
+  **Not built, and now deliberately not:** the operator accepted the Spanish
+  exposure and closed no country, so the rule has nothing left to refuse. It
+  stays written down because the October gap is real — until EMTA communicates
+  the `EX` number, an LV→LV sale is in the same position Spain is — and because
+  a future operator may decide differently. The counter is what covers the gap
+  in the meantime: a Latvian supply before the confirmation date shows up in
+  the same report line.
 - **`vatRateFor` returning 0 for `EX`-exempt destinations.** An LV-terminating
   supply under the exemption bears no VAT, so grossing Latvian postage up by
   21% would charge tax nobody owes — the same wrong direction P14b fixed for

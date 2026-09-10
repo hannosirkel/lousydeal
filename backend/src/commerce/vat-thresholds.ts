@@ -58,6 +58,15 @@ export interface CountedOrder {
   readonly currencyCode: string;
   /** Where it went. `null` for an order with no address, which is a certificate. */
   readonly destinationCountry: string | null;
+  /**
+   * Where Printful said it would dispatch from, or `null`.
+   *
+   * Recorded on the shipping method at quote time by
+   * `fulfilment-provider.ts`, because the rate response is the only moment it
+   * exists. An order placed before that was built carries `null`, which counts
+   * as unknown rather than as safe.
+   */
+  readonly departsFrom: string | null;
   readonly placedAt: Date;
 }
 
@@ -68,6 +77,21 @@ export interface ThresholdReport {
   readonly unionTurnover: number;
   /** Orders delivered to Latvia. See this file's head: an upper bound on Latvian domestic supplies. */
   readonly latvianSupplies: number;
+  /**
+   * Supplies that begin and end in the same member state, and are therefore
+   * domestic there — which the Union OSS cannot carry.
+   *
+   * **Counted because the operator accepted the exposure**, and an accepted
+   * exposure that nobody measures is an assumed one. Decision `015` settles
+   * Spain this way: sales stay open everywhere, Printful charges Spanish VAT
+   * on the domestic dispatch as a cost line, and the shop keeps count so the
+   * figure is known rather than guessed.
+   *
+   * Latvia appears here too and is *not* a problem: the `EX` number exempts
+   * it. The two are separated below rather than summed, because one is covered
+   * and the other is not.
+   */
+  readonly domesticDispatch: Readonly<Record<string, number>>;
   readonly orders: number;
   /** Ceilings reached or passed, worst first. Empty is the ordinary answer. */
   readonly crossed: readonly string[];
@@ -107,6 +131,7 @@ export function thresholdReport(
 
   let unionTurnover = 0;
   let latvianSupplies = 0;
+  const domesticDispatch: Record<string, number> = {};
 
   for (const order of inYear) {
     const destination = order.destinationCountry?.trim().toUpperCase() ?? null;
@@ -119,6 +144,18 @@ export function thresholdReport(
 
     unionTurnover += order.total;
     if (country === "LV") latvianSupplies += order.total;
+
+    // **A supply that begins and ends in the same member state is domestic
+    // there.** Art 32 places it where dispatch begins, so a parcel Printful
+    // sends from Barcelona to a Spanish address never crosses a border and
+    // the Union OSS cannot carry it. Decision `015` records that the operator
+    // accepted this exposure for Spain rather than close the country; this is
+    // what keeps it measured. Compared case-insensitively because one side
+    // comes from Printful and the other from the buyer.
+    const departure = order.departsFrom?.trim().toUpperCase() ?? null;
+    if (departure !== null && departure === country) {
+      domesticDispatch[country] = (domesticDispatch[country] ?? 0) + order.total;
+    }
   }
 
   const crossed: string[] = [];
@@ -140,6 +177,12 @@ export function thresholdReport(
     currencyCode: storeCurrency,
     unionTurnover: cents(unionTurnover),
     latvianSupplies: cents(latvianSupplies),
+    // Rounded per country for the same reason every figure here is: a total
+    // read against a legal threshold should not carry fifteen decimal places
+    // of floating residue.
+    domesticDispatch: Object.fromEntries(
+      Object.entries(domesticDispatch).map(([country, total]) => [country, cents(total)]),
+    ),
     orders: inYear.length,
     crossed,
   };
