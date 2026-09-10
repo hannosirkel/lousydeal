@@ -415,9 +415,10 @@ being asked things, rather than on a page whose one job is to describe a tier.
 
 ### Cart — `ORDER SUMMARY`
 
-`FORM LD-3`. Line items as ledger rows, the cart's own total as the closing
-row — read from the API, never summed here — and one button, `PROCEED TO
-PAYMENT`. The empty state is a document too: `NO ITEMS OF RECORD`.
+`FORM LD-3`. Line items appear as ledger rows, with the cart's own total as the
+closing row — read from the API, never summed here. Its primary route onward is
+`PROCEED TO PAYMENT`, immediately below the cart controls. The empty state is a
+document too: `NO ITEMS OF RECORD`.
 
 **The adjustment row.** A discount code adds a line to the cart, and that line
 is an adjustment, not merchandise. It is one ledger row, directly above
@@ -444,6 +445,27 @@ plus is set in `--ink`, not `--stamp`: §3 spends the accent on negative figures
 and this one is not negative. The figure is the line's own price, formatted and
 never computed here, and it is the line's whole figure because the payability
 rule admits one such line, of quantity one, and nothing else.
+
+**The code control.** Directly under the ledger and above `PROCEED TO PAYMENT`,
+one field labelled `DISCOUNT CODE` sits beside a button labelled `APPLY CODE`.
+It is an ordinary form and works without scripting. Below 480px the label,
+field and button stack rather than compete for one line. The browser limits the
+field to 64 characters; the server still validates it, because a browser limit
+is not a trust boundary.
+
+A refused submission returns to this same document and prints exactly one
+clerk's notice above the field. The reason is selected from the three values the
+backend owns, never reflected from the URL:
+
+| Reason | Notice |
+| --- | --- |
+| Unknown code | That code is not on file. Nothing in the cart changed. |
+| No certificate | A discount code needs exactly one certificate in the cart. Choose the one you want, then try again. |
+| Completed cart | This order is already complete. Start a new purchase to use a code. |
+
+The adjustment's `REMOVE` is the same quiet, underlined word a merchandise row
+uses. Removing it posts the line id through the cart's existing action and
+returns to the freshly read summary.
 
 ### Checkout — `PAYMENT AUTHORISATION`
 

@@ -63,7 +63,7 @@ describe("addToCart", () => {
     await expect(addToCart(new FormData())).rejects.toThrow(/missing variantId/);
   });
 
-  it("exports exactly three actions, because every export here is a POST endpoint", async () => {
+  it("exports exactly four actions, because every export here is a POST endpoint", async () => {
     // Next gives each export of a `"use server"` module a public action id, so
     // anything exported is reachable by any visitor with any arguments.
     //
@@ -72,12 +72,12 @@ describe("addToCart", () => {
     // one: a helper accidentally exported from this module is a public POST
     // endpoint, and nothing else in the repository would notice.
     //
-    // `removeFromCart` is the third, and it is reachable by anyone with any
-    // line id -- which is why it reads the cart from the caller's own cookie
-    // and removes only a line that cart actually holds. A line id from
-    // somebody else's cart matches nothing and is a no-op.
+    // `removeFromCart` was the third; `applyCode` is the fourth. Both are
+    // reachable by any visitor. The former therefore reads the cart from the
+    // caller's own cookie and removes only a line that cart actually holds. A
+    // line id from somebody else's cart matches nothing and is a no-op.
     const actions = await import("../src/lib/cart-actions");
-    expect(Object.keys(actions).sort()).toEqual(["addMerchToCart", "addToCart", "removeFromCart"]);
+    expect(Object.keys(actions).sort()).toEqual(["addMerchToCart", "addToCart", "applyCode", "removeFromCart"]);
   });
 
   it("adds one, and does not read a quantity from the form", async () => {
@@ -128,6 +128,115 @@ describe("addToCart", () => {
   });
 });
 
+class TestStoreApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body?: unknown,
+  ) {
+    super(`Store API ${String(status)}`);
+  }
+}
+
+async function runApplyCode(options: {
+  readonly code?: string;
+  readonly cartId?: string;
+  readonly refusal?: string;
+  readonly refusalStatus?: number;
+}): Promise<{ readonly applied: readonly unknown[] }> {
+  vi.resetModules();
+  const applied: unknown[] = [];
+  vi.doMock("../src/lib/store-cart", () => ({
+    applySurcharge: async (...args: unknown[]) => {
+      applied.push(args);
+      if (options.refusal !== undefined) {
+        throw new TestStoreApiError(options.refusalStatus ?? 422, { reason: options.refusal });
+      }
+      return { id: "cart_1", total: 6 };
+    },
+  }));
+  vi.doMock("../src/lib/medusa-client", () => ({
+    StoreApiError: TestStoreApiError,
+    createStoreFetchJson: () => async () => ({}),
+    getDefaultRegion: async () => ({ id: "reg_1", currency_code: "usd" }),
+    listTiers: async () => [],
+  }));
+  vi.doMock("next/headers", () => ({
+    cookies: async () => ({
+      get: () => (options.cartId === undefined ? undefined : { value: options.cartId }),
+      set: () => undefined,
+    }),
+  }));
+  vi.doMock("next/navigation", () => ({
+    redirect: (path: string) => {
+      throw new Error(`REDIRECT:${path}`);
+    },
+  }));
+  vi.doMock("../src/lib/store-session", () => ({
+    CART_ID_COOKIE: "lousydeal_cart_id",
+    CART_COOKIE_OPTIONS: { httpOnly: true, sameSite: "lax", path: "/", secure: true },
+    requireStoreClientConfig: () => ({ backendUrl: "http://backend.example", publishableKey: "pk" }),
+  }));
+
+  const { applyCode } = await import("../src/lib/cart-actions");
+  const form = new FormData();
+  if (options.code !== undefined) form.set("code", options.code);
+  const acceptedRefusal = (options.refusalStatus ?? 422) === 422
+    && (options.refusal === "unknown_code" || options.refusal === "no_certificate" || options.refusal === "completed");
+  const expected = options.cartId === undefined
+    ? "REDIRECT:/cart?code_reason=no_certificate"
+    : options.refusal === undefined
+      ? "REDIRECT:/cart"
+      : acceptedRefusal
+        ? `REDIRECT:/cart?code_reason=${options.refusal}`
+        : `Store API ${String(options.refusalStatus ?? 422)}`;
+  await expect(applyCode(form)).rejects.toThrow(expected);
+
+  vi.resetModules();
+  for (const mocked of [
+    "../src/lib/store-cart",
+    "../src/lib/medusa-client",
+    "next/headers",
+    "next/navigation",
+    "../src/lib/store-session",
+  ]) {
+    vi.doUnmock(mocked);
+  }
+  return { applied };
+}
+
+describe("applying a code", () => {
+  it("refuses a submission carrying no code", async () => {
+    const { applyCode } = await import("../src/lib/cart-actions");
+    await expect(applyCode(new FormData())).rejects.toThrow(/missing code/);
+  });
+
+  it("posts the one entered field against the caller's cookie cart", async () => {
+    const run = await runApplyCode({ code: " BALDRICK20 ", cartId: "cart_1" });
+    expect(run.applied).toEqual([[expect.any(Function), "cart_1", " BALDRICK20 "]]);
+  });
+
+  it.each(["unknown_code", "no_certificate", "completed"])(
+    "carries the stable %s refusal back to the cart",
+    async (refusal) => {
+      const run = await runApplyCode({ code: "BALDRICK20", cartId: "cart_1", refusal });
+      expect(run.applied).toHaveLength(1);
+    },
+  );
+
+  it.each([
+    { refusal: "attacker-controlled", refusalStatus: 422 },
+    { refusal: "unknown_code", refusalStatus: 500 },
+  ])("does not turn an untrusted $refusalStatus/$refusal error into a redirect", async (error) => {
+    const run = await runApplyCode({ code: "BALDRICK20", cartId: "cart_1", ...error });
+    expect(run.applied).toHaveLength(1);
+  });
+
+  it("does not call Medusa without a cart owned by the caller", async () => {
+    const run = await runApplyCode({ code: "BALDRICK20", refusal: "no_certificate" });
+    expect(run.applied).toHaveLength(0);
+  });
+});
+
 /**
  * C3a: one certificate per order, made true where the cart is filled.
  *
@@ -141,6 +250,9 @@ interface AddToCartRun {
   readonly removed: [string, string][];
   /** `[cartId, variantId, quantity]` for each line added. */
   readonly added: [string, string, number][];
+  /** `[cartId, code]` for each surcharge re-price, in order. */
+  readonly applied: [string, string][];
+  readonly events: string[];
   readonly createdCarts: number;
   readonly cookieWrittenAs: string | undefined;
 }
@@ -149,11 +261,18 @@ interface AddToCartRun {
 async function runAddToCart(options: {
   cookieCartId?: string;
   /** What `getCart` answers for the cookie's cart, or `"unresolvable"` for one that does not. */
-  existingCart?: { id: string; completed_at?: string | null; items?: { id: string; variant_id: string }[] } | "unresolvable";
+  existingCart?: {
+    id: string;
+    completed_at?: string | null;
+    items?: { id: string; variant_id: string | null; metadata?: Record<string, unknown> }[];
+  } | "unresolvable";
+  reapplyFails?: boolean;
 }): Promise<AddToCartRun> {
   vi.resetModules();
   const removed: [string, string][] = [];
   const added: [string, string, number][] = [];
+  const applied: [string, string][] = [];
+  const events: string[] = [];
   let createdCarts = 0;
   let cookieWrittenAs: string | undefined;
 
@@ -170,9 +289,16 @@ async function runAddToCart(options: {
     },
     removeLineFromCart: async (_fetchJson: unknown, cartId: string, lineId: string) => {
       removed.push([cartId, lineId]);
+      events.push(`remove:${lineId}`);
     },
     addLineToCart: async (_fetchJson: unknown, cartId: string, variantId: string, quantity: number) => {
       added.push([cartId, variantId, quantity]);
+      events.push(`add:${variantId}`);
+    },
+    applySurcharge: async (_fetchJson: unknown, cartId: string, code: string) => {
+      applied.push([cartId, code]);
+      events.push(`apply:${code}`);
+      if (options.reapplyFails === true) throw new Error("re-price failed");
     },
   }));
   vi.doMock("../src/lib/medusa-client", () => ({
@@ -217,7 +343,7 @@ async function runAddToCart(options: {
     vi.doUnmock(mocked);
   }
 
-  return { removed, added, createdCarts, cookieWrittenAs };
+  return { removed, added, applied, events, createdCarts, cookieWrittenAs };
 }
 
 describe("addToCart keeps the cart to one certificate", () => {
@@ -318,6 +444,46 @@ describe("addToCart keeps the cart to one certificate", () => {
 
     expect(run.createdCarts).toBe(1);
     expect(run.added).toEqual([["cart_new", "var_chosen", 1]]);
+  });
+
+  it("re-prices an existing surcharge after replacing the certificate", async () => {
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: {
+        id: "cart_1",
+        completed_at: null,
+        items: [
+          { id: "line_old_tier", variant_id: "var_tier_a" },
+          { id: "line_surcharge", variant_id: null, metadata: { code: "BALDRICK20" } },
+        ],
+      },
+    });
+
+    expect(run.applied).toEqual([["cart_1", "BALDRICK20"]]);
+    expect(run.events).toEqual(["remove:line_old_tier", "add:var_chosen", "apply:BALDRICK20"]);
+    expect(run.removed).not.toContainEqual(["cart_1", "line_surcharge"]);
+  });
+
+  it("removes the stale surcharge when re-pricing it fails", async () => {
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      reapplyFails: true,
+      existingCart: {
+        id: "cart_1",
+        completed_at: null,
+        items: [
+          { id: "line_old_tier", variant_id: "var_tier_a" },
+          { id: "line_surcharge", variant_id: null, metadata: { code: "BALDRICK20" } },
+        ],
+      },
+    });
+
+    expect(run.events).toEqual([
+      "remove:line_old_tier",
+      "add:var_chosen",
+      "apply:BALDRICK20",
+      "remove:line_surcharge",
+    ]);
   });
 });
 
@@ -429,7 +595,7 @@ describe("what a cart line says it is", () => {
 
   it("names the size beside the title", () => {
     expect(source).toContain("function lineLabel(");
-    expect(source).toContain("label={lineLabel(item.title ?? item.variant_id, item.variant_title)}");
+    expect(source).toContain('label={lineLabel(item.title ?? item.variant_id ?? "Cart item", item.variant_title)}');
   });
 
   it("drops a variant title that would only repeat the product", () => {

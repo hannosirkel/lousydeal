@@ -23,6 +23,17 @@ export const CART_LABELS = {
   total: "Total",
 } as const;
 
+export const CODE_LABEL = "Discount code";
+export const CODE_APPLY_LABEL = "Apply code";
+export const CODE_REMOVE_LABEL = "Remove";
+
+/** Stable D4 refusal reasons mapped to copy rather than reflected from the URL. */
+export const CART_CODE_NOTICES = {
+  unknown_code: "That code is not on file. Nothing in the cart changed.",
+  no_certificate: "A discount code needs exactly one certificate in the cart. Choose the one you want, then try again.",
+  completed: "This order is already complete. Start a new purchase to use a code.",
+} as const;
+
 /** `brand.md` §4: the empty cart is a document too. Set in label style. */
 export const CART_EMPTY_NOTICE = "No items of record";
 

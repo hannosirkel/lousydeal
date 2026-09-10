@@ -26,16 +26,27 @@ import { MerchForm } from "../../components/document/MerchForm";
 import { RemoveLine } from "../../components/document/RemoveLine";
 import { Rule } from "../../components/document/Rule";
 import { TierTable } from "../../components/document/TierTable";
-import { CART_DOCUMENT, CART_EMPTY_NOTICE, CART_LABELS, CHECKOUT_LABEL, RETURN_LABEL } from "../../content/checkout";
+import {
+  CART_CODE_NOTICES,
+  CART_DOCUMENT,
+  CART_EMPTY_NOTICE,
+  CART_LABELS,
+  CHECKOUT_LABEL,
+  CODE_APPLY_LABEL,
+  CODE_LABEL,
+  CODE_REMOVE_LABEL,
+  RETURN_LABEL,
+} from "../../content/checkout";
 import { MERCH_APOLOGY, MERCH_HEADING, MERCH_TABLE_HEADINGS,
   MERCH_REMOVE_LABEL,
 } from "../../content/merch";
-import { addMerchToCart, removeFromCart } from "../../lib/cart-actions";
+import { addMerchToCart, applyCode, removeFromCart } from "../../lib/cart-actions";
 import { createStoreFetchJson, listMerch, StoreApiError } from "../../lib/medusa-client";
 import { goodsImagePath, goodsPath, merchRowData } from "../../lib/merch-rows";
 import { formatMoney } from "../../lib/money";
 import { getCart } from "../../lib/store-cart";
 import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-session";
+import { surchargeLabel, surchargeValue } from "../../lib/surcharge";
 
 /**
  * What one line reads as: the quantity and the unit price, never their
@@ -63,11 +74,22 @@ function lineValue(quantity: number, unitPrice: number, currencyCode: string): s
   return quantity === 1 ? price : `${String(quantity)} × ${price}`;
 }
 
-function EmptyCart() {
+function CodeForm({ action }: { readonly action: (formData: FormData) => Promise<void> }) {
+  return (
+    <form action={action} className="code-form field baldrick-ask">
+      <label htmlFor="cart-code">{CODE_LABEL}</label>
+      <input id="cart-code" name="code" type="text" maxLength={64} required autoComplete="off" spellCheck={false} />
+      <Button type="submit">{CODE_APPLY_LABEL}</Button>
+    </form>
+  );
+}
+
+function EmptyCart({ codeNotice }: { readonly codeNotice?: string }) {
   return (
     <main>
       <DocumentFrame title={CART_DOCUMENT.title} form={CART_DOCUMENT.form} revision={CART_DOCUMENT.revision}>
         <p className="notice">{CART_EMPTY_NOTICE}</p>
+        {codeNotice === undefined ? null : <p className="notice payment-error">{codeNotice}</p>}
         <Button variant="secondary" href="/">
           {RETURN_LABEL}
         </Button>
@@ -83,12 +105,24 @@ function EmptyCart() {
   );
 }
 
-export default async function CartPage() {
+type CartSearchParams = Record<string, string | string[] | undefined>;
+
+function codeNotice(parameters: CartSearchParams): string | undefined {
+  const reason = parameters["code_reason"];
+  return typeof reason === "string" && Object.hasOwn(CART_CODE_NOTICES, reason)
+    ? CART_CODE_NOTICES[reason as keyof typeof CART_CODE_NOTICES]
+    : undefined;
+}
+
+export default async function CartPage({
+  searchParams = Promise.resolve({}),
+}: { readonly searchParams?: Promise<CartSearchParams> } = {}) {
   await connection();
+  const notice = codeNotice(await searchParams);
   const cookieStore = await cookies();
   const cartId = cookieStore.get(CART_ID_COOKIE)?.value;
 
-  if (cartId === undefined) return <EmptyCart />;
+  if (cartId === undefined) return <EmptyCart codeNotice={notice} />;
 
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
 
@@ -106,12 +140,12 @@ export default async function CartPage() {
   try {
     cart = await getCart(fetchJson, cartId);
   } catch (error) {
-    if (error instanceof StoreApiError && error.status === 404) return <EmptyCart />;
+    if (error instanceof StoreApiError && error.status === 404) return <EmptyCart codeNotice={notice} />;
     throw error;
   }
 
   const items = cart.items ?? [];
-  if (items.length === 0) return <EmptyCart />;
+  if (items.length === 0) return <EmptyCart codeNotice={notice} />;
 
   // Refuse rather than omit. `getCheckoutCart` throws on this same missing
   // field from this same endpoint, and the page a buyer reads their total on
@@ -134,18 +168,20 @@ export default async function CartPage() {
   // `isPayableCart` requires exactly one, so a cart stripped of it is one the
   // pay control refuses with nothing on the page saying why.
   const removable = new Set(merch.flatMap((row) => row.variants.map((variant) => variant.variantId)));
+  const merchandise = items.filter((item) => item.variant_id !== null);
+  const surcharges = items.filter((item) => item.variant_id === null);
 
   return (
     <main>
       <DocumentFrame title={CART_DOCUMENT.title} form={CART_DOCUMENT.form} revision={CART_DOCUMENT.revision}>
         <Ledger>
-          {items.map((item) => (
+          {merchandise.map((item) => (
             <LedgerRow
               key={item.id}
-              label={lineLabel(item.title ?? item.variant_id, item.variant_title)}
+              label={lineLabel(item.title ?? item.variant_id ?? "Cart item", item.variant_title)}
               value={lineValue(item.quantity, item.unit_price, cart.currency_code)}
               action={
-                removable.has(item.variant_id) ? (
+                item.variant_id !== null && removable.has(item.variant_id) ? (
                   <RemoveLine
                     action={removeFromCart}
                     lineId={item.id}
@@ -156,8 +192,26 @@ export default async function CartPage() {
               }
             />
           ))}
+          {surcharges.map((item) => {
+            const label = surchargeLabel(item);
+            const value = item.quantity === 1
+              ? surchargeValue(item.unit_price, cart.currency_code)
+              : `+${lineValue(item.quantity, item.unit_price, cart.currency_code)}`;
+            return (
+              <LedgerRow
+                key={item.id}
+                label={label}
+                value={value}
+                action={
+                  <RemoveLine action={removeFromCart} lineId={item.id} title={label} label={CODE_REMOVE_LABEL} />
+                }
+              />
+            );
+          })}
           <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currency_code)} />
         </Ledger>
+        {notice === undefined ? null : <p className="notice payment-error">{notice}</p>}
+        <CodeForm action={applyCode} />
         {/* The only route to `/checkout` a shopper reaches by clicking. */}
         <Button href="/checkout">{CHECKOUT_LABEL}</Button>
         {merch.length === 0 ? null : (

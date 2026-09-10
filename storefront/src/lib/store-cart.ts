@@ -1,5 +1,5 @@
 /**
- * Cart creation and the one line-item mutation this row needs.
+ * Cart creation, retrieval, and mutations used by the storefront's cart.
  *
  * Endpoints and response shapes are read from the installed package, not
  * assumed: `node_modules/@medusajs/medusa/dist/api/store/carts/route.js`
@@ -22,9 +22,10 @@ export interface Cart {
 
 interface StoreCartLineItemResponse {
   readonly id: string;
-  readonly variant_id: string;
+  readonly variant_id: string | null;
   readonly quantity: number;
   readonly unit_price: number;
+  readonly metadata?: Record<string, unknown> | null;
   /** Medusa sets this from the *product* title, which here is the joke. */
   readonly title?: string;
   /**
@@ -88,6 +89,19 @@ export async function getCart(fetchJson: FetchJson, cartId: string): Promise<Sto
   return cart;
 }
 
+/** Applies one server-priced surcharge code and returns Medusa's refreshed cart. */
+export async function applySurcharge(
+  fetchJson: FetchJson,
+  cartId: string,
+  code: string,
+): Promise<StoreCartResponse> {
+  const { cart } = await fetchJson<{ cart: StoreCartResponse }>(
+    `/store/carts/${encodeURIComponent(cartId)}/surcharge`,
+    { method: "POST", body: JSON.stringify({ code }) },
+  );
+  return cart;
+}
+
 /**
  * Removes one line from a cart.
  *
@@ -124,7 +138,7 @@ export async function addLineToCart(
   });
 
   const line = cart.items?.find((item) => item.variant_id === variantId);
-  if (line === undefined) {
+  if (line === undefined || line.variant_id === null) {
     throw new Error(`cart ${cartId} has no line item for variant ${variantId} after adding it`);
   }
 

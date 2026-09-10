@@ -16,16 +16,16 @@
  *
  * **Every export of this file is a POST endpoint.** Next gives each one a
  * public action id, so anything exported here is reachable by any visitor with
- * any arguments. That is why this module exports exactly one function, which
- * reads exactly one field and validates it.
+ * any arguments. That is why this module exports only actions, and why every
+ * one reads only the field its form owns and validates its shape.
  */
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import type { FetchJson } from "./medusa-client";
-import { createStoreFetchJson, getDefaultRegion, listTiers } from "./medusa-client";
-import { addLineToCart, createCart, getCart, removeLineFromCart } from "./store-cart";
+import { createStoreFetchJson, getDefaultRegion, listTiers, StoreApiError } from "./medusa-client";
+import { addLineToCart, applySurcharge, createCart, getCart, removeLineFromCart } from "./store-cart";
 import { CART_COOKIE_OPTIONS, CART_ID_COOKIE, requireStoreClientConfig } from "./store-session";
 
 /**
@@ -49,8 +49,8 @@ import { CART_COOKIE_OPTIONS, CART_ID_COOKIE, requireStoreClientConfig } from ".
 async function cartToAddTo(
   fetchJson: FetchJson,
   existingCartId: string | undefined,
-  clear: (variantId: string) => boolean,
-): Promise<string> {
+  clear: (variantId: string | null) => boolean,
+): Promise<{ readonly id: string; readonly items: Awaited<ReturnType<typeof getCart>>["items"] }> {
   if (existingCartId !== undefined) {
     try {
       const cart = await getCart(fetchJson, existingCartId);
@@ -60,7 +60,7 @@ async function cartToAddTo(
           // Medusa refetches and recomputes it on each.
           await removeLineFromCart(fetchJson, cart.id, line.id);
         }
-        return cart.id;
+        return { id: cart.id, items: cart.items };
       }
     } catch {
       // Not rethrown, and not logged with the id -- a cart id is a bearer
@@ -68,7 +68,7 @@ async function cartToAddTo(
       // cause, so telling the causes apart earns nothing.
     }
   }
-  return (await createCart(fetchJson, (await getDefaultRegion(fetchJson)).id)).id;
+  return { id: (await createCart(fetchJson, (await getDefaultRegion(fetchJson)).id)).id, items: [] };
 }
 
 /**
@@ -117,10 +117,28 @@ export async function addToCart(formData: FormData): Promise<void> {
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const cookieStore = await cookies();
   const certificates = new Set((await listTiers(fetchJson)).map((tier) => tier.variantId));
-  const cartId = await cartToAddTo(fetchJson, cookieStore.get(CART_ID_COOKIE)?.value, (id) => certificates.has(id));
-  await addLineToCart(fetchJson, cartId, variantId, 1);
+  const cart = await cartToAddTo(
+    fetchJson,
+    cookieStore.get(CART_ID_COOKIE)?.value,
+    (id) => id !== null && certificates.has(id),
+  );
+  const surcharges = (cart.items ?? []).filter((line) => line.variant_id === null);
+  const code = surcharges.length === 1 && typeof surcharges[0]?.metadata?.["code"] === "string"
+    ? surcharges[0].metadata["code"]
+    : null;
+  await addLineToCart(fetchJson, cart.id, variantId, 1);
 
-  cookieStore.set(CART_ID_COOKIE, cartId, CART_COOKIE_OPTIONS);
+  if (code !== null) {
+    try {
+      await applySurcharge(fetchJson, cart.id, code);
+    } catch {
+      for (const surcharge of surcharges) await removeLineFromCart(fetchJson, cart.id, surcharge.id);
+    }
+  } else {
+    for (const surcharge of surcharges) await removeLineFromCart(fetchJson, cart.id, surcharge.id);
+  }
+
+  cookieStore.set(CART_ID_COOKIE, cart.id, CART_COOKIE_OPTIONS);
   redirect("/cart");
 }
 
@@ -152,10 +170,42 @@ export async function addMerchToCart(formData: FormData): Promise<void> {
 
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const cookieStore = await cookies();
-  const cartId = await cartToAddTo(fetchJson, cookieStore.get(CART_ID_COOKIE)?.value, () => false);
-  await addLineToCart(fetchJson, cartId, variantId, 1);
+  const cart = await cartToAddTo(fetchJson, cookieStore.get(CART_ID_COOKIE)?.value, () => false);
+  await addLineToCart(fetchJson, cart.id, variantId, 1);
 
-  cookieStore.set(CART_ID_COOKIE, cartId, CART_COOKIE_OPTIONS);
+  cookieStore.set(CART_ID_COOKIE, cart.id, CART_COOKIE_OPTIONS);
+  redirect("/cart");
+}
+
+type SurchargeRefusalReason = "unknown_code" | "no_certificate" | "completed";
+
+function surchargeRefusalReason(error: unknown): SurchargeRefusalReason | null {
+  if (!(error instanceof StoreApiError) || error.status !== 422) return null;
+  const body = error.body;
+  if (typeof body !== "object" || body === null || !("reason" in body)) return null;
+  const reason = body.reason;
+  return reason === "unknown_code" || reason === "no_certificate" || reason === "completed" ? reason : null;
+}
+
+/** Apply one code to the cart named by the caller's private cart cookie. */
+export async function applyCode(formData: FormData): Promise<void> {
+  const code = formData.get("code");
+  if (typeof code !== "string") {
+    throw new Error("applyCode: missing code");
+  }
+
+  const cookieStore = await cookies();
+  const cartId = cookieStore.get(CART_ID_COOKIE)?.value;
+  if (cartId === undefined) redirect("/cart?code_reason=no_certificate");
+
+  const fetchJson = createStoreFetchJson(requireStoreClientConfig());
+  try {
+    await applySurcharge(fetchJson, cartId, code);
+  } catch (error) {
+    const reason = surchargeRefusalReason(error);
+    if (reason === null) throw error;
+    redirect(`/cart?code_reason=${reason}`);
+  }
   redirect("/cart");
 }
 
