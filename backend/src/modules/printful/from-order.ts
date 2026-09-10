@@ -20,6 +20,14 @@
  * missing an item. Dropping it means the same. The difference is that a
  * dropped line is visible — the caller compares the counts and says so — and
  * that is why this returns what it skipped rather than only what it kept.
+ *
+ * **A surcharge is the one line that is neither.** LD-06's "discount" is a
+ * custom-priced line with no variant, no handle and no SKU, so by the two
+ * rules above it was merch that could not be ordered — and a certificate
+ * bought with a code was recorded `failed` and retried on every redelivery.
+ * It is recognised before either rule runs, by `isSurchargeLine` below,
+ * which the subscriber's issuance reads as well so the two cannot disagree
+ * about which line it is.
  */
 
 import type { PrintfulOrderLine, PrintfulRecipient, PrintfulSubmissionInput } from "./submission";
@@ -34,10 +42,26 @@ export interface OrderForPrintful {
 
 export interface OrderItemForPrintful {
   readonly product_handle?: unknown;
+  readonly variant_id?: unknown;
   readonly variant_sku?: unknown;
   readonly variant?: { readonly sku?: unknown } | null;
   readonly quantity?: unknown;
   readonly detail?: { readonly quantity?: unknown } | null;
+}
+
+/**
+ * Whether a line is LD-06's surcharge.
+ *
+ * **The variant is the test, and only an explicit `null` passes it**
+ * (constraint 6). Metadata is not: the public line-item routes let a visitor
+ * write metadata onto any line, and none of them can create a line without a
+ * variant or take a variant away, so `variant_id === null` is the one mark a
+ * visitor cannot forge. `undefined` means the field was not asked for -- a
+ * narrower query, or a fixture -- and such a line keeps its existing
+ * treatment rather than vanishing from a parcel by omission.
+ */
+export function isSurchargeLine(item: { readonly variant_id?: unknown }): boolean {
+  return item.variant_id === null;
 }
 
 export interface ShippingAddressForPrintful {
@@ -164,6 +188,10 @@ export function printfulSubmissionFrom(
 
   const certificates = new Set(certificateHandles);
   const posted = (order?.items ?? []).filter((item) => {
+    // Before the handle rule, because a surcharge has no handle and would
+    // otherwise be counted -- and an order with nothing to post and one
+    // unreadable line is recorded `failed`, not `skipped`.
+    if (isSurchargeLine(item)) return false;
     const handle = text(item.product_handle);
     // A line whose handle did not come back is treated as merch, which is the
     // cautious direction and the same one `cartNeedsAddress` takes: an address
