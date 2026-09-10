@@ -1357,8 +1357,56 @@ a replacement matches nothing**.
 **Files:** `storefront/src/app/api/store/[...path]/route.ts` and its tests.
 
 - [x] **P15a** — a public path that resolves to the webhook.
-- [ ] **P15b** — the Access bypass, in the infrastructure repository. *Operator.*
-- [ ] **P15c** — the subscription, and the secret. *Operator.*
+- [x] **P15b** — the Access bypass, in the infrastructure repository.
+- [x] **P15c** — the subscription, and the secret. **The seed is the operator's.**
+
+**P15b, done 2026-09-09 and verified from outside.** The bypass is an Access
+application scoped to `hostname + path`, with one `decision: bypass` policy —
+exactly the pair `cloudflare-add-web` creates, field for field, so a later
+canonical run of that helper reports it unchanged rather than recreating it.
+
+**It was created through the API rather than by running the helper, and the
+reason is worth recording.** `ensure_tunnel_configuration` **PUT**s the entire
+tunnel ingress built from whatever `--route` list it is given, and the
+`orange-web` tunnel carries twelve named routes across four sites. The
+canonical invocation is not written down in either repository — the live values
+are in the private inventory and the documented form is redacted — and a route's
+`access=` mode and session duration are not recoverable from the ingress at
+all. Reconstructing that to add one bypass would have risked four other sites
+for no gain. The two bypass functions touch nothing else: the only `DELETE` in
+that helper is for a staged DNS record at a declared hostname, and Access
+applications are never pruned.
+
+The acceptance probe, from outside the tenant:
+
+```text
+POST /api/store/webhooks/printful   401   reached the origin; the backend
+                                          refused an unsigned delivery
+POST /                              302   still gated
+POST /api/store/store/products      302   still gated -- the bypass is
+                                          path-scoped, not host-wide
+```
+
+That 401 is the backend's own signature check answering, which also proves
+P15a's resolver is deployed and the storefront→backend path works end to end.
+
+**P15c, subscribed 2026-09-09.** `POST /v2/webhooks` with `default_url` at the
+bypassed path and the four events `webhook.ts` accepts —
+`shipment_sent`, `shipment_returned`, `order_failed`, `order_canceled` — and no
+expiry. There was no previous configuration to displace, checked first, because
+the endpoint replaces one silently. The 128-character hex `secret_key` was
+written straight into the operator's key file at mode 0600 and the response
+deleted; it never passed through a terminal or a transcript.
+
+**What remains is one command, and it is the operator's.** The secret is in
+`.keys/` and `orange` now carries it end to end — parser field set, projection
+contract, Application patch — but writing it into OpenBao goes through
+`playbooks/openbao-update.yml`, which needs the current version from
+`openbao-version.yml`. That inspection failed here with a `no_log` result, and
+debugging a live secret store by trial was not a reasonable thing to improvise.
+Until it is seeded, the deployment holds no secret, `webhook.ts` accepts
+nothing, and no buyer is told their parcel shipped — which is the safe
+direction rather than a broken one, and exactly the state P11a designed for.
 
 **P11a built a webhook nothing could reach.** Measured on 2026-09-09: an
 unsigned POST to the Stripe hook path answers 200 from the origin, and the
@@ -1721,7 +1769,24 @@ asked, and what the answer was, is the part worth keeping.
    re-deriving** — a $25 shirt absorbing 27% destination VAT nets $19.69 against
    a 3XL costing $19.58. P14 blocks Gate E. This needs EMTA or an Estonian VAT
    adviser, and Printful's routing table; it is not mine to settle.
-2. **`PRINTFUL_ARTWORK_BASE_URL` has no path to the test deployment.**
+2. **Three infrastructure changes are open as pull requests, and one command
+   is yours.** `orange` #86 carries `PRINTFUL_ARTWORK_BASE_URL` and the
+   webhook secret to the test workloads, and the private inventory has been
+   updated (`471a8e8`) — including a key P3a asserted and never carried, which
+   is the likeliest reason the Printful token never reached the cluster at all.
+   What no pull request can do is write the secret into OpenBao:
+
+   ```text
+   playbooks/openbao-version.yml  -e openbao_version_source=lousydeal-test-runtime-credentials
+   playbooks/openbao-update.yml   -e '{"openbao_update_sources": [{"source": "lousydeal-test-runtime-credentials", "expected_version": N}]}'
+   ```
+
+   The value is already in `.keys/lousydeal-test-runtime-credentials` at mode
+   0600. Until it is seeded the shop sells merch perfectly well and simply
+   never tells a buyer their parcel shipped.
+
+   **Superseded, kept for the reason it was written:**
+   **`PRINTFUL_ARTWORK_BASE_URL` has no path to the test deployment.**
    **The half that was a code defect is fixed in P17** — a deployment with no
    Printful now runs its predeploy chain, which the live one could not do
    either, and had not been able to since P7a. What remains is this value, and
