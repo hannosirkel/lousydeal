@@ -184,7 +184,7 @@ classifier, then the one writer, then what shows it.
 **Files:** `backend/src/commerce/surcharge.ts`,
 `backend/tests/surcharge.test.ts`, `storefront/tests/baldrick-reach.test.ts`.
 
-- [ ] Price a surcharge from a code and a certificate price, as a pure
+- [x] Price a surcharge from a code and a certificate price, as a pure
       function.
 
 **`baldrick-reach.test.ts` joined this row at execution, not at planning.** Its
