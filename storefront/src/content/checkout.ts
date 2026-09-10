@@ -55,6 +55,26 @@ export const CART_NOT_SINGLE_NOTICE =
 export const CART_NEEDS_CERTIFICATE_NOTICE =
   "The printed things are an upsell, so they go with a certificate rather than instead of one. Add the certificate you want and the rest of the cart stays as it is.";
 
+/**
+ * Shown where the surcharge, and nothing else, keeps the cart from payment.
+ *
+ * LD-06 D3. The two notices above tell a buyer to choose or add a
+ * certificate, and for a cart carrying its discount line twice, or once at a
+ * quantity of two, that is the wrong fix. The state is reachable because the
+ * public line-item route can change the line's quantity; the shop will not
+ * print one dollar's adjustment beside a total that rose by two, so it
+ * refuses and says what to do instead. It names the line by the word the
+ * ledger uses for it.
+ *
+ * **It asks for the two things the cart can do.** The cart's `Remove` takes a
+ * whole line and nothing decrements a quantity, so "remove the extra" was an
+ * instruction with no control behind it. Removing the discount and entering
+ * the code again leaves exactly one line of one, whichever way the cart was
+ * wrong.
+ */
+export const CART_SURCHARGE_NOTICE =
+  "A discount code applies to an order once. This cart carries its discount line more than once, or at a quantity above one, so the total shown is not the one the code produces. Return to the order summary, remove the discount and enter the code again; nothing else in the cart needs to change.";
+
 /** The way out of that state, to the document that can fix it. */
 export const CART_LINK_LABEL = "Return to the order summary";
 

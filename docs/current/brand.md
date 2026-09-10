@@ -419,11 +419,59 @@ being asked things, rather than on a page whose one job is to describe a tier.
 row — read from the API, never summed here — and one button, `PROCEED TO
 PAYMENT`. The empty state is a document too: `NO ITEMS OF RECORD`.
 
+**The adjustment row.** A discount code adds a line to the cart, and that line
+is an adjustment, not merchandise. It is one ledger row, directly above
+`TOTAL`, on every ledger that offers payment — this one and the payment
+authorisation:
+
+```text
+DISCOUNT (BALDRICK20) ............ +$1.00
+TOTAL ............................ $6.00
+```
+
+The label is the line's own title, `Discount (BALDRICK20)`, written sentence
+case in the markup as every label is and set in the label style. It is the
+title the backend wrote when it priced the code, never a word read back out of
+the line's metadata, which any visitor can rewrite through Medusa's public
+line-item route. The joke is in the parenthesis and nowhere else: the row is
+called a discount because the buyer typed a discount code, and it says what it
+did to the price in the same type as the price.
+
+**Its value carries a `+`.** Every other figure in a ledger is a figure; this
+is the one value on the site that adds to the row beneath it, and a reader
+scanning a column of amounts must not have to work out which way it went. The
+plus is set in `--ink`, not `--stamp`: §3 spends the accent on negative figures,
+and this one is not negative. The figure is the line's own price, formatted and
+never computed here, and it is the line's whole figure because the payability
+rule admits one such line, of quantity one, and nothing else.
+
 ### Checkout — `PAYMENT AUTHORISATION`
 
-`FORM LD-4`. The total, explicit, as a ledger row before anything else. Then
-fine print: `Price includes VAT where applicable. The amount shown is the
-amount charged.`
+`FORM LD-4`. The total, explicit, as a ledger row first — beneath the
+adjustment row where there is one. Then fine print: `Price includes VAT where
+applicable. The amount shown is the amount charged.`
+
+Where the cart carries a discount line, the adjustment row specified under
+`ORDER SUMMARY` appears here too, directly above `TOTAL`, with its `+`. A buyer
+can reach this page by URL or by the back button, and the page that takes the
+money is the one §23 is about: a total above the tier's price with nothing on
+the page saying why is a silent adjustment, however visible the line was one
+page earlier.
+
+A cart carrying the discount line twice, or once at a quantity other than one,
+is refused here, as a cart with two certificates is, and the refusal has its
+own notice. The two older notices tell a buyer to choose or add a certificate,
+which is the wrong fix:
+
+> A discount code applies to an order once. This cart carries its discount line
+> more than once, or at a quantity above one, so the total shown is not the one
+> the code produces. Return to the order summary, remove the discount and enter
+> the code again; nothing else in the cart needs to change.
+
+On a refused page — this one, or either of the certificate's — the ledger
+shows the total alone. Nothing has proved the line's quantity is one, so its
+price is not its figure, and a row reading `+$1.00` beside a total that rose by
+two would be the thing the refusal exists to prevent.
 
 Then the **consent checkbox**, unticked by default, which the pay control is
 disabled behind:

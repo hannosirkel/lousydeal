@@ -21,6 +21,7 @@
  * independent view of overlapping Medusa shapes rather than sharing one.
  */
 
+import type { CartLine } from "./checkout-rules";
 import { GIFT_METADATA } from "./gift";
 import type { FetchJson } from "./medusa-client";
 
@@ -32,9 +33,8 @@ export interface CheckoutCart {
   /**
    * One quantity per line, in the order the API returned them. C3a.
    *
-   * Quantities and not the lines: the only question the checkout asks of them
-   * is `isSingleCertificate`, and a view carrying titles, prices and variant
-   * ids would invite a second copy of the cart page's rendering to grow here.
+   * Only the surcharge row is rendered from `lines`, so this is not a second
+   * cart page and must not grow into one.
    *
    * An empty array for a cart with no lines, which is a state the page has its
    * own document for -- not an error this function refuses on, because a cart
@@ -48,8 +48,33 @@ export interface CheckoutCart {
    * lines" stopped being enough to decide whether the cart is payable. A line
    * is a certificate when its `product_handle` is one the tier model declares;
    * `null` where Medusa gave none, which its own line item permits.
+   *
+   * LD-06 D3: and a surcharge, told by `variant_id` being `null` on the wire
+   * (`./surcharge.ts`). That is the one line this page prints beside the
+   * total, so each line also carries the title and `unit_price` the row is
+   * drawn from. The caution above still stands: only the surcharge row is
+   * rendered here, and a merch line's title and price are read and not shown.
    */
-  readonly lines: ReadonlyArray<{ readonly quantity: number; readonly handle: string | null }>;
+  readonly lines: readonly CheckoutLine[];
+}
+
+export interface CheckoutLine extends CartLine {
+  /**
+   * `variant_id` as the wire had it: a string, `null`, or `undefined` where
+   * the response carried neither. `null` and only `null` is the surcharge,
+   * and `undefined` is "not known" rather than a guess either way.
+   */
+  readonly variantId: string | null | undefined;
+  /** The line's title as Medusa wrote it, or `null` where none came back. `surchargeLabel` decides what that prints as. */
+  readonly title: string | null;
+  /**
+   * Medusa's `unit_price`, major units, or `NaN` where it was unreadable --
+   * kept rather than dropped, as `quantity` is, and never a figure this
+   * function invented. `formatMoney` refuses a non-finite amount, so a
+   * surcharge whose price did not come back stops the page rather than
+   * printing something beside the total.
+   */
+  readonly unitPrice: number;
 }
 
 interface StoreCartTotalResponse {
@@ -74,6 +99,23 @@ function lineHandle(item: unknown): string | null {
   return typeof handle === "string" && handle.length > 0 ? handle : null;
 }
 
+/** A line's `variant_id`, with `null` carried through as the fact it is and anything unreadable as "not known". */
+function lineVariantId(item: unknown): string | null | undefined {
+  const variantId = (item as { readonly variant_id?: unknown } | null)?.variant_id;
+  if (variantId === null) return null;
+  return typeof variantId === "string" && variantId.length > 0 ? variantId : undefined;
+}
+
+function lineTitle(item: unknown): string | null {
+  const title = (item as { readonly title?: unknown } | null)?.title;
+  return typeof title === "string" && title.trim().length > 0 ? title : null;
+}
+
+function lineUnitPrice(item: unknown): number {
+  const unitPrice = (item as { readonly unit_price?: unknown } | null)?.unit_price;
+  return typeof unitPrice === "number" && Number.isFinite(unitPrice) ? unitPrice : Number.NaN;
+}
+
 /** Reads the cart's own total and its line quantities. Refuses rather than guesses if the API answers with anything less than all three of id, currency and total. */
 export async function getCheckoutCart(fetchJson: FetchJson, cartId: string): Promise<CheckoutCart> {
   const { cart } = await fetchJson<StoreCartTotalResponse>(`/store/carts/${encodeURIComponent(cartId)}`);
@@ -95,6 +137,9 @@ export async function getCheckoutCart(fetchJson: FetchJson, cartId: string): Pro
   const lines = items.map((item) => ({
     quantity: lineQuantity(item) ?? Number.NaN,
     handle: lineHandle(item),
+    variantId: lineVariantId(item),
+    title: lineTitle(item),
+    unitPrice: lineUnitPrice(item),
   }));
 
   return { id: cart.id, currencyCode: cart.currency_code, total: cart.total, quantities, lines };

@@ -1,7 +1,8 @@
 /**
  * The checkout, as a payment authorisation -- `docs/current/brand.md` §4: the
- * total explicit as a ledger row before anything else, then the price notice,
- * then the consent checkbox, then the payment element.
+ * total explicit as a ledger row first, beneath the adjustment row where there
+ * is one, then the price notice, then the consent checkbox, then the payment
+ * element.
  *
  * A Server Component, like `src/app/cart/page.tsx` -- it reads `CART_ID_COOKIE`
  * and fetches the cart directly against the backend (T9's established
@@ -43,16 +44,18 @@ import {
   CART_LINK_LABEL,
   CART_NEEDS_CERTIFICATE_NOTICE,
   CART_NOT_SINGLE_NOTICE,
+  CART_SURCHARGE_NOTICE,
   CHECKOUT_DOCUMENT,
   orderSummaryLines,
   priceNotice,
   RETURN_LABEL,
 } from "../../content/checkout";
-import { cartHasCertificate, cartNeedsAddress, isPayableCart } from "../../lib/checkout-rules";
+import { cartHasCertificate, cartNeedsAddress, cartRefusedForSurcharge, isPayableCart } from "../../lib/checkout-rules";
 import { createStoreFetchJson, getDefaultRegion, listTiers } from "../../lib/medusa-client";
 import { formatMoney } from "../../lib/money";
 import { getCheckoutCart } from "../../lib/store-checkout";
 import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-session";
+import { isSurchargeLine, surchargeLabel, surchargeValue } from "../../lib/surcharge";
 import { PaymentForm } from "./PaymentForm";
 
 export default async function CheckoutPage() {
@@ -102,7 +105,8 @@ export default async function CheckoutPage() {
   // transaction that did not happen -- so this page must not offer to take the
   // money. The ledger row is still shown: the buyer is owed the figure they
   // were looking at, and hiding it would make the refusal harder to
-  // understand, not easier.
+  // understand, not easier. The total alone, though: nothing has proved a
+  // surcharge's quantity is one here, so its `unit_price` is not its figure.
   if (!isPayableCart(cart.lines, certificateHandles)) {
     return (
       <main>
@@ -114,12 +118,17 @@ export default async function CheckoutPage() {
           <Ledger>
             <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currencyCode)} />
           </Ledger>
-          {/* Two ways a cart is unpayable and two different things to do
+          {/* Three ways a cart is unpayable and three different things to do
               about it, so the notice says which. A buyer told "choose the one
               you want" when what they need is to add one has been told to fix
-              the wrong thing. */}
+              the wrong thing, and so has one told either when the extra is a
+              doubled discount line. */}
           <p className="notice">
-            {cartHasCertificate(cart.lines, certificateHandles) ? CART_NOT_SINGLE_NOTICE : CART_NEEDS_CERTIFICATE_NOTICE}
+            {cartRefusedForSurcharge(cart.lines, certificateHandles)
+              ? CART_SURCHARGE_NOTICE
+              : cartHasCertificate(cart.lines, certificateHandles)
+                ? CART_NOT_SINGLE_NOTICE
+                : CART_NEEDS_CERTIFICATE_NOTICE}
           </p>
           <Button variant="secondary" href="/cart">
             {CART_LINK_LABEL}
@@ -135,6 +144,7 @@ export default async function CheckoutPage() {
      test can call -- `checkout-rules.ts` says at its head why that matters. */
   const needsAddress = cartNeedsAddress(cart.lines, certificateHandles);
   const hasCertificate = cartHasCertificate(cart.lines, certificateHandles);
+  const surcharge = cart.lines.find(isSurchargeLine);
 
   return (
     <main>
@@ -145,8 +155,17 @@ export default async function CheckoutPage() {
       >
         {/* The final price, explicit before the pay control -- the cart's own
             total, not recomputed. §23 requires this; the notice under it says
-            the figure is also final. */}
+            the figure is also final.
+
+            LD-06 D3: the surcharge above it, where there is one, so a total
+            higher than the tier's price has the reason on the page that takes
+            the money. Its value is the line's `unit_price`, formatted and not
+            computed, and that is the line's whole figure only because
+            `isPayableCart` has just proved its quantity is one. */}
         <Ledger>
+          {surcharge === undefined ? null : (
+            <LedgerRow label={surchargeLabel(surcharge)} value={surchargeValue(surcharge.unitPrice, cart.currencyCode)} />
+          )}
           <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currencyCode)} />
         </Ledger>
         <FinePrint>{priceNotice(needsAddress)}</FinePrint>

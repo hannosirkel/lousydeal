@@ -701,13 +701,16 @@ describe("getCheckoutCart", () => {
         { id: "d", quantity: 1, product_handle: "" },
       ],
     });
+    // LD-06 D3 added the three fields the surcharge row prints. None of these
+    // lines carries a `variant_id`, so each is "not known" and none is a
+    // surcharge; the fixture that is one lives in `checkout-surcharge.test.ts`.
     expect((await getCheckoutCart(fetchJson, "cart_fixture")).lines).toEqual([
-      { quantity: 1, handle: "lousy-deal" },
-      { quantity: 2, handle: "this-mug-cost-extra" },
+      { quantity: 1, handle: "lousy-deal", variantId: undefined, title: null, unitPrice: Number.NaN },
+      { quantity: 2, handle: "this-mug-cost-extra", variantId: undefined, title: null, unitPrice: Number.NaN },
       // Medusa's line item permits a null handle, and an empty string is not
       // a handle either.
-      { quantity: 1, handle: null },
-      { quantity: 1, handle: null },
+      { quantity: 1, handle: null, variantId: undefined, title: null, unitPrice: Number.NaN },
+      { quantity: 1, handle: null, variantId: undefined, title: null, unitPrice: Number.NaN },
     ]);
   });
 
@@ -1192,7 +1195,10 @@ describe("the cart-to-paid-order flow, against one stubbed backend", () => {
       currencyCode: "usd",
       total: 25,
       quantities: [1],
-      lines: [{ quantity: 1, handle: "lousy-deal" }],
+      // The stub's line carries a variant and no title, which is what a real
+      // tier line looks like with `title` unread: a string variant is not the
+      // surcharge, whatever else the line lacks.
+      lines: [{ quantity: 1, handle: "lousy-deal", variantId: "variant_pro", title: null, unitPrice: 25 }],
     });
     // C3a: the state the checkout page requires before it will render a pay
     // control at all.

@@ -60,7 +60,8 @@ follows is what this slice adds or sharpens.
    by any of the three public writes — creating a cart with `items`, adding a
    line, updating one — and none of them can take a variant away. So the
    classifier is `variant_id === null`. The metadata supplies the code and base
-   for display and tracking, never the identity. **One surcharge line, of
+   for tracking, never the identity. The display reads the line's title, which
+   the server writes and no public route can change. **One surcharge line, of
    quantity one**: the public update route can change its quantity, so the
    payability rule and issuance both refuse anything else rather than print
    `+$1.00` beside a total that rose by two.
@@ -264,10 +265,10 @@ alone does. A replayed event still issues one deal.
 `storefront/tests/checkout-surcharge.test.ts`,
 `storefront/tests/store-checkout.test.ts`, `docs/current/brand.md`.
 
-- [ ] Stop a surcharge asking for an address, refuse a cart that carries it
+- [x] Stop a surcharge asking for an address, refuse a cart that carries it
       twice, and show it above the total before payment.
 
-`getCheckoutCart` reads each line's `variant_id`, `unit_price` and code, so
+`getCheckoutCart` reads each line's `variant_id`, `unit_price` and title, so
 `store-checkout.test.ts`'s exact assertion on `lines` changes with it.
 The new field on `CartLine` is optional, and only an explicit `null` marks a
 surcharge. An absent value means "not known" and keeps today's reading, so
