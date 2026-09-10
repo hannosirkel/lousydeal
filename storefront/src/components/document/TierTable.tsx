@@ -38,6 +38,16 @@ export interface TierRow {
    */
   readonly href?: string;
   readonly description: string;
+  /**
+   * A plainer line under the title, for a title that will not say what a
+   * thing is.
+   *
+   * Optional, and absent on the certificate's own tiers: "Lousy Deal" and
+   * "Lousy Deal Pro" describe themselves as well as anything could. The merch
+   * titles are jokes -- "Certified Worthless" is a sticker -- and this is
+   * where a buyer is told which object they are buying.
+   */
+  readonly subtitle?: string;
   readonly value: string;
   readonly price: string;
   readonly variantId: string;
@@ -114,6 +124,10 @@ export function TierTable({
               <span className="cell-value">
                 {row.href === undefined ? row.title : <a href={row.href}>{row.title}</a>}
               </span>
+              {/* Inside the same `th`, so a screen reader reading the row
+                  header gets "Certified Worthless, Sticker" as one label
+                  rather than leaving the object unnamed. */}
+              {row.subtitle === undefined ? null : <span className="cell-kind">{row.subtitle}</span>}
             </th>
             <Cell label={headings.description}>{row.description}</Cell>
             <Cell label={headings.value} align="figure">

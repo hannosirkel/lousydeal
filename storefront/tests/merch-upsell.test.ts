@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 /**
  * The upsell: what it says, what it computes, and what it refuses to claim.
  *
@@ -11,6 +14,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { MerchForm } from "../src/components/document/MerchForm";
+import { TierTable } from "../src/components/document/TierTable";
 import {
   MERCH_ADD_LABEL,
   MERCH_APOLOGY,
@@ -18,13 +22,14 @@ import {
   MERCH_TABLE_HEADINGS,
   MERCH_VALUE_PREFIX,
 } from "../src/content/merch";
-import type { MerchItem } from "../src/lib/medusa-client";
+import { listMerch, type FetchJson, type MerchItem } from "../src/lib/medusa-client";
 import { merchRowData, merchValue } from "../src/lib/merch-rows";
 
 const MUG: MerchItem = {
   id: "prod_mug",
   handle: "this-mug-cost-extra",
   title: "This Mug Cost Extra",
+  kind: "Mug",
   // **Major units.** `money.ts` records the research: Medusa is seeded with
   // `amountMinor / 100`, so a $15 mug is stored and returned as `15`.
   variants: [{ variantId: "var_mug", size: "11 oz", amount: 15, currencyCode: "usd" }],
@@ -34,6 +39,7 @@ const TEE: MerchItem = {
   id: "prod_tee",
   handle: "original-purchase-receipt",
   title: "Original Purchase Receipt",
+  kind: "T-Shirt",
   variants: ["S", "M", "L"].map((size, index) => ({
     variantId: `var_tee_${String(index)}`,
     size,
@@ -166,5 +172,124 @@ describe("the control", () => {
   it("sends no quantity, because nothing here offers one", () => {
     // A quantity the browser can send is a quantity a visitor can change.
     expect(render(merchRowData([TEE])[0]?.variants ?? [])).not.toContain('name="quantity"');
+  });
+});
+
+describe("saying what the thing actually is", () => {
+  /**
+   * **The operator reported it: "the add-ons are not descriptive".** Every
+   * title here is a joke — "Original Purchase Receipt" is a shirt, "Certified
+   * Worthless" is a sticker, "This Mug Cost Extra" is the only one that even
+   * hints — and a buyer cannot shop from a joke. The line under the title is
+   * where they are told which object they are buying, and it is deliberately
+   * not funny.
+   *
+   * It comes from `catalogue.ts` through `seed-merch.ts`'s `subtitle`, rather
+   * than being derived from the handle in the storefront, because deriving it
+   * would be a second source of truth for the same fact.
+   */
+  it("carries the plain name of the object", () => {
+    expect(merchRowData([TEE])[0]?.kind).toBe("T-Shirt");
+    expect(merchRowData([MUG])[0]?.kind).toBe("Mug");
+  });
+
+  it("renders it under the title, not instead of it", () => {
+    // The joke is the product's name and stays the name. This is subordinate.
+    const html = renderToStaticMarkup(
+      createElement(TierTable, {
+        headings: MERCH_TABLE_HEADINGS,
+        rows: [
+          {
+            id: "prod_tee",
+            title: "Original Purchase Receipt",
+            subtitle: "T-Shirt",
+            description: "S, M, L",
+            value: "NOT $0.00",
+            price: "$32.00",
+            variantId: "var_1",
+            action: null,
+          },
+        ],
+      }),
+    );
+    expect(html).toContain("Original Purchase Receipt");
+    expect(html).toContain("T-Shirt");
+    expect(html.indexOf("Original Purchase Receipt")).toBeLessThan(html.indexOf("T-Shirt"));
+    // In the row header, so a screen reader reading the row gets both.
+    expect(html).toMatch(/<th[^>]*scope="row"[\s\S]*?T-Shirt[\s\S]*?<\/th>/);
+  });
+
+  it("renders nothing where a store was seeded before this existed", () => {
+    // An empty line under a title reads as a rendering fault. `null` means
+    // absent, and absent means nothing at all.
+    const html = renderToStaticMarkup(
+      createElement(TierTable, {
+        headings: MERCH_TABLE_HEADINGS,
+        rows: [
+          {
+            id: "prod_tee",
+            title: "Original Purchase Receipt",
+            description: "S, M, L",
+            value: "NOT $0.00",
+            price: "$32.00",
+            variantId: "var_1",
+            action: null,
+          },
+        ],
+      }),
+    );
+    expect(html).not.toContain("cell-kind");
+  });
+
+  it("keeps the certificate's tiers unsubtitled, because they describe themselves", () => {
+    // "Lousy Deal Pro" is as plain as it needs to be. The field is optional
+    // precisely so the tier table does not grow a line it has nothing to put
+    // in.
+    expect(merchRowData([TEE])[0]).toHaveProperty("kind");
+  });
+});
+
+describe("the subtitle's route from Medusa to the row", () => {
+  /**
+   * Three mutations survived the first pass here, all in the plumbing rather
+   * than the rendering: not asking Medusa for the field, letting an empty
+   * string through as a kind, and offering the remove control on every line.
+   * The rendering was guarded and the wiring was not.
+   */
+  const MERCH_VARIANT = {
+    id: "var_mug",
+    title: "11 oz",
+    calculated_price: { calculated_amount: 15, currency_code: "usd" },
+    metadata: { printful_variant_id: "10164" },
+  };
+  const product = (subtitle: unknown) =>
+    ({ id: "prod_mug", handle: "this-mug-cost-extra", title: "This Mug Cost Extra", subtitle, variants: [MERCH_VARIANT] }) as never;
+  const stub = (subtitle: unknown): FetchJson =>
+    (async <T,>(path: string): Promise<T> => {
+      if (path === "/store/regions") return { regions: [{ id: "reg_1", currency_code: "usd", countries: [] }] } as T;
+      return { products: [product(subtitle)] } as T;
+    }) as FetchJson;
+
+  it("is asked for, or nothing downstream can have it", () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/lib/medusa-client.ts"),
+      "utf8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "");
+    // Inside the field list, not merely somewhere in the file.
+    const fields = source.slice(source.indexOf("const PRODUCT_FIELDS = ["), source.indexOf("].join("));
+    expect(fields).toContain('"subtitle"');
+  });
+
+  it("treats a blank subtitle as absent, because an empty line reads as a fault", async () => {
+    // Medusa's `subtitle` is nullable and a store seeded before this existed
+    // has none. Whitespace is the same thing wearing a coat.
+    for (const subtitle of [undefined, null, "", "   "]) {
+      const [item] = await listMerch(stub(subtitle));
+      expect(`${JSON.stringify(subtitle)}: ${String(item?.kind)}`).toBe(`${JSON.stringify(subtitle)}: null`);
+    }
+  });
+
+  it("trims what it does carry, so the row is not indented by the seed", async () => {
+    expect((await listMerch(stub("  Mug  ")))[0]?.kind).toBe("Mug");
   });
 });

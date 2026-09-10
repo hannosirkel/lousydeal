@@ -36,6 +36,18 @@ export interface MerchPrintFile {
 export interface MerchProduct {
   readonly key: string;
   readonly title: string;
+  /**
+   * What the object actually is, in the plainest words available.
+   *
+   * **The titles are jokes and a buyer cannot shop from a joke.** "Original
+   * Purchase Receipt" is a shirt and "Certified Worthless" is a sticker, and
+   * somebody deciding whether to spend $32 needs to know which. This is the
+   * line that tells them, and it is deliberately not funny.
+   *
+   * It lives here rather than in the storefront because deriving it from the
+   * handle would be a second source of truth for the same fact.
+   */
+  readonly kind: string;
   readonly handle: string;
   readonly printfulProductId: number;
   readonly technique: string;
@@ -106,6 +118,7 @@ export const MERCH_CATALOGUE: readonly MerchProduct[] = [
   {
     key: "tee",
     title: "Original Purchase Receipt",
+    kind: "T-Shirt",
     handle: "original-purchase-receipt",
     printfulProductId: 12,
     technique: "dtg",
@@ -122,6 +135,7 @@ export const MERCH_CATALOGUE: readonly MerchProduct[] = [
   {
     key: "mug",
     title: "This Mug Cost Extra",
+    kind: "Mug",
     handle: "this-mug-cost-extra",
     printfulProductId: 19,
     technique: "sublimation",
@@ -133,6 +147,7 @@ export const MERCH_CATALOGUE: readonly MerchProduct[] = [
   {
     key: "cap",
     title: "Lousy Deals Trucker Cap",
+    kind: "Trucker Cap",
     handle: "lousy-deals-trucker-cap",
     printfulProductId: 100,
     // DTF, not embroidery, and the reason is the copy: "I make my Lousy Deals
@@ -149,6 +164,7 @@ export const MERCH_CATALOGUE: readonly MerchProduct[] = [
   {
     key: "sticker",
     title: "Certified Worthless",
+    kind: "Sticker",
     handle: "certified-worthless",
     printfulProductId: 358,
     technique: "digital",

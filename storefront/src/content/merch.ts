@@ -54,5 +54,15 @@ export const MERCH_APOLOGY =
 
 export const MERCH_ADD_LABEL = "Add";
 
+/**
+ * The word that takes a line back out.
+ *
+ * **"Remove", not "Delete".** Delete is what you do to a file; a shopper is
+ * taking something out of a basket they are still holding, and nothing is
+ * destroyed by it. The control names the item too -- a cart of four printed
+ * things otherwise offers four identical controls.
+ */
+export const MERCH_REMOVE_LABEL = "Remove";
+
 /** The size control's accessible name, per item. The visible column heading is not enough for four of them. */
 export const MERCH_SIZE_LABEL = "Size";

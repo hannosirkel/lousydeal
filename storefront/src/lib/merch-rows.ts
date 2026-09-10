@@ -14,6 +14,16 @@ import { NO_VALUE } from "./tier-rows";
 export interface MerchRow {
   readonly id: string;
   readonly title: string;
+  /**
+   * What the object is, under a title that will not say.
+   *
+   * **Every title here is a joke** — "Original Purchase Receipt" is a shirt,
+   * "Certified Worthless" is a sticker — and a buyer deciding whether to buy
+   * one has to be told which. `null` where the store was seeded before
+   * `seed-merch.ts` wrote it, in which case the row renders nothing rather
+   * than an empty line.
+   */
+  readonly kind: string | null;
   /** Every size, in the order Medusa returned them. */
   readonly sizes: string;
   readonly value: string;
@@ -52,6 +62,7 @@ export function merchRowData(items: readonly MerchItem[]): MerchRow[] {
       {
         id: item.id,
         title: item.title,
+        kind: item.kind,
         sizes: item.variants.map((variant) => variant.size).join(", "),
         value: merchValue(first.currencyCode),
         price: formatMoney(first.amount, first.currencyCode),

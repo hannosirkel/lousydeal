@@ -35,16 +35,29 @@ export interface LedgerRowProps {
    * no code here can enforce; it is a review question, like the stamp mark.
    */
   readonly scale?: "body" | "display";
+  /**
+   * A control belonging to this line, rendered beside its label.
+   *
+   * Beside the *label*, not the figure: it acts on the thing the row names,
+   * and a control next to a price reads as acting on the price. Added for the
+   * cart's remove control, which had nowhere to live -- `removeLineFromCart`
+   * existed from the beginning and no page ever offered it, so a buyer who
+   * added a mug could not take it out again.
+   */
+  readonly action?: ReactNode;
 }
 
-export function LedgerRow({ label, value, tone = "ink", scale = "body" }: LedgerRowProps) {
+export function LedgerRow({ label, value, tone = "ink", scale = "body", action }: LedgerRowProps) {
   const valueClass = ["ledger-value", tone === "stamp" ? "is-stamp" : "", scale === "display" ? "is-display" : ""]
     .filter((name) => name !== "")
     .join(" ");
 
   return (
     <div className="ledger-row">
-      <dt className="ledger-label">{label}</dt>
+      <dt className="ledger-label">
+        {label}
+        {action === undefined ? null : <span className="ledger-action">{action}</span>}
+      </dt>
       <dd className={valueClass}>{value}</dd>
     </div>
   );

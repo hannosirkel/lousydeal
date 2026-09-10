@@ -425,6 +425,20 @@ small {
   text-align: right;
 }
 
+/* What the object is, under a title that will not say. The merch titles are
+   jokes and a buyer cannot shop from a joke.
+
+   `--ink-soft` and the small step, because it is subordinate to the name --
+   `brand.md` records that pair as clearing AA at 5.1:1, so quieter here does
+   not mean less readable. `display: block` gives it its own line inside the
+   row header rather than trailing the title on the same one. */
+.tier-table .cell-kind {
+  display: block;
+  color: var(--ink-soft);
+  font-size: var(--size-small);
+  padding-top: var(--space-1);
+}
+
 /* The dt is itself a flex container so the leader can grow into the space
    between label and value.
 
@@ -690,10 +704,46 @@ a.button.is-secondary:hover {
     order: 1;
   }
 
+  /* Under the name on a narrow viewport too, where the row header stacks. */
+  .tier-table .cell-kind {
+    order: 2;
+    flex-basis: 100%;
+    text-align: right;
+  }
+
   .tier-table .tier-action {
     padding-top: var(--space-3);
     text-align: left;
   }
+}
+
+/* ---- The cart's remove control --------------------------------------- */
+
+/* A word rather than an icon, per `brand.md` §6, and quiet rather than a
+   button: it belongs to a line in a ledger and must not compete with the
+   price beside it. */
+.remove-line {
+  display: inline;
+}
+
+.remove-line-button {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-left: var(--space-2);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--size-small);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* The one colour change `brand.md` §6 admits, at the duration it names. */
+.remove-line-button:hover,
+.remove-line-button:focus-visible {
+  color: var(--ink);
+  transition: color 120ms;
 }
 
 /* ---- Legal documents ------------------------------------------------- */
