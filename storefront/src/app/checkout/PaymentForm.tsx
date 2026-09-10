@@ -572,7 +572,15 @@ export function PayButton({
       try {
         await setCartShippingAddress(fetchJson, cartId, { ...address, countryCode });
         const options = await listCartShippingOptions(fetchJson, cartId);
-        const cheapest = [...options].sort((first, second) => first.amount - second.amount)[0];
+        // **`?? Infinity`, because a calculated option has no price yet.**
+        // Medusa's store route does not price one, so sorting on a bare
+        // `amount` compared `undefined` and put an unpriced option nowhere in
+        // particular. A priced option still sorts cheapest-first; unpriced
+        // ones keep the order Medusa returned them in, which is the only
+        // information available about them. This shop offers exactly one, so
+        // the sort decides nothing today and is kept honest for the day it
+        // does.
+        const cheapest = [...options].sort((first, second) => (first.amount ?? Infinity) - (second.amount ?? Infinity))[0];
         if (cheapest === undefined) throw new Error(SHIPPING_UNAVAILABLE_NOTICE);
         const applied = await setCartShippingMethod(fetchJson, cartId, cheapest.id);
         if (!cancelled) {

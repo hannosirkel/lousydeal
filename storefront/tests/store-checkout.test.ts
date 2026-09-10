@@ -832,13 +832,37 @@ describe("listCartShippingOptions", () => {
     ]);
   });
 
-  it("drops an option Medusa could not price", async () => {
-    // `calculatePrice` throws rather than inventing a figure, and Medusa
-    // reports that as an option with no price. Offering it to a buyer would be
-    // offering a control that cannot be used.
+  it("keeps an option with no price, because that is what a calculated one looks like", async () => {
+    /**
+     * **This asserted the opposite, and it made merch unbuyable.**
+     *
+     * The old reasoning was that an option with no price is one
+     * `calculatePrice` refused, and that offering it would be "a control that
+     * cannot be used". Both halves are wrong. Medusa's store route runs
+     * `listShippingOptionsForCartWorkflow`, **not** the `…WithPricing`
+     * variant, so it never asks a provider what a calculated option costs —
+     * every calculated option comes back unpriced, always, and the control
+     * works perfectly: attaching it is what produces the figure.
+     *
+     * So the shop listed zero options for every cart holding a parcel, and
+     * every buyer was told "postage could not be quoted for this address".
+     * Measured against the live deployment on 2026-09-10, which answers 200
+     * with exactly the shape below.
+     */
     expect(
-      await listCartShippingOptions(answer([{ id: "so_3", name: "Broken" }, { id: "so_4", calculated_price: {} }]), "cart_ship"),
-    ).toEqual([]);
+      await listCartShippingOptions(
+        answer([{ id: "so_3", name: "Postage", price_type: "calculated", calculated_price: null }]),
+        "cart_ship",
+      ),
+    ).toEqual([{ id: "so_3", name: "Postage", amount: null }]);
+  });
+
+  it("still refuses one with no id, which is not an option at all", () => {
+    // The id is the whole of what the attach needs. Without it there is
+    // nothing to offer and nothing to attach.
+    return expect(
+      listCartShippingOptions(answer([{ name: "Nameless", calculated_price: null }]), "cart_ship"),
+    ).resolves.toEqual([]);
   });
 
   it("returns nothing for a cart with no options, rather than refusing", async () => {
@@ -1490,5 +1514,46 @@ describe("the verbs a webhook path answers", () => {
     // Both are bypassed at the edge, so both are reachable anonymously; the
     // finding applies to the pair.
     expect(methodRefused("GET", `/hooks/payment/${STRIPE_PROVIDER_ID.slice("pp_".length)}`)).toBe(true);
+  });
+});
+
+describe("the quote a calculated option actually produces", () => {
+  /**
+   * **The path that had never been exercised end to end.** Gate E bought a
+   * shirt with a script that called the Store API directly and attached the
+   * option by id; it printed `Postage — undefined` and thought nothing of it,
+   * because it never used `listCartShippingOptions`. The storefront did, and
+   * dropped the option. So merch was unbuyable through the checkout on every
+   * environment, while Gate E reported a successful purchase.
+   */
+  it("sorts a priced option ahead of an unpriced one rather than comparing undefined", () => {
+    // `first.amount - second.amount` on a null is `NaN`, and a comparator
+    // returning `NaN` leaves the order unspecified — which is how an unpriced
+    // option could end up chosen ahead of a cheaper priced one.
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/app/checkout/PaymentForm.tsx"),
+      "utf8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    expect(source).toContain("(first.amount ?? Infinity) - (second.amount ?? Infinity)");
+  });
+
+  it("takes the figure a buyer is charged from the attach, not from the list", () => {
+    // The list cannot know it. `setCartShippingMethod` returns the cart's own
+    // shipping amount, which is what Medusa computed by asking the provider.
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/app/checkout/PaymentForm.tsx"),
+      "utf8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    expect(source).toContain("setShippingAmount(applied.shippingAmount)");
+    // And never from the option it listed, which is null for a calculated one.
+    expect(source).not.toMatch(/setShippingAmount\(cheapest\.amount\)/);
+  });
+
+  it("refuses only when there is genuinely nothing to attach", () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/app/checkout/PaymentForm.tsx"),
+      "utf8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    expect(source).toContain("if (cheapest === undefined) throw new Error(SHIPPING_UNAVAILABLE_NOTICE)");
   });
 });
