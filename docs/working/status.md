@@ -8,10 +8,10 @@ does not — it points, it does not hold.
 | | |
 | --- | --- |
 | Updated | 2026-09-10 |
-| Current slice | **none in flight.** LD-04 closed 2026-09-10 |
-| In flight | nothing. No open pull request in `lousydeal`, `deploys` or `orange`; no worktree |
-| Next action | Plan **LD-06 — Worse discounts** as `docs/working/ld-06-discounts.md`, then execute it. It inherits one written liability: `storefront/src/content/baldrick.ts` says a discount code exists and is not finished, which LD-06 makes false |
-| Blocked | nothing |
+| Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
+| In flight | D0, the plan: branch `deal/ld06-plan`, worktree `~/app/.worktrees/lousydeal/ld06-plan` |
+| Next action | Once D0 merges, execute **D1** (the code table and its arithmetic). Rows run in the plan's order: constraint 6 puts every line reader before the one route that writes a surcharge |
+| Blocked | nothing. D1 proposes `FREE`'s fee and needs the operator to name it before it merges |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -39,7 +39,7 @@ with real Printful postage — `ATTACHED postage = 6.48`, `cart total = 38.48`.
 
 | Slice | State |
 | --- | --- |
-| **LD-06 — Worse discounts** | not started, and next. Baldrick-issued price-increasing codes and their tracking |
+| **LD-06 — Worse discounts** | **in flight.** Planned 2026-09-10 as eleven rows, D0–D10, `lousydeal` only. Four operator decisions are recorded at the head of the plan |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
 | **LD-08 — Launch polish** | not started, and last. Responsive review, accessibility, SEO, metadata, analytics, performance, error states, final copy and visual review, production readiness |
 
