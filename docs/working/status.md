@@ -11,7 +11,7 @@ does not — it points, it does not hold.
 | Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
 | In flight | D0, the plan: branch `deal/ld06-plan`, worktree `~/app/.worktrees/lousydeal/ld06-plan` |
 | Next action | Once D0 merges, execute **D1** (the code table and its arithmetic). Rows run in the plan's order: constraint 6 puts every line reader before the one route that writes a surcharge |
-| Blocked | nothing. D1 proposes `FREE`'s fee and needs the operator to name it before it merges |
+| Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
