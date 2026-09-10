@@ -9,7 +9,7 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-10 |
 | Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
-| In flight | **D3**, the storefront's classifiers and the authorisation row: branch `deal/ld06-d3-checkout`, worktree `~/app/.worktrees/lousydeal/ld06-d3`. D0 merged as #199, D1 as #200, D2 as #201 |
+| In flight | **D3**, the storefront's classifiers and the authorisation row: pull request #202, branch `deal/ld06-d3-checkout`, worktree `~/app/.worktrees/lousydeal/ld06-d3`. Gate D approved; awaiting the operator's merge. D0 merged as #199, D1 as #200, D2 as #201 |
 | Next action | Once D3 merges, execute **D4** (the route that applies a code), the slice's only writer. Constraint 7 required D2 and D3 first |
 | Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
 
