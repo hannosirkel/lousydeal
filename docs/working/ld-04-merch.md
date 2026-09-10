@@ -1750,12 +1750,32 @@ asked, and what the answer was, is the part worth keeping.
    buyer's own rate, and P14c built the two counters. **P14 is complete and
    Gate E has run**, so "P14 blocks Gate E" below is no longer true.
 
-   What genuinely remains, and none of it blocks this slice: a position on
-   Latvia- and Spain-domestic supplies, which OSS cannot carry; IOSS or an
-   import-charges disclosure for US-dispatched EU orders; a manual TEDB pass on
-   the 27 rates; the special VAT territories and Northern Ireland; and whether
-   the €10,000 threshold was crossed earlier in 2026, which decides liability
-   independently of the registration date. `status.md` carries all five.
+   **Three of the five closed on 2026-09-10** by an advisory pass, and each is
+   recorded where it belongs rather than here:
+
+   - **The 27 rates are verified.** All agree; nothing changed. Through the
+     Commission's VAT Retrieval Service, at the date they take effect and
+     across the rest of 2026. `tax-model.ts`'s header carries the method, and
+     one live conditional it turned up: **child-sized apparel** would trigger
+     Luxembourg's 3% and Ireland's zero rate, so adding a child size to the
+     catalogue would make this table over-collect.
+   - **The special territories and Northern Ireland are answered** by decision
+     [`014`](../decisions/014-special-territories-are-a-reporting-problem.md).
+     They are a *reporting* problem, not a checkout one: VAT is absorbed and
+     never itemised, so no buyer's total is ever wrong. No destination is
+     blocked, nothing changes in Medusa, and the correction happens when the
+     return is prepared, against a postcode table that decision carries.
+   - **The €10,000 threshold, for this shop's part.** The live environment
+     holds a **placeholder** where a Stripe secret key would be, so the shop
+     has never been able to take a payment and contributes zero. What remains
+     is not a question about the shop: it is whether **Aislopica OÜ** made any
+     other cross-border B2C supplies in 2026, which only the operator can
+     answer, and which decides liability independently of the registration
+     date.
+
+   What is genuinely still open is the pair about where a parcel is dispatched
+   *from*: Latvia- and Spain-domestic supplies, which OSS cannot carry, and
+   IOSS or an import-charges disclosure for US-dispatched EU orders.
 
    > **As written on 2026-09-08, before `013`:** The 2026-09-08 ruling
    — below €10,000, charge Estonian VAT — holds for the certificate and for
