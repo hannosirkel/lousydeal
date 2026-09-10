@@ -23,8 +23,9 @@
  *
  * **A surcharge is the one line that is neither.** LD-06's "discount" is a
  * custom-priced line with no variant, no handle and no SKU, so by the two
- * rules above it was merch that could not be ordered — and a certificate
- * bought with a code was recorded `failed` and retried on every redelivery.
+ * rules above it would have been merch that could not be ordered — and a
+ * certificate bought with a code would have been recorded `failed` and
+ * retried on every redelivery, once D4's route could write one.
  * It is recognised before either rule runs, by `isSurchargeLine` below,
  * which the subscriber's issuance reads as well so the two cannot disagree
  * about which line it is.

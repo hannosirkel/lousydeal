@@ -91,9 +91,10 @@ describe("the surcharge", () => {
    * LD-06 D2. A surcharge is a line with no variant (constraint 6): D4 writes
    * it through `addToCartWorkflow` with a `unit_price` and no `variant_id`,
    * and no public route can make such a line. It has no handle and no SKU,
-   * so before this row it was merch that could not be ordered -- and a
-   * certificate-and-surcharge order was recorded `failed` and retried on
-   * every redelivery.
+   * so without this row it would have been merch that could not be ordered
+   * -- and a certificate-and-surcharge order would have been recorded
+   * `failed` and retried on every redelivery. No such order has existed:
+   * D4's route is the first thing that can write the line.
    */
   const SURCHARGE = {
     title: "Discount (BALDRICK20)",
@@ -126,7 +127,9 @@ describe("the surcharge", () => {
       updatePrintfulSubmissions: () => Promise.reject(new Error("unreachable")),
     };
     const never = () => Promise.reject(new Error("Printful must not be called"));
-    await submitPrintfulOrder(store, { findByExternalId: never, create: never, confirm: never }, result!.input);
+    expect(result).not.toBeNull();
+    if (result === null) return;
+    await submitPrintfulOrder(store, { findByExternalId: never, create: never, confirm: never }, result.input);
     expect(rows).toEqual([expect.objectContaining({ order_id: "order_01", status: "skipped" })]);
   });
 

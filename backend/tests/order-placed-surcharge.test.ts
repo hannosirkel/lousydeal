@@ -202,13 +202,37 @@ describe("what the certificate is issued for", () => {
     expect(issued[0]).toMatchObject({ amountPaid: 25 });
   });
 
-  it("issues once, at the same figure, when the event is delivered again", async () => {
+  it("reads a zero surcharge as a surcharge, not as no surcharge", async () => {
+    // `BLACKFRIDAY` is a real code that adds a real $0.00 line. It must pass
+    // the quantity and total checks like any other, and add nothing.
+    const { issued, errors } = await run([certificate("lousy-deal", "Lousy Deal", 5), surcharge("BLACKFRIDAY", 0)]);
+    expect(errors).toEqual([]);
+    expect(issued[0]).toMatchObject({ amountPaid: 5 });
+  });
+
+  it("reads a line's own quantity where the query did not hydrate a detail", async () => {
+    // The fallback `from-order.ts` documents, on both lines this reads.
+    const bare = (line: Line): Line => ({
+      ...Object.fromEntries(Object.entries(line).filter(([field]) => field !== "detail")),
+      quantity: new BigNumber(1),
+    });
+    const { issued, errors } = await run([
+      bare(certificate("lousy-deal", "Lousy Deal", 5)),
+      bare(surcharge("BALDRICK20", 1)),
+    ]);
+    expect(errors).toEqual([]);
+    expect(issued[0]).toMatchObject({ amountPaid: 6 });
+  });
+
+  it("recomputes the same figure when the event is delivered again", async () => {
+    // Issuing once is `issue.ts`'s read-first insert, which the fake mirrors
+    // and this does not prove. What is this row's is that a replay hands the
+    // deal module the same input and keys the same notification.
     const items = [certificate("lousy-deal", "Lousy Deal", 5), surcharge("BALDRICK20", 1)];
     const first = await run(items);
     const second = await run(items, first.deals);
     expect(second.errors).toEqual([]);
     expect(second.issued[0]).toMatchObject({ amountPaid: 6 });
-    expect(second.deals.size).toBe(1);
     expect(second.notifications[0]?.idempotency_key).toBe(first.notifications[0]?.idempotency_key);
   });
 });

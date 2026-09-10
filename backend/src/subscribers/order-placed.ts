@@ -145,9 +145,14 @@ function lineQuantity(item: QueriedOrderItem): number | null {
  * Two major amounts, added as integer cents.
  *
  * `5.1 + 0.2` is `5.300000000000001` in a double, and this figure is printed
- * on the certificate and summed by the public counter. `surcharge.ts` takes
- * the same route in: Medusa's amounts are two-decimal, so cents are exact and
- * the division back happens once.
+ * on the certificate and summed by the public counter. Medusa's amounts are
+ * two-decimal, so cents are exact and the division back happens once.
+ *
+ * **Rounds, where `surcharge.ts` refuses.** That file prices a line from a
+ * base, and a base that is not a two-decimal amount is a defect to be loud
+ * about. These are recorded totals of an order that has already taken the
+ * money: refusing one over a binary artefact would leave a buyer who paid
+ * with no certificate, for a difference below a cent.
  */
 function addMajor(first: number, second: number): number {
   return (Math.round(first * 100) + Math.round(second * 100)) / 100;
@@ -210,7 +215,9 @@ function certificateLine(items: readonly QueriedOrderItem[] | null | undefined):
   if (tier === null || certificateTotal === null) return { kind: "unreadable", reason: "certificate has no title or total" };
 
   const surcharges = items.filter(isSurchargeLine);
-  if (surcharges.length === 0) return { kind: "certificate", tier, amountPaid: certificateTotal };
+  // Through `addMajor` too, so the figure takes one route whether or not a
+  // code was used.
+  if (surcharges.length === 0) return { kind: "certificate", tier, amountPaid: addMajor(certificateTotal, 0) };
   if (surcharges.length > 1) return { kind: "unreadable", reason: `${String(surcharges.length)} surcharge lines` };
 
   const surcharge = surcharges[0];
