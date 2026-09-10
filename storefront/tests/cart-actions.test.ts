@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 /**
  * Holds the one shared cart action, and the cookie it writes.
  *
@@ -60,16 +63,21 @@ describe("addToCart", () => {
     await expect(addToCart(new FormData())).rejects.toThrow(/missing variantId/);
   });
 
-  it("exports exactly two actions, because every export here is a POST endpoint", async () => {
+  it("exports exactly three actions, because every export here is a POST endpoint", async () => {
     // Next gives each export of a `"use server"` module a public action id, so
     // anything exported is reachable by any visitor with any arguments.
     //
-    // **One until LD-04 P9c.** The count is asserted rather than a maximum,
-    // for the reason the guard existed at one: a helper accidentally exported
-    // from this module is a public POST endpoint, and nothing else in the
-    // repository would notice.
+    // **One until LD-04 P9c, two until the cart could be undone.** The count
+    // is asserted rather than a maximum, for the reason the guard existed at
+    // one: a helper accidentally exported from this module is a public POST
+    // endpoint, and nothing else in the repository would notice.
+    //
+    // `removeFromCart` is the third, and it is reachable by anyone with any
+    // line id -- which is why it reads the cart from the caller's own cookie
+    // and removes only a line that cart actually holds. A line id from
+    // somebody else's cart matches nothing and is a no-op.
     const actions = await import("../src/lib/cart-actions");
-    expect(Object.keys(actions).sort()).toEqual(["addMerchToCart", "addToCart"]);
+    expect(Object.keys(actions).sort()).toEqual(["addMerchToCart", "addToCart", "removeFromCart"]);
   });
 
   it("adds one, and does not read a quantity from the form", async () => {
@@ -310,5 +318,132 @@ describe("addToCart keeps the cart to one certificate", () => {
 
     expect(run.createdCarts).toBe(1);
     expect(run.added).toEqual([["cart_new", "var_chosen", 1]]);
+  });
+});
+
+describe("taking a line back out", () => {
+  /**
+   * **The operator reported it: "once added, the products can't be removed".**
+   * `removeLineFromCart` had existed since the cart did and no page ever
+   * offered it, so a buyer who added a mug to see what would happen had two
+   * exits: complete the order, or abandon the cart. That is not an upsell, it
+   * is a trap.
+   */
+  it("refuses a submission carrying no line", async () => {
+    const { removeFromCart } = await import("../src/lib/cart-actions");
+    await expect(removeFromCart(new FormData())).rejects.toThrow(/missing lineId/);
+  });
+
+  it("removes only a line the caller's own cart holds", async () => {
+    /**
+     * **It is a public POST endpoint**, like every export of a `"use server"`
+     * module: anyone may call it with any line id. What stops that mattering
+     * is that the cart comes from the caller's own cookie and the line must be
+     * in it — a line id belonging to somebody else's cart matches nothing.
+     */
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/lib/cart-actions.ts"),
+      "utf8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "");
+    const action = source.slice(source.indexOf("export async function removeFromCart"));
+
+    expect(action).toContain("cookieStore.get(CART_ID_COOKIE)?.value");
+    // The line is looked up in that cart before anything is deleted, rather
+    // than the id being passed straight through to Medusa.
+    expect(action).toMatch(/\(cart\.items \?\? \[\]\)\.find\(\(item\) => item\.id === lineId\)/);
+    expect(action.indexOf("cart.items")).toBeLessThan(action.indexOf("removeLineFromCart"));
+  });
+
+  it("treats an id that is already gone as done, not as an error", () => {
+    // Two clicks, a stale page, a back button. The buyer's intent is "this
+    // should not be in my cart", and it already is not.
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/lib/cart-actions.ts"),
+      "utf8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "");
+    const action = source.slice(source.indexOf("export async function removeFromCart"));
+
+    expect(action).toMatch(/if \(line !== undefined\) await removeLineFromCart/);
+    expect(action).toContain("redirect(\"/cart\")");
+  });
+
+  it("reads the stripping, so a broken regex cannot pass by emptying the file", () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/lib/cart-actions.ts"),
+      "utf8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(source).toContain("export async function removeFromCart");
+  });
+});
+
+describe("which lines the cart offers to remove", () => {
+  /**
+   * **The certificate is deliberately not removable, and a mutation proved
+   * nothing said so.** Replacing the gate with `true` offered the control on
+   * every line and every test passed.
+   *
+   * `isPayableCart` requires exactly one certificate — merch is an upsell,
+   * settled by the operator on 2026-09-09 — so a cart stripped of it is one
+   * the pay control refuses with nothing on the page explaining why. A buyer
+   * changing tier replaces the certificate from the purchase order; they do
+   * not void it from the cart.
+   */
+  const source = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "../src/app/cart/page.tsx"),
+    "utf8",
+  ).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+
+  it("decides from the merch already on the page, not from a title", () => {
+    // The upsell is fetched here anyway, so its variant ids are known. A
+    // second question to Medusa, or a guess from the line's words, would both
+    // be worse.
+    expect(source).toContain("const removable = new Set(merch.flatMap((row) => row.variants.map((variant) => variant.variantId)))");
+  });
+
+  it("gates the control on that set", () => {
+    expect(source).toMatch(/removable\.has\(item\.variant_id\) \? \(/);
+    // And the gate is a condition, not a constant somebody left behind.
+    expect(source).not.toMatch(/\btrue \? \(\s*<RemoveLine/);
+  });
+
+  it("reads the stripping, so a broken regex cannot pass by emptying the file", () => {
+    expect(source).toContain("export default async function CartPage");
+  });
+});
+
+describe("what a cart line says it is", () => {
+  /**
+   * **The cart-side half of the same defect the upsell table had.** Medusa
+   * sets a line's `title` from the *product* — which here is a joke — and puts
+   * the size in `variant_title`. So the ledger read "Original Purchase
+   * Receipt" and a buyer could tell neither what the object was nor which size
+   * they had chosen until the parcel arrived.
+   *
+   * `items.variant_title` is already in Medusa's `defaultStoreCartFields`, so
+   * this costs one field read and no extra request.
+   */
+  const source = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "../src/app/cart/page.tsx"),
+    "utf8",
+  ).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+
+  it("names the size beside the title", () => {
+    expect(source).toContain("function lineLabel(");
+    expect(source).toContain("label={lineLabel(item.title ?? item.variant_id, item.variant_title)}");
+  });
+
+  it("drops a variant title that would only repeat the product", () => {
+    // A certificate has one variant and no size worth printing; Medusa's own
+    // placeholder is worse than nothing.
+    expect(source).toMatch(/size === title \|\| size === "Default variant"/);
+  });
+
+  it("drops an empty or whitespace variant title", () => {
+    // An em dash trailing nothing reads as a rendering fault.
+    expect(source).toMatch(/size\.length === 0/);
+  });
+
+  it("reads the stripping, so a broken regex cannot pass by emptying the file", () => {
+    expect(source).toContain("export default async function CartPage");
   });
 });

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 /**
  * The merch products, and — the point of this file — the certificate's.
  *
@@ -83,6 +85,11 @@ describe("the certificate, which this slice must not touch", () => {
       "manageInventory",
       "optionTitle",
       "shippingProfile",
+      // What the object is, in plain words, for a title that is a joke. On
+      // merch and **not** on the tiers, which is the separation this test is
+      // about: "Lousy Deal Pro" describes itself and a subtitle under it would
+      // be a line with nothing to say.
+      "subtitle",
       "title",
       "variants",
     ]);
@@ -357,5 +364,56 @@ describe("applying merch to a running Medusa", () => {
       await expect(target.apply(record)).rejects.toThrow(/missing \d+ declared variant/);
       expect(updateProductVariantsRun).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("what the object is, carried from the catalogue to the store", () => {
+  /**
+   * **The operator reported the add-ons as "not descriptive".** Every title is
+   * a joke and a buyer cannot shop from a joke, so `catalogue.ts` carries the
+   * plain noun and the seed writes it to Medusa's own `subtitle`.
+   *
+   * Asserted at both ends because a mutation run found the middle unguarded:
+   * deleting the field from the catalogue, or dropping it from the create or
+   * the update, left every test green.
+   */
+  it("gives every product a plain name for the object", () => {
+    for (const product of MERCH_CATALOGUE) {
+      expect(`${product.key}: ${product.kind}`).toBe(`${product.key}: ${product.kind}`);
+      expect(product.kind.length).toBeGreaterThan(0);
+    }
+    expect(MERCH_CATALOGUE.map((product) => product.kind)).toEqual(["T-Shirt", "Mug", "Trucker Cap", "Sticker"]);
+  });
+
+  it("is not the title, which is the joke", () => {
+    // If these ever coincide the line under the name says nothing.
+    for (const product of MERCH_CATALOGUE) {
+      expect(`${product.key}: ${String(product.kind === product.title)}`).toBe(`${product.key}: false`);
+    }
+  });
+
+  it("reaches the seed record", () => {
+    expect(merchSeedRecords().map((record) => record.subtitle)).toEqual(["T-Shirt", "Mug", "Trucker Cap", "Sticker"]);
+  });
+
+  it("is written on the create and on the update, not just one", () => {
+    // **A store seeded before this existed keeps four products with no
+    // subtitle if only the create carries it**, and the fix then reaches a
+    // fresh database and nothing else. Read off the source because the
+    // workflows are Medusa's.
+    const source = readFileSync(join(__dirname, "../src/scripts/seed-merch.ts"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+    expect(source.match(/subtitle: record\.subtitle,/g)).toHaveLength(2);
+    // **Anchored on the calls, not the identifiers.** The first
+    // `createProductsWorkflow` in the file is the import, which sits above
+    // everything — the same mistake `parcel-shipped.test.ts` records making
+    // about `updatePrintfulSubmissions`.
+    const create = source.indexOf("createProductsWorkflow(this.container).run(");
+    const update = source.indexOf("updateProductsWorkflow(this.container).run(");
+    expect(create).toBeGreaterThan(-1);
+    expect(update).toBeGreaterThan(create);
+    expect(source.slice(create, update)).toContain("subtitle: record.subtitle,");
+    expect(source.slice(update)).toContain("subtitle: record.subtitle,");
   });
 });

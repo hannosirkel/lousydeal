@@ -25,7 +25,16 @@ interface StoreCartLineItemResponse {
   readonly variant_id: string;
   readonly quantity: number;
   readonly unit_price: number;
+  /** Medusa sets this from the *product* title, which here is the joke. */
   readonly title?: string;
+  /**
+   * The variant's own title, which `seed-merch.ts` sets from the size.
+   *
+   * Already in Medusa's `defaultStoreCartFields`, so reading it costs nothing.
+   * Without it a cart line says "Original Purchase Receipt" and a buyer cannot
+   * tell which size they bought until the parcel arrives.
+   */
+  readonly variant_title?: string | null;
 }
 
 export interface StoreCartResponse {

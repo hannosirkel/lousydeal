@@ -67,6 +67,8 @@ export interface MerchSeedVariant {
 export interface MerchSeedRecord {
   readonly handle: string;
   readonly title: string;
+  /** What the object is, plainly. Medusa's own field for a line under the title. */
+  readonly subtitle: string;
   readonly currency: string;
   readonly shippingProfile: string;
   /** Always `false`; see this file's header. */
@@ -91,6 +93,10 @@ export function merchSeedRecords(): readonly MerchSeedRecord[] {
   return MERCH_CATALOGUE.map((product) => ({
     handle: product.handle,
     title: product.title,
+    // `subtitle` rather than metadata: this is exactly what Medusa's field is
+    // for, and a buyer-facing string in a metadata bag is a string nothing
+    // renders by default.
+    subtitle: product.kind,
     currency: "usd",
     shippingProfile: MERCH_SHIPPING_PROFILE,
     manageInventory: false as const,
@@ -199,6 +205,7 @@ export class MedusaMerchSeedTarget implements MerchSeedTarget {
             {
               handle: record.handle,
               title: record.title,
+              subtitle: record.subtitle,
               status: "published",
               shipping_profile_id: profile.id,
               sales_channels: [{ id: salesChannelId }],
@@ -233,6 +240,10 @@ export class MedusaMerchSeedTarget implements MerchSeedTarget {
             id: existing.id,
             handle: record.handle,
             title: record.title,
+            // **On the update as well as the create**, or a store seeded
+            // before this existed keeps four products with no subtitle and
+            // the fix only reaches a fresh database.
+            subtitle: record.subtitle,
             status: "published",
             shipping_profile_id: profile.id,
             sales_channels: salesChannels.map((id) => ({ id })),

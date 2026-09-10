@@ -172,6 +172,8 @@ export interface StoreProduct {
   readonly id: string;
   readonly handle: string;
   readonly title: string;
+  /** Medusa's own line under the title. `seed-merch.ts` writes what the object is. */
+  readonly subtitle?: string | null;
   readonly variants?: readonly StoreProductVariant[];
 }
 
@@ -198,6 +200,9 @@ export interface Tier {
 const PRODUCT_FIELDS = [
   "id",
   "title",
+  // What the object is, plainly -- the titles are jokes and a buyer cannot
+  // shop from a joke. `seed-merch.ts` writes it from `catalogue.ts`.
+  "subtitle",
   "handle",
   "*variants",
   "*variants.calculated_price",
@@ -282,6 +287,8 @@ export interface MerchItem {
   readonly id: string;
   readonly handle: string;
   readonly title: string;
+  /** What it actually is: T-Shirt, Mug, Trucker Cap, Sticker. `null` if unseeded. */
+  readonly kind: string | null;
   readonly variants: readonly {
     readonly variantId: string;
     /** Medusa's variant title, which `seed-merch.ts` sets from the size. */
@@ -334,6 +341,14 @@ export async function listMerch(fetchJson: FetchJson): Promise<MerchItem[]> {
         },
       ];
     });
-    return variants.length === 0 ? [] : [{ id: product.id, handle: product.handle, title: product.title, variants }];
+    if (variants.length === 0) return [];
+    // **Trimmed, and `null` where it is missing rather than an empty string.**
+    // A product seeded before the subtitle existed has none, and the row
+    // should then render nothing at all rather than an empty line under the
+    // title -- which reads as a rendering fault.
+    const subtitle = typeof product.subtitle === "string" ? product.subtitle.trim() : "";
+    return [
+      { id: product.id, handle: product.handle, title: product.title, kind: subtitle.length > 0 ? subtitle : null, variants },
+    ];
   });
 }

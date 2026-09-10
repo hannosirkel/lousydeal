@@ -23,11 +23,14 @@ import { Button } from "../../components/document/Button";
 import { DocumentFrame } from "../../components/document/DocumentFrame";
 import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
 import { MerchForm } from "../../components/document/MerchForm";
+import { RemoveLine } from "../../components/document/RemoveLine";
 import { Rule } from "../../components/document/Rule";
 import { TierTable } from "../../components/document/TierTable";
 import { CART_DOCUMENT, CART_EMPTY_NOTICE, CART_LABELS, CHECKOUT_LABEL, RETURN_LABEL } from "../../content/checkout";
-import { MERCH_APOLOGY, MERCH_HEADING, MERCH_TABLE_HEADINGS } from "../../content/merch";
-import { addMerchToCart } from "../../lib/cart-actions";
+import { MERCH_APOLOGY, MERCH_HEADING, MERCH_TABLE_HEADINGS,
+  MERCH_REMOVE_LABEL,
+} from "../../content/merch";
+import { addMerchToCart, removeFromCart } from "../../lib/cart-actions";
 import { createStoreFetchJson, listMerch, StoreApiError } from "../../lib/medusa-client";
 import { merchRowData } from "../../lib/merch-rows";
 import { formatMoney } from "../../lib/money";
@@ -38,6 +41,23 @@ import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-sessio
  * What one line reads as: the quantity and the unit price, never their
  * product. One of anything shows the price alone, because "1 ×" is noise.
  */
+/**
+ * What one line is called, for a title that is a joke.
+ *
+ * Medusa sets a line's `title` from the *product* — "Original Purchase
+ * Receipt" — and puts the size in `variant_title`. On its own the ledger told
+ * a buyer neither what the object was nor which size they had chosen, which is
+ * the cart-side half of the same defect the upsell table had.
+ *
+ * The certificate's own lines have no size worth printing, so a variant title
+ * that repeats the product title, or is Medusa's placeholder, is dropped.
+ */
+function lineLabel(title: string, variantTitle: string | null | undefined): string {
+  const size = typeof variantTitle === "string" ? variantTitle.trim() : "";
+  if (size.length === 0 || size === title || size === "Default variant") return title;
+  return `${title} — ${size}`;
+}
+
 function lineValue(quantity: number, unitPrice: number, currencyCode: string): string {
   const price = formatMoney(unitPrice, currencyCode);
   return quantity === 1 ? price : `${String(quantity)} × ${price}`;
@@ -108,6 +128,13 @@ export default async function CartPage() {
   // question with no answers under it.
   const merch = merchRowData(await listMerch(fetchJson));
 
+  // **Which lines a buyer may take out.** The upsell is already on this page,
+  // so its variant ids are already known -- no second question to Medusa, and
+  // no guess from a title. The certificate is deliberately not removable:
+  // `isPayableCart` requires exactly one, so a cart stripped of it is one the
+  // pay control refuses with nothing on the page saying why.
+  const removable = new Set(merch.flatMap((row) => row.variants.map((variant) => variant.variantId)));
+
   return (
     <main>
       <DocumentFrame title={CART_DOCUMENT.title} form={CART_DOCUMENT.form} revision={CART_DOCUMENT.revision}>
@@ -115,8 +142,18 @@ export default async function CartPage() {
           {items.map((item) => (
             <LedgerRow
               key={item.id}
-              label={item.title ?? item.variant_id}
+              label={lineLabel(item.title ?? item.variant_id, item.variant_title)}
               value={lineValue(item.quantity, item.unit_price, cart.currency_code)}
+              action={
+                removable.has(item.variant_id) ? (
+                  <RemoveLine
+                    action={removeFromCart}
+                    lineId={item.id}
+                    title={item.title ?? item.variant_id}
+                    label={MERCH_REMOVE_LABEL}
+                  />
+                ) : undefined
+              }
             />
           ))}
           <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currency_code)} />
@@ -132,6 +169,8 @@ export default async function CartPage() {
               rows={merch.map((row) => ({
                 id: row.id,
                 title: row.title,
+                // §7's upsell said what a thing costs and never what it was.
+                ...(row.kind === null ? {} : { subtitle: row.kind }),
                 description: row.sizes,
                 value: row.value,
                 price: row.price,

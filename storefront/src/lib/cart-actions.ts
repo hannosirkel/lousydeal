@@ -158,3 +158,48 @@ export async function addMerchToCart(formData: FormData): Promise<void> {
   cookieStore.set(CART_ID_COOKIE, cartId, CART_COOKIE_OPTIONS);
   redirect("/cart");
 }
+
+/**
+ * Take one line back out of the cart.
+ *
+ * **`removeLineFromCart` has existed since C-something and no page ever
+ * offered it.** A buyer who added a mug to see what would happen could not
+ * undo it, which turns an upsell into a trap: the only exits were completing
+ * the order or abandoning the cart.
+ *
+ * It refuses to remove the last certificate, and that is not paternalism.
+ * `isPayableCart` requires exactly one — merch is an upsell, settled by the
+ * operator on 2026-09-09 — so a cart stripped of its certificate is one the
+ * pay control will silently refuse, with nothing on the page saying why.
+ * Better to keep the one line the cart is *for* and let the buyer abandon it,
+ * which they can already do by leaving.
+ *
+ * Missing or stale ids are not errors. Two clicks on one control, a stale
+ * page, a back button: the buyer's intent is "this should not be in my cart",
+ * and it is already not.
+ */
+export async function removeFromCart(formData: FormData): Promise<void> {
+  const lineId = formData.get("lineId");
+  if (typeof lineId !== "string") {
+    throw new Error("removeFromCart: missing lineId");
+  }
+
+  const fetchJson = createStoreFetchJson(requireStoreClientConfig());
+  const cookieStore = await cookies();
+  const cartId = cookieStore.get(CART_ID_COOKIE)?.value;
+  if (cartId === undefined) redirect("/cart");
+
+  try {
+    const cart = await getCart(fetchJson, cartId);
+    const line = (cart.items ?? []).find((item) => item.id === lineId);
+    // Already gone, or never in this cart. Either way the buyer's intent is
+    // satisfied and there is nothing to say.
+    if (line !== undefined) await removeLineFromCart(fetchJson, cartId, line.id);
+  } catch {
+    // Same disposition as `cartToAddTo`: the recovery is the same whatever
+    // the cause, and a cart id is a bearer token that does not belong in a
+    // log line.
+  }
+
+  redirect("/cart");
+}

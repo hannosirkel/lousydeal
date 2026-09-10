@@ -39,7 +39,18 @@ export function MerchForm({ action, title, variants }: MerchFormProps) {
           <label className="visually-hidden" htmlFor={selectId}>
             {MERCH_SIZE_LABEL}, {title}
           </label>
-          <select id={selectId} name="variantId" defaultValue={variants[0]?.variantId} required>
+          {/* **Empty first, so a size is chosen rather than defaulted.** This
+              opened on the first variant, so a buyer who pressed ADD without
+              touching the select had ordered a Small with no moment of choice
+              -- and a shirt in the wrong size is a return, which the operator
+              pays the postage on. `required` was already here and did nothing,
+              because a select with a value always satisfies it; with an empty
+              option it makes the browser refuse the submission, scripting off
+              included. */}
+          <select id={selectId} name="variantId" defaultValue="" required>
+            <option value="" disabled>
+              {MERCH_SIZE_LABEL}
+            </option>
             {variants.map((variant) => (
               <option key={variant.variantId} value={variant.variantId}>
                 {variant.size}
