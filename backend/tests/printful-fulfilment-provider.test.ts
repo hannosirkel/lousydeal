@@ -255,3 +255,106 @@ describe("the province, which the form demands and the quote discarded", () => {
     expect(Object.keys(body.recipient)).not.toContain("state_code");
   });
 });
+
+describe("what the shipping method carries into the order", () => {
+  /**
+   * **The dispatch country exists in exactly one place and for one moment.**
+   * Printful states it in the *rate* response; the order afterwards carries a
+   * price and an address and nothing that could recover it, and asking
+   * Printful again later would be asking about a different quote.
+   *
+   * It is not bookkeeping. Art 369g(2) makes the OSS return itemise supplies
+   * per Member State of **dispatch**, and Art 32 puts a transported supply
+   * where dispatch begins — so a parcel sent from Riga to a Latvian address is
+   * a Latvian domestic supply, which OSS cannot carry at all. Decision `013`
+   * reasons about those in the abstract because the routing is not
+   * controllable; it is nonetheless knowable, and an order that failed to
+   * write it down cannot be reported correctly in January.
+   */
+  const CONTEXT = { shipping_address: ADDRESS, items: [{ variant_sku: "LD-MUG-11", quantity: 1 }] };
+
+  it("records where Printful said it would dispatch from", async () => {
+    const data = await provider([
+      {
+        shipping: "STANDARD",
+        shipping_method_name: "Flat Rate",
+        rate: "5.22",
+        // **Printful's real shape, and the first version of this file invented
+        // one.** It wrote `ships_from_country` at the top level; the parser
+        // reads `shipments[0].departure_country`, so the fixture agreed with
+        // the test author rather than with Printful and the assertion failed
+        // for the right reason. `orders.ts` was bitten by the same class of
+        // error and shipped.
+        shipments: [{ departure_country: "LV" }],
+      },
+    ]).validateFulfillmentData({}, { id: "printful" }, CONTEXT);
+
+    expect(data.departsFrom).toBe("LV");
+    // And it keeps what Medusa handed it, rather than replacing the object.
+    expect(data.id).toBe("printful");
+  });
+
+  it("records whether customs charges are possible, for § 54(1) p 6", async () => {
+    // The disclosure duty is to say *before ordering* that charges the trader
+    // does not collect may fall due. Recording it per parcel is what makes
+    // that a fact rather than a sentence true of almost no order.
+    const data = await provider([
+      {
+        shipping: "STANDARD",
+        shipping_method_name: "Flat Rate",
+        rate: "5.22",
+        shipments: [{ customs_fees_possible: true }],
+      },
+    ]).validateFulfillmentData({}, {}, CONTEXT);
+
+    expect(data.customsFeesPossible).toBe(true);
+  });
+
+  it("writes the absence down rather than failing the attach", async () => {
+    // **Medusa has already priced the option by the time this runs.** Refusing
+    // here would turn a Printful blip into a checkout the buyer cannot
+    // complete, to record a fact that is needed in January.
+    const client: PrintfulClient = {
+      request: <T,>(): Promise<T> => Promise.reject(new Error("Printful is down")),
+    };
+    const failing = new PrintfulFulfilmentProviderService(null, { apiToken: "unused", artworkBaseUrl: ART }, client);
+
+    const data = await failing.validateFulfillmentData({}, { id: "printful" }, CONTEXT);
+
+    expect(data.departsFrom).toBeNull();
+    expect(data.id).toBe("printful");
+  });
+
+  it("records null where Printful quoted without saying, not undefined", async () => {
+    // `null` is a fact the OSS preparation can see and ask about; a missing
+    // key is indistinguishable from a code path that never ran.
+    const data = await provider(RATE).validateFulfillmentData({}, {}, CONTEXT);
+
+    expect(data.departsFrom).toBeNull();
+    expect("departsFrom" in data).toBe(true);
+  });
+
+  it("records the destination it quoted for, so the pair can be compared", async () => {
+    // The whole point is the comparison: `departsFrom === quotedFor` is a
+    // domestic supply in that state, which is the case OSS cannot carry.
+    const data = await provider([
+      {
+        shipping: "STANDARD",
+        shipping_method_name: "Flat Rate",
+        rate: "5.22",
+        shipments: [{ departure_country: "EE" }],
+      },
+    ]).validateFulfillmentData({}, {}, CONTEXT);
+
+    expect(data.quotedFor).toBe("EE");
+    expect(data.departsFrom).toBe("EE");
+  });
+
+  it("passes the data through untouched where there is nothing to quote", async () => {
+    // A certificate-only cart never reaches a shipping option, but the guard
+    // is what stops this method inventing a quote for one.
+    const data = await provider(RATE).validateFulfillmentData({}, { id: "printful" }, { shipping_address: null });
+
+    expect(data).toEqual({ id: "printful" });
+  });
+});
