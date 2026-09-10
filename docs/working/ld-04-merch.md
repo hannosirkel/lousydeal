@@ -1398,15 +1398,34 @@ the endpoint replaces one silently. The 128-character hex `secret_key` was
 written straight into the operator's key file at mode 0600 and the response
 deleted; it never passed through a terminal or a transcript.
 
-**What remains is one command, and it is the operator's.** The secret is in
-`.keys/` and `orange` now carries it end to end — parser field set, projection
-contract, Application patch — but writing it into OpenBao goes through
-`playbooks/openbao-update.yml`, which needs the current version from
-`openbao-version.yml`. That inspection failed here with a `no_log` result, and
-debugging a live secret store by trial was not a reasonable thing to improvise.
-Until it is seeded, the deployment holds no secret, `webhook.ts` accepts
-nothing, and no buyer is told their parcel shipped — which is the safe
-direction rather than a broken one, and exactly the state P11a designed for.
+**Seeded and live, 2026-09-09.** The version inspection failed at first with a
+`no_log` result; the operator refreshed their OIDC token and it ran.
+`openbao-version.yml` read version 2, `openbao-update.yml` wrote version 3, and
+`argocd.yml` reconciled the Applications.
+
+**That reconciliation confirmed the earlier diagnosis in its diff.** It added
+`PRINTFUL_API_TOKEN` as well as the two new values — so the token had never
+been on the workloads at all, exactly as the missing inventory key predicted.
+P3a's secret was seeded and projected and simply never injected.
+
+**Verified end to end, from outside the tenant**, with a body signed using the
+deployment's own secret hex-decoded the way `webhook.ts` decodes it:
+
+```text
+correct signature   200   accepted and verified
+wrong key           401   refused by the backend's HMAC check
+malformed signature 401   refused, no throw
+```
+
+**One thing found on the way that the review had flagged as unverifiable.**
+An identical request sent by Python's `urllib` answers **403** — blocked by
+Cloudflare before it reaches the origin, which an Access bypass does not
+affect. It is narrow rather than general: no user agent at all, `Printful`,
+`GuzzleHttp/7.4`, `Go-http-client/2.0`, `python-requests/2.32`, `curl/8.5.0`
+and a browser string all answer 200. So the 403 was an artefact of the test
+client, not a risk to real deliveries — but it is written down because the
+next person to probe this endpoint with a Python one-liner will otherwise
+conclude the webhook is broken.
 
 **P11a built a webhook nothing could reach.** Measured on 2026-09-09: an
 unsigned POST to the Stripe hook path answers 200 from the origin, and the
@@ -1769,8 +1788,14 @@ asked, and what the answer was, is the part worth keeping.
    re-deriving** — a $25 shirt absorbing 27% destination VAT nets $19.69 against
    a 3XL costing $19.58. P14 blocks Gate E. This needs EMTA or an Estonian VAT
    adviser, and Printful's routing table; it is not mine to settle.
-2. **Three infrastructure changes are open as pull requests, and one command
-   is yours.** `orange` #86 carries `PRINTFUL_ARTWORK_BASE_URL` and the
+2. **Done, 2026-09-09.** Kept because what was asked and what the answer was is
+   the part worth keeping. `orange` #86 carried `PRINTFUL_ARTWORK_BASE_URL` and
+   the webhook secret to the test workloads, the private inventory gained the
+   `printful` key P3a asserted and never carried — the reason the token had
+   never reached the cluster — the secret was seeded to version 3, and
+   `argocd.yml` reconciled. The webhook answers a signed delivery 200.
+
+   **As it stood before that:** `orange` #86 carries `PRINTFUL_ARTWORK_BASE_URL` and the
    webhook secret to the test workloads, and the private inventory has been
    updated (`471a8e8`) — including a key P3a asserted and never carried, which
    is the likeliest reason the Printful token never reached the cluster at all.
