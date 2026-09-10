@@ -1,7 +1,8 @@
 /**
  * The checkout, as a payment authorisation -- `docs/current/brand.md` §4: the
- * total explicit as a ledger row before anything else, then the price notice,
- * then the consent checkbox, then the payment element.
+ * total explicit as a ledger row first, beneath the adjustment row where there
+ * is one, then the price notice, then the consent checkbox, then the payment
+ * element.
  *
  * A Server Component, like `src/app/cart/page.tsx` -- it reads `CART_ID_COOKIE`
  * and fetches the cart directly against the backend (T9's established

@@ -421,8 +421,8 @@ PAYMENT`. The empty state is a document too: `NO ITEMS OF RECORD`.
 
 **The adjustment row.** A discount code adds a line to the cart, and that line
 is an adjustment, not merchandise. It is one ledger row, directly above
-`TOTAL`, on every ledger that shows a total before payment — this one and the
-payment authorisation:
+`TOTAL`, on every ledger that offers payment — this one and the payment
+authorisation:
 
 ```text
 DISCOUNT (BALDRICK20) ............ +$1.00
@@ -447,9 +447,9 @@ rule admits one such line, of quantity one, and nothing else.
 
 ### Checkout — `PAYMENT AUTHORISATION`
 
-`FORM LD-4`. The total, explicit, as a ledger row before anything else. Then
-fine print: `Price includes VAT where applicable. The amount shown is the
-amount charged.`
+`FORM LD-4`. The total, explicit, as a ledger row first — beneath the
+adjustment row where there is one. Then fine print: `Price includes VAT where
+applicable. The amount shown is the amount charged.`
 
 Where the cart carries a discount line, the adjustment row specified under
 `ORDER SUMMARY` appears here too, directly above `TOTAL`, with its `+`. A buyer
@@ -463,15 +463,15 @@ is refused here, as a cart with two certificates is, and the refusal has its
 own notice. The two older notices tell a buyer to choose or add a certificate,
 which is the wrong fix:
 
-> A discount code is applied to an order once, as one line of one. This cart
-> carries the discount line more than once, or in a quantity other than one, so
-> the total shown is not the one the code produces. Return to the order summary
-> and remove the extra; nothing else in the cart needs to change.
+> A discount code applies to an order once. This cart carries its discount line
+> more than once, or at a quantity above one, so the total shown is not the one
+> the code produces. Return to the order summary, remove the discount and enter
+> the code again; nothing else in the cart needs to change.
 
-On that refused page the ledger shows the total alone. Nothing has proved the
-line's quantity is one, so its price is not its figure, and a row reading
-`+$1.00` beside a total that rose by two would be the thing the refusal exists
-to prevent.
+On a refused page — this one, or either of the certificate's — the ledger
+shows the total alone. Nothing has proved the line's quantity is one, so its
+price is not its figure, and a row reading `+$1.00` beside a total that rose by
+two would be the thing the refusal exists to prevent.
 
 Then the **consent checkbox**, unticked by default, which the pay control is
 disabled behind:

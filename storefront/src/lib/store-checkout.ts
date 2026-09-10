@@ -33,9 +33,8 @@ export interface CheckoutCart {
   /**
    * One quantity per line, in the order the API returned them. C3a.
    *
-   * Quantities and not the lines: the only question the checkout asks of them
-   * is `isSingleCertificate`, and a view carrying titles, prices and variant
-   * ids would invite a second copy of the cart page's rendering to grow here.
+   * Only the surcharge row is rendered from `lines`, so this is not a second
+   * cart page and must not grow into one.
    *
    * An empty array for a cart with no lines, which is a state the page has its
    * own document for -- not an error this function refuses on, because a cart

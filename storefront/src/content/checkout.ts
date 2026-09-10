@@ -65,9 +65,15 @@ export const CART_NEEDS_CERTIFICATE_NOTICE =
  * print one dollar's adjustment beside a total that rose by two, so it
  * refuses and says what to do instead. It names the line by the word the
  * ledger uses for it.
+ *
+ * **It asks for the two things the cart can do.** The cart's `Remove` takes a
+ * whole line and nothing decrements a quantity, so "remove the extra" was an
+ * instruction with no control behind it. Removing the discount and entering
+ * the code again leaves exactly one line of one, whichever way the cart was
+ * wrong.
  */
 export const CART_SURCHARGE_NOTICE =
-  "A discount code is applied to an order once, as one line of one. This cart carries the discount line more than once, or in a quantity other than one, so the total shown is not the one the code produces. Return to the order summary and remove the extra; nothing else in the cart needs to change.";
+  "A discount code applies to an order once. This cart carries its discount line more than once, or at a quantity above one, so the total shown is not the one the code produces. Return to the order summary, remove the discount and enter the code again; nothing else in the cart needs to change.";
 
 /** The way out of that state, to the document that can fix it. */
 export const CART_LINK_LABEL = "Return to the order summary";

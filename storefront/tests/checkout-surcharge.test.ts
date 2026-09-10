@@ -82,7 +82,7 @@ describe("the adjustment row's words", () => {
     expect(surchargeValue(1234.5, "usd")).toBe("+$1,234.50");
   });
 
-  it("refuses a negative figure, which no code can produce and the plus would misstate", () => {
+  it("refuses a negative or unreadable figure: no code produces the first, and formatMoney refuses the second", () => {
     expect(() => surchargeValue(-1, "usd")).toThrow(RangeError);
     expect(() => surchargeValue(Number.NaN, "usd")).toThrow();
   });
