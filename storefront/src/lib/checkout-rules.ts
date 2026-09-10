@@ -10,6 +10,8 @@
  * rule guarded nowhere.
  */
 
+import { isSurchargeLine } from "./surcharge";
+
 export interface PayGateInput {
   /** Stripe has loaded and the Payment Element is usable. */
   readonly stripeReady: boolean;
@@ -106,6 +108,16 @@ export interface CartLine {
   readonly quantity: number;
   /** Medusa's `product_handle`, or `null` where it gave none. */
   readonly handle: string | null;
+  /**
+   * Medusa's `variant_id`. An explicit `null` is LD-06's surcharge, and
+   * nothing else is (`./surcharge.ts`).
+   *
+   * Optional, and `undefined` means "not known", for the reason
+   * `shippingSettled` was made optional: every caller that passes
+   * `{ quantity, handle }` keeps the reading it had, rather than a rule
+   * silently changing its answer for a line it was never told about.
+   */
+  readonly variantId?: string | null;
 }
 
 /**
@@ -131,7 +143,9 @@ export interface CartLine {
  *  - **two certificates, refused**, whatever else is in the cart.
  *
  * A quantity above one on a certificate line is two certificates by another
- * route, and refused the same way.
+ * route, and refused the same way. LD-06 adds a refusal of the same shape for
+ * the surcharge: more than one line of it, or one of a quantity other than
+ * one, at the end of the function.
  *
  * Zero lines is not payable either — the page has its own empty-cart document,
  * and returning `true` here would offer a pay control for nothing.
@@ -150,9 +164,16 @@ export interface CartLine {
  *
  * An empty cart needs no address, which is not a special case so much as the
  * absence of the only reason to ask for one.
+ *
+ * A surcharge has no handle and is not a thing in a box. Before LD-06 D3 it
+ * read as one, so an ordinary certificate with a code was asked for a postal
+ * address and a Printful quote that never arrives, with the pay control
+ * waiting on it.
  */
 export function cartNeedsAddress(lines: readonly CartLine[], certificateHandles: readonly string[]): boolean {
-  return lines.some((line) => line.handle === null || !certificateHandles.includes(line.handle));
+  return lines.some(
+    (line) => !isSurchargeLine(line) && (line.handle === null || !certificateHandles.includes(line.handle)),
+  );
 }
 
 /**
@@ -196,7 +217,31 @@ export function isPayableCart(lines: readonly CartLine[], certificateHandles: re
   // `POST /store/carts/:id/line-items` is public, so the state is still
   // *reachable*; what changes is that this shop will not take money in it.
   // `order-placed.ts` treats one that arrives anyway as the anomaly it now is.
-  return units === 1;
+  if (units !== 1) return false;
+
+  // **One surcharge line, of quantity one** (LD-06 constraint 6). The public
+  // update route can set a surcharge's quantity, and re-applying a code
+  // without the removal would leave two lines. Either way the page would
+  // print one dollar's adjustment beside a total that rose by two, which is
+  // the silent adjustment §23 forbids. Issuance refuses the same order as
+  // unreadable, so nothing downstream is asked to make sense of it either.
+  const surcharges = lines.filter(isSurchargeLine);
+  return surcharges.length === 0 || (surcharges.length === 1 && surcharges[0]?.quantity === 1);
+}
+
+/**
+ * Whether the surcharge, and nothing else, is what keeps this cart from being
+ * paid for.
+ *
+ * The page has one notice per refusal, and the two older ones tell a buyer to
+ * choose or add a certificate. For a doubled surcharge that is the wrong fix,
+ * so this asks whether the cart would be payable with its surcharge lines
+ * set aside. A cart that is wrong in both ways gets the certificate's notice,
+ * because the certificate is what decides whether there is an order at all.
+ */
+export function cartRefusedForSurcharge(lines: readonly CartLine[], certificateHandles: readonly string[]): boolean {
+  if (isPayableCart(lines, certificateHandles)) return false;
+  return isPayableCart(lines.filter((line) => !isSurchargeLine(line)), certificateHandles);
 }
 
 /** What decides whether a Stripe payment session has to be created. */
