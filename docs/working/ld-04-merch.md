@@ -1720,6 +1720,31 @@ at that moment; the transition to `failed` arrives by webhook, which is P15b/c
 and not yet subscribed. P12i is what makes that arrival recoverable rather
 than terminal.
 
+### What Gate E missed, found in production on 2026-09-10
+
+**Merch was unbuyable through the checkout on every environment, and this row
+reported a successful purchase.** The operator hit it: every cart holding a
+parcel answered "postage could not be quoted for this address".
+
+Medusa's store route runs `listShippingOptionsForCartWorkflow`, **not** the
+`…WithPricing` variant, so it never asks a provider what a *calculated* option
+costs. Every calculated option — and this shop has no other kind — comes back
+with `calculated_price: null` and no `amount`. `listCartShippingOptions`
+dropped exactly those, on a guard that called them "an option Medusa could not
+price", so the checkout listed nothing and refused.
+
+The price is not missing; it does not exist yet. Attaching the method is what
+produces it, and `setCartShippingMethod` already returned it.
+
+**Why this row did not catch it, which is the part worth keeping.** The Gate E
+script called the Store API directly and attached the option by id. It printed
+`quote: Postage — undefined usd` and carried on, because it never used the
+storefront's own mapper. The measurement was real and the path was not the
+buyer's — a script that reimplements the code under test agrees with itself.
+The lesson is the one `printful-orders.test.ts` already learned about stubs:
+**a fixture or a harness written from the same belief as the code confirms the
+belief, not the behaviour.**
+
 ### What Gate E did not exercise, and why
 
 - **The React checkout.** The card was confirmed through Stripe's API rather

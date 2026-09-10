@@ -333,8 +333,23 @@ export async function setCartShippingAddress(
 export interface CartShippingOption {
   readonly id: string;
   readonly name: string;
-  /** Major units, VAT-inclusive — `shipping.ts` grosses Printful's quote up, and P7c put it on this scale. */
-  readonly amount: number;
+  /**
+   * Major units, VAT-inclusive — and **`null` for a calculated option, which
+   * is the only kind this shop has.**
+   *
+   * Medusa's store route runs `listShippingOptionsForCartWorkflow`, not the
+   * `…WithPricing` variant, so it never asks a provider what a calculated
+   * option costs: the response carries `calculated_price: null` and no
+   * `amount` at all. The price exists only once the method is attached, which
+   * is what `setCartShippingMethod` returns.
+   *
+   * This field was `number` and an option lacking one was dropped, so every
+   * cart holding a parcel listed **zero** shipping options and every buyer was
+   * told "postage could not be quoted for this address". Measured against the
+   * live test deployment on 2026-09-10; the endpoint answers 200 with the
+   * option present and unpriced.
+   */
+  readonly amount: number | null;
 }
 
 interface StoreShippingOptionsResponse {
@@ -370,7 +385,12 @@ export async function listCartShippingOptions(
     const id = typeof option.id === "string" && option.id.length > 0 ? option.id : null;
     const raw = option.calculated_price?.calculated_amount ?? option.amount;
     const amount = typeof raw === "number" && Number.isFinite(raw) ? raw : null;
-    if (id === null || amount === null) return [];
+    // **Only the id is required.** A price is what a *flat* option carries
+    // here; a calculated one has none until it is attached, and dropping it
+    // for that left the checkout with nothing to offer. The id is what
+    // `setCartShippingMethod` needs, and its answer is where the real figure
+    // comes from.
+    if (id === null) return [];
     return [{ id, name: typeof option.name === "string" && option.name.length > 0 ? option.name : id, amount }];
   });
 }
