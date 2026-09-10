@@ -153,11 +153,53 @@ export class PrintfulFulfilmentProviderService extends AbstractFulfillmentProvid
     return Promise.resolve([{ id: PRINTFUL_FULFILMENT_OPTION }]);
   }
 
-  validateFulfillmentData(
+  /**
+   * What Medusa persists on the shipping method, and through it on the order.
+   *
+   * **The dispatch country is recorded here because this is the only moment it
+   * exists.** Printful states where it will ship from in the *rate* response —
+   * `shipping.ts` captures it as `departsFrom` — and nothing downstream can
+   * recover it: the order carries a price and an address, and asking Printful
+   * again later would be asking about a different quote.
+   *
+   * It is not bookkeeping. Art 369g(2) makes the One Stop Shop return itemise
+   * supplies **per Member State of dispatch**, and Art 32 puts a transported
+   * supply where dispatch begins — so a parcel Printful sends from Riga to a
+   * Latvian address is a Latvian domestic supply, which OSS cannot carry at
+   * all. Decision `013` reasons about those in the abstract because the
+   * routing is not controllable. It is, however, *knowable*, and an order that
+   * did not write this down cannot be reported correctly afterwards.
+   *
+   * `customsFeesPossible` rides along for VÕS § 54(1) p 6: the duty is to
+   * disclose before ordering that charges the trader does not collect may fall
+   * due, and this makes that a fact about the parcel rather than a blanket
+   * sentence true of almost no order.
+   *
+   * **A failed quote does not fail the attach.** Medusa has already priced the
+   * option by the time this runs; refusing here would turn a Printful blip
+   * into a checkout a buyer cannot complete, to record a fact needed in
+   * January. The absence is written down as `null` instead, which the OSS
+   * preparation can see and ask about.
+   */
+  async validateFulfillmentData(
     _optionData: Record<string, unknown>,
     data: Record<string, unknown>,
+    context: unknown,
   ): Promise<Record<string, unknown>> {
-    return Promise.resolve(data);
+    const shipping = readShippingContext(context);
+    if (shipping === null) return data;
+
+    try {
+      const cheapest = (await quoteShipping(this.client, shipping.lines, shipping.address, this.artworkBaseUrl))[0];
+      return {
+        ...data,
+        departsFrom: cheapest?.departsFrom ?? null,
+        customsFeesPossible: cheapest?.customsFeesPossible ?? null,
+        quotedFor: shipping.address.countryCode,
+      };
+    } catch {
+      return { ...data, departsFrom: null, customsFeesPossible: null, quotedFor: shipping.address.countryCode };
+    }
   }
 
   validateOption(data: Record<string, unknown>): Promise<boolean> {

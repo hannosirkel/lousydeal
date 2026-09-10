@@ -1773,9 +1773,35 @@ asked, and what the answer was, is the part worth keeping.
      answer, and which decides liability independently of the registration
      date.
 
-   What is genuinely still open is the pair about where a parcel is dispatched
-   *from*: Latvia- and Spain-domestic supplies, which OSS cannot carry, and
-   IOSS or an import-charges disclosure for US-dispatched EU orders.
+   **The dispatch-origin pair is answered** by decision
+   [`015`](../decisions/015-where-the-parcel-is-dispatched-from.md), and one
+   half of it needs the operator:
+
+   - **Latvia is covered** by the EU small-enterprise scheme, and the chain
+     holds at every link — Art 284(2) is mandatory on Latvia, Estonia
+     transposed the cross-border limb at KMS § 19¹, and EMTA's own handbook
+     says an OSS user may also use the scheme. Two duties follow: a quarterly
+     report even at zero, and a 15-working-day notification if Union turnover
+     crosses €100,000. **One gap**: the exemption applies only from the day
+     EMTA communicates the `EX` number, due around 28 October, while
+     destination taxation starts 1 October.
+   - **Spain is not coverable at all.** It never transposed the scheme, has no
+     domestic threshold, and is before the Court of Justice over it. Three
+     options — register there, accept the exposure `013` records, or refuse the
+     Spanish *parcel* at quote time, which is lawful under Regulation (EU)
+     2018/302 so long as it keys on the delivery address. **`015` deliberately
+     does not choose**: option 3 costs `013`'s "no destination allow-list"
+     principle one narrow case, and that principle is the operator's.
+   - **IOSS is closed, by elimination.** The Commission's SME Explanatory
+     Notes make the small-enterprise scheme and IOSS **mutually exclusive**, so
+     taking IOSS would forfeit the `EX` number and reopen Latvia. The
+     import-charges disclosure Terms §3 already carries is what the law
+     requires.
+
+   The code now records `departsFrom`, `customsFeesPossible` and `quotedFor` on
+   the shipping method, because Art 369g(2) itemises the OSS return **per
+   Member State of dispatch** and the quote is the only moment that fact
+   exists.
 
    > **As written on 2026-09-08, before `013`:** The 2026-09-08 ruling
    — below €10,000, charge Estonian VAT — holds for the certificate and for
