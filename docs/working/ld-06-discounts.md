@@ -55,9 +55,10 @@ follows is what this slice adds or sharpens.
    into $1.24 for an Estonian buyer. The line is written `is_tax_inclusive:
    true`, and that is asserted against a running Medusa, not a fake.
 6. **A surcharge is a line with no variant, and nothing else is.** Metadata is
-   not the test, because both public line-item routes let a visitor write
+   not the test, because the public line-item routes let a visitor write
    metadata onto any line (facts). A line with no `variant_id` cannot be made
-   by either public route, and neither can take a variant away. So the
+   by any of the three public writes — creating a cart with `items`, adding a
+   line, updating one — and none of them can take a variant away. So the
    classifier is `variant_id === null`. The metadata supplies the code and base
    for display and tracking, never the identity. **One surcharge line, of
    quantity one**: the public update route can change its quantity, so the
@@ -76,6 +77,10 @@ follows is what this slice adds or sharpens.
    equal is the payment-collection refresh inside Medusa's own cart workflows.
    D4 composes those workflows rather than lower-level steps, so applying or
    removing a code refreshes the collection exactly as adding a mug does.
+   **And it takes the cart lock itself.** A lock step inside a workflow run as
+   a sub-workflow is skipped (facts), so the locks the two composed workflows
+   carry do nothing there. Only the outer workflow's lock stops two applies,
+   or an apply and Medusa's own line-item route, from interleaving.
 9. **Baldrick is unchanged in kind.** LD-05's constraints 2, 5 and 7 stand: no
    network call, no figure, nothing stored. He names one code and says where to
    type it. The cart states what it costs. He cannot apply it, and must not say
@@ -106,14 +111,15 @@ under `@medusajs/` are in `backend/node_modules/`.
 
 | Fact | Where | Consequence for this slice |
 | --- | --- | --- |
-| The public add-line-item route takes `variant_id` (required), `quantity` and `metadata` — no `unit_price` | `@medusajs/medusa/dist/api/store/carts/validators.js:55-59` | A visitor cannot create a custom-priced line, nor any line without a variant. Constraints 4 and 6 hold by construction |
+| The public add-line-item route takes `variant_id` (required), `quantity` and `metadata` — no `unit_price` | `@medusajs/medusa/dist/api/store/carts/validators.js:55-59`; creating a cart with `items` requires one too, `:8-11,20` | A visitor cannot create a custom-priced line, nor any line without a variant, through any public write. Constraints 4 and 6 hold by construction |
 | The public update-line-item route takes `quantity` and `metadata` | same, `:60-63` | Metadata is visitor-writable on every line, and a surcharge's quantity is too. Constraint 6 |
 | `addToCartWorkflow` takes `unit_price` and sets `is_custom_price` when it is defined | `@medusajs/core-flows/dist/cart/workflows/add-to-cart.js:196-203` | The supported path §9 names exists in 2.20.1 |
-| A variant-less line's `is_tax_inclusive` is `item.is_tax_inclusive ?? variant's` — `!!undefined`, so **false** | same, `:199-200`; `cart/utils/prepare-line-item-data.js:53` | Constraint 5. Without the flag Medusa adds VAT on top |
+| A variant-less line's `is_tax_inclusive` is `item.is_tax_inclusive ?? variant's` — `!!undefined`, so **false** | same, `:200-201`; `cart/utils/prepare-line-item-data.js:53` | Constraint 5. Without the flag Medusa adds VAT on top |
 | A variant-less line's `requires_shipping` is false unless set | `cart/utils/prepare-line-item-data.js:27-29`; `cart/steps/validate-shipping.js:48` | Completion does not demand a shipping method for a surcharge. Written `false` explicitly anyway, so a later Medusa default cannot change it |
 | Existing lines are matched for merging by `variant_id` first | `cart/steps/get-line-item-actions.js:28-40` | A variant-less line matches nothing, so re-applying without removal would leave **two** surcharge lines. D4 removes before it adds (constraint 13) |
 | Completion captures the payment session's own amount and never compares it with the cart's total | `cart/workflows/complete-cart.js:40-44` | Constraint 8. A total changed without a refresh is charged at the old figure |
-| `addToCartWorkflow` and `deleteLineItemsWorkflow` each take the cart lock and run `refreshCartItemsWorkflow`, which refreshes the payment collection | `cart/workflows/add-to-cart.js:95,253`, `line-item/workflows/delete-line-items.js:35,41`, `cart/workflows/refresh-cart-items.js:184` | Composing these two keeps the session honest, and both take the cart lock themselves. D4 |
+| `addToCartWorkflow` and `deleteLineItemsWorkflow` each run `refreshCartItemsWorkflow`, which refreshes the payment collection | `cart/workflows/add-to-cart.js:253`, `line-item/workflows/delete-line-items.js:41`, `cart/workflows/refresh-cart-items.js:184` | Composing these two keeps the session honest. D4 |
+| Both carry a lock step (`add-to-cart.js:95`, `delete-line-items.js:35`), but a lock step **run inside a sub-workflow returns `skip()`** | `locking/steps/acquire-lock.js:27-29`, `locking/steps/release-lock.js:25-27` | Composed inside D4's workflow, neither locks anything. D4 acquires and releases the cart lock itself (constraint 8) |
 | An order line is built by `prepareLineItemData`, which copies the cart line's metadata | `cart/utils/prepare-line-item-data.js:54` | The code and base reach the order for D2 and D9. Confirmed live in D10, not in the smoke suite, which never completes an order |
 | The smoke suite never reaches Stripe, and Stripe is the only payment provider | `backend/tests/smoke/store-api.test.ts:28-33`, `backend/src/config/payment.ts` | D4's smoke case can price a cart. It cannot complete one |
 | Money on the wire is in major units, with two decimals; the seed divides `amountMinor` by 100 | `backend/src/scripts/seed-product.ts:122` | D1 computes in integer cents and returns major units. The metadata key says which unit it holds |
@@ -255,6 +261,10 @@ alone does. A replayed event still issues one deal.
 
 `getCheckoutCart` reads each line's `variant_id`, `unit_price` and code, so
 `store-checkout.test.ts`'s exact assertion on `lines` changes with it.
+The new field on `CartLine` is optional, and only an explicit `null` marks a
+surcharge. An absent value means "not known" and keeps today's reading, so
+`checkout-consent.test.ts`'s `{ quantity, handle }` literals keep their
+meaning — the reason `shippingSettled` was made optional for existing callers.
 `cartNeedsAddress` skips a surcharge. `isPayableCart` still counts certificate
 units, and refuses a cart with more than one surcharge line or a surcharge of
 quantity other than one. That third refusal gets its own notice. The two
@@ -314,10 +324,13 @@ recomputed on the removal and again on the addition. A version composed from
 `createLineItemsStep` would leave an open checkout's session at the old amount,
 and Medusa would capture that.
 
-**No lock of its own.** Both workflows take the cart lock themselves, and an
-outer acquisition of the same key would wait on itself. The window between the
-removal and the addition is one where the cart briefly has no surcharge. That is
-the harmless direction, and the cart is re-read before anything shows it.
+**Its own lock, first and last.** `acquireLockStep` on the cart id before step
+1 and `releaseLockStep` after step 4, the shape both composed workflows use at
+top level. Their lock steps are skipped inside it (constraint 8), so this is
+the only lock there is. It keeps two concurrent applies — a double-submit, two
+tabs — and Medusa's own line-item route off the cart until the removal and the
+addition have both run. `surcharge-route.test.ts` fires two applies at once and
+asserts one surcharge line, as `printful-submission.test.ts` tests its race.
 
 A refusal is `422` with a stable reason — `unknown_code`, `no_certificate`,
 `completed` — that the storefront maps to copy. Status text is not parsed.
@@ -427,8 +440,9 @@ contains digits, and LD-05's guard refuses a bare amount. An exception matching
 all four codes would admit three he never says. The test reads D1's table and
 fails if `BALDRICK20` stops being in it.
 
-`baldrick-widget.test.ts` renders the discount step's quick replies, so a change
-to that step's buttons changes that test.
+`baldrick-widget.test.ts` renders the discount step's live quick replies, so
+removing or renaming that step's buttons would break it. Rewording them would
+not.
 
 **`brand.md`'s worked example is false the same day and changes in the same
 commit** (constraint 11): "There is a discount code. I have not finished it. It
@@ -528,7 +542,7 @@ Gate E, on the test environment carrying D1–D9, at 390px and desktop:
 
 ## What the review changed
 
-Fable reviewed this plan on 2026-09-10, before any row ran. Every finding was
+Fable reviewed this plan twice on 2026-09-10, before any row ran. Every finding was
 checked against the repository before it was accepted.
 
 | Finding | Disposition |
@@ -543,6 +557,8 @@ checked against the repository before it was accepted.
 | "Every reader before the writer" overstated what D5 renders | Constraint 7 states the D4–D5 window |
 | Files the rows implied and did not list | `store-checkout.test.ts` added to D3, `baldrick-widget.test.ts` to D7. The reviewer's line in the widget test was a fixture, but the file does read the discount step's quick replies |
 | The figure guard admitted four codes he does not all say; float rounding is not half-up; D9 implied a metadata query | D7 admits one; D1 uses integer cents; D9 says it filters in code |
+| **Pass 2, major.** Constraint 8 said the composed workflows lock the cart themselves. Inside a sub-workflow Medusa skips their lock steps, so D4 would have run unlocked | Constraint 8, a new fact row, and D4 take the lock at top level and test two concurrent applies |
+| Pass 2, minor: three public writes rather than two; `CartLine` literals in `checkout-consent.test.ts`; a stale constraint number in `status.md`; an off-by-one citation | Constraint 6 names the third; D3 makes the field optional; the rest corrected |
 
 ## What this slice does not do
 
