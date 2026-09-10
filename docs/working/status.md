@@ -9,7 +9,7 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-10 |
 | Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
-| In flight | D0, the plan: branch `deal/ld06-plan`, worktree `~/app/.worktrees/lousydeal/ld06-plan` |
+| In flight | D0, the plan: pull request #199, branch `deal/ld06-plan`, worktree `~/app/.worktrees/lousydeal/ld06-plan`. Gate D passed on its third pass; awaiting the operator's merge |
 | Next action | Once D0 merges, execute **D1** (the code table and its arithmetic). Rows run in the plan's order: constraint 7 puts every line classifier before the one route that writes a surcharge |
 | Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
 
