@@ -1968,3 +1968,20 @@ asked, and what the answer was, is the part worth keeping.
 
 The §23 legal gate gains everything in P10, P11 and P14. It was already seven
 items.
+
+## Two things closed at their current state, 2026-09-10
+
+**The sticker's cut.** The print files are rendered with `omitBackground: true`,
+so Printful's kiss-cut follows the artwork's shape rather than the 4″ square the
+row described. Raised as a question and closed as a decision: **the cut-to-shape
+sticker is what ships.** It is a one-line change to `design/merch/render.mjs` if
+that is ever revisited, and revisiting it means re-syncing the product and
+re-fetching its photograph, so it is not a change to make casually.
+
+**Argo CD's sync cadence.** Twice during this slice a merged fix looked
+ineffective because the running pod was the previous image while the digest bump
+sat in `deploys`. The Application is `automated` with `selfHeal` and should not
+have needed a nudge; it needed one both times. Closed as **observed and
+tolerated**: the workaround is a manual sync, it costs a minute, and it happens
+on deploys rather than on anything a visitor touches. Written down so the third
+occurrence is recognised as a pattern rather than investigated from scratch.

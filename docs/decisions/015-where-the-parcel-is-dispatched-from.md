@@ -187,3 +187,5 @@ Added to `013`'s list:
    Estonian or OSS declaration duty — and confirm the SME/IOSS exclusivity.
 4. **The exact date the Latvian exemption takes effect**, so the code's flag
    flips on a documented day rather than an assumption.
+
+**Closed by the operator, 2026-09-10.** These questions are settled at the position stated above, along with the rest of `013`'s list; see [`013`](./013-the-vat-arrangement.md) for what closing them means and what it does not. In short: the arrangement proceeds on the reading recorded here, nothing about it reaches a buyer's total, and the first OSS return in January 2027 is when any of it becomes a practical question again.

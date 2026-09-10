@@ -137,3 +137,5 @@ downward and none of which blocks anything:
   Estonian KMD row.
 - **Confirm the e-MTA OSS return accepts `XI`** as a member state of
   consumption, before the first Northern Irish parcel rather than after.
+
+**Closed by the operator, 2026-09-10.** These questions are settled at the position stated above, along with the rest of `013`'s list; see [`013`](./013-the-vat-arrangement.md) for what closing them means and what it does not. In short: the arrangement proceeds on the reading recorded here, nothing about it reaches a buyer's total, and the first OSS return in January 2027 is when any of it becomes a practical question again.

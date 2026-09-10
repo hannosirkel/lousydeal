@@ -151,3 +151,32 @@ handling fee of about €2 planned from 1 November 2026.
 2. Once the `EX` number covers Latvia, do distance sales merely *ending* in
    Latvia also fall under the exemption rather than into OSS? This arrangement
    assumes yes.
+
+## Closed by the operator, 2026-09-10
+
+**All eight questions above — two here, four in `015`, two in `014` — are
+closed at the position each already records.** The operator's instruction was
+that their current state is the decided state, and this section is that
+instruction being written down rather than carried forward.
+
+**What closing them means, precisely.** It does not mean an answer arrived from
+EMTA. It means the arrangement proceeds on the reading this document argues, the
+reading is cited, and the divergence — if any of the eight is answered otherwise
+later — is an accepted exposure rather than a blocker. Every one of them is a
+question about how a return is *prepared*. None of them is a question about what
+a buyer is charged, because VAT is absorbed and never itemised, so no answer to
+any of the eight can change a total anybody has paid.
+
+**None of them gates code, and one deserves the correction.** The date the `EX`
+takes effect was described as unblocking a Latvian zero rate; there is no such
+switch. `vatRateFor` in `backend/src/modules/printful/shipping.ts` grosses up
+*postage* by the destination's rate and treats Latvia like every other member
+state. The `EX` affects the quarterly report and the €50,000 counter, both of
+which are already built and already run by hand. The filing was made 2026-09-09
+and the number follows within 35 working days; when it arrives it is filed, and
+nothing in the repository changes.
+
+**The first return is due January 2027**, which is when any of these becomes a
+practical question again. Reopening one then is cheap. Holding the slice open
+until an authority replies is not, and would have blocked work that does not
+depend on the answer.
