@@ -801,7 +801,7 @@ notice the provider never being registered.
       § 55(2) and § 54(1) require, with the certificate's link, promptly after
       the order is placed.
 
-**This row carries a §18 override**, requested rather than taken: 1,206 changed
+**This row carries a §18 override**, requested rather than taken: 1,180 changed
 lines against a bound of 800. It was decomposed into three first — the trader
 identity, the document, and the sending — and the three landed as a stack. The
 operator's instruction was to ask for the override instead, and the reason the
