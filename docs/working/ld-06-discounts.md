@@ -440,9 +440,11 @@ contains digits, and LD-05's guard refuses a bare amount. An exception matching
 all four codes would admit three he never says. The test reads D1's table and
 fails if `BALDRICK20` stops being in it.
 
-`baldrick-widget.test.ts` renders the discount step's live quick replies, so
-removing or renaming that step's buttons would break it. Rewording them would
-not.
+`baldrick-widget.test.ts` iterates the discount step's live quick replies
+(`:162`). If the step or its buttons vanished, that loop would run zero times
+and pass. D7 rewrites that step, so it adds the assertion that the list is not
+empty. A guard that can pass by asserting nothing is not guarding the step this
+row changes.
 
 **`brand.md`'s worked example is false the same day and changes in the same
 commit** (constraint 11): "There is a discount code. I have not finished it. It
@@ -542,7 +544,9 @@ Gate E, on the test environment carrying D1–D9, at 390px and desktop:
 
 ## What the review changed
 
-Fable reviewed this plan twice on 2026-09-10, before any row ran. Every finding was
+Fable reviewed this plan three times on 2026-09-10, before any row ran. The
+third pass found it approvable; its one minor, a widget test that could pass
+vacuously, became D7's non-empty assertion. Every finding was
 checked against the repository before it was accepted.
 
 | Finding | Disposition |
