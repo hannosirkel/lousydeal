@@ -229,7 +229,7 @@ produces a negative. An unknown code is `null`, not zero.
 `backend/tests/order-placed-surcharge.test.ts`,
 `backend/tests/printful-from-order.test.ts`.
 
-- [ ] Keep a surcharge out of Printful, and put it on the certificate it was
+- [x] Keep a surcharge out of Printful, and put it on the certificate it was
       priced against.
 
 A surcharge is a line with no `variant_id` (constraint 6), and the query gains
