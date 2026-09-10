@@ -54,6 +54,45 @@
  * has crossed anything — the shop has never taken a live payment — but the
  * rule is written down because it is the trap, not the registration date.
  *
+ * ## Verified against TEDB on 2026-09-10, and how
+ *
+ * All 27 agree; nothing was changed. The pass was made through the
+ * Commission's **VAT Retrieval Service**
+ * (`https://ec.europa.eu/taxation_customs/tedb/ws/VatRetrievalService`), which
+ * is the SOAP interface TEDB provides for exactly this use — the header below
+ * records that the rates PDF was discontinued and the portal became an
+ * interactive application, and this is the machine-readable door into that
+ * application rather than a substitute for it. Queried twice: at
+ * `situationOn = 2026-10-01`, the date these take effect, and across
+ * `2026-09-10 → 2026-12-31`, which would have surfaced a scheduled change.
+ * There is none.
+ *
+ * The four rates that moved since 2024 were each confirmed against the member
+ * state's own authority as well: Finančná správa for SK 23%, EMTA for EE 24%,
+ * ANAF for RO 21% (Legea nr. 141/2025, Monitorul Oficial nr. 699/25.07.2025),
+ * and vero.fi for FI 25.5%. A rate that moved once is the one most likely to
+ * be wrong in a compilation.
+ *
+ * **A pass is dated, not permanent.** TEDB content is member-state
+ * self-reported, and this holds unless one legislates after 2026-09-10.
+ *
+ * ## The standard rate is the right rate here, and one thing would change that
+ *
+ * Checked against TEDB's reduced-rate categories with their CN/CPA code lists:
+ * no member state reduces electronically supplied services other than
+ * e-publications and broadcasting, so the certificate is standard-rated
+ * everywhere; ceramic mugs have no reduced hit anywhere; stickers appear in
+ * reduced lists only under books, periodicals and artists' photographs, which
+ * a decorative vinyl sticker is not; and every apparel or headgear hit sits
+ * inside a *medical aids* or *children's* category.
+ *
+ * **The live conditional is child sizes.** Luxembourg applies 3% to clothing
+ * and headgear for children under 14, and Ireland zero-rates children's
+ * clothing. The catalogue is adult-only, so this is inert — but adding a child
+ * size would make this table over-collect in LU and IE, and since the trader
+ * absorbs the VAT, over-collection costs the trader and still misstates the
+ * OSS return.
+ *
  * ## Where these numbers come from
  *
  * The European Commission's periodic "VAT rates applied in the Member States"
@@ -146,6 +185,10 @@ export const EU_STANDARD_VAT_PERCENTS: Readonly<Record<string, number>> = {
   ES: 21,
   FI: 25.5,
   FR: 20,
+  // **TEDB codes Greece `EL`, not `GR`.** Medusa routes on ISO 3166-1, which
+  // is `GR`, so this key is right and the next person to check these against
+  // the Commission's database should expect the mismatch rather than read it
+  // as a missing country.
   GR: 24,
   HR: 25,
   HU: 27,
