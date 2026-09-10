@@ -1744,7 +1744,7 @@ than terminal.
 | --- | --- |
 | A live Printful order | §23. The gate is the operator's and this slice does not open it |
 | More than four products | §7, as amended. Four is the punchline; a catalogue is a different business |
-| Printful's mockup generator on the site | The storefront renders its own artwork already, in its own identity. A photorealistic mockup of a mug is a raster image, which §6 forbids |
+| ~~Printful's mockup generator on the site~~ | **Reversed 2026-09-10, on the operator's approval.** A buyer paying real money for a shirt this site refuses to show them is misled by omission, and §2 makes accuracy load-bearing. `brand.md` §6 is amended in place, in its own marked style, to admit a photograph of a good actually on sale. **The generator turned out not to be needed**: a synced product already carries an on-garment `preview` per variant, so `design/merch/fetch-mockups.mjs` downloads what `sync.ts` already produced, once, when a product is added — the operator's condition |
 | Stock, restock, or backorder logic | Print on demand has none of those states |
 | Returns processing | A return is a person emailing the Imprint address. Automating it before one has happened is guessing |
 | Marking merch up on shipping | The operator set 25% on the goods. Shipping is passed through |

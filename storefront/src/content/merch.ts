@@ -66,3 +66,52 @@ export const MERCH_REMOVE_LABEL = "Remove";
 
 /** The size control's accessible name, per item. The visible column heading is not enough for four of them. */
 export const MERCH_SIZE_LABEL = "Size";
+
+/**
+ * One printed thing's own page.
+ *
+ * **`Form LD-6`, and a form rather than a record.** `brand.md` settles the
+ * distinction the other way for a certificate: a certificate is a *record* and
+ * carries a serial and no form number, because "a certificate is not a form".
+ * A printed good is the opposite — there is nothing unique about one mug, and
+ * what a buyer needs is the specification. So this page carries a form number
+ * and no serial, and the two conventions now cover the whole site.
+ *
+ * `LD-5` is skipped to keep distance from the `LD-5XX` the error pages use.
+ */
+export const GOODS_DOCUMENT = {
+  title: "Product specification",
+  form: "Form LD-6",
+  revision: "Rev. 2026-09",
+} as const;
+
+/** The ledger a specification is: what it is, what is printed on it, what it costs. */
+export const GOODS_LABELS = {
+  item: "Item",
+  object: "Object",
+  sizes: "Sizes",
+  value: "Value",
+  price: "Price",
+} as const;
+
+/**
+ * The caption under the photograph.
+ *
+ * **Captioned like a figure in a filing**, which is the condition `brand.md`
+ * §6's amendment attaches to admitting a photograph at all: framed by a rule
+ * and labelled, so it reads as an exhibit rather than a hero shot.
+ */
+export const GOODS_FIGURE_CAPTION = "Fig. 1 — the item as printed";
+
+/**
+ * What a buyer is told before they add a printed thing, and no more.
+ *
+ * No delivery date and no stock level: constraint 7, and the same rule the
+ * upsell obeys. Postage is real and is quoted at checkout from Printful's own
+ * rate, so saying "free" or naming a figure here would both be false.
+ */
+export const GOODS_NOTICE =
+  "Postage is charged on top and is quoted at checkout, from the printer's own rate for your address. " +
+  "This is printed for you when you order it, so nothing here is in stock and no arrival date is promised. " +
+  "The 14-day right of withdrawal for a printed thing runs from the day it reaches you, which is not the same " +
+  "clock as the certificate's.";

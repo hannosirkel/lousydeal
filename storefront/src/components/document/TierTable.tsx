@@ -33,8 +33,10 @@ export interface TierRow {
   /**
    * The tier's own quotation. The row header links to it.
    *
-   * Optional since LD-04 P9c: a printed thing has no page of its own, and a
-   * link to one that does not exist is worse than a name that is not a link.
+   * Optional since LD-04 P9c, when the printed things had no pages and a link
+   * to nothing was worse than a name that is not a link. **They have pages
+   * now**, so the merch rows pass one; the field stays optional because a row
+   * is not obliged to have somewhere to go.
    */
   readonly href?: string;
   readonly description: string;
@@ -48,6 +50,14 @@ export interface TierRow {
    * where a buyer is told which object they are buying.
    */
   readonly subtitle?: string;
+  /**
+   * A photograph of the thing this row sells, beside its name.
+   *
+   * Only the merch rows carry one: `brand.md` §6's amendment admits a
+   * photograph of "a good actually on sale" and of nothing else, and a
+   * certificate is not a good — there is nothing to photograph.
+   */
+  readonly thumbnail?: string;
   readonly value: string;
   readonly price: string;
   readonly variantId: string;
@@ -121,6 +131,13 @@ export function TierTable({
                 what the other four cells are about, and a screen reader
                 reading a cell out of order gets told which row it is in. */}
             <th scope="row" data-label={headings.item}>
+              {/* Empty `alt`: the name is right beside it in the same cell, so
+                  announcing the picture too would read the row twice. The
+                  dimensions are fixed because every one of these is square --
+                  the browser reserves the space and the table does not jump. */}
+              {row.thumbnail === undefined ? null : (
+                <img className="cell-thumbnail" src={row.thumbnail} alt="" width={64} height={64} />
+              )}
               <span className="cell-value">
                 {row.href === undefined ? row.title : <a href={row.href}>{row.title}</a>}
               </span>

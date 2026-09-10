@@ -13,6 +13,8 @@ import { NO_VALUE } from "./tier-rows";
 
 export interface MerchRow {
   readonly id: string;
+  /** Medusa's handle, which is also the page's path and the photograph's filename. */
+  readonly handle: string;
   readonly title: string;
   /**
    * What the object is, under a title that will not say.
@@ -61,6 +63,7 @@ export function merchRowData(items: readonly MerchItem[]): MerchRow[] {
     return [
       {
         id: item.id,
+        handle: item.handle,
         title: item.title,
         kind: item.kind,
         sizes: item.variants.map((variant) => variant.size).join(", "),
@@ -70,4 +73,27 @@ export function merchRowData(items: readonly MerchItem[]): MerchRow[] {
       },
     ];
   });
+}
+
+/**
+ * Where one printed thing's own page lives.
+ *
+ * Not `/deal/<handle>`: that namespace is a *quotation* for a certificate
+ * (Form LD-2), and a mug is not a quotation for nothing.
+ */
+export function goodsPath(handle: string): string {
+  return `/goods/${handle}`;
+}
+
+/**
+ * The photograph of that thing, by convention rather than by stored URL.
+ *
+ * `design/merch/fetch-mockups.mjs` writes `<handle>.png` under
+ * `storefront/public/goods/`, so the filename *is* the handle and nothing has
+ * to keep a URL in step with a product. Printful's own CDN links are not
+ * hotlinked -- `brand.md` §6's amendment says the site serves its own copy,
+ * and Printful does not promise those URLs outlive the product.
+ */
+export function goodsImagePath(handle: string): string {
+  return `/goods/${handle}.png`;
 }

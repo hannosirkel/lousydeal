@@ -198,8 +198,14 @@ not have a night edition.
 
 Content is 720px wide and centred. Certificates and legal documents are 640px —
 narrower, because they are read rather than scanned. Border radius is 0
-everywhere. No shadow, no gradient, no illustration, no photograph, no mascot,
+everywhere. No shadow, no gradient, no illustration, no mascot,
 no icon set. The only vector artwork on the site is the stamp mark.
+
+**"No photograph" is amended by LD-04, 2026-09-10** — see §6, which carries
+the argument and the exact width of the admission. In short: a photograph of a
+good actually on sale, on that good's own page and beside its row in the
+upsell. Framed by a one-pixel rule and captioned in label style, so it reads as
+an exhibit in a filing rather than a hero shot.
 
 The stamp mark is 120px square — `--stamp-size`, deliberately off the spacing
 scale, because it is artwork rather than layout and nothing aligns to it.
@@ -701,9 +707,35 @@ to be argued with in the open rather than edited quietly. One of those two was
 then **withdrawn by LD-05's B7**, also marked, for the reason that entry gives.
 
 - no raster image anywhere except generated social images;
+
+  **Amended by LD-04, 2026-09-10, on the operator's approval: and photographs
+  of the printed goods.** A buyer paying real money for a shirt this site
+  refuses to show them is misled *by omission*, and §2 makes accuracy the
+  load-bearing wall. This entry was protecting the identity at the
+  disclosure's expense, which is backwards for the one thing here that is
+  worth something — the certificate is worthless on purpose; the shirt is not.
+
+  The admission is exactly this and nothing wider: **Printful's mockup of a
+  good actually on sale, of the same artwork the order is fulfilled from,
+  downloaded once and committed to this repository**. Never hotlinked — the
+  site loads nothing from anybody else's server, and Printful's own URLs
+  expire. Never a stock photograph, never a lifestyle scene, never a person,
+  never a good that is not for sale. It appears on that good's own page and
+  beside its row in the upsell, and nowhere else.
+
+  **Fetched once, when the product is added, and not again** — the operator's
+  condition, and the right one: a page that regenerates its own illustrations
+  is a page whose appearance nobody has approved.
+
 - no second typeface, no second accent colour, no dark mode;
 - no border radius, no shadow, no gradient, no card;
 - no icon, illustration, mascot or photograph;
+
+  **Amended with the entry above, LD-04, 2026-09-10: except the product
+  photographs it admits.** Icons, illustrations and mascots stay out. The
+  cart's remove control, added in the same slice, is the word `Remove` — a
+  control that says what it does needs no picture, and a bin glyph would have
+  needed a hidden label carrying that same word anyway.
 - no animation beyond a 120ms colour change and the loading cursor.
 
   **B1 amended this to admit a third, for Baldrick's pause indicator. B7

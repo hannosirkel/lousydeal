@@ -717,6 +717,42 @@ a.button.is-secondary:hover {
   }
 }
 
+/* ---- Photographs of the goods ---------------------------------------- */
+
+/* `brand.md` §6, amended 2026-09-10, admits a photograph of a good actually on
+   sale -- and attaches the presentation: framed by a one-pixel rule and
+   captioned in label style, so it reads as an exhibit in a filing rather than
+   a hero shot. No radius and no shadow, which §6's surviving entries already
+   require. */
+.goods-figure {
+  margin: var(--space-5) 0;
+  border: 1px solid var(--ink);
+  padding: var(--space-3);
+}
+
+.goods-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.goods-figure figcaption {
+  padding-top: var(--space-3);
+  color: var(--ink-soft);
+  font-size: var(--size-small);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
+/* The same photograph at the size of a line in a table. */
+.tier-table .cell-thumbnail {
+  display: block;
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--rule);
+  margin-bottom: var(--space-2);
+}
+
 /* ---- The cart's remove control --------------------------------------- */
 
 /* A word rather than an icon, per `brand.md` §6, and quiet rather than a
