@@ -157,10 +157,17 @@ describe("where he is not", () => {
         .filter((entry) => /\.tsx?$/.test(entry))
         .map((entry) => `app/done-deals/${entry}`),
       "components/document/Certificate.tsx",
+      // The words every surface above prints. A copy edit is the likeliest way
+      // a name reaches the document.
+      "content/certificate.ts",
+      // The specimen is a certificate too, which the route checks above argue.
+      "app/design/certificate/page.tsx",
     ];
     // Without these, a moved directory would leave the loop below with nothing
     // to assert and the test passing.
-    expect(sources).toEqual(expect.arrayContaining(["lib/certificate-pdf.ts", "lib/pdf-layout-1.ts"]));
+    expect(sources).toEqual(
+      expect.arrayContaining(["lib/certificate-pdf.ts", "lib/pdf-layout-1.ts", "content/certificate.ts"]),
+    );
     for (const entry of sources) {
       expect(`${entry}: ${String(!/Baldrick/i.test(readFileSync(`${src}/${entry}`, "utf8")))}`).toBe(`${entry}: true`);
     }
