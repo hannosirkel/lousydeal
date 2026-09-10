@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { printfulSubmissionFrom, recipientFrom } from "../src/modules/printful/from-order";
+import { submitPrintfulOrder } from "../src/modules/printful/submission";
 
 const CERTIFICATES = ["worthless-certificate", "premium-nothing"];
 
@@ -82,6 +83,89 @@ describe("which lines get posted", () => {
       items: [{ variant_sku: "LD-MUG-11", detail: { quantity: 1 } }],
     });
     expect(result?.input.lines).toHaveLength(1);
+  });
+});
+
+describe("the surcharge", () => {
+  /**
+   * LD-06 D2. A surcharge is a line with no variant (constraint 6): D4 writes
+   * it through `addToCartWorkflow` with a `unit_price` and no `variant_id`,
+   * and no public route can make such a line. It has no handle and no SKU,
+   * so without this row it would have been merch that could not be ordered
+   * -- and a certificate-and-surcharge order would have been recorded
+   * `failed` and retried on every redelivery. No such order has existed:
+   * D4's route is the first thing that can write the line.
+   */
+  const SURCHARGE = {
+    title: "Discount (BALDRICK20)",
+    product_handle: null,
+    variant_id: null,
+    variant_sku: null,
+    metadata: { internal_type: "baldrick_surcharge", code: "BALDRICK20", base_amount_major: 5, percentage: 20 },
+    detail: { quantity: 1 },
+  };
+
+  it("is neither posted nor counted unorderable, so the order is skipped rather than failed", async () => {
+    const result = plan({
+      id: "order_01",
+      items: [{ product_handle: "worthless-certificate", variant_id: "variant_1", detail: { quantity: 1 } }, SURCHARGE],
+    });
+    expect(result?.input.lines).toEqual([]);
+    expect(result?.unorderable).toBe(0);
+    expect(result?.input.unorderable).toBe(0);
+
+    // The half that made this a defect: `skipped` is terminal and `failed` is
+    // retried on every redelivery. Printful is never called for a plan with
+    // no lines, so the orders seam can refuse everything.
+    const rows: Record<string, unknown>[] = [];
+    const store = {
+      listPrintfulSubmissions: () => Promise.resolve([] as never[]),
+      createPrintfulSubmissions: (data: Record<string, unknown>) => {
+        rows.push(data);
+        return Promise.resolve({ id: "sub_1", ...data } as never);
+      },
+      updatePrintfulSubmissions: () => Promise.reject(new Error("unreachable")),
+    };
+    const never = () => Promise.reject(new Error("Printful must not be called"));
+    expect(result).not.toBeNull();
+    if (result === null) return;
+    await submitPrintfulOrder(store, { findByExternalId: never, create: never, confirm: never }, result.input);
+    expect(rows).toEqual([expect.objectContaining({ order_id: "order_01", status: "skipped" })]);
+  });
+
+  it("leaves the merch beside it exactly as it was", () => {
+    const result = plan({
+      id: "order_01",
+      shipping_address: ADDRESS,
+      items: [
+        { product_handle: "worthless-certificate", variant_id: "variant_1", detail: { quantity: 1 } },
+        SURCHARGE,
+        { product_handle: "this-mug-cost-extra", variant_id: "variant_2", variant_sku: "LD-MUG-11", detail: { quantity: 2 } },
+      ],
+    });
+    expect(result?.input.lines).toEqual([{ sku: "LD-MUG-11", quantity: 2 }]);
+    expect(result?.unorderable).toBe(0);
+  });
+
+  it("is decided by the variant, not the metadata, which any visitor can write", () => {
+    // A mug that claims to be a surcharge is a mug. Dropping it on its own
+    // say-so would be a paid-for parcel that never ships, on the word of a
+    // public route.
+    const result = plan({
+      id: "order_01",
+      shipping_address: ADDRESS,
+      items: [{ ...SURCHARGE, variant_id: "variant_2", variant_sku: "LD-MUG-11", product_handle: "this-mug-cost-extra" }],
+    });
+    expect(result?.input.lines).toEqual([{ sku: "LD-MUG-11", quantity: 1 }]);
+  });
+
+  it("is only an explicit null: a variant_id never read is not one", () => {
+    // `undefined` means the field was not asked for, and every fixture above
+    // is such a line. Reading absence as "no variant" would turn them all
+    // into surcharges, and a narrower query in production would do the same.
+    const unread = Object.fromEntries(Object.entries(SURCHARGE).filter(([field]) => field !== "variant_id"));
+    const result = plan({ id: "order_01", shipping_address: ADDRESS, items: [unread] });
+    expect(result?.unorderable).toBe(1);
   });
 });
 

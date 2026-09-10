@@ -18,7 +18,7 @@ import { ContainerRegistrationKeys, Modules, OrderWorkflowEvents } from "@medusa
 
 import { PRODUCT_TIERS } from "../commerce/product-model";
 import { createPrintfulClient } from "../modules/printful/client";
-import { printfulSubmissionFrom } from "../modules/printful/from-order";
+import { isSurchargeLine, printfulSubmissionFrom } from "../modules/printful/from-order";
 import { createPrintfulOrders } from "../modules/printful/orders";
 import { submitPrintfulOrder, type SubmissionStore } from "../modules/printful/submission";
 import type { MerchantIdentity } from "../config/merchant";
@@ -37,7 +37,9 @@ interface OrderPlacedEvent {
 interface QueriedOrderItem {
   readonly title?: unknown;
   readonly product_handle?: unknown;
+  readonly variant_id?: unknown;
   readonly total?: unknown;
+  readonly quantity?: unknown;
   readonly detail?: { readonly quantity?: unknown } | null;
 }
 
@@ -126,7 +128,35 @@ function text(value: unknown): string | null {
 type CertificateLine =
   | { readonly kind: "certificate"; readonly tier: string; readonly amountPaid: number }
   | { readonly kind: "none" }
-  | { readonly kind: "unreadable" };
+  /** `reason` is for the error line and names a shape, never a buyer or a figure. */
+  | { readonly kind: "unreadable"; readonly reason: string };
+
+/**
+ * How many of a line the order holds: `detail.quantity` where the query
+ * hydrated it, the line's own `quantity` where it did not. The same two fields
+ * `from-order.ts` reads, in the same order, through `amount()` because both
+ * arrive as `BigNumber`.
+ */
+function lineQuantity(item: QueriedOrderItem): number | null {
+  return amount(item.detail?.quantity) ?? amount(item.quantity);
+}
+
+/**
+ * Two major amounts, added as integer cents.
+ *
+ * `5.1 + 0.2` is `5.300000000000001` in a double, and this figure is printed
+ * on the certificate and summed by the public counter. Medusa's amounts are
+ * two-decimal, so cents are exact and the division back happens once.
+ *
+ * **Rounds, where `surcharge.ts` refuses.** That file prices a line from a
+ * base, and a base that is not a two-decimal amount is a defect to be loud
+ * about. These are recorded totals of an order that has already taken the
+ * money: refusing one over a binary artefact would leave a buyer who paid
+ * with no certificate, for a difference below a cent.
+ */
+function addMajor(first: number, second: number): number {
+  return (Math.round(first * 100) + Math.round(second * 100)) / 100;
+}
 
 /**
  * Which line is the certificate, and what was paid for it.
@@ -135,9 +165,23 @@ type CertificateLine =
  * in `commerce/product-model.ts`. `product_handle` is the better of the two —
  * a title is display copy — but it is nullable on Medusa's line item, so the
  * title is checked as well and both come from the same declaration.
+ *
+ * **The surcharge is inside the amount.** LD-06's operator decision of
+ * 2026-09-10: a $5 certificate bought with `BALDRICK20` reads `$6.00` and the
+ * counter adds $6. The surcharge line is found by `isSurchargeLine` -- the
+ * same test Printful applies, so the two halves of this subscriber cannot
+ * disagree about which line it is -- and its total is added to the
+ * certificate's. Still the lines' own totals and never `order.total`, which
+ * would put a mug on the certificate.
+ *
+ * **One surcharge, of quantity one, or nothing issues.** D4 removes before it
+ * adds, but the public line-item routes can still change a surcharge's
+ * quantity, and a direct write can add a second. A line priced as one and
+ * charged as two is not a figure this can put on a document, so both are
+ * refused for the reason two certificates are.
  */
 function certificateLine(items: readonly QueriedOrderItem[] | null | undefined): CertificateLine {
-  if (!Array.isArray(items)) return { kind: "unreadable" };
+  if (!Array.isArray(items)) return { kind: "unreadable", reason: "no items" };
 
   const handles = new Set(PRODUCT_TIERS.map((tier) => tier.handle));
   const titles = new Set(PRODUCT_TIERS.map((tier) => tier.title));
@@ -155,20 +199,35 @@ function certificateLine(items: readonly QueriedOrderItem[] | null | undefined):
   // certificates in one order have no single tier and no single price to put
   // on a document. Refusing is still right; only "more than one line" stopped
   // being the test for it.
-  if (certificates.length > 1) return { kind: "unreadable" };
+  if (certificates.length > 1) return { kind: "unreadable", reason: `${String(certificates.length)} certificate lines` };
 
   const only = certificates[0];
-  if (Number(only?.detail?.quantity) !== 1) return { kind: "unreadable" };
+  if (only === undefined || lineQuantity(only) !== 1) {
+    return { kind: "unreadable", reason: "certificate quantity is not one" };
+  }
 
-  const tier = text(only?.title);
+  const tier = text(only.title);
   // **The line's own total, not the order's.** Constraint 10, and the lie this
   // row exists to remove: with a $15 mug beside it, `order.total` would print
   // $20 on a $5 certificate and add $20 to the public counter -- a fabricated
   // transaction total, on the two surfaces §11 exists to protect.
-  const amountPaid = amount(only?.total);
-  if (tier === null || amountPaid === null) return { kind: "unreadable" };
+  const certificateTotal = amount(only.total);
+  if (tier === null || certificateTotal === null) return { kind: "unreadable", reason: "certificate has no title or total" };
 
-  return { kind: "certificate", tier, amountPaid };
+  const surcharges = items.filter(isSurchargeLine);
+  // Through `addMajor` too, so the figure takes one route whether or not a
+  // code was used.
+  if (surcharges.length === 0) return { kind: "certificate", tier, amountPaid: addMajor(certificateTotal, 0) };
+  if (surcharges.length > 1) return { kind: "unreadable", reason: `${String(surcharges.length)} surcharge lines` };
+
+  const surcharge = surcharges[0];
+  if (surcharge === undefined || lineQuantity(surcharge) !== 1) {
+    return { kind: "unreadable", reason: "surcharge quantity is not one" };
+  }
+  const surchargeTotal = amount(surcharge.total);
+  if (surchargeTotal === null) return { kind: "unreadable", reason: "surcharge total is unreadable" };
+
+  return { kind: "certificate", tier, amountPaid: addMajor(certificateTotal, surchargeTotal) };
 }
 
 export default async function orderPlaced({
@@ -204,6 +263,12 @@ export default async function orderPlaced({
         // and the address is where the parcel goes. Neither is read by the
         // certificate half, and both are absent from an order of certificates.
         "items.variant_sku",
+        // LD-06 D2. The variant is what marks a surcharge (constraint 6): a
+        // line with none is neither posted nor a certificate, and its total
+        // joins the certificate's. The metadata carries the code for D6's
+        // confirmation and D9's report; it identifies nothing.
+        "items.variant_id",
+        "items.metadata",
         "shipping_address.first_name",
         "shipping_address.last_name",
         "shipping_address.address_1",
@@ -265,10 +330,12 @@ export default async function orderPlaced({
     ) {
       // Named parts, not a dump: this line is what an operator reads when a
       // paid order has no certificate, and "which of them was missing" is the
-      // whole of what they need from it.
+      // whole of what they need from it. An unreadable certificate says why,
+      // so "two surcharges" and "no total" are not the same entry.
+      const certificate = line.kind === "unreadable" ? `unreadable (${line.reason})` : line.kind;
       logger.error(
         `deal issuance skipped for order ${orderId}: ` +
-          `certificate=${line.kind} total=${total ?? "none"} currency=${currencyCode ?? "none"} ` +
+          `certificate=${certificate} total=${total ?? "none"} currency=${currencyCode ?? "none"} ` +
           `issued_at=${Number.isNaN(issuedAt.getTime()) ? "none" : "ok"}`,
       );
       return;
