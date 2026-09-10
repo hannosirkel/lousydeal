@@ -140,13 +140,29 @@ describe("where he is not", () => {
   });
 
   it("is not in the certificate the buyer receives", () => {
-    // The PDF is generated in the backend and shares no component tree with
-    // this app, but the claim is worth an assertion rather than an argument:
-    // the certificate is the thing somebody paid for.
-    const pdf = fileURLToPath(new URL("../../backend/src", import.meta.url));
-    const sources = readdirSync(pdf, { recursive: true, encoding: "utf8" }).filter((entry) => entry.endsWith(".ts"));
+    // **This scanned `backend/src` until LD-06 D1**, on the belief that the PDF
+    // is generated there. It is not: this app draws it, with pdfkit, in
+    // `lib/certificate-pdf.ts`. The old scan guarded nothing about the
+    // certificate. It failed the first time the backend gained §9's
+    // `baldrick_surcharge` line type, which is commerce, not the document.
+    //
+    // Matched by name rather than listed, so a second PDF layout is covered the
+    // day it lands. The certificate is the thing somebody paid for.
+    const src = fileURLToPath(new URL("../src", import.meta.url));
+    const sources = [
+      ...readdirSync(`${src}/lib`)
+        .filter((entry) => /^(?:certificate-|pdf-layout-)/.test(entry))
+        .map((entry) => `lib/${entry}`),
+      ...readdirSync(`${src}/app/done-deals`, { recursive: true, encoding: "utf8" })
+        .filter((entry) => /\.tsx?$/.test(entry))
+        .map((entry) => `app/done-deals/${entry}`),
+      "components/document/Certificate.tsx",
+    ];
+    // Without these, a moved directory would leave the loop below with nothing
+    // to assert and the test passing.
+    expect(sources).toEqual(expect.arrayContaining(["lib/certificate-pdf.ts", "lib/pdf-layout-1.ts"]));
     for (const entry of sources) {
-      expect(`${entry}: ${String(!/Baldrick/i.test(readFileSync(`${pdf}/${entry}`, "utf8")))}`).toBe(`${entry}: true`);
+      expect(`${entry}: ${String(!/Baldrick/i.test(readFileSync(`${src}/${entry}`, "utf8")))}`).toBe(`${entry}: true`);
     }
   });
 });

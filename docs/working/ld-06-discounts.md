@@ -176,16 +176,24 @@ classifier, then the one writer, then what shows it.
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-06-discounts.md`, `docs/working/status.md`.
 
-- [ ] Land the plan and move the resume point to it.
+- [x] Land the plan and move the resume point to it.
 
 ### D1 — The codes and their arithmetic
 
 **Repository:** `lousydeal`.
 **Files:** `backend/src/commerce/surcharge.ts`,
-`backend/tests/surcharge.test.ts`.
+`backend/tests/surcharge.test.ts`, `storefront/tests/baldrick-reach.test.ts`.
 
 - [ ] Price a surcharge from a code and a certificate price, as a pure
       function.
+
+**`baldrick-reach.test.ts` joined this row at execution, not at planning.** Its
+certificate guard scanned all of `backend/src` for the word Baldrick, believing
+the PDF is drawn there. It is drawn in the storefront. §9's
+`baldrick_surcharge` in this row's file was the first backend mention, and the
+guard failed on commerce code while never having covered the certificate. The
+row points the guard at the files that draw the certificate. D2, D4 and D9 would
+each have hit it otherwise.
 
 The committed table of four codes, a normaliser, and one function:
 certificate unit price and code in, `{ unitPrice, title, metadata }` out, or
