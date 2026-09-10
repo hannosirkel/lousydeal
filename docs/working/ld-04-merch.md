@@ -1720,6 +1720,32 @@ at that moment; the transition to `failed` arrives by webhook, which is P15b/c
 and not yet subscribed. P12i is what makes that arrival recoverable rather
 than terminal.
 
+### Confirmed working on the deployment, 2026-09-10
+
+The operator completed a checkout. Driven through the deployed backend
+beforehand, against a Tallinn address:
+
+```text
+options listed: 1  Postage/calculated
+ATTACHED postage = 6.48   cart total = 38.48
+```
+
+Real postage from Printful, on the real deployment, through the buyer's own
+path this time.
+
+**Three things had to be true at once, and each hid the next.** The predeploy
+Job was never told Printful existed, so it skipped the shipping option by
+design; telling it made `medusa db:migrate` want a directory a read-only
+filesystem would not give it; and with both fixed the storefront still
+discarded the option because it demanded a price a calculated option does not
+carry until it is attached. Only the third was visible from the code alone.
+
+**And twice a merged fix looked ineffective because Argo had not rolled the
+new image.** The digest bump was in `deploys` and the running pod was the
+previous build. Argo is `automated` with `selfHeal`, so this should not need a
+nudge; it needed one both times. Worth a look before it costs a third round
+trip — a long polling interval, or no webhook from `deploys`.
+
 ### What Gate E missed, found in production on 2026-09-10
 
 **Merch was unbuyable through the checkout on every environment, and this row
