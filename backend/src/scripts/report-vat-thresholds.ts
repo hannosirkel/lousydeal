@@ -22,6 +22,8 @@ interface QueriedOrder {
   readonly currency_code?: unknown;
   readonly created_at?: unknown;
   readonly shipping_address?: { readonly country_code?: unknown } | null;
+  /** LD-04 `015`: where Printful said it would dispatch from, recorded at quote time. */
+  readonly shipping_methods?: ReadonlyArray<{ readonly data?: { readonly departsFrom?: unknown } | null } | null>;
 }
 
 /**
@@ -62,10 +64,17 @@ export function countedOrders(orders: readonly QueriedOrder[]): {
     }
 
     const country = order.shipping_address?.country_code;
+    // **Read off the shipping method, because that is where it was written.**
+    // `fulfilment-provider.ts` records it at quote time; an order placed
+    // before that existed carries nothing, and `null` counts as unknown rather
+    // than as safe.
+    const departure = order.shipping_methods?.find((method) => typeof method?.data?.departsFrom === "string")?.data
+      ?.departsFrom;
     counted.push({
       total,
       currencyCode,
       destinationCountry: typeof country === "string" ? country : null,
+      departsFrom: typeof departure === "string" ? departure : null,
       placedAt,
     });
   }
@@ -88,7 +97,18 @@ export default async function reportVatThresholds({ container, args }: ExecArgs)
 
   const { data } = await query.graph({
     entity: "order",
-    fields: ["id", "total", "currency_code", "created_at", "shipping_address.country_code"],
+    fields: [
+      "id",
+      "total",
+      "currency_code",
+      "created_at",
+      "shipping_address.country_code",
+      // Where the parcel departed from. Art 32 puts the supply there, so a
+      // supply that begins and ends in one member state is domestic there and
+      // outside the Union OSS -- which decision `015` accepts for Spain and
+      // counts rather than closes.
+      "shipping_methods.data",
+    ],
     filters: {},
   });
 
@@ -102,6 +122,20 @@ export default async function reportVatThresholds({ container, args }: ExecArgs)
       `latvia=${report.latvianSupplies.toFixed(2)} ${report.currencyCode.toUpperCase()} ` +
       `across ${String(report.orders)} order(s)`,
   );
+  // **The exposure the operator accepted, counted.** Decision `015`: sales stay
+  // open everywhere, Printful charges Spanish VAT on a Barcelona-to-Spain
+  // dispatch as a cost line, and the shop keeps count so the figure is known
+  // rather than assumed. Latvia appears here too and is covered by the `EX`
+  // number, which is why the line names the country instead of totalling them.
+  const domestic = Object.entries(report.domesticDispatch).filter(([, total]) => total > 0);
+  if (domestic.length > 0) {
+    logger.info(
+      `dispatched and delivered inside one member state: ` +
+        domestic.map(([country, total]) => `${country}=${total.toFixed(2)}`).join(" ") +
+        ` ${report.currencyCode.toUpperCase()} — outside the Union OSS; LV is exempt under the EX number, ES is the accepted exposure`,
+    );
+  }
+
   // Said every time rather than only when it matters: a figure compared
   // against a ceiling in another currency is a figure whose comparison has an
   // assumption in it, and the operator reading it should see the assumption.

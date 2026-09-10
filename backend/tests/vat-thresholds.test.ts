@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 /**
  * The two counters decision `013` watches.
  *
@@ -23,6 +25,7 @@ const order = (over: Partial<CountedOrder> = {}): CountedOrder => ({
   total: 100,
   currencyCode: "usd",
   destinationCountry: "DE",
+  departsFrom: null,
   placedAt: new Date("2026-03-01T00:00:00Z"),
   ...over,
 });
@@ -183,5 +186,116 @@ describe("reading an order out of Medusa", () => {
       { total: 1, currency_code: "usd", created_at: "2026-03-01T00:00:00Z" },
     ]);
     expect(counted.map((entry) => entry.destinationCountry)).toEqual(["lv", null]);
+  });
+});
+
+describe("supplies that begin and end in one member state", () => {
+  /**
+   * **The exposure the operator accepted, counted rather than assumed.**
+   *
+   * Art 32 places a transported supply where dispatch begins, so a parcel
+   * Printful sends from Barcelona to a Spanish address never crosses a border:
+   * it is a Spanish domestic supply, and the Union OSS cannot carry one.
+   * Decision `015` settles it — sales stay open to every country, Printful
+   * charges Spanish VAT on that dispatch as a cost line, and the shop keeps
+   * count so the figure is known.
+   *
+   * Latvia lands in the same bucket and is *not* a problem: the `EX` number
+   * exempts it. That is why this counts per country instead of totalling.
+   */
+  it("counts a supply whose dispatch and destination are the same country", () => {
+    const result = report([order({ destinationCountry: "ES", departsFrom: "ES", total: 40 })]);
+    expect(result.domesticDispatch).toEqual({ ES: 40 });
+  });
+
+  it("does not count one that crossed a border, which is what OSS is for", () => {
+    const result = report([order({ destinationCountry: "DE", departsFrom: "ES", total: 40 })]);
+    expect(result.domesticDispatch).toEqual({});
+    // And it is still inside the Union figure, because it is still a supply.
+    expect(result.unionTurnover).toBe(40);
+  });
+
+  it("keeps the countries apart, because one is exempt and the other is not", () => {
+    const result = report([
+      order({ destinationCountry: "LV", departsFrom: "LV", total: 10 }),
+      order({ destinationCountry: "ES", departsFrom: "ES", total: 25 }),
+      order({ destinationCountry: "ES", departsFrom: "ES", total: 15 }),
+    ]);
+    expect(result.domesticDispatch).toEqual({ LV: 10, ES: 40 });
+  });
+
+  it("counts an unknown dispatch as unknown, not as safe", () => {
+    // An order placed before `fulfilment-provider.ts` recorded this carries
+    // nothing. Treating that as "not domestic" would understate the exposure,
+    // which is the one direction that matters — so it is simply absent, and
+    // the absence is visible as a count that does not add up to the orders.
+    const result = report([order({ destinationCountry: "ES", departsFrom: null, total: 40 })]);
+    expect(result.domesticDispatch).toEqual({});
+  });
+
+  it("compares case-insensitively, because the two sides come from different systems", () => {
+    // Printful answers `ES`; Medusa stores the buyer's country lower-case.
+    const result = report([order({ destinationCountry: "es", departsFrom: " es ", total: 40 })]);
+    expect(result.domesticDispatch).toEqual({ ES: 40 });
+  });
+
+  it("leaves a non-member state out, as every other figure here does", () => {
+    // A US-dispatched parcel to a US address is not an EU supply at all.
+    expect(report([order({ destinationCountry: "US", departsFrom: "US", total: 40 })]).domesticDispatch).toEqual({});
+  });
+
+  it("rounds per country, once, at the end", () => {
+    const orders = Array.from({ length: 3 }, () => order({ destinationCountry: "ES", departsFrom: "ES", total: 5 / 3 }));
+    expect(report(orders).domesticDispatch).toEqual({ ES: 5 });
+  });
+
+  it("says nothing at all in the ordinary case", () => {
+    // Most orders are a certificate with no address and nothing dispatched.
+    expect(report([order({ destinationCountry: null })]).domesticDispatch).toEqual({});
+  });
+});
+
+describe("reading the dispatch country off the order", () => {
+  it("takes it from the shipping method, which is where it was written", () => {
+    // `fulfilment-provider.ts` records it at quote time on the method's `data`,
+    // because Printful states it in the rate response and nowhere else.
+    const { counted } = countedOrders([
+      {
+        total: 10,
+        currency_code: "usd",
+        created_at: "2026-03-01T00:00:00Z",
+        shipping_address: { country_code: "es" },
+        shipping_methods: [{ data: { departsFrom: "ES" } }],
+      },
+    ]);
+    expect(counted[0]?.departsFrom).toBe("ES");
+  });
+
+  it("reads null where the order predates the recording", () => {
+    // Every order placed before LD-04 `015`. Unknown, and counted as unknown.
+    const { counted } = countedOrders([
+      { total: 10, currency_code: "usd", created_at: "2026-03-01T00:00:00Z", shipping_address: { country_code: "es" } },
+    ]);
+    expect(counted[0]?.departsFrom).toBeNull();
+  });
+
+  it("skips a method that carries no dispatch country rather than stopping at it", () => {
+    // Medusa can hold more than one shipping method, and only the Printful one
+    // records this. Taking `[0]` blindly would read `null` off a neighbour.
+    const { counted } = countedOrders([
+      {
+        total: 10,
+        currency_code: "usd",
+        created_at: "2026-03-01T00:00:00Z",
+        shipping_address: { country_code: "es" },
+        shipping_methods: [{ data: {} }, null, { data: { departsFrom: "ES" } }],
+      },
+    ]);
+    expect(counted[0]?.departsFrom).toBe("ES");
+  });
+
+  it("asks Medusa for the field, or nothing above can work", () => {
+    const source = readFileSync(join(__dirname, "../src/scripts/report-vat-thresholds.ts"), "utf8");
+    expect(source).toContain('"shipping_methods.data"');
   });
 });
