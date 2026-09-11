@@ -37,11 +37,11 @@
  * runtime, rather than carrying an address that would go stale in a file
  * nothing re-reads.
  *
- * **A forward liability, recorded so LD-06 inherits it rather than
- * rediscovering it.** The `discount` steps below say a code exists and is not
- * finished, which is true today. The day LD-06 ships the surcharge codes it
- * becomes false, and LD-05's constraint 9 — a row that falsifies a tracked
- * document carries it — means an LD-06 row must carry this file.
+ * **The current boundary, recorded so LD-06 keeps it.** The `discount` steps
+ * name one code and point to the order summary, but state no figure and claim
+ * no cart change. Baldrick cannot see a cart or apply its code; the cart owns
+ * the figure. LD-05's constraint 9 — a row that falsifies a tracked document
+ * carries it — means D7 carries this file when the code becomes live.
  */
 
 import type { Script } from "../lib/baldrick/conversation";
@@ -97,7 +97,7 @@ export const BALDRICK_SCRIPT: Script = {
   discount: {
     say: [
       ["There is a discount code."],
-      ["It is not finished. When it is, it will make your deal worse."],
+      ["It is BALDRICK20. Type it on the order summary. It makes your deal worse."],
     ],
     quickReplies: [
       { id: "discount-go-on", label: "Go on", goes: "discount_detail" },
@@ -106,7 +106,7 @@ export const BALDRICK_SCRIPT: Script = {
   },
   discount_detail: {
     say: [
-      ["The plan is that you type the code and the total goes up."],
+      ["You type it on the order summary and the total goes up."],
       ["I was not told why. I did not ask."],
     ],
   },

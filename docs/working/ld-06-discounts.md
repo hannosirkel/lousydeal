@@ -450,7 +450,7 @@ you" is already true.
 `storefront/tests/baldrick-copy.test.ts`,
 `storefront/tests/baldrick-widget.test.ts`, `docs/current/brand.md`.
 
-- [ ] Replace "not finished" with a code, and keep every guard LD-05 wrote.
+- [x] Replace "not finished" with a code, and keep every guard LD-05 wrote.
 
 The forward liability `content/baldrick.ts` records at its head, discharged.
 The discount step names `BALDRICK20` and says to type it on the order summary,
@@ -595,6 +595,8 @@ checked against the repository before it was accepted.
 | D5 deliberately suppresses the re-price failure after removing the stale surcharge | Kept the specified safe fallback. It exposes neither a bearer cart id nor an unstable backend error; the freshly read cart shows that the code is gone |
 | **D6 task review.** The subscriber fixture let `order total - certificate total` reproduce the surcharge and exercised only whole-dollar USD formatting | Made the totals independent and used EUR through the subscriber's real `Intl.NumberFormat` boundary |
 | **D6 Gate D.** “Code increase” was false for `BLACKFRIDAY`'s real zero-value line, and the strengthened fixture used three-decimal money outside Medusa's measured wire shape | Changed both paid sentences to “code adjustment”, added `+$0.00` coverage with and without postage, and restored two-decimal EUR fixtures |
+| **D7 task review.** The first figure exception erased `BALDRICK20` inside a longer token; the forbidden-code guard read only the discount step; and commented-out backend entries still counted as declared | Required standalone alphanumeric boundaries with prefix and suffix mutations, checked forbidden codes across all live prose, and stripped comments before reading the exported table |
+| **D7 Gate D.** The forbidden-code guard was case-sensitive even though the backend normalises lowercase input | Made the all-prose guard token-aware and case-insensitive, with lowercase mutations for all three codes Baldrick does not issue |
 
 ## What this slice does not do
 

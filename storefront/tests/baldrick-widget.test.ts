@@ -42,6 +42,8 @@ const MESSAGES: readonly Message[] = [
   { speaker: "baldrick", lines: ["There is a discount code."] },
 ];
 
+const DISCOUNT_REPLIES = BALDRICK_SCRIPT.discount?.quickReplies ?? [];
+
 const render = (props: Partial<SurfaceProps> = {}): string =>
   renderToStaticMarkup(
     createElement(Surface, {
@@ -156,10 +158,13 @@ describe("the speaker label, which names a turn and not a message", () => {
 
 describe("the controls, from a keyboard", () => {
   it("makes every quick reply a real button", () => {
+    // If the discount step or all its replies disappear, the existing loop
+    // would assert nothing and the buyer would lose both live routes.
     // Real buttons are in the tab order and answer to Enter and Space without
     // this component knowing that they do. A div with an onClick is the defect.
-    const html = render();
-    for (const reply of BALDRICK_SCRIPT.discount?.quickReplies ?? []) {
+    const html = render({ replies: DISCOUNT_REPLIES });
+    expect(DISCOUNT_REPLIES).not.toEqual([]);
+    for (const reply of DISCOUNT_REPLIES) {
       expect(html).toContain(`>${reply.label}</button>`);
     }
   });

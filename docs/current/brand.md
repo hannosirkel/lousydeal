@@ -125,7 +125,10 @@ Worked examples, in his register:
 | I'd be happy to explain our refund policy! | That is in Refunds and Withdrawal. It is in the footer. |
 | Sorry, I didn't quite catch that — could you rephrase? | I did not understand that. I am not going to guess. |
 | You get a beautiful numbered certificate — and so much more! | A certificate. That is the whole list. |
-| We have an amazing discount just for you! | There is a discount code. I have not finished it. It makes your deal worse. |
+| We have an amazing discount just for you! | There is a discount code. It is BALDRICK20. Type it on the order summary. It makes your deal worse. |
+
+`I've applied BALDRICK20. Your price is now 20% higher` is tempting copy he
+does not say: he cannot see or apply a cart code, and the cart owns the figure.
 
 Nothing outside `content/baldrick.ts` speaks as him, and he speaks nowhere the
 site speaks for itself.
