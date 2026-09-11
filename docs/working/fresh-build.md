@@ -1136,6 +1136,10 @@ Deliver:
 * error states;
 * final copy review;
 * visual review;
+* a public pre-launch mode controlled by the runtime `STORE_OPEN` setting. It
+  defaults to `false` and fails closed. The storefront explains that orders are
+  closed, and the server rejects cart, checkout and payment mutations while it
+  is false;
 * production readiness.
 
 Adjust boundaries if the actual existing architecture suggests a clearly better decomposition, but preserve the principle:
