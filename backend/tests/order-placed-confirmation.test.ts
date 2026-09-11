@@ -310,6 +310,29 @@ describe("the subscriber", () => {
     expect(content.text).toContain(`${SITE}/done-deals/xbts2k3mmv3trv3n`);
   });
 
+  it("passes the server-owned surcharge title and line total into the sent confirmation", async () => {
+    // If this handoff used metadata, recalculated the amount, or discarded the
+    // variant-less line, the buyer would not receive the same adjustment shown
+    // before paying. The hostile metadata proves it is not a display source.
+    const { notifications, errors } = await run(ENVIRONMENT, "buyer@example.test", { total: new BigNumber(6) }, [
+      { title: "Lousy Deal", product_handle: "lousy-deal", variant_id: "variant_certificate", total: new BigNumber(5), detail: { quantity: 1 } },
+      {
+        title: "Discount (BALDRICK20) <&>",
+        variant_id: null,
+        total: new BigNumber(1),
+        detail: { quantity: 1 },
+        metadata: { title: "Forged adjustment", total: 999 },
+      },
+    ]);
+
+    expect(errors).toEqual([]);
+    const content = notifications[0]?.content as { text: string; html: string };
+    expect(content.text).toContain("Discount (BALDRICK20) <&>: +$1.00");
+    expect(content.text).toContain("Total paid: $6.00");
+    expect(content.text).not.toContain("Forged adjustment");
+    expect(content.html).toContain("Discount (BALDRICK20) &lt;&amp;&gt;: +$1.00");
+  });
+
   it("sends nothing, and says which part is missing, when the deployment is not configured for it", async () => {
     // Each of the three arrives with C10 and C11. Until then the log line is
     // the whole of what an operator has, so it names the part rather than

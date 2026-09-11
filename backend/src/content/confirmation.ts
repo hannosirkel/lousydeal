@@ -115,10 +115,17 @@ export const CONFIRMATION_ALSO_POSTED =
  * found — postage is added, and Terms §3 was corrected for exactly this a row
  * earlier while the durable record kept the old sentence.
  */
-export const CONFIRMATION_PAID = (hasPostedGoods: boolean): string =>
-  hasPostedGoods
+export const CONFIRMATION_PAID = (hasPostedGoods: boolean, hasSurcharge: boolean): string => {
+  if (hasSurcharge) {
+    return hasPostedGoods
+      ? "Every price shown was the price charged, and it includes value added tax where value added tax applies. Postage and the code increase were added, and each was quoted and shown to you as its own line before you paid. There was no tax line or charge you were not shown first."
+      : "The price shown was the price charged. It includes value added tax where value added tax applies. The code increase was added, quoted and shown to you as its own line before you paid. There was no tax line or charge you were not shown first.";
+  }
+
+  return hasPostedGoods
     ? "Every price shown was the price charged, and it includes value added tax where value added tax applies. Postage was the one thing added, and it was quoted and shown to you as its own line before you paid. There was no tax line, no fee, and no charge you were not shown first."
     : "The price shown was the price charged. It includes value added tax where value added tax applies, and nothing was added at checkout: no tax line, no fee, and no charge you were not shown before you paid.";
+};
 
 /**
  * § 54(1) pp 12 and 13: the conditions, the time limit and the procedure for

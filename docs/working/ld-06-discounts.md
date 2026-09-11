@@ -419,9 +419,10 @@ D10 still performs the planned rendered 390px Gate E review.
 **Files:** `backend/src/notifications/order-confirmation.ts`,
 `backend/src/content/confirmation.ts`,
 `backend/src/subscribers/order-placed.ts`,
-`backend/tests/order-confirmation.test.ts`.
+`backend/tests/order-confirmation.test.ts`,
+`backend/tests/order-placed-confirmation.test.ts`.
 
-- [ ] Name the surcharge in the § 55 confirmation, and stop its price sentence
+- [x] Name the surcharge in the § 55 confirmation, and stop its price sentence
       saying nothing was added.
 
 A legal row, run on the authority recorded at the head (constraint 12).

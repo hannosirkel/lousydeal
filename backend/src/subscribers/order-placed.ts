@@ -126,7 +126,13 @@ function text(value: unknown): string | null {
  * `unreadable` is the only one that gets an error line.
  */
 type CertificateLine =
-  | { readonly kind: "certificate"; readonly tier: string; readonly amountPaid: number }
+  | {
+      readonly kind: "certificate";
+      readonly tier: string;
+      readonly amountPaid: number;
+      /** The verified order line that the confirmation must reproduce. */
+      readonly surcharge: { readonly title: string; readonly total: number } | null;
+    }
   | { readonly kind: "none" }
   /** `reason` is for the error line and names a shape, never a buyer or a figure. */
   | { readonly kind: "unreadable"; readonly reason: string };
@@ -217,17 +223,24 @@ function certificateLine(items: readonly QueriedOrderItem[] | null | undefined):
   const surcharges = items.filter(isSurchargeLine);
   // Through `addMajor` too, so the figure takes one route whether or not a
   // code was used.
-  if (surcharges.length === 0) return { kind: "certificate", tier, amountPaid: addMajor(certificateTotal, 0) };
+  if (surcharges.length === 0) return { kind: "certificate", tier, amountPaid: addMajor(certificateTotal, 0), surcharge: null };
   if (surcharges.length > 1) return { kind: "unreadable", reason: `${String(surcharges.length)} surcharge lines` };
 
   const surcharge = surcharges[0];
   if (surcharge === undefined || lineQuantity(surcharge) !== 1) {
     return { kind: "unreadable", reason: "surcharge quantity is not one" };
   }
+  const surchargeTitle = text(surcharge.title);
   const surchargeTotal = amount(surcharge.total);
+  if (surchargeTitle === null) return { kind: "unreadable", reason: "surcharge title is unreadable" };
   if (surchargeTotal === null) return { kind: "unreadable", reason: "surcharge total is unreadable" };
 
-  return { kind: "certificate", tier, amountPaid: addMajor(certificateTotal, surchargeTotal) };
+  return {
+    kind: "certificate",
+    tier,
+    amountPaid: addMajor(certificateTotal, surchargeTotal),
+    surcharge: { title: surchargeTitle, total: surchargeTotal },
+  };
 }
 
 export default async function orderPlaced({
@@ -265,8 +278,8 @@ export default async function orderPlaced({
         "items.variant_sku",
         // LD-06 D2. The variant is what marks a surcharge (constraint 6): a
         // line with none is neither posted nor a certificate, and its total
-        // joins the certificate's. The metadata carries the code for D6's
-        // confirmation and D9's report; it identifies nothing.
+        // joins the certificate's. The metadata carries the code for D9's
+        // report; it identifies nothing and never supplies D6's display.
         "items.variant_id",
         "items.metadata",
         "shipping_address.first_name",
@@ -375,6 +388,7 @@ export default async function orderPlaced({
       // Decided from the same lines `printfulSubmissionFrom` reads, so the
       // confirmation and the parcel cannot disagree about whether there is one.
       hasPostedGoods: (printfulSubmissionFrom(order, PRODUCT_TIERS.map((t) => t.handle), new Date())?.input.lines.length ?? 0) > 0,
+      surcharge: line.surcharge,
     });
   } catch (error) {
     logger.error(
@@ -510,6 +524,7 @@ async function sendConfirmation({
   orderId,
   tier,
   hasPostedGoods,
+  surcharge,
 }: {
   container: SubscriberArgs<OrderPlacedEvent>["container"];
   logger: { info(message: string): void; error(message: string): void };
@@ -518,6 +533,8 @@ async function sendConfirmation({
   orderId: string;
   /** Whether the order carried anything posted. § 55(2) is about the order, not the certificate. */
   hasPostedGoods: boolean;
+  /** The validated variant-less line; title and total are never read from metadata. */
+  surcharge: { readonly title: string; readonly total: number } | null;
   /**
    * The certificate's own title, from `certificateLine`.
    *
@@ -551,10 +568,11 @@ async function sendConfirmation({
   // different ICU data. An email is formatted once and never re-formatted by a
   // reader's. Both messages print the same string for the same reason a buyer
   // and a recipient comparing them should see one number.
-  const total = new Intl.NumberFormat("en-US", {
+  const formatMoney = (value: number): string => new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: (text(order.currency_code) ?? "usd").toUpperCase(),
-  }).format(amount(order.total) ?? 0);
+  }).format(value);
+  const total = formatMoney(amount(order.total) ?? 0);
   const issuedOn = new Date(String(order.created_at)).toISOString().slice(0, 10);
   const certificateUrl = `${runtime.siteBaseUrl}/done-deals/${deal.public_slug}`;
 
@@ -576,6 +594,7 @@ async function sendConfirmation({
       // is the record of what was actually stored. G1 put the gift on
       // `IssuedDeal` for exactly this.
       hasPostedGoods,
+      surcharge: surcharge === null ? null : { title: surcharge.title, total: formatMoney(surcharge.total) },
       giftRecipientAddress: deal.gift_recipient_email,
     },
     runtime.merchant,

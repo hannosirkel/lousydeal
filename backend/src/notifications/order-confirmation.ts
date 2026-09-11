@@ -63,6 +63,8 @@ export interface ConfirmationDeal {
    * sentences here written when an order could only ever be one certificate.
    */
   readonly hasPostedGoods: boolean;
+  /** The server-owned surcharge order line, when the order has one. */
+  readonly surcharge?: { readonly title: string; readonly total: string } | null;
 }
 
 export interface ConfirmationMessage {
@@ -122,6 +124,7 @@ export function buildOrderConfirmation(
 
   const serial = formatSerial(deal.serial);
   const fill = (line: string) => resolve(line, merchant, siteBaseUrl);
+  const surcharge = deal.surcharge ?? null;
 
   const sections: readonly (readonly [string, readonly string[]])[] = [
     [CONFIRMATION_HEADINGS.opening, [CONFIRMATION_OPENING]],
@@ -140,7 +143,14 @@ export function buildOrderConfirmation(
         ...(deal.giftRecipientAddress === null ? [] : [CONFIRMATION_GIFT(deal.giftRecipientAddress)]),
       ],
     ],
-    [CONFIRMATION_HEADINGS.paid, [`${CONFIRMATION_LABELS.total}: ${deal.total}`, CONFIRMATION_PAID(deal.hasPostedGoods)]],
+    [
+      CONFIRMATION_HEADINGS.paid,
+      [
+        ...(surcharge === null ? [] : [`${surcharge.title}: +${surcharge.total}`]),
+        `${CONFIRMATION_LABELS.total}: ${deal.total}`,
+        CONFIRMATION_PAID(deal.hasPostedGoods, surcharge !== null),
+      ],
+    ],
     [CONFIRMATION_HEADINGS.trader, CONFIRMATION_TRADER.map(fill)],
     [CONFIRMATION_HEADINGS.withdrawal, CONFIRMATION_WITHDRAWAL(deal.hasPostedGoods).map(fill)],
     [CONFIRMATION_HEADINGS.consent, [...CONFIRMATION_CONSENT(deal.hasPostedGoods)]],
