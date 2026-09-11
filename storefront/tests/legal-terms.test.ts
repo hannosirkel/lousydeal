@@ -83,13 +83,13 @@ describe("price and tax", () => {
   });
 
   it("discloses the adjustment line and amount before payment", () => {
-    // The removable line must be visible both where the buyer chooses it and
-    // where payment is authorised; otherwise a real surcharge is still a
-    // surprise charge.
-    const s = section("3");
-    expect(s).toMatch(/own line, with its amount/i);
-    expect(s).toMatch(/order summary and payment authorisation/i);
-    expect(s).toMatch(/before you pay/i);
+    // Final D8 review: the adjustment's disclosure must stand on paragraph 2
+    // itself. Postage's own line and timing cannot rescue a missing adjustment
+    // line at either the order summary or payment authorisation.
+    const adjustment = paragraph("3", 1);
+    expect(adjustment).toMatch(/own line, with its amount/i);
+    expect(adjustment).toMatch(/order summary and payment authorisation/i);
+    expect(adjustment).toMatch(/before you pay/i);
   });
 
   it("allows removal before payment and identifies the authorised total as charged", () => {
