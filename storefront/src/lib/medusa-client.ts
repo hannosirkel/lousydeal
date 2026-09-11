@@ -82,7 +82,8 @@ export function createStoreFetchJson(config: StoreClientConfig): FetchJson {
       },
     });
     if (!response.ok) {
-      throw new StoreApiError(response.status, path);
+      const body: unknown = await response.json().catch(() => undefined);
+      throw new StoreApiError(response.status, path, body);
     }
     return (await response.json()) as T;
   };
@@ -90,15 +91,16 @@ export function createStoreFetchJson(config: StoreClientConfig): FetchJson {
 
 /**
  * Thrown by `storeFetchJson` above for any response that fails its own
- * `!response.ok` check, carrying the HTTP status so a caller can act on which
- * one it was -- see `src/app/cart/page.tsx`, which treats status 404 on a
- * cart lookup as a stale cookie and every other status as a real failure to
- * re-throw.
+ * `!response.ok` check, carrying the HTTP status and parsed JSON body so a
+ * caller can act on the API's stable reason -- see `cart-actions.ts` for D4's
+ * surcharge refusals. `src/app/cart/page.tsx` treats status 404 on a cart
+ * lookup as a stale cookie and every other status as a real failure to re-throw.
  */
 export class StoreApiError extends Error {
   constructor(
     readonly status: number,
     path: string,
+    readonly body?: unknown,
   ) {
     super(`Medusa store API returned ${String(status)} for ${path}`);
     this.name = "StoreApiError";

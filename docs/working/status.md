@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-10 |
 | Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
-| In flight | **D4** pull request #203, branch `deal/ld06-d4-route`, worktree `~/app/.worktrees/lousydeal/ld06-d4`; independently reviewed and awaiting the operator's merge. Its final validation and 11-case real-Medusa smoke suite are clean. D0 merged as #199, D1 as #200, D2 as #201, D3 as #202 |
-| Next action | Once D4 merges, execute **D5** (the cart takes a code). Between D4's merge and D5's, a surcharge is reachable only by a direct POST and renders as a plain line (constraint 7) |
+| In flight | **D5** pull request #204, branch `deal/ld06-d5-cart`, worktree `~/app/.worktrees/lousydeal/ld06-d5`; independently reviewed and awaiting the operator's merge. Final validation passed 92 files and 2,510 tests; the production build, 11-case real-Medusa smoke suite, and no-script apply/refuse/remove flow are clean. D0–D4 merged as pull requests #199–#203 |
+| Next action | Once D5 merges, execute **D6** (the confirmation says why the total is higher) |
 | Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
 
 Nothing in this file is a secret. No credential value, no live private hostname,

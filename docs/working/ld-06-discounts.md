@@ -362,12 +362,12 @@ arrival on the order line are confirmed in D10's Gate E order.
 
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/lib/cart-actions.ts`,
-`storefront/src/lib/store-cart.ts`, `storefront/src/app/cart/page.tsx`,
-`storefront/src/components/document/CodeForm.tsx`,
+`storefront/src/lib/store-cart.ts`, `storefront/src/lib/medusa-client.ts`,
+`storefront/src/app/cart/page.tsx`,
 `storefront/src/content/checkout.ts`, `storefront/tests/cart-code.test.ts`,
 `storefront/tests/cart-actions.test.ts`, `docs/current/brand.md`.
 
-- [ ] Take a code at the order summary, show the surcharge as an adjustment,
+- [x] Take a code at the order summary, show the surcharge as an adjustment,
       and let the buyer remove it.
 
 **A form and a Server Action, so it works with scripting off.** Every purchase
@@ -376,6 +376,11 @@ path on this site does, and LD-05 kept Baldrick's arrival from changing that.
 it exports. Every export there is a public POST endpoint. A refusal redirects
 to `/cart` with the reason in the query string, and the page renders the notice
 from `content/`. No state is held anywhere else.
+
+`createStoreFetchJson` previously discarded every error body. D4's three
+refusals share status `422`, so D5 preserves the parsed JSON body on
+`StoreApiError` and selects only those three committed reason values. An
+arbitrary query value is never reflected into the page.
 
 **Only the cart applies a code.** `/checkout` is always re-entered by
 navigation, so its payment form mounts with no session and
@@ -400,7 +405,13 @@ specification written where the identity lives: the label, the placement
 (under the lines, above `PROCEED TO PAYMENT`), and the refusal notices. The
 adjustment row's own specification landed with D3.
 
-**Checked at 390px and with scripting disabled**, on the rendered page.
+**Checked with scripting disabled on a production build.** A real Medusa cart
+accepted `BALDRICK20`, moved from $5 to $6, kept that total after an unknown
+code, and returned to $5 when its `REMOVE` form posted. The form shares the
+existing `.baldrick-ask` layout whose media rule stacks its three controls below
+480px. This runner had no browser or Playwright binary, so D5 verified that
+390px rule by inspection rather than claiming a screenshot it could not take;
+D10 still performs the planned rendered 390px Gate E review.
 
 ### D6 — The confirmation says why the total is higher
 
@@ -578,6 +589,9 @@ checked against the repository before it was accepted.
 | Pass 2, minor: three public writes rather than two; `CartLine` literals in `checkout-consent.test.ts`; a stale constraint number in `status.md`; an off-by-one citation | Constraint 6 names the third; D3 makes the field optional; the rest corrected |
 | **D4 Gate D.** The first full validation result predated the serialized workflow-error fix | Re-ran `bash scripts/validate` against the final diff: 91 files and 2,492 tests passed |
 | D4's concurrency paragraph named the focused route test, but only the real-Medusa smoke test exercises concurrent requests | Corrected the paragraph to name `store-api.test.ts`; no implementation change |
+| **D5 Gate D.** The cart overview still promised “one button” after D5 added its code and removal controls | Reworded the overview around its primary route onward, without asserting a control count |
+| D5's allowlist was implemented but its tests covered only accepted refusal reasons | Added adversarial `422`-reason and stable-reason-at-`500` cases; both must rethrow rather than redirect |
+| D5 deliberately suppresses the re-price failure after removing the stale surcharge | Kept the specified safe fallback. It exposes neither a bearer cart id nor an unstable backend error; the freshly read cart shows that the code is gone |
 
 ## What this slice does not do
 
