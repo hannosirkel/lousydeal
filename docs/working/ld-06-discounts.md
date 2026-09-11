@@ -74,14 +74,12 @@ follows is what this slice adds or sharpens.
    tier change would strand it. That is untidy and not unsafe, and it is stated
    rather than hidden.
 8. **The payment session follows the total.** Medusa's completion does not
-   compare the captured amount with the cart's total (facts). What keeps them
-   equal is the payment-collection refresh inside Medusa's own cart workflows.
-   D4 composes those workflows rather than lower-level steps, so applying or
-   removing a code refreshes the collection exactly as adding a mug does.
-   **And it takes the cart lock itself.** A lock step inside a workflow run as
-   a sub-workflow is skipped (facts), so the locks the two composed workflows
-   carry do nothing there. Only the outer workflow's lock stops two applies,
-   or an apply and Medusa's own line-item route, from interleaving.
+   compare the captured amount with the cart's total (facts). Applying a code
+   therefore refreshes the collection under a cart lock, and the local wrapper
+   around Medusa's payment-session route takes that same lock before session
+   creation. Both use a unique runtime owner and a 600-second lease. The lease
+   may expire during an exceptional stall; V1 accepts that residual race rather
+   than adding fencing, recovery state or an operator procedure.
 9. **Baldrick is unchanged in kind.** LD-05's constraints 2, 5 and 7 stand: no
    network call, no figure, nothing stored. He names one code and says where to
    type it. The cart states what it costs. He cannot apply it, and must not say
@@ -334,13 +332,11 @@ recomputed on the removal and again on the addition. A version composed from
 and Medusa would capture that.
 
 **Its own lock, first and last.** `acquireLockStep` on the cart id before step
-1 and `releaseLockStep` after step 4, the shape both composed workflows use at
-top level. Their lock steps are skipped inside it (constraint 8), so this is
-the only lock there is. It keeps two concurrent applies — a double-submit, two
-tabs — and Medusa's own line-item route off the cart until the removal and the
-addition have both run. `store-api.test.ts` fires two applies at once against a
-running Medusa and asserts one surcharge line, as
-`printful-submission.test.ts` tests its race.
+1 and owner-matched `releaseLockStep` after step 4. Their lock steps are skipped
+inside it (constraint 8), so this is the only lock there is. Its unique owner
+and 600-second lease serialize normal concurrent applies without allowing a
+late release to delete a successor's lock. `store-api.test.ts` fires two
+applies at once against a running Medusa and asserts one surcharge line.
 
 A refusal is `422` with a stable reason — `unknown_code`, `no_certificate`,
 `completed` — that the storefront maps to copy. Status text is not parsed.
@@ -538,6 +534,11 @@ fabricated totals binds an operator's report too, because an operator will
 repeat what it says. A surcharge whose metadata a visitor has stripped counts as
 `unknown code` rather than disappearing.
 
+**Paid means captured.** A non-draft order counts only when it has at least one
+positive payment collection and every positive collection has
+`captured_amount >= amount`. A later refund does not erase the historical
+conversion.
+
 **It reads whichever runtime database the command is connected to.** The
 operator supplies `test` or `live`, as `npm run report:discounts -- test` or
 `-- live`. The first report-owned line prints that label as operator supplied;
@@ -555,7 +556,15 @@ reaches output.
 ### D10 — Gate D, Gate E with a real code, and the record
 
 **Repository:** `lousydeal`.
-**Files:** the findings, in this document; `docs/working/status.md`.
+**Files:** `backend/src/workflows/apply-surcharge.ts`,
+`backend/src/api/store/payment-collections/[id]/payment-sessions/route.ts`,
+`backend/src/scripts/report-discounts.ts`,
+`backend/tests/cart-payment-lock.test.ts`,
+`backend/tests/discount-report.test.ts`,
+`storefront/src/app/checkout/PaymentForm.tsx`,
+`storefront/src/app/checkout/page.tsx`,
+`storefront/tests/checkout-address.test.ts`, this document,
+`docs/working/status.md`.
 
 - [ ] Review every row against the contract, pay with a code on the test
       environment, and read everything it produced.
@@ -567,9 +576,10 @@ Gate E, on the test environment carrying D1–D9, at 390px and desktop:
 2. see the surcharge as its own row and the total §9 draws, then remove it and
    re-apply it with scripting off;
 3. change tier and see it re-priced;
-4. **open the payment authorisation first, go back, apply the code, and return**
-   — the row is above the total, and Stripe's PaymentIntent is for the new
-   total, not the old one (constraint 8);
+4. after postage is attached, see the displayed total change to Medusa's new
+   total before a payment session is created; edit the address and see the
+   amount settle again; then open checkout, go back, replace the code and
+   return, and verify Stripe uses the new coded total (constraint 8);
 5. pay, with a mug in the cart so Printful is exercised;
 6. read the certificate — `AMOUNT WASTED` includes the surcharge;
 7. read the counter, and the § 55 confirmation's surcharge line and sentence;
@@ -609,6 +619,11 @@ checked against the repository before it was accepted.
 | **D7 Gate D.** The forbidden-code guard was case-sensitive even though the backend normalises lowercase input | Made the all-prose guard token-aware and case-insensitive, with lowercase mutations for all three codes Baldrick does not issue |
 | **D8 task review.** The copy guards admitted the exact old sole-postage phrase, could borrow line wording across paragraphs, and did not reject named codes, percentages, money figures or an unqualified price promise robustly | Scoped postage and adjustment assertions to their own paragraphs, rejected every named-code/rate/amount leak on both public surfaces, and proved the guards with realistic mutations |
 | **D8 Gate D.** Even paragraph-scoped adjustment timing could be satisfied by the later removal sentence's “before you pay” | Extracted the adjustment disclosure sentence and bound its own-line, amount, locations and timing assertions to that sentence; changing only its timing to “after you pay” now fails |
+| **D10 Gate D.** Checkout kept rendering the server total after postage changed it | The payment form now owns the ledger, shows no stale number while quoting, and accepts Medusa's returned total only after serialized address writes settle |
+| **D10 independent review.** Superseded quotes could invalidate a same-priced session; checkout completion re-triggered quoting; Pay could enable before a replacement session arrived | Every unsettled quote invalidates the session comparison, completed orders stop quoting, and readiness requires the session's postage to match the settled quote. Astra's final pass was clean |
+| **D10 Gate D.** D9 counted every order row as paid | The query now includes payment collections and counts only non-draft orders with all positive obligations captured; later refunds remain historical conversions |
+| **D10 Gate D.** D4 used a shared owner and ten-second lease | Both price mutation and payment-session creation now use unique owners and a 600-second cart lease |
+| **D10 correction.** The first analysis blamed a swallowed payment-session deletion failure | The enclosing deletion workflow is strict. The actual uncovered race was stock payment-session creation against price mutation, so a thin local route wrapper locks the linked cart around Medusa's handler |
 
 ## What this slice does not do
 
@@ -622,6 +637,7 @@ checked against the repository before it was accepted.
 | Expiry, usage limits, per-customer codes | No usage yet justifies them. A code is a committed row, and changing one is a pull request |
 | An admin screen for codes | Same. §25: no CMS for a tiny amount of copy |
 | Medusa promotions | §9 forbids it: a promotion cannot raise a price |
+| Durable lock fencing or manual orphan recovery | Pre-launch traffic is minimal. Unique ownership prevents stale release, and the 600-second lease self-clears; an exceptional expiry/replay race is accepted for V1 |
 | Closing the legal gate | The operator, with a qualified human reader. §23 |
 
 ## OWNER MUST FILL

@@ -30,6 +30,13 @@ const surcharge = (code: unknown, extraMetadata: Record<string, unknown> = {}): 
 
 const entity = (id: string, items: readonly Line[]): DiscountQueryEntity => ({ id, items });
 
+const paidOrder = (id: string, items: readonly Line[], capturedAmount: unknown = "6") => ({
+  ...entity(id, items),
+  status: "pending",
+  is_draft_order: false,
+  payment_collections: [{ amount: "6", captured_amount: capturedAmount }],
+});
+
 describe("discount report counts", () => {
   it("keeps every committed code in table order and counts BLACKFRIDAY's zero-value line", () => {
     // Regression caught: deriving buckets from truthy price or input order
@@ -50,7 +57,7 @@ describe("discount report counts", () => {
     ]);
   });
 
-  it("counts incomplete and completed carts as carts, and orders as paid", () => {
+  it("counts incomplete and completed carts as carts, and supplied paid orders separately", () => {
     // Regression caught: treating a completed cart as an order, or excluding
     // it from current cart rows, would invent customers and distort the ratio.
     const carts = [
@@ -178,7 +185,7 @@ type QueryCall = {
   readonly filters: Record<string, unknown>;
 };
 
-function executable(rows: Readonly<Record<string, readonly DiscountQueryEntity[]>>) {
+function executable(rows: Readonly<Record<string, readonly unknown[]>>) {
   const logs: string[] = [];
   const queryCalls: QueryCall[] = [];
   const query = {
@@ -227,18 +234,62 @@ describe("Medusa discount report command", () => {
     // surcharge rows into absent or unknown rows.
     const command = executable({
       cart: [entity("cart_1", [surcharge("SAVE10")])],
-      order: [entity("order_1", [surcharge("SAVE10")])],
+      order: [paidOrder("order_1", [surcharge("SAVE10")])],
     });
 
     await command.run([environment]);
 
     expect(command.queryCalls).toEqual([
-      { entity: "cart", fields: ["id", "items.variant_id", "items.metadata"], filters: {} },
-      { entity: "order", fields: ["id", "items.variant_id", "items.metadata"], filters: {} },
+      {
+        entity: "cart",
+        fields: ["id", "items.variant_id", "items.metadata"],
+        filters: {},
+      },
+      {
+        entity: "order",
+        fields: [
+          "id",
+          "status",
+          "is_draft_order",
+          "items.variant_id",
+          "items.metadata",
+          "payment_collections.amount",
+          "payment_collections.captured_amount",
+        ],
+        filters: {},
+      },
     ]);
     expect(command.logs[0]).toBe(
       `Environment: ${environment} (operator supplied; this command reads the connected runtime database)`,
     );
     expect(command.logs).toContain("SAVE10: carts=1 paid orders=1 conversion=100.0%");
+  });
+
+  it("counts only non-draft orders whose positive payment obligations are fully captured", async () => {
+    const refundedAfterCapture = {
+      ...paidOrder("order_refunded", [surcharge("BALDRICK20")]),
+      payment_collections: [{ amount: "6", captured_amount: "6", refunded_amount: "6" }],
+    };
+    const command = executable({
+      cart: [entity("cart_1", [surcharge("BALDRICK20")])],
+      order: [
+        paidOrder("order_paid", [surcharge("BALDRICK20")]),
+        paidOrder("order_partial", [surcharge("BALDRICK20")], "5.99"),
+        {
+          ...paidOrder("order_draft", [surcharge("BALDRICK20")]),
+          status: "draft",
+          is_draft_order: true,
+        },
+        {
+          ...paidOrder("order_zero", [surcharge("BALDRICK20")]),
+          payment_collections: [{ amount: 0, captured_amount: 0 }],
+        },
+        refundedAfterCapture,
+      ],
+    });
+
+    await command.run(["test"]);
+
+    expect(command.logs).toContain("BALDRICK20: carts=1 paid orders=2 conversion=200.0%");
   });
 });

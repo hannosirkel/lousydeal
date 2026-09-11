@@ -7,7 +7,7 @@
  */
 
 import type { ExecArgs } from "@medusajs/framework/types";
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
+import { ContainerRegistrationKeys, MathBN } from "@medusajs/framework/utils";
 
 import {
   discountReport,
@@ -25,7 +25,46 @@ function environmentFrom(args: readonly string[]): DiscountReportEnvironment {
   return args[0];
 }
 
-const REPORT_FIELDS = ["id", "items.variant_id", "items.metadata"] as const;
+const CART_REPORT_FIELDS = ["id", "items.variant_id", "items.metadata"] as const;
+const ORDER_REPORT_FIELDS = [
+  "id",
+  "status",
+  "is_draft_order",
+  "items.variant_id",
+  "items.metadata",
+  "payment_collections.amount",
+  "payment_collections.captured_amount",
+] as const;
+
+interface DiscountQueryOrder extends DiscountQueryEntity {
+  readonly status?: unknown;
+  readonly is_draft_order?: unknown;
+  readonly payment_collections?:
+    | readonly ({
+        readonly amount?: unknown;
+        readonly captured_amount?: unknown;
+      } | null)[]
+    | null;
+}
+
+/** Historical conversion: later refunds do not undo a completed capture. */
+export function isPaidDiscountOrder(order: DiscountQueryOrder): boolean {
+  if (order.is_draft_order === true || order.status === "draft") return false;
+  if (!Array.isArray(order.payment_collections)) return false;
+
+  try {
+    const obligations = order.payment_collections.filter(
+      (collection): collection is NonNullable<typeof collection> =>
+        collection !== null && MathBN.gt(collection.amount, 0),
+    );
+    return (
+      obligations.length > 0 &&
+      obligations.every((collection) => MathBN.gte(collection.captured_amount, collection.amount))
+    );
+  } catch {
+    return false;
+  }
+}
 
 export default async function reportDiscounts({ container, args }: ExecArgs): Promise<void> {
   // Validate before resolving even the logger: a rejected invocation cannot
@@ -36,15 +75,16 @@ export default async function reportDiscounts({ container, args }: ExecArgs): Pr
 
   const { data: carts } = await query.graph({
     entity: "cart",
-    fields: [...REPORT_FIELDS],
+    fields: [...CART_REPORT_FIELDS],
     filters: {},
   });
   const { data: orders } = await query.graph({
     entity: "order",
-    fields: [...REPORT_FIELDS],
+    fields: [...ORDER_REPORT_FIELDS],
     filters: {},
   });
 
-  const report = discountReport(carts as DiscountQueryEntity[], orders as DiscountQueryEntity[]);
+  const paidOrders = (orders as DiscountQueryOrder[]).filter(isPaidDiscountOrder);
+  const report = discountReport(carts as DiscountQueryEntity[], paidOrders);
   for (const line of renderDiscountReport(report, environment)) logger.info(line);
 }
