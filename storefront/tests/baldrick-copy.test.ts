@@ -17,6 +17,10 @@
  * a label say anything.
  */
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -38,6 +42,16 @@ const LINES: ReadonlyArray<readonly [string, string]> = Object.entries(BALDRICK_
   ),
 );
 
+const removeApprovedDiscountCode = (line: string): string => line.replaceAll("BALDRICK20", "");
+
+function surchargeCodesTable(source: string): string {
+  const start = source.indexOf("export const SURCHARGE_CODES");
+  if (start === -1) throw new Error("SURCHARGE_CODES table not found in backend surcharge source");
+  const end = source.indexOf("];", start);
+  if (end === -1) throw new Error("SURCHARGE_CODES table is not closed in backend surcharge source");
+  return source.slice(start, end + 2);
+}
+
 /**
  * The two document titles, which he is allowed to say verbatim.
  *
@@ -50,12 +64,15 @@ const TITLES = /Refunds and Withdrawal|Imprint/g;
 
 describe("no figure, ever", () => {
   it("states no digit anywhere", () => {
+    // Replacing the live code with any other code or a near-match must still
+    // trip this guard; Baldrick may name BALDRICK20 and no other figure.
     // Widest form on purpose. `$0.00` is the site's signature line and it is
     // not his -- but so are "14 days", "3 of our customers" and "5 euros", and
     // one rule covers all four. The decision this encodes: **Baldrick says the
     // worth in words, never in figures.** He is not the price tag.
-    const offending = LINES.filter(([, line]) => /\d/.test(line));
+    const offending = LINES.filter(([, line]) => /\d/.test(removeApprovedDiscountCode(line)));
     expect(offending).toEqual([]);
+    expect(removeApprovedDiscountCode("BALDRICK200")).toMatch(/\d/);
   });
 
   it("states no currency and no percentage", () => {
@@ -68,6 +85,41 @@ describe("no figure, ever", () => {
     // findable; he is allowed to be too lazy to read it out, not to pretend it
     // does not exist.
     expect(BALDRICK_SCRIPT.price?.say.flat().join(" ")).toMatch(/price/i);
+  });
+});
+
+describe("the live discount", () => {
+  it("names the one backend-supported code without a figure or an application claim", () => {
+    // A stale future-tense step, a different code, a figure, or a claim to
+    // have changed the cart would make Baldrick lie about a checkout he cannot
+    // see or operate.
+    const lines = BALDRICK_SCRIPT.discount?.say.flat() ?? [];
+    const detail = BALDRICK_SCRIPT.discount_detail?.say.flat() ?? [];
+    const discount = lines.join(" ");
+
+    expect(lines).toEqual([
+      "There is a discount code.",
+      "It is BALDRICK20. Type it on the order summary. It makes your deal worse.",
+    ]);
+    expect(detail).toEqual([
+      "You type it on the order summary and the total goes up.",
+      "I was not told why. I did not ask.",
+    ]);
+    expect(discount).not.toMatch(/[$€£]|\bpercent\b|\bper cent\b|%/i);
+    expect(discount).not.toMatch(/\b(?:I|we) (?:have |had )?applied\b/i);
+    expect(discount).not.toMatch(/SAVE10|FREE|BLACKFRIDAY/);
+  });
+
+  it("names a code declared by the backend surcharge table", () => {
+    // If the backend removes or renames BALDRICK20, issuing it here would send
+    // a buyer to an order summary that cannot honour it.
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../backend/src/commerce/surcharge.ts"),
+      "utf8",
+    );
+    const codes = [...surchargeCodesTable(source).matchAll(/\bcode:\s*"([^"]+)"/g)].map((match) => match[1]);
+
+    expect(codes).toContain("BALDRICK20");
   });
 });
 
