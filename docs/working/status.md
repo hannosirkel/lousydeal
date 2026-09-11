@@ -9,7 +9,7 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-11 |
 | Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
-| In flight | **D7**, branch `deal/ld06-d7-baldrick`, worktree `~/app/.worktrees/lousydeal/ld06-d7`; independently reviewed and preparing its pull request. Baldrick now issues only `BALDRICK20`, points to the order summary, states no figure and claims no application. D0–D6 merged as pull requests #199–#205 |
+| In flight | **D7** pull request #206, branch `deal/ld06-d7-baldrick`, worktree `~/app/.worktrees/lousydeal/ld06-d7`; independently reviewed and awaiting the operator's merge. Final validation passed 92 files and 2,517 tests. Baldrick now issues only `BALDRICK20`, points to the order summary, states no figure and claims no application. D0–D6 merged as pull requests #199–#205 |
 | Next action | Once D7 merges, execute **D8** (correct the Terms and home-page price statements) |
 | Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
 
