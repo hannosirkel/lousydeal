@@ -311,19 +311,20 @@ describe("the subscriber", () => {
   });
 
   it("passes the server-owned surcharge title and line total into the sent confirmation", async () => {
-    // A recomputation from the €46.195 order and €5 certificate would yield
-    // €41.20, not the surcharge line's €1.01. EUR plus the half-cent boundary
-    // also rejects a hard-coded "$"/toFixed display in place of Intl.
+    // A recomputation from the €46.20 order and €5 certificate would yield
+    // €41.20, not the surcharge line's €1.01. EUR rejects a hard-coded
+    // "$"/toFixed display in place of Intl while keeping Medusa's two-decimal
+    // wire values intact.
     // Hostile metadata proves it is not a display source either.
     const { notifications, errors } = await run(ENVIRONMENT, "buyer@example.test", {
-      total: new BigNumber(46.195),
+      total: new BigNumber(46.2),
       currencyCode: "eur",
     }, [
       { title: "Lousy Deal", product_handle: "lousy-deal", variant_id: "variant_certificate", total: new BigNumber(5), detail: { quantity: 1 } },
       {
         title: "Discount (BALDRICK20) <&>",
         variant_id: null,
-        total: new BigNumber(1.005),
+        total: new BigNumber(1.01),
         detail: { quantity: 1 },
         metadata: { title: "Forged adjustment", total: 999 },
       },

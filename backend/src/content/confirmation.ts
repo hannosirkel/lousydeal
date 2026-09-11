@@ -118,8 +118,8 @@ export const CONFIRMATION_ALSO_POSTED =
 export const CONFIRMATION_PAID = (hasPostedGoods: boolean, hasSurcharge: boolean): string => {
   if (hasSurcharge) {
     return hasPostedGoods
-      ? "Every price shown was the price charged, and it includes value added tax where value added tax applies. Postage and the code increase were added, and each was quoted and shown to you as its own line before you paid. There was no tax line or charge you were not shown first."
-      : "The price shown was the price charged. It includes value added tax where value added tax applies. The code increase was added, quoted and shown to you as its own line before you paid. There was no tax line or charge you were not shown first.";
+      ? "Every price shown was the price charged, and it includes value added tax where value added tax applies. Postage and the code adjustment were added, and each was quoted and shown to you as its own line before you paid. There was no tax line or charge you were not shown first."
+      : "The price shown was the price charged. It includes value added tax where value added tax applies. The code adjustment was added, quoted and shown to you as its own line before you paid. There was no tax line or charge you were not shown first.";
   }
 
   return hasPostedGoods
