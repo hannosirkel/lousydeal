@@ -42,14 +42,16 @@ const LINES: ReadonlyArray<readonly [string, string]> = Object.entries(BALDRICK_
   ),
 );
 
-const removeApprovedDiscountCode = (line: string): string => line.replaceAll("BALDRICK20", "");
+const removeApprovedDiscountCode = (line: string): string =>
+  line.replace(/(^|[^A-Za-z0-9])BALDRICK20(?=$|[^A-Za-z0-9])/g, "$1");
 
 function surchargeCodesTable(source: string): string {
-  const start = source.indexOf("export const SURCHARGE_CODES");
+  const uncommented = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  const start = uncommented.indexOf("export const SURCHARGE_CODES");
   if (start === -1) throw new Error("SURCHARGE_CODES table not found in backend surcharge source");
-  const end = source.indexOf("];", start);
+  const end = uncommented.indexOf("];", start);
   if (end === -1) throw new Error("SURCHARGE_CODES table is not closed in backend surcharge source");
-  return source.slice(start, end + 2);
+  return uncommented.slice(start, end + 2);
 }
 
 /**
@@ -73,6 +75,8 @@ describe("no figure, ever", () => {
     const offending = LINES.filter(([, line]) => /\d/.test(removeApprovedDiscountCode(line)));
     expect(offending).toEqual([]);
     expect(removeApprovedDiscountCode("BALDRICK200")).toMatch(/\d/);
+    expect(removeApprovedDiscountCode("BALDRICK20X")).toMatch(/\d/);
+    expect(removeApprovedDiscountCode("XBALDRICK20")).toMatch(/\d/);
   });
 
   it("states no currency and no percentage", () => {
@@ -107,7 +111,7 @@ describe("the live discount", () => {
     ]);
     expect(discount).not.toMatch(/[$€£]|\bpercent\b|\bper cent\b|%/i);
     expect(discount).not.toMatch(/\b(?:I|we) (?:have |had )?applied\b/i);
-    expect(discount).not.toMatch(/SAVE10|FREE|BLACKFRIDAY/);
+    expect(PROSE).not.toMatch(/SAVE10|FREE|BLACKFRIDAY/);
   });
 
   it("names a code declared by the backend surcharge table", () => {
@@ -120,6 +124,17 @@ describe("the live discount", () => {
     const codes = [...surchargeCodesTable(source).matchAll(/\bcode:\s*"([^"]+)"/g)].map((match) => match[1]);
 
     expect(codes).toContain("BALDRICK20");
+  });
+
+  it("does not treat a commented-out backend code as declared", () => {
+    // A commented entry has no checkout behavior. Treating it as a live code
+    // would let Baldrick issue a code the backend no longer honours.
+    const commentedOut = `export const SURCHARGE_CODES = [
+  // { code: "BALDRICK20", kind: "percentage", percentage: 20 },
+];`;
+    const codes = [...surchargeCodesTable(commentedOut).matchAll(/\bcode:\s*"([^"]+)"/g)].map((match) => match[1]);
+
+    expect(codes).not.toContain("BALDRICK20");
   });
 });
 
