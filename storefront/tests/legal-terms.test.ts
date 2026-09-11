@@ -23,6 +23,16 @@ const section = (number: string) => {
   return found.body.join("\n");
 };
 
+/** A single public paragraph, when a guarantee belongs to one kind of charge. */
+const paragraph = (number: string, index: number) => {
+  const found = TERMS.sections.find((candidate) => candidate.number === number);
+  const body = found?.body[index];
+  if (body === undefined) throw new Error(`the Terms have no paragraph ${index + 1} in §${number}`);
+  return body;
+};
+
+const forbiddenAdjustmentDetails = /\b(?:BALDRICK20|SAVE10|FREE|BLACKFRIDAY)\b|\b\d+(?:\.\d+)?%|[$€£]\s*\d|\b\d+(?:\.\d{2})?\s*(?:USD|EUR|dollars|euros)\b/i;
+
 describe("what is sold", () => {
   it("says plainly that a buyer receives a certificate and nothing else of value", () => {
     // The one clause the whole shop turns on. §23: the customer sees exactly
@@ -91,11 +101,21 @@ describe("price and tax", () => {
   });
 
   it("does not preserve the obsolete no-addition promises or copy an amount", () => {
-    // These former claims became false when an optional code line shipped;
-    // money figures belong to the API-backed order, never durable prose.
+    // D8 replaces each claim because D3/D5 added a removable code line; money
+    // figures still belong to the API-backed order, never durable prose.
     const s = section("3");
-    expect(s).not.toMatch(/\bno fee\b|nothing whatever|postage is the only addition/i);
+    expect(s).not.toMatch(/\bno fee\b|nothing whatever|postage is the one thing|postage is the only addition/i);
     expect(s).not.toMatch(/[$€£]\s*\d|\b\d+(?:\.\d{2})?\s*(?:EUR|USD)\b/i);
+  });
+
+  it("does not name a code or disclose its percentage or money figure", () => {
+    // D8 intentionally says only that an optional code adjustment exists. A
+    // real code such as BALDRICK20, its rate, or a quoted adjustment amount
+    // would make durable legal copy drift from the backend-backed order.
+    const s = section("3");
+    expect(s).not.toMatch(forbiddenAdjustmentDetails);
+    expect("BALDRICK20 adds 20%").toMatch(forbiddenAdjustmentDetails);
+    expect("BALDRICK20 adds $1.00").toMatch(forbiddenAdjustmentDetails);
   });
 
   it("says who bears the VAT, since it is not the buyer", () => {
@@ -213,12 +233,13 @@ describe("posting a thing, which this shop had never done", () => {
 
   it("keeps postage as a separate visible line", () => {
     // D8 adds a removable code line, so postage is no longer the sole possible
-    // addition. It remains separately quoted before payment for posted goods.
-    const s = section("3");
-    expect(s).toMatch(/postage is added/i);
-    expect(s).toMatch(/own line/i);
-    expect(s).toMatch(/before you pay, never afterwards/i);
-    expect(s).toMatch(/the certificate is not posted and carries none/i);
+    // addition. It remains separately quoted before payment for posted goods;
+    // the adjustment paragraph must not be able to satisfy this assurance.
+    const postage = paragraph("3", 2);
+    expect(postage).toMatch(/postage is added/i);
+    expect(postage).toMatch(/own line/i);
+    expect(postage).toMatch(/before you pay, never afterwards/i);
+    expect(postage).toMatch(/the certificate is not posted and carries none/i);
   });
 
   it("flags import charges without inventing a figure for them", () => {
