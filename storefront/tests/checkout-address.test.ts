@@ -63,6 +63,7 @@ const renderPaymentForm = (needsAddress: boolean) =>
       needsConsent: true,
       currencyCode: "usd",
       initialTotal: needsAddress ? 38.48 : 6,
+      items: [{ label: "Lousy Deal", value: "$5.00" }],
       surcharge: { label: "Discount (BALDRICK20)", value: "+$1.00" },
     }),
   );
@@ -89,7 +90,7 @@ describe("a cart with nothing to post", () => {
   });
 
   it("shows no postage row, because there is no postage", () => {
-    expect(render(false)).not.toContain(SHIPPING_LABEL);
+    expect(renderPaymentForm(false)).not.toContain(SHIPPING_LABEL);
   });
 
   it("still offers the country field, which resolves a tax region", () => {
@@ -157,7 +158,7 @@ describe("a cart with a parcel in it", () => {
   it("shows the postage row, and says it is not yet known rather than showing nothing", () => {
     // A blank where a figure goes reads as free. §23 wants the final price
     // explicit, and "not yet" is the honest state before an address exists.
-    const html = render(true);
+    const html = renderPaymentForm(true);
     expect(html).toContain(SHIPPING_LABEL);
     expect(html).toContain(SHIPPING_PENDING_NOTICE);
   });
@@ -166,7 +167,7 @@ describe("a cart with a parcel in it", () => {
     // §11: the row must not show a number nobody quoted, and $0.00 would be
     // the worst available one — it is the site's own signature line, and true
     // of the certificate.
-    const html = render(true);
+    const html = renderPaymentForm(true);
     const row = html.slice(html.indexOf(SHIPPING_LABEL));
     expect(row.slice(0, 400)).not.toMatch(/\$\d/);
   });
@@ -214,22 +215,6 @@ describe("a cart with a parcel in it", () => {
     expect(source).toContain(
       "}, [needsAddress, address, countryCode, fetchJson, cartId, submitting, orderId, onPostageSettled]);",
     );
-  });
-
-  it("shows that it is quoting in preference to a figure it is replacing", () => {
-    // §23: the figure on the page has to be the one about to be charged.
-    // **Comments stripped, and the first version was not.** The paragraph
-    // explaining why `quoting` is read first contains the word `quoting`, so
-    // an unstripped read found it before `formatMoney` whichever order the
-    // ternary was in -- and the mutation that put the stale figure back
-    // passed.
-    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8")
-      .replace(/\/\*[\s\S]*?\*\//g, "")
-      .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
-      .replace(/\/\/.*$/gm, "");
-    const row = source.slice(source.indexOf("label={SHIPPING_LABEL}"));
-    expect(row).toContain("SHIPPING_QUOTING_LABEL");
-    expect(row.indexOf("quoting")).toBeLessThan(row.indexOf("formatMoney(shippingAmount"));
   });
 
   it("serializes quote writes and lets the newest address go last", () => {

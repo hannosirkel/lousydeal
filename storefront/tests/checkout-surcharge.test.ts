@@ -149,7 +149,15 @@ describe("getCheckoutCart", () => {
     // null and not absent, D1's title, `unit_price` in major units.
     const { lines } = await getCheckoutCart(
       answer([
-        { id: "li_1", quantity: 1, product_handle: "lousy-deal", variant_id: "variant_cert", title: "Lousy Deal", unit_price: 5 },
+        {
+          id: "li_1",
+          quantity: 1,
+          product_handle: "lousy-deal",
+          variant_id: "variant_cert",
+          variant_title: "Standard",
+          title: "Lousy Deal",
+          unit_price: 5,
+        },
         {
           id: "li_2",
           quantity: 1,
@@ -164,8 +172,22 @@ describe("getCheckoutCart", () => {
     );
 
     expect(lines).toEqual([
-      { quantity: 1, handle: "lousy-deal", variantId: "variant_cert", title: "Lousy Deal", unitPrice: 5 },
-      { quantity: 1, handle: null, variantId: null, title: "Discount (BALDRICK20)", unitPrice: 1 },
+      {
+        quantity: 1,
+        handle: "lousy-deal",
+        variantId: "variant_cert",
+        variantTitle: "Standard",
+        title: "Lousy Deal",
+        unitPrice: 5,
+      },
+      {
+        quantity: 1,
+        handle: null,
+        variantId: null,
+        variantTitle: null,
+        title: "Discount (BALDRICK20)",
+        unitPrice: 1,
+      },
     ]);
     expect(lines.filter(isSurchargeLine)).toHaveLength(1);
   });
@@ -194,6 +216,7 @@ interface RenderedLine {
   readonly handle: string | null;
   readonly quantity: number;
   readonly variantId?: string | null;
+  readonly variantTitle?: string | null;
   readonly title?: string | null;
   readonly unitPrice?: number;
 }
@@ -220,7 +243,7 @@ async function renderCheckout(lines: readonly RenderedLine[], total = 6): Promis
       currencyCode: "usd",
       total,
       quantities: lines.map((line) => line.quantity),
-      lines: lines.map((line) => ({ title: null, unitPrice: Number.NaN, ...line })),
+      lines: lines.map((line) => ({ title: null, variantTitle: null, unitPrice: Number.NaN, ...line })),
     }),
   }));
 
@@ -248,7 +271,7 @@ describe("the authorisation, for a cart carrying a surcharge", () => {
     const html = await renderCheckout([{ ...certificate(), title: "Lousy Deal", unitPrice: 5 }, PRICED_SURCHARGE]);
 
     expect(html).toContain(PAYMENT_NEEDS_SCRIPTING);
-    expect(ledgerLabels(html)).toEqual(["Discount (BALDRICK20)", CART_LABELS.total]);
+    expect(ledgerLabels(html)).toEqual(["Lousy Deal", "Discount (BALDRICK20)", CART_LABELS.total]);
     expect(html).toContain("+$1.00");
     expect(html).toContain("$6.00");
   });
@@ -256,9 +279,34 @@ describe("the authorisation, for a cart carrying a surcharge", () => {
   it("shows no such row for a cart without one", async () => {
     const html = await renderCheckout([{ ...certificate(), title: "Lousy Deal", unitPrice: 5 }], 5);
 
-    expect(ledgerLabels(html)).toEqual([CART_LABELS.total]);
+    expect(ledgerLabels(html)).toEqual(["Lousy Deal", CART_LABELS.total]);
     expect(html).not.toContain("+$");
     expect(html).not.toContain("Discount");
+  });
+
+  it("lists every ordinary cart line before the adjustment, postage and total", async () => {
+    const html = await renderCheckout(
+      [
+        { ...mug(), title: "Original Purchase Receipt", variantTitle: "L", unitPrice: 32 },
+        { ...certificate(), title: "Lousy Deal", variantTitle: "Standard", unitPrice: 5 },
+        { quantity: 2, handle: "anything-added-later", variantId: "variant_future", title: "Future merch", variantTitle: "Blue", unitPrice: 4.5 },
+        PRICED_SURCHARGE,
+      ],
+      53.47,
+    );
+
+    expect(ledgerLabels(html)).toEqual([
+      "Original Purchase Receipt — L",
+      "Lousy Deal — Standard",
+      "Future merch — Blue",
+      "Discount (BALDRICK20)",
+      "Postage",
+      CART_LABELS.total,
+    ]);
+    expect(html).toContain("$32.00");
+    expect(html).toContain("$5.00");
+    expect(html).toContain("2 × $4.50");
+    expect(html).toContain("+$1.00");
   });
 
   it("refuses a doubled surcharge with its own notice, and prints no figure for it", async () => {

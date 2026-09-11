@@ -82,7 +82,14 @@ async function renderCheckout(options: {
       currencyCode: "usd",
       total: 25,
       quantities: (options.lines ?? []).map(([, quantity]) => quantity),
-      lines: (options.lines ?? []).map(([handle, quantity]) => ({ handle, quantity })),
+      lines: (options.lines ?? []).map(([handle, quantity], index) => ({
+        handle,
+        quantity,
+        variantId: `variant_${String(index)}`,
+        variantTitle: null,
+        title: handle ?? "Cart item",
+        unitPrice: 5,
+      })),
     }),
     setCartCountry: async () => ({ countryCode: "ee", taxTotal: undefined }),
   }));

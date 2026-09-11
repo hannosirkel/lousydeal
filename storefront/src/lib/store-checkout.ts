@@ -33,8 +33,8 @@ export interface CheckoutCart {
   /**
    * One quantity per line, in the order the API returned them. C3a.
    *
-   * Only the surcharge row is rendered from `lines`, so this is not a second
-   * cart page and must not grow into one.
+   * Payment authorisation renders `lines` as the final order ledger, without
+   * the cart page's mutation controls.
    *
    * An empty array for a cart with no lines, which is a state the page has its
    * own document for -- not an error this function refuses on, because a cart
@@ -50,10 +50,8 @@ export interface CheckoutCart {
    * `null` where Medusa gave none, which its own line item permits.
    *
    * LD-06 D3: and a surcharge, told by `variant_id` being `null` on the wire
-   * (`./surcharge.ts`). That is the one line this page prints beside the
-   * total, so each line also carries the title and `unit_price` the row is
-   * drawn from. The caution above still stands: only the surcharge row is
-   * rendered here, and a merch line's title and price are read and not shown.
+   * (`./surcharge.ts`). Payment authorisation renders every ordinary line and
+   * the surcharge, so each line carries its title, variant title and price.
    */
   readonly lines: readonly CheckoutLine[];
 }
@@ -67,6 +65,8 @@ export interface CheckoutLine extends CartLine {
   readonly variantId: string | null | undefined;
   /** The line's title as Medusa wrote it, or `null` where none came back. `surchargeLabel` decides what that prints as. */
   readonly title: string | null;
+  /** The variant detail shown beside the product title, such as a shirt size. */
+  readonly variantTitle: string | null;
   /**
    * Medusa's `unit_price`, major units, or `NaN` where it was unreadable --
    * kept rather than dropped, as `quantity` is, and never a figure this
@@ -111,6 +111,11 @@ function lineTitle(item: unknown): string | null {
   return typeof title === "string" && title.trim().length > 0 ? title : null;
 }
 
+function lineVariantTitle(item: unknown): string | null {
+  const title = (item as { readonly variant_title?: unknown } | null)?.variant_title;
+  return typeof title === "string" && title.trim().length > 0 ? title : null;
+}
+
 function lineUnitPrice(item: unknown): number {
   const unitPrice = (item as { readonly unit_price?: unknown } | null)?.unit_price;
   return typeof unitPrice === "number" && Number.isFinite(unitPrice) ? unitPrice : Number.NaN;
@@ -139,6 +144,7 @@ export async function getCheckoutCart(fetchJson: FetchJson, cartId: string): Pro
     handle: lineHandle(item),
     variantId: lineVariantId(item),
     title: lineTitle(item),
+    variantTitle: lineVariantTitle(item),
     unitPrice: lineUnitPrice(item),
   }));
 
