@@ -1,8 +1,7 @@
 # Social media kit
 
 This directory contains the shared Lousy Deal account identity. Use the PNG
-files for uploads. Keep the SVG files as editable masters. The profile master
-is the existing [`icon.svg`](../storefront/src/app/icon.svg).
+files for uploads. Keep the SVG files as editable masters.
 
 | Service | Profile image | Cover or post image |
 | --- | --- | --- |
@@ -47,7 +46,8 @@ accept a system font fallback.
 
 Use this description for `profile.png`:
 
-> A red double-ring receipt stamp on an off-white paper background.
+> A red double-ring receipt stamp containing the words Lousy Deal on an
+> off-white paper background.
 
 Use this description for the cover and card images:
 
