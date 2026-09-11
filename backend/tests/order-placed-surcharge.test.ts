@@ -163,7 +163,7 @@ describe("what the certificate is issued for", () => {
     expect(errors).toEqual([]);
     expect(issued).toHaveLength(1);
     expect(issued[0]).toMatchObject({ tier: "Lousy Deal", amountPaid: 6 });
-    // `hasPostedGoods` counts Printful's lines, and a surcharge is never one.
+    // The confirmation's merchandise list excludes a surcharge.
     expect(String((notifications[0]?.content as { text?: string })?.text)).not.toContain("also contained printed goods");
   });
 
@@ -176,8 +176,7 @@ describe("what the certificate is issued for", () => {
     expect(errors).toEqual([]);
     expect(issued[0]).toMatchObject({ amountPaid: 6 });
 
-    // The same call the subscriber makes for the parcel and for
-    // `hasPostedGoods`, on the same lines.
+    // The parcel and confirmation classify the same ordinary order lines.
     const plan = printfulSubmissionFrom(order(items), HANDLES, AT);
     expect(plan?.input.lines).toEqual([{ sku: "LD-MUG-11", quantity: 1 }]);
     expect(plan?.unorderable).toBe(0);

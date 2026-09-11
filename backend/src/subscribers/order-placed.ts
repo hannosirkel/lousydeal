@@ -36,6 +36,7 @@ interface OrderPlacedEvent {
 
 interface QueriedOrderItem {
   readonly title?: unknown;
+  readonly variant_title?: unknown;
   readonly product_handle?: unknown;
   readonly variant_id?: unknown;
   readonly total?: unknown;
@@ -147,6 +148,40 @@ function lineQuantity(item: QueriedOrderItem): number | null {
   return amount(item.detail?.quantity) ?? amount(item.quantity);
 }
 
+interface ConfirmationMerchLine {
+  readonly title: string;
+  readonly variantTitle: string | null;
+  readonly quantity: number;
+  readonly total: number;
+}
+
+const CERTIFICATE_HANDLES = new Set(PRODUCT_TIERS.map((tier) => tier.handle));
+const CERTIFICATE_TITLES = new Set(PRODUCT_TIERS.map((tier) => tier.title));
+
+/** The identity rule shared by issuance and the confirmation's merch exclusion. */
+function isCertificateLine(item: QueriedOrderItem): boolean {
+  return (
+    CERTIFICATE_HANDLES.has(text(item.product_handle) ?? "") ||
+    CERTIFICATE_TITLES.has(text(item.title) ?? "")
+  );
+}
+
+/** The complete printed-goods list for the durable confirmation, or `null` if any line is unreadable. */
+function confirmationMerchandise(
+  items: readonly QueriedOrderItem[] | null | undefined,
+): readonly ConfirmationMerchLine[] | null {
+  if (!Array.isArray(items)) return null;
+  const merchandise: ConfirmationMerchLine[] = [];
+  for (const item of items.filter((line) => !isSurchargeLine(line) && !isCertificateLine(line))) {
+    const title = text(item.title);
+    const quantity = lineQuantity(item);
+    const total = amount(item.total);
+    if (title === null || quantity === null || !Number.isInteger(quantity) || quantity < 1 || total === null) return null;
+    merchandise.push({ title, variantTitle: text(item.variant_title), quantity, total });
+  }
+  return merchandise;
+}
+
 /**
  * Two major amounts, added as integer cents.
  *
@@ -189,11 +224,7 @@ function addMajor(first: number, second: number): number {
 function certificateLine(items: readonly QueriedOrderItem[] | null | undefined): CertificateLine {
   if (!Array.isArray(items)) return { kind: "unreadable", reason: "no items" };
 
-  const handles = new Set(PRODUCT_TIERS.map((tier) => tier.handle));
-  const titles = new Set(PRODUCT_TIERS.map((tier) => tier.title));
-  const certificates = items.filter(
-    (item) => handles.has(text(item.product_handle) ?? "") || titles.has(text(item.title) ?? ""),
-  );
+  const certificates = items.filter(isCertificateLine);
 
   // Nothing to issue, and nothing wrong. LD-04 lets a cart hold merch, so an
   // order of one mug is a complete and correct order that produces no
@@ -262,6 +293,7 @@ export default async function orderPlaced({
         "created_at",
         "metadata",
         "items.title",
+        "items.variant_title",
         // LD-04 P6a. Which line is the certificate, and what was paid for
         // *it* -- not for the order, which may now also hold a mug.
         "items.product_handle",
@@ -308,6 +340,7 @@ export default async function orderPlaced({
     await submitMerch({ container, logger, order, orderId });
 
     const line = certificateLine(order?.items);
+    const merchandise = confirmationMerchandise(order?.items);
     // Still read, and still required. LD-04 P6a moved the *certificate's*
     // amount onto its own line; the § 55 confirmation is about the order and
     // states what the order cost, so an unreadable order total is still a
@@ -337,6 +370,7 @@ export default async function orderPlaced({
     if (
       order?.id === undefined ||
       line.kind === "unreadable" ||
+      merchandise === null ||
       total === null ||
       currencyCode === null ||
       Number.isNaN(issuedAt.getTime())
@@ -349,7 +383,7 @@ export default async function orderPlaced({
       logger.error(
         `deal issuance skipped for order ${orderId}: ` +
           `certificate=${certificate} total=${total ?? "none"} currency=${currencyCode ?? "none"} ` +
-          `issued_at=${Number.isNaN(issuedAt.getTime()) ? "none" : "ok"}`,
+          `issued_at=${Number.isNaN(issuedAt.getTime()) ? "none" : "ok"} merchandise=${merchandise === null ? "unreadable" : "ok"}`,
       );
       return;
     }
@@ -385,9 +419,7 @@ export default async function orderPlaced({
       deal,
       orderId,
       tier: line.tier,
-      // Decided from the same lines `printfulSubmissionFrom` reads, so the
-      // confirmation and the parcel cannot disagree about whether there is one.
-      hasPostedGoods: (printfulSubmissionFrom(order, PRODUCT_TIERS.map((t) => t.handle), new Date())?.input.lines.length ?? 0) > 0,
+      merchandise,
       surcharge: line.surcharge,
     });
   } catch (error) {
@@ -523,7 +555,7 @@ async function sendConfirmation({
   deal,
   orderId,
   tier,
-  hasPostedGoods,
+  merchandise,
   surcharge,
 }: {
   container: SubscriberArgs<OrderPlacedEvent>["container"];
@@ -531,8 +563,8 @@ async function sendConfirmation({
   order: QueriedOrder;
   deal: IssuedDeal;
   orderId: string;
-  /** Whether the order carried anything posted. § 55(2) is about the order, not the certificate. */
-  hasPostedGoods: boolean;
+  /** Every readable printed order line. § 55(2) is about the order, not only the certificate. */
+  merchandise: readonly ConfirmationMerchLine[];
   /** The validated variant-less line; title and total are never read from metadata. */
   surcharge: { readonly title: string; readonly total: number } | null;
   /**
@@ -593,7 +625,12 @@ async function sendConfirmation({
       // happened and this function's input was rebuilt from the order; the row
       // is the record of what was actually stored. G1 put the gift on
       // `IssuedDeal` for exactly this.
-      hasPostedGoods,
+      merchandise: merchandise.map((item) => ({
+        title: item.title,
+        variantTitle: item.variantTitle,
+        quantity: item.quantity,
+        total: formatMoney(item.total),
+      })),
       surcharge: surcharge === null ? null : { title: surcharge.title, total: formatMoney(surcharge.total) },
       giftRecipientAddress: deal.gift_recipient_email,
     },

@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-11 |
 | Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
-| In flight | **D10** Gate E follow-up PR #210, branch `deal/ld06-d10-ledger`, worktree `~/app/.worktrees/lousydeal/ld06-d10-ledger`. PR #209 merged, then Gate E found Payment authorisation omitted every ordinary cart line while retaining their total. The correction renders all non-surcharge lines, including future merch types, before surcharge, postage and total. Validation passes 94 files and 2,549 tests; Astra's independent review is clean. D0–D9 are merged as pull requests #199–#208 |
-| Next action | Let PR #210 pass CI and deploy to test, then resume Gate E before payment |
+| In flight | **D10** Gate E confirmation correction, branch `deal/ld06-d10-close`, worktree `~/app/.worktrees/lousydeal/ld06-d10-close`. PRs #209 and #210 are merged. The first paid coded order exposed a second omission: its confirmation acknowledged printed goods without listing them. The correction carries every merch line into both email bodies. D0–D9 are merged as pull requests #199–#208 |
+| Next action | Review, open and deploy the confirmation correction; complete a fresh coded Stripe test-mode checkout with merch, then read the certificate, counter, confirmation, order and Printful submission, and run `report:discounts` against test |
 | Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
 
 Nothing in this file is a secret. No credential value, no live private hostname,

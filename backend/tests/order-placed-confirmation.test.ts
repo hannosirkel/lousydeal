@@ -206,10 +206,13 @@ describe("the subscriber", () => {
     });
 
     it("matches on the title too, because Medusa's product_handle is nullable", async () => {
-      const { issued } = await run(ENVIRONMENT, "buyer@example.test", null, [
+      const { issued, notifications } = await run(ENVIRONMENT, "buyer@example.test", null, [
         { title: "Lousy Deal Pro", total: 25, detail: { quantity: 1 } },
       ]);
       expect(issued[0]).toMatchObject({ tier: "Lousy Deal Pro", amountPaid: 25 });
+      const confirmation = String((notifications[0]?.content as { text?: string })?.text);
+      expect(confirmation).not.toContain("Printed item: Lousy Deal Pro");
+      expect(confirmation).not.toContain("also contained printed goods");
     });
 
     it("issues nothing for an order with no certificate, and says so loudly", async () => {
@@ -337,6 +340,49 @@ describe("the subscriber", () => {
     expect(content.text).toContain("Total paid: €46.20");
     expect(content.text).not.toContain("Forged adjustment");
     expect(content.html).toContain("Discount (BALDRICK20) &lt;&amp;&gt;: +€1.01");
+  });
+
+  it("passes every merchandise line into the durable confirmation", async () => {
+    const { notifications, errors } = await run(ENVIRONMENT, "buyer@example.test", {
+      total: new BigNumber(46),
+      currencyCode: "usd",
+    }, [
+      {
+        title: "Original Purchase Receipt",
+        variant_title: "L",
+        product_handle: "original-purchase-receipt",
+        variant_id: "variant_shirt_l",
+        variant_sku: "LD-SHIRT-L",
+        total: new BigNumber(32),
+        detail: { quantity: new BigNumber(1) },
+      },
+      {
+        title: "Lousy Deal",
+        variant_title: "Standard",
+        product_handle: "lousy-deal",
+        variant_id: "variant_certificate",
+        total: new BigNumber(5),
+        detail: { quantity: new BigNumber(1) },
+      },
+      {
+        title: "Future merch",
+        variant_title: "Blue",
+        product_handle: "anything-added-later",
+        variant_id: "variant_future",
+        variant_sku: "LD-FUTURE-BLUE",
+        total: new BigNumber(9),
+        detail: { quantity: new BigNumber(2) },
+      },
+    ]);
+
+    expect(errors).toEqual([]);
+    const content = notifications[0]?.content as { text: string; html: string };
+    const first = "Printed item: Original Purchase Receipt — L — quantity 1 — $32.00";
+    const second = "Printed item: Future merch — Blue — quantity 2 — $9.00";
+    expect(content.text).toContain(first);
+    expect(content.text).toContain(second);
+    expect(content.text.indexOf(first)).toBeLessThan(content.text.indexOf(second));
+    expect(content.html).toContain(second);
   });
 
   it("sends nothing, and says which part is missing, when the deployment is not configured for it", async () => {
