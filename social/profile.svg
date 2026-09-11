@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Lousy Deal profile mark</title>
+  <desc id="description">A red double-ring receipt stamp containing the words Lousy Deal on off-white paper.</desc>
+  <defs>
+    <style>
+      @font-face { font-family: "IBM Plex Mono"; src: url("../storefront/public/fonts/IBMPlexMono-Bold.ttf"); font-weight: 700; }
+    </style>
+  </defs>
+  <rect width="1024" height="1024" fill="#fafaf7"/>
+  <circle cx="512" cy="512" r="456" fill="#b3261e"/>
+  <circle cx="512" cy="512" r="440" fill="#fafaf7"/>
+  <circle cx="512" cy="512" r="408" fill="#b3261e"/>
+  <circle cx="512" cy="512" r="392" fill="#fafaf7"/>
+  <g fill="#141412" font-family="IBM Plex Mono, monospace" font-size="176" font-weight="700" text-anchor="middle">
+    <text x="512" y="480" textLength="580" lengthAdjust="spacing">LOUSY</text>
+    <text x="512" y="650" textLength="465" lengthAdjust="spacing">DEAL</text>
+  </g>
+</svg>
