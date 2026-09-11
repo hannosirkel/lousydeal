@@ -183,11 +183,33 @@ describe("the table's second layout", () => {
 });
 
 describe("the terms of this offer", () => {
-  it("says what is bought, when it arrives, what it costs, and what is consented to", () => {
+  it("keeps the offer's four lines and its product and supply promises", () => {
     expect(TERMS_OF_OFFER).toHaveLength(4);
     expect(TERMS_OF_OFFER[0]).toContain("nothing else of value");
     expect(TERMS_OF_OFFER[1]).toContain("immediately");
-    expect(TERMS_OF_OFFER[2]).toContain("price shown is the price charged");
+  });
+
+  it("discloses the optional removable code adjustment before payment", () => {
+    // D8 corrects the home-page promise after D3/D5 made a buyer-entered code
+    // adjustment visible. These are properties, not a frozen marketing line.
+    const price = TERMS_OF_OFFER[2] ?? "";
+    expect(price).toMatch(/includes VAT where VAT applies/i);
+    expect(price).toMatch(/discount code is optional/i);
+    expect(price).toMatch(/choose to enter one on the order summary/i);
+    expect(price).toMatch(/can raise the price and never lowers it/i);
+    expect(price).toMatch(/own line, with its amount/i);
+    expect(price).toMatch(/remove it before you pay/i);
+    expect(price).toMatch(/payment authorisation is the amount charged/i);
+  });
+
+  it("keeps postage separate without the obsolete sole-addition or price promise", () => {
+    // A code line means neither "one thing" nor an unqualified offer-price
+    // charge claim is true. Posted goods still disclose postage before pay.
+    const price = TERMS_OF_OFFER[2] ?? "";
+    expect(price).toMatch(/postage is added only if you put something in the cart that has to be posted/i);
+    expect(price).toMatch(/shown as its own line before you pay/i);
+    expect(price).not.toMatch(/\bone thing\b/i);
+    expect(price).not.toMatch(/^The price shown is the price charged(?:\.|$)/i);
   });
 
   it("does not claim the right of withdrawal is already gone", () => {

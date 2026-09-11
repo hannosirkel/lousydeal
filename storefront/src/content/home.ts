@@ -93,7 +93,7 @@ export const TERMS_OF_OFFER_TITLE = "Terms of this offer";
 export const TERMS_OF_OFFER: readonly string[] = [
   "You receive a numbered digital certificate and nothing else of value. That is the product, not a caveat.",
   "It is supplied immediately after payment.",
-  "The price shown is the price charged. It includes VAT where VAT applies. The one thing that can be added at checkout is postage, and only if you put something in the cart that has to be posted — you are shown what it costs before you pay.",
+  "The price shown includes VAT where VAT applies. A discount code is optional: if you choose to enter one on the order summary, it can raise the price and never lowers it. Its adjustment is shown there as its own line, with its amount, and you can remove it before you pay. Postage is added only if you put something in the cart that has to be posted, and it too is shown as its own line before you pay. The total at the payment authorisation is the amount charged.",
   "At checkout you are asked to consent to that immediate supply, and to acknowledge that you would thereby lose the 14-day right of withdrawal. The box is not ticked for you. We send the confirmation that losing the right also takes, and we still do not treat the right as gone.",
 ];
 
