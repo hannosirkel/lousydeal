@@ -63,7 +63,6 @@ import {
   COUNTRY_LABEL,
   SHIPPING_LABEL,
   SHIPPING_PENDING_NOTICE,
-  SHIPPING_QUOTING_LABEL,
   SHIPPING_UNAVAILABLE_NOTICE,
   EMAIL_HINT,
   EMAIL_LABEL,
@@ -143,6 +142,8 @@ interface PaymentFormProps {
   readonly currencyCode: string;
   /** The cart total returned by Medusa when the server rendered this page. */
   readonly initialTotal: number;
+  /** Every ordinary cart line, already formatted from Medusa's response. */
+  readonly items: readonly { readonly label: string; readonly value: string }[];
   /** The optional server-priced adjustment shown immediately above the total. */
   readonly surcharge?: { readonly label: string; readonly value: string };
   /** Price disclosures which must remain between the total and the form. */
@@ -169,6 +170,7 @@ export function PaymentForm({
   needsConsent,
   currencyCode,
   initialTotal,
+  items,
   surcharge,
   children,
 }: PaymentFormProps) {
@@ -390,7 +392,22 @@ export function PaymentForm({
   return (
     <>
       <Ledger>
+        {items.map((item, index) => (
+          <LedgerRow key={index} label={item.label} value={item.value} />
+        ))}
         {surcharge === undefined ? null : <LedgerRow label={surcharge.label} value={surcharge.value} />}
+        {needsAddress ? (
+          <LedgerRow
+            label={SHIPPING_LABEL}
+            value={
+              cartPrice.status === "unavailable"
+                ? SHIPPING_UNAVAILABLE_NOTICE
+                : postage === null
+                  ? SHIPPING_PENDING_NOTICE
+                  : formatMoney(postage, currencyCode)
+            }
+          />
+        ) : null}
         <LedgerRow
           label={CART_LABELS.total}
           value={
@@ -467,7 +484,7 @@ interface PayButtonProps {
   readonly needsAddress: boolean;
   /** LD-04 P10: this cart holds a certificate, so there is consent to ask for. */
   readonly needsConsent: boolean;
-  /** The cart's own currency, for the postage row. */
+  /** Kept in the exported form's stable test and caller contract. */
   readonly currencyCode: string;
   /**
    * The `<Elements>` subtree, rendered where the card fields belong.
@@ -511,7 +528,6 @@ export function PayButton({
   countries,
   needsAddress,
   needsConsent,
-  currencyCode,
   cardSlot,
   stripeReady,
   confirmPayment,
@@ -1016,28 +1032,6 @@ export function PayButton({
         </select>
       </p>
 
-      {/* The postage, once there is one. Never a guess: a failure shows a
-          notice carrying no figure at all, because §11 forbids a fabricated
-          one and §23 requires the final price to be explicit. */}
-      {needsAddress ? (
-        <Ledger>
-          <LedgerRow
-            label={SHIPPING_LABEL}
-            value={
-              // **`quoting` is read first, and Gate D is why.** A re-quote
-              // for an edited address leaves the previous figure in
-              // `shippingAmount`, so the old order of these two showed the
-              // buyer a number that was already being replaced -- the one
-              // reading §23 requires to be the price they are about to pay.
-              quoting
-                ? SHIPPING_QUOTING_LABEL
-                : shippingAmount !== null
-                  ? formatMoney(shippingAmount, currencyCode)
-                  : SHIPPING_PENDING_NOTICE
-            }
-          />
-        </Ledger>
-      ) : null}
       {shippingError === null ? null : <p className="notice payment-error">{shippingError}</p>}
 
       {/* LD-04 P10: absent, not disabled, for a cart with no certificate in

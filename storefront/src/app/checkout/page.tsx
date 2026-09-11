@@ -58,6 +58,17 @@ import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-sessio
 import { isSurchargeLine, surchargeLabel, surchargeValue } from "../../lib/surcharge";
 import { PaymentForm } from "./PaymentForm";
 
+function lineLabel(title: string, variantTitle: string | null): string {
+  const detail = variantTitle?.trim() ?? "";
+  if (detail.length === 0 || detail === title || detail === "Default variant") return title;
+  return `${title} — ${detail}`;
+}
+
+function lineValue(quantity: number, unitPrice: number, currencyCode: string): string {
+  const price = formatMoney(unitPrice, currencyCode);
+  return quantity === 1 ? price : `${String(quantity)} × ${price}`;
+}
+
 export default async function CheckoutPage() {
   await connection();
   const cookieStore = await cookies();
@@ -145,6 +156,7 @@ export default async function CheckoutPage() {
   const needsAddress = cartNeedsAddress(cart.lines, certificateHandles);
   const hasCertificate = cartHasCertificate(cart.lines, certificateHandles);
   const surcharge = cart.lines.find(isSurchargeLine);
+  const items = cart.lines.filter((line) => !isSurchargeLine(line));
 
   return (
     <main>
@@ -159,6 +171,10 @@ export default async function CheckoutPage() {
           countries={region.countries ?? []}
           currencyCode={cart.currencyCode}
           initialTotal={cart.total}
+          items={items.map((line) => ({
+            label: lineLabel(line.title ?? line.variantId ?? "Cart item", line.variantTitle),
+            value: lineValue(line.quantity, line.unitPrice, cart.currencyCode),
+          }))}
           surcharge={
             surcharge === undefined
               ? undefined

@@ -587,6 +587,16 @@ Gate E, on the test environment carrying D1–D9, at 390px and desktop:
    Printful submission, which holds the mug and no surcharge;
 9. read `report:discounts` against that environment.
 
+**Gate E failed before payment on 2026-09-11.** The cart showed the shirt,
+certificate and surcharge, but Payment authorisation showed only the surcharge
+and total. PR #209 had already merged, so D10 needs one follow-up PR. Its files
+are `storefront/src/app/checkout/PaymentForm.tsx`,
+`storefront/src/app/checkout/page.tsx`, `storefront/src/lib/store-checkout.ts`,
+the four affected storefront tests, this document and
+`docs/working/status.md`. The fix
+renders every non-surcharge line returned by Medusa, in order and without a
+product allowlist, followed by surcharge, postage and total.
+
 ## What the review changed
 
 Fable reviewed this plan three times on 2026-09-10, before any row ran. The
@@ -621,6 +631,7 @@ checked against the repository before it was accepted.
 | **D8 Gate D.** Even paragraph-scoped adjustment timing could be satisfied by the later removal sentence's “before you pay” | Extracted the adjustment disclosure sentence and bound its own-line, amount, locations and timing assertions to that sentence; changing only its timing to “after you pay” now fails |
 | **D10 Gate D.** Checkout kept rendering the server total after postage changed it | The payment form now owns the ledger, shows no stale number while quoting, and accepts Medusa's returned total only after serialized address writes settle |
 | **D10 independent review.** Superseded quotes could invalidate a same-priced session; checkout completion re-triggered quoting; Pay could enable before a replacement session arrived | Every unsettled quote invalidates the session comparison, completed orders stop quoting, and readiness requires the session's postage to match the settled quote. Astra's final pass was clean |
+| **D10 Gate E.** Payment authorisation omitted the shirt and certificate even though its total included them | It now renders every ordinary cart line with variant detail and quantity before surcharge, postage and total; the regression uses an unknown future merch handle to exclude a hard-coded allowlist |
 | **D10 Gate D.** D9 counted every order row as paid | The query now includes payment collections and counts only non-draft orders with all positive obligations captured; later refunds remain historical conversions |
 | **D10 Gate D.** D4 used a shared owner and ten-second lease | Both price mutation and payment-session creation now use unique owners and a 600-second cart lease |
 | **D10 correction.** The first analysis blamed a swallowed payment-session deletion failure | The enclosing deletion workflow is strict. The actual uncovered race was stock payment-session creation against price mutation, so a thin local route wrapper locks the linked cart around Medusa's handler |
