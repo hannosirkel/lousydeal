@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" role="img" aria-labelledby="title description">
+  <title id="title">Lousy Deal social media card</title>
+  <desc id="description">A receipt ledger states: item, nothing; price, five dollars; value, zero dollars; return, minus one hundred percent.</desc>
+  <rect width="1080" height="1080" fill="#fafaf7"/>
+  <g font-family="IBM Plex Mono, monospace">
+    <text x="96" y="154" fill="#141412" font-size="62" font-weight="700" textLength="545" lengthAdjust="spacing">LOUSYDEAL.COM</text>
+    <text x="96" y="205" fill="#6b6b66" font-size="24" font-style="italic">Purveyors of objectively bad value</text>
+    <line x1="96" y1="250" x2="984" y2="250" stroke="#141412" stroke-width="3"/>
+    <g fill="#6b6b66" font-size="34" font-weight="700">
+      <text x="96" y="410" textLength="92" lengthAdjust="spacing">ITEM</text>
+      <text x="96" y="560" textLength="113" lengthAdjust="spacing">PRICE</text>
+      <text x="96" y="710" textLength="113" lengthAdjust="spacing">VALUE</text>
+      <text x="96" y="860" textLength="135" lengthAdjust="spacing">RETURN</text>
+    </g>
+    <g stroke="#6b6b66" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 12">
+      <line x1="290" y1="400" x2="655" y2="400"/>
+      <line x1="290" y1="550" x2="655" y2="550"/>
+      <line x1="290" y1="700" x2="655" y2="700"/>
+      <line x1="290" y1="850" x2="655" y2="850"/>
+    </g>
+    <g fill="#141412" font-size="42" font-weight="700" text-anchor="end">
+      <text x="984" y="410">NOTHING</text>
+      <text x="984" y="560">$5.00</text>
+      <text x="984" y="710">$0.00</text>
+      <text x="984" y="860" fill="#b3261e">-100%</text>
+    </g>
+    <line x1="96" y1="930" x2="984" y2="930" stroke="#141412" stroke-width="3"/>
+    <line x1="96" y1="942" x2="984" y2="942" stroke="#141412" stroke-width="3"/>
+  </g>
+</svg>
