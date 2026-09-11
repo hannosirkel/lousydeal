@@ -419,9 +419,10 @@ D10 still performs the planned rendered 390px Gate E review.
 **Files:** `backend/src/notifications/order-confirmation.ts`,
 `backend/src/content/confirmation.ts`,
 `backend/src/subscribers/order-placed.ts`,
-`backend/tests/order-confirmation.test.ts`.
+`backend/tests/order-confirmation.test.ts`,
+`backend/tests/order-placed-confirmation.test.ts`.
 
-- [ ] Name the surcharge in the § 55 confirmation, and stop its price sentence
+- [x] Name the surcharge in the § 55 confirmation, and stop its price sentence
       saying nothing was added.
 
 A legal row, run on the authority recorded at the head (constraint 12).
@@ -592,6 +593,8 @@ checked against the repository before it was accepted.
 | **D5 Gate D.** The cart overview still promised “one button” after D5 added its code and removal controls | Reworded the overview around its primary route onward, without asserting a control count |
 | D5's allowlist was implemented but its tests covered only accepted refusal reasons | Added adversarial `422`-reason and stable-reason-at-`500` cases; both must rethrow rather than redirect |
 | D5 deliberately suppresses the re-price failure after removing the stale surcharge | Kept the specified safe fallback. It exposes neither a bearer cart id nor an unstable backend error; the freshly read cart shows that the code is gone |
+| **D6 task review.** The subscriber fixture let `order total - certificate total` reproduce the surcharge and exercised only whole-dollar USD formatting | Made the totals independent and used EUR through the subscriber's real `Intl.NumberFormat` boundary |
+| **D6 Gate D.** “Code increase” was false for `BLACKFRIDAY`'s real zero-value line, and the strengthened fixture used three-decimal money outside Medusa's measured wire shape | Changed both paid sentences to “code adjustment”, added `+$0.00` coverage with and without postage, and restored two-decimal EUR fixtures |
 
 ## What this slice does not do
 

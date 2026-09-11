@@ -98,7 +98,7 @@ describe("the subscriber", () => {
     // fires on an explicitly passed `undefined` as well as an omitted one, and
     // one of the refusal cases below is exactly an order whose total is
     // undefined. Key presence is what distinguishes them.
-    money: { readonly total: unknown } | null = null,
+    money: { readonly total: unknown; readonly currencyCode?: string } | null = null,
     // LD-04 P6a. Which lines the order has, when a case is about that rather
     // than about money.
     items: readonly Record<string, unknown>[] | null = null,
@@ -118,7 +118,7 @@ describe("the subscriber", () => {
       const order = {
         id: "order_01",
         email: orderEmail,
-        currency_code: "usd",
+        currency_code: money?.currencyCode ?? "usd",
         total: orderTotal,
         created_at: "2026-09-06T10:00:00.000Z",
         metadata: {},
@@ -308,6 +308,35 @@ describe("the subscriber", () => {
     expect(content.subject).toContain("#4,102");
     expect(content.text).toMatch(/§ 55 of the Estonian Law of Obligations Act/);
     expect(content.text).toContain(`${SITE}/done-deals/xbts2k3mmv3trv3n`);
+  });
+
+  it("passes the server-owned surcharge title and line total into the sent confirmation", async () => {
+    // A recomputation from the €46.20 order and €5 certificate would yield
+    // €41.20, not the surcharge line's €1.01. EUR rejects a hard-coded
+    // "$"/toFixed display in place of Intl while keeping Medusa's two-decimal
+    // wire values intact.
+    // Hostile metadata proves it is not a display source either.
+    const { notifications, errors } = await run(ENVIRONMENT, "buyer@example.test", {
+      total: new BigNumber(46.2),
+      currencyCode: "eur",
+    }, [
+      { title: "Lousy Deal", product_handle: "lousy-deal", variant_id: "variant_certificate", total: new BigNumber(5), detail: { quantity: 1 } },
+      {
+        title: "Discount (BALDRICK20) <&>",
+        variant_id: null,
+        total: new BigNumber(1.01),
+        detail: { quantity: 1 },
+        metadata: { title: "Forged adjustment", total: 999 },
+      },
+      { title: "This Mug Cost Extra", product_handle: "this-mug-cost-extra", variant_id: "variant_mug", total: new BigNumber(40.19), detail: { quantity: 1 } },
+    ]);
+
+    expect(errors).toEqual([]);
+    const content = notifications[0]?.content as { text: string; html: string };
+    expect(content.text).toContain("Discount (BALDRICK20) <&>: +€1.01");
+    expect(content.text).toContain("Total paid: €46.20");
+    expect(content.text).not.toContain("Forged adjustment");
+    expect(content.html).toContain("Discount (BALDRICK20) &lt;&amp;&gt;: +€1.01");
   });
 
   it("sends nothing, and says which part is missing, when the deployment is not configured for it", async () => {

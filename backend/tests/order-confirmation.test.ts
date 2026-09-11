@@ -339,6 +339,78 @@ describe("a certificate-only order, which must not have gained any of that", () 
   });
 });
 
+describe("an order with a code adjustment", () => {
+  it("places the shown surcharge before the total in both durable bodies", () => {
+    // A mutation that ignores the surcharge, swaps its order with the total,
+    // or leaves the certificate-only "nothing was added" statement intact
+    // would make the buyer's permanent record false.
+    const message = buildOrderConfirmation(
+      {
+        ...DEAL,
+        total: "$6.00",
+        surcharge: { title: "Discount (BALDRICK20) <&>", total: "$1.00" },
+      },
+      MERCHANT,
+      SITE,
+    );
+
+    for (const body of [message?.text ?? "", message?.html ?? ""]) {
+      const surcharge = body.indexOf("Discount (BALDRICK20)");
+      const total = body.indexOf("Total paid: $6.00");
+      expect(surcharge).toBeGreaterThan(-1);
+      expect(surcharge).toBeLessThan(total);
+      expect(body).toMatch(/code adjustment.*shown.*before you paid/i);
+      expect(body).not.toMatch(/nothing was added at checkout|There was no tax line, no fee/i);
+    }
+
+    expect(message?.text).toContain("Discount (BALDRICK20) <&>: +$1.00");
+    expect(message?.html).toContain("Discount (BALDRICK20) &lt;&amp;&gt;: +$1.00");
+  });
+
+  it("keeps the postage facts while naming the code adjustment", () => {
+    // A surcharge must add to, not replace, the facts a parcel order needs.
+    const text = buildOrderConfirmation(
+      {
+        ...DEAL,
+        hasPostedGoods: true,
+        total: "$21.00",
+        surcharge: { title: "Discount (BALDRICK20)", total: "$1.00" },
+      },
+      MERCHANT,
+      SITE,
+    )?.text ?? "";
+
+    expect(text).toContain("Discount (BALDRICK20): +$1.00");
+    expect(text).toMatch(/Postage.*code adjustment.*shown.*before you paid/i);
+    expect(text).toMatch(/value added tax/i);
+    expect(text).not.toMatch(/There was no tax line, no fee/i);
+  });
+
+  it("calls a zero-value code line an adjustment in both order shapes", () => {
+    // BLACKFRIDAY writes a real $0.00 surcharge line. Calling it an increase
+    // would make the durable record false even though its displayed amount is
+    // correct.
+    for (const [hasPostedGoods, expected] of [
+      [false, /The code adjustment was added.*shown.*before you paid/i],
+      [true, /Postage and the code adjustment were added.*shown.*before you paid/i],
+    ] as const) {
+      const text = buildOrderConfirmation(
+        {
+          ...DEAL,
+          hasPostedGoods,
+          surcharge: { title: "Discount (BLACKFRIDAY)", total: "$0.00" },
+        },
+        MERCHANT,
+        SITE,
+      )?.text ?? "";
+
+      expect(text).toContain("Discount (BLACKFRIDAY): +$0.00");
+      expect(text).toMatch(expected);
+      expect(text).not.toMatch(/code increase/i);
+    }
+  });
+});
+
 describe("what the subscriber tells the confirmation", () => {
   /**
    * **A mutation that made `hasPostedGoods` permanently false survived every
