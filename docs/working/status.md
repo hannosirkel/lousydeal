@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-11 |
 | Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
-| In flight | **D10** single correction PR, branch `deal/ld06-d10-gates`, worktree `~/app/.worktrees/lousydeal/ld06-d10`. Gate D corrected checkout total/session races, order rows counted without capture evidence, a shared short-lived surcharge-lock owner, and unlocked stock payment-session creation. Astra's final review is clean; validation passes 94 files and 2,549 tests. D0–D9 are merged as pull requests #199–#208 |
-| Next action | Finish automated validation and independent review, open and deploy the D10 PR to test, then run Gate E with a real coded order and record its outputs |
+| In flight | **D10** pull request #209, branch `deal/ld06-d10-gates`, worktree `~/app/.worktrees/lousydeal/ld06-d10`. Gate D corrected checkout total/session races, paid-order evidence and cart locking. Astra's final review is clean; validation passes 94 files and 2,549 tests; commit `7864af4` passed CI and its images were promoted to test. D0–D9 are merged as pull requests #199–#208 |
+| Next action | Run D10 Gate E against PR #209's test deployment with a real coded Stripe order, record the outputs in the PR, then merge it |
 | Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
