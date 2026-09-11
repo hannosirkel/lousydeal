@@ -9,7 +9,7 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-11 |
 | Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
-| In flight | **D9** branch `deal/ld06-d9-report`, worktree `~/app/.worktrees/lousydeal/ld06-d9`; implementation and independent reviews complete, preparing its pull request. The operator report counts code-bearing carts and paid orders by safe code bucket, states that Baldrick requests are not measured, and requires an explicit operator-supplied `test` or `live` label. D0–D8 merged as pull requests #199–#207 |
+| In flight | **D9** pull request #208, branch `deal/ld06-d9-report`, worktree `~/app/.worktrees/lousydeal/ld06-d9`; independently reviewed and awaiting the operator's merge. Final validation passed 93 files and 2,539 tests. The operator report counts code-bearing carts and paid orders by safe code bucket, states that Baldrick requests are not measured, and requires an explicit operator-supplied `test` or `live` label. D0–D8 merged as pull requests #199–#207 |
 | Next action | Once D9 merges, execute **D10** (Gate D record and Gate E with a real code) |
 | Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
 
