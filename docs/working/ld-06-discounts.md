@@ -597,6 +597,14 @@ the four affected storefront tests, this document and
 renders every non-surcharge line returned by Medusa, in order and without a
 product allowlist, followed by surcharge, postage and total.
 
+**Gate E failed again after payment on 2026-09-11.** The durable confirmation
+said the order contained printed goods but did not list them; its subscriber
+had reduced all merchandise lines to one boolean before building the message.
+The D10 closure PR replaces that boolean with every non-certificate,
+non-surcharge order line, in Medusa's order, and prints each title, variant,
+quantity and line total in both email bodies. The classification has no merch
+allowlist, so later catalogue additions cannot silently disappear.
+
 ## What the review changed
 
 Fable reviewed this plan three times on 2026-09-10, before any row ran. The
@@ -632,6 +640,7 @@ checked against the repository before it was accepted.
 | **D10 Gate D.** Checkout kept rendering the server total after postage changed it | The payment form now owns the ledger, shows no stale number while quoting, and accepts Medusa's returned total only after serialized address writes settle |
 | **D10 independent review.** Superseded quotes could invalidate a same-priced session; checkout completion re-triggered quoting; Pay could enable before a replacement session arrived | Every unsettled quote invalidates the session comparison, completed orders stop quoting, and readiness requires the session's postage to match the settled quote. Astra's final pass was clean |
 | **D10 Gate E.** Payment authorisation omitted the shirt and certificate even though its total included them | It now renders every ordinary cart line with variant detail and quantity before surcharge, postage and total; the regression uses an unknown future merch handle to exclude a hard-coded allowlist |
+| **D10 Gate E.** The paid order confirmation acknowledged printed goods but did not identify any of them | The subscriber now passes every ordinary merchandise line to both durable email bodies, with title, variant, quantity and Medusa's line total; the parcel wording is derived from that list rather than a lossy boolean |
 | **D10 Gate D.** D9 counted every order row as paid | The query now includes payment collections and counts only non-draft orders with all positive obligations captured; later refunds remain historical conversions |
 | **D10 Gate D.** D4 used a shared owner and ten-second lease | Both price mutation and payment-session creation now use unique owners and a 600-second cart lease |
 | **D10 correction.** The first analysis blamed a swallowed payment-session deletion failure | The enclosing deletion workflow is strict. The actual uncovered race was stock payment-session creation against price mutation, so a thin local route wrapper locks the linked cart around Medusa's handler |

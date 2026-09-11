@@ -55,14 +55,13 @@ export interface ConfirmationDeal {
    * anybody, since they typed it.
    */
   readonly giftRecipientAddress: string | null;
-  /**
-   * Whether this order carried anything posted.
-   *
-   * The § 55 confirmation is about the **order**, not the certificate — § 55(2)
-   * requires the § 54(1) information for the whole of it. Gate D found five
-   * sentences here written when an order could only ever be one certificate.
-   */
-  readonly hasPostedGoods: boolean;
+  /** Every printed order line, already formatted by the caller that knows the currency. */
+  readonly merchandise: readonly {
+    readonly title: string;
+    readonly variantTitle: string | null;
+    readonly quantity: number;
+    readonly total: string;
+  }[];
   /** The server-owned surcharge order line, when the order has one. */
   readonly surcharge?: { readonly title: string; readonly total: string } | null;
 }
@@ -125,6 +124,14 @@ export function buildOrderConfirmation(
   const serial = formatSerial(deal.serial);
   const fill = (line: string) => resolve(line, merchant, siteBaseUrl);
   const surcharge = deal.surcharge ?? null;
+  const hasPostedGoods = deal.merchandise.length > 0;
+  const merchandise = deal.merchandise.map((item) => {
+    const detail = item.variantTitle?.trim() ?? "";
+    const title = detail.length === 0 || detail === item.title || detail === "Default variant"
+      ? item.title
+      : `${item.title} — ${detail}`;
+    return `Printed item: ${title} — quantity ${String(item.quantity)} — ${item.total}`;
+  });
 
   const sections: readonly (readonly [string, readonly string[]])[] = [
     [CONFIRMATION_HEADINGS.opening, [CONFIRMATION_OPENING]],
@@ -136,7 +143,8 @@ export function buildOrderConfirmation(
         `${CONFIRMATION_LABELS.issued}: ${deal.issuedOn}`,
         `${CONFIRMATION_LABELS.certificate}: ${deal.certificateUrl}`,
         CONFIRMATION_WHAT,
-        ...(deal.hasPostedGoods ? [CONFIRMATION_ALSO_POSTED] : []),
+        ...merchandise,
+        ...(hasPostedGoods ? [CONFIRMATION_ALSO_POSTED] : []),
         // G4. Present only on a gift, and additive: § 55(2) requires the
         // § 54(1) information whatever the order was for, so this joins the
         // section rather than replacing anything in it.
@@ -148,12 +156,12 @@ export function buildOrderConfirmation(
       [
         ...(surcharge === null ? [] : [`${surcharge.title}: +${surcharge.total}`]),
         `${CONFIRMATION_LABELS.total}: ${deal.total}`,
-        CONFIRMATION_PAID(deal.hasPostedGoods, surcharge !== null),
+        CONFIRMATION_PAID(hasPostedGoods, surcharge !== null),
       ],
     ],
     [CONFIRMATION_HEADINGS.trader, CONFIRMATION_TRADER.map(fill)],
-    [CONFIRMATION_HEADINGS.withdrawal, CONFIRMATION_WITHDRAWAL(deal.hasPostedGoods).map(fill)],
-    [CONFIRMATION_HEADINGS.consent, [...CONFIRMATION_CONSENT(deal.hasPostedGoods)]],
+    [CONFIRMATION_HEADINGS.withdrawal, CONFIRMATION_WITHDRAWAL(hasPostedGoods).map(fill)],
+    [CONFIRMATION_HEADINGS.consent, [...CONFIRMATION_CONSENT(hasPostedGoods)]],
     [CONFIRMATION_HEADINGS.form, [CONFIRMATION_FORM_INTRO, ...CONFIRMATION_FORM_LINES.map(fill)]],
     [CONFIRMATION_HEADINGS.complaints, CONFIRMATION_COMPLAINTS.map(fill)],
   ];

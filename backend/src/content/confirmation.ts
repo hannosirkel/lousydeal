@@ -106,7 +106,7 @@ export const CONFIRMATION_WHAT =
  * replacing what is said about the certificate.
  */
 export const CONFIRMATION_ALSO_POSTED =
-  "This order also contained printed goods, listed in your order summary. Those are ordinary objects: they are worth what such objects are worth, they were made after you ordered them, and they are posted to the address you gave. Nothing above about worthlessness is true of them.";
+  "This order also contained printed goods, listed above. Those are ordinary objects: they are worth what such objects are worth, they were made after you ordered them, and they are posted to the address you gave. Nothing above about worthlessness is true of them.";
 
 /**
  * § 54(1) p 6: the total price including taxes.

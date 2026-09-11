@@ -235,7 +235,7 @@ describe("the buyer's confirmation", () => {
     buildOrderConfirmation(
       {
         serial: 4102,
-        hasPostedGoods: false,
+        merchandise: [],
         tier: "Lousy Deal Pro",
         total: "$25.00",
         issuedOn: "2026-09-07",

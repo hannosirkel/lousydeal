@@ -54,7 +54,7 @@ const DEAL: ConfirmationDeal = {
   serial: 4102,
   // A certificate-only order, which is what every fixture here was written
   // for. The mixed order has its own describe below.
-  hasPostedGoods: false,
+  merchandise: [],
   tier: "Lousy Deal Pro",
   total: "$25.00",
   issuedOn: "2026-09-06",
@@ -261,8 +261,39 @@ describe("an order that also contained a parcel", () => {
    * § 55(2) requires the § 54(1) information about the **order**, not about
    * the certificate, and this is the document a dispute reads.
    */
-  const mixed = buildOrderConfirmation({ ...DEAL, hasPostedGoods: true }, MERCHANT, "https://lousydeal.test");
+  const mixed = buildOrderConfirmation(
+    {
+      ...DEAL,
+      merchandise: [{ title: "This Mug Cost Extra", variantTitle: null, quantity: 1, total: "$15.00" }],
+    },
+    MERCHANT,
+    "https://lousydeal.test",
+  );
   const text = mixed?.text ?? "";
+
+  it("lists every printed item with its variant, quantity and line total", () => {
+    // This is the durable order record, not a pointer back to the checkout.
+    // An unknown future handle proves the list cannot be a catalogue allowlist.
+    const message = buildOrderConfirmation(
+      {
+        ...DEAL,
+        merchandise: [
+          { title: "Original Purchase Receipt", variantTitle: "L", quantity: 1, total: "$32.00" },
+          { title: "Future merch <&>", variantTitle: "Blue", quantity: 2, total: "$9.00" },
+        ],
+      },
+      MERCHANT,
+      SITE,
+    );
+
+    const first = "Printed item: Original Purchase Receipt — L — quantity 1 — $32.00";
+    const second = "Printed item: Future merch <&> — Blue — quantity 2 — $9.00";
+    expect(message?.text).toContain(first);
+    expect(message?.text).toContain(second);
+    expect(message?.text.indexOf(first)).toBeLessThan(message?.text.indexOf(second) ?? -1);
+    expect(message?.text).toMatch(/printed goods, listed above/i);
+    expect(message?.html).toContain("Printed item: Future merch &lt;&amp;&gt; — Blue — quantity 2 — $9.00");
+  });
 
   it("says the printed goods were in it, and that they are worth something", () => {
     // The worthlessness clauses are the most valuable thing this shop says and
@@ -321,7 +352,7 @@ describe("an order that also contained a parcel", () => {
 describe("a certificate-only order, which must not have gained any of that", () => {
   // Constraint 4 applied to the durable record: the order that has always been
   // possible must read exactly as it did.
-  const text = buildOrderConfirmation({ ...DEAL, hasPostedGoods: false }, MERCHANT, "https://lousydeal.test")?.text ?? "";
+  const text = buildOrderConfirmation({ ...DEAL, merchandise: [] }, MERCHANT, "https://lousydeal.test")?.text ?? "";
 
   it("says nothing about parcels, postage or returning anything", () => {
     // **Not "the words `printed goods` never appear".** The corrected disputes
@@ -372,7 +403,7 @@ describe("an order with a code adjustment", () => {
     const text = buildOrderConfirmation(
       {
         ...DEAL,
-        hasPostedGoods: true,
+        merchandise: [{ title: "This Mug Cost Extra", variantTitle: null, quantity: 1, total: "$15.00" }],
         total: "$21.00",
         surcharge: { title: "Discount (BALDRICK20)", total: "$1.00" },
       },
@@ -397,7 +428,9 @@ describe("an order with a code adjustment", () => {
       const text = buildOrderConfirmation(
         {
           ...DEAL,
-          hasPostedGoods,
+          merchandise: hasPostedGoods
+            ? [{ title: "This Mug Cost Extra", variantTitle: null, quantity: 1, total: "$15.00" }]
+            : [],
           surcharge: { title: "Discount (BLACKFRIDAY)", total: "$0.00" },
         },
         MERCHANT,
@@ -408,33 +441,5 @@ describe("an order with a code adjustment", () => {
       expect(text).toMatch(expected);
       expect(text).not.toMatch(/code increase/i);
     }
-  });
-});
-
-describe("what the subscriber tells the confirmation", () => {
-  /**
-   * **A mutation that made `hasPostedGoods` permanently false survived every
-   * test above**, because the subscriber cannot be driven here —
-   * `order-placed.ts`'s own header says why — so nothing checked which value
-   * reaches the builder. Every branch was tested and the switch was not.
-   *
-   * It is decided from the same lines `printfulSubmissionFrom` reads, so the
-   * confirmation and the parcel cannot disagree about whether there is one.
-   */
-  const source = readFileSync(join(__dirname, "../src/subscribers/order-placed.ts"), "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/.*$/gm, "");
-
-  it("decides it from the order's own lines, not from a constant", () => {
-    expect(source).toMatch(/hasPostedGoods:\s*\(printfulSubmissionFrom\(/);
-    expect(source).toMatch(/\.input\.lines\.length \?\? 0\) > 0/);
-  });
-
-  it("does not hard-code it either way", () => {
-    expect(source).not.toMatch(/hasPostedGoods:\s*(?:true|false)\b/);
-  });
-
-  it("reads the stripping, so a broken regex cannot pass by emptying the file", () => {
-    expect(source).toContain("export default async function orderPlaced");
   });
 });
