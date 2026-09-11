@@ -23,6 +23,16 @@ const section = (number: string) => {
   return found.body.join("\n");
 };
 
+/** A single public paragraph, when a guarantee belongs to one kind of charge. */
+const paragraph = (number: string, index: number) => {
+  const found = TERMS.sections.find((candidate) => candidate.number === number);
+  const body = found?.body[index];
+  if (body === undefined) throw new Error(`the Terms have no paragraph ${index + 1} in §${number}`);
+  return body;
+};
+
+const forbiddenAdjustmentDetails = /\b(?:BALDRICK20|SAVE10|FREE|BLACKFRIDAY)\b|\b\d+(?:\.\d+)?%|[$€£]\s*\d|\b\d+(?:\.\d{2})?\s*(?:USD|EUR|dollars|euros)\b/i;
+
 describe("what is sold", () => {
   it("says plainly that a buyer receives a certificate and nothing else of value", () => {
     // The one clause the whole shop turns on. §23: the customer sees exactly
@@ -53,21 +63,62 @@ describe("what is sold", () => {
 });
 
 describe("price and tax", () => {
-  it("says the displayed price is the price charged and includes VAT", () => {
-    // Decision `009`: the advertised price is what every buyer is charged, EU
-    // or not, and Estonia's VAT comes out of it rather than being added. That
-    // promise survives P10 and is now scoped to the thing it is true of.
-    expect(section("3")).toContain("price shown on the offer page is the price charged");
-    expect(section("3")).toContain("includes value added tax");
+  it("keeps VAT inside the price and rules out undisclosed charges", () => {
+    // D8 retains the VAT promise while removing its now-false "no fee" form:
+    // an optional code adjustment is disclosed rather than prohibited.
+    const s = section("3");
+    expect(s).toContain("includes value added tax");
+    expect(s).toMatch(/no tax line at checkout/i);
+    expect(s).toMatch(/no charge you were not shown before you paid/i);
+  });
 
-    // **"nothing is added at checkout" was the third assertion here, and P10
-    // had to remove it rather than satisfy it.** Postage is added at checkout,
-    // so the unqualified sentence became false the moment a parcel could be in
-    // the cart -- and this guard would have required the document to keep
-    // saying it. What replaces it is the same promise made precisely: no tax
-    // line, no fee, nothing the buyer was not shown first.
-    expect(section("3")).not.toMatch(/\bnothing is added at checkout\b/i);
-    expect(section("3")).toMatch(/no tax line at checkout, no fee, and no charge you were not shown/i);
+  it("makes a code adjustment optional, buyer-entered, and unable to lower the price", () => {
+    // D3/D5 made the adjustment real. Calling it automatic or a discount
+    // would conceal the buyer's choice and its deliberately one-way effect.
+    const s = section("3");
+    expect(s).toMatch(/optional discount code/i);
+    expect(s).toMatch(/choose to enter/i);
+    expect(s).toMatch(/order summary/i);
+    expect(s).toMatch(/can raise the price and never lowers it/i);
+  });
+
+  it("discloses the adjustment line and amount before payment", () => {
+    // Final D8 review: the adjustment's disclosure must stand on paragraph 2
+    // itself. Postage's own line and timing cannot rescue a missing adjustment
+    // line at either the order summary or payment authorisation.
+    const adjustment = paragraph("3", 1);
+    const disclosure = adjustment
+      .split(". ")
+      .find((sentence) => /code adjustment/i.test(sentence)) ?? "";
+    expect(disclosure).toMatch(/own line, with its amount/i);
+    expect(disclosure).toMatch(/order summary and payment authorisation/i);
+    expect(disclosure).toMatch(/before you pay/i);
+  });
+
+  it("allows removal before payment and identifies the authorised total as charged", () => {
+    // D5 made removal possible. The legal record must preserve that escape
+    // hatch and tie the final authorisation figure to what is actually paid.
+    const s = section("3");
+    expect(s).toMatch(/remove it on the order summary before you pay/i);
+    expect(s).toMatch(/total shown at the payment authorisation is the amount charged/i);
+  });
+
+  it("does not preserve the obsolete no-addition promises or copy an amount", () => {
+    // D8 replaces each claim because D3/D5 added a removable code line; money
+    // figures still belong to the API-backed order, never durable prose.
+    const s = section("3");
+    expect(s).not.toMatch(/\bno fee\b|nothing whatever|postage is the one thing|postage is the only addition/i);
+    expect(s).not.toMatch(/[$€£]\s*\d|\b\d+(?:\.\d{2})?\s*(?:EUR|USD)\b/i);
+  });
+
+  it("does not name a code or disclose its percentage or money figure", () => {
+    // D8 intentionally says only that an optional code adjustment exists. A
+    // real code such as BALDRICK20, its rate, or a quoted adjustment amount
+    // would make durable legal copy drift from the backend-backed order.
+    const s = section("3");
+    expect(s).not.toMatch(forbiddenAdjustmentDetails);
+    expect("BALDRICK20 adds 20%").toMatch(forbiddenAdjustmentDetails);
+    expect("BALDRICK20 adds $1.00").toMatch(forbiddenAdjustmentDetails);
   });
 
   it("says who bears the VAT, since it is not the buyer", () => {
@@ -183,14 +234,15 @@ describe("posting a thing, which this shop had never done", () => {
     expect(s).toMatch(/we do not promise a date/i);
   });
 
-  it("says postage is added and where, since §3 opens by saying nothing is", () => {
-    // The old §3 said "nothing is added at checkout". With a parcel in the
-    // cart that reads as false, and the fix is not to delete the promise but
-    // to name the one exception and say it is shown first.
-    const s = section("3");
-    expect(s).toMatch(/postage is the one thing that is added/i);
-    expect(s).toMatch(/before you pay, never afterwards/i);
-    expect(s).toMatch(/the certificate is not posted and carries none/i);
+  it("keeps postage as a separate visible line", () => {
+    // D8 adds a removable code line, so postage is no longer the sole possible
+    // addition. It remains separately quoted before payment for posted goods;
+    // the adjustment paragraph must not be able to satisfy this assurance.
+    const postage = paragraph("3", 2);
+    expect(postage).toMatch(/postage is added/i);
+    expect(postage).toMatch(/own line/i);
+    expect(postage).toMatch(/before you pay, never afterwards/i);
+    expect(postage).toMatch(/the certificate is not posted and carries none/i);
   });
 
   it("flags import charges without inventing a figure for them", () => {

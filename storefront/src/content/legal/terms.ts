@@ -96,7 +96,7 @@ export const TERMS: LegalDocument = {
   title: "Terms of service",
   form: "Form LD-T",
   revision: "Rev. 2026-09",
-  updated: "2026-09-05",
+  updated: "2026-09-11",
   sections: [
     {
       number: "1",
@@ -122,9 +122,9 @@ export const TERMS: LegalDocument = {
       number: "3",
       heading: "Price and tax",
       body: [
-        "Every price shown includes value added tax where value added tax applies. There is no tax line at checkout, no fee, and no charge you were not shown before you paid.",
-        "For the certificate the price shown on the offer page is the price charged, and nothing whatever is added to it.",
-        "A printed item has to be posted, so postage is the one thing that is added — and it is quoted and shown to you as its own line before you pay, never afterwards. The certificate is not posted and carries none.",
+        "Every price shown includes value added tax where value added tax applies. There is no tax line at checkout and no charge you were not shown before you paid.",
+        "For the certificate, the price shown on the offer page is the price charged unless you choose to enter an optional discount code on the order summary. A discount code can raise the price and never lowers it. The code adjustment is shown as its own line, with its amount, on the order summary and payment authorisation before you pay. You can remove it on the order summary before you pay. The total shown at the payment authorisation is the amount charged.",
+        "A printed item has to be posted, so postage is added — and it is quoted and shown to you as its own line before you pay, never afterwards. The certificate is not posted and carries none.",
         "Value added tax follows where you are rather than where we are, for the certificate and for a printed item alike: a buyer in the European Union is charged their own country's rate, and we account for all of it in Estonia through a Union One Stop Shop return instead of registering in each country. The rate differs from one country to the next. The price you are shown does not: the tax is inside it, {merchantLegalName} bears it, and a buyer in Hungary and a buyer in Luxembourg pay the same figure for the same thing.",
         "If you are outside the European Union, the customs authority where you live may charge import duty or local tax on the parcel before it is released to you. That is charged by them, it is not ours to collect and not ours to keep, and we cannot tell you the amount in advance. § 54(1) p 6 of the Law of Obligations Act requires us to say that such a charge may fall due, and this is us saying it.",
       ],

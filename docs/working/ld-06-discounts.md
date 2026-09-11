@@ -486,7 +486,7 @@ somebody types them, which is the joke in the other direction.
 `storefront/src/content/home.ts`, `storefront/tests/legal-terms.test.ts`,
 `storefront/tests/home-page.test.ts`.
 
-- [ ] Say that a code the buyer chooses to enter can raise the price, is shown
+- [x] Say that a code the buyer chooses to enter can raise the price, is shown
       as its own line, and can be removed before paying.
 
 A legal row, run on the authority recorded at the head (constraint 12).
@@ -597,6 +597,8 @@ checked against the repository before it was accepted.
 | **D6 Gate D.** “Code increase” was false for `BLACKFRIDAY`'s real zero-value line, and the strengthened fixture used three-decimal money outside Medusa's measured wire shape | Changed both paid sentences to “code adjustment”, added `+$0.00` coverage with and without postage, and restored two-decimal EUR fixtures |
 | **D7 task review.** The first figure exception erased `BALDRICK20` inside a longer token; the forbidden-code guard read only the discount step; and commented-out backend entries still counted as declared | Required standalone alphanumeric boundaries with prefix and suffix mutations, checked forbidden codes across all live prose, and stripped comments before reading the exported table |
 | **D7 Gate D.** The forbidden-code guard was case-sensitive even though the backend normalises lowercase input | Made the all-prose guard token-aware and case-insensitive, with lowercase mutations for all three codes Baldrick does not issue |
+| **D8 task review.** The copy guards admitted the exact old sole-postage phrase, could borrow line wording across paragraphs, and did not reject named codes, percentages, money figures or an unqualified price promise robustly | Scoped postage and adjustment assertions to their own paragraphs, rejected every named-code/rate/amount leak on both public surfaces, and proved the guards with realistic mutations |
+| **D8 Gate D.** Even paragraph-scoped adjustment timing could be satisfied by the later removal sentence's “before you pay” | Extracted the adjustment disclosure sentence and bound its own-line, amount, locations and timing assertions to that sentence; changing only its timing to “after you pay” now fails |
 
 ## What this slice does not do
 
