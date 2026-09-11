@@ -14,8 +14,15 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { ADDRESS_HEADING, ADDRESS_LABELS, ADDRESS_NOTE, SHIPPING_LABEL, SHIPPING_PENDING_NOTICE } from "../src/content/checkout";
-import { PayButton } from "../src/app/checkout/PaymentForm";
+import {
+  ADDRESS_HEADING,
+  ADDRESS_LABELS,
+  ADDRESS_NOTE,
+  CART_LABELS,
+  SHIPPING_LABEL,
+  SHIPPING_PENDING_NOTICE,
+} from "../src/content/checkout";
+import { PaymentForm, PayButton } from "../src/app/checkout/PaymentForm";
 import type { FetchJson } from "../src/lib/medusa-client";
 
 vi.mock("@stripe/react-stripe-js", () => ({
@@ -46,7 +53,27 @@ const render = (needsAddress: boolean, countries = [{ iso_2: "ee", display_name:
     }),
   );
 
+const renderPaymentForm = (needsAddress: boolean) =>
+  renderToStaticMarkup(
+    createElement(PaymentForm, {
+      cartId: "cart_1",
+      stripePublishableKey: "pk_test_fixture",
+      countries: [{ iso_2: "ee", display_name: "Estonia" }],
+      needsAddress,
+      needsConsent: true,
+      currencyCode: "usd",
+      initialTotal: needsAddress ? 38.48 : 6,
+      surcharge: { label: "Discount (BALDRICK20)", value: "+$1.00" },
+    }),
+  );
+
 describe("a cart with nothing to post", () => {
+  it("shows the backend total immediately", () => {
+    const html = renderPaymentForm(false);
+    expect(html).toContain(CART_LABELS.total);
+    expect(html).toContain("$6.00");
+  });
+
   it("shows no address block at all", () => {
     // Not a disabled block, not a collapsed one: absent. A form that asked
     // everyone for a postcode in order to sell them a PDF would be collecting
@@ -73,6 +100,13 @@ describe("a cart with nothing to post", () => {
 });
 
 describe("a cart with a parcel in it", () => {
+  it("does not present the goods-only total as final before postage is settled", () => {
+    const html = renderPaymentForm(true);
+    expect(html).toContain(CART_LABELS.total);
+    expect(html).toContain(SHIPPING_PENDING_NOTICE);
+    expect(html).not.toContain("$38.48");
+  });
+
   it("asks for the four fields every address needs", () => {
     const html = render(true);
     expect(html).toContain(ADDRESS_HEADING);
@@ -159,24 +193,27 @@ describe("a cart with a parcel in it", () => {
   });
 
   it("starts no quote while a payment is being taken", () => {
-    // The other half of the same window. A quote that lands between
-    // `confirmPayment` and `completeCheckoutCart` changes the cart total
-    // after the card is charged, and Medusa cannot delete a succeeded
-    // PaymentIntent -- so the capture is recorded against the new total.
+    // A quote that starts between confirmation and completion can make the
+    // enclosing Medusa refresh fail while trying to cancel the payment.
     const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
       .replace(/\/\/.*$/gm, "");
-    const effect = source.slice(source.indexOf("if (submitting) return;"));
-    expect(effect).toContain("if (submitting) return;");
+    const effect = source.slice(source.indexOf("if (submitting || orderId !== null) return;"));
+    expect(effect).toContain("if (submitting || orderId !== null) return;");
     // Before the address check, or an incomplete address still clears the
     // figure the buyer is in the middle of paying against.
-    expect(source.indexOf("if (submitting) return;")).toBeLessThan(
-      source.indexOf("if (!needsAddress || !addressComplete(address, countryCode))"),
+    expect(source.indexOf("if (submitting || orderId !== null) return;")).toBeLessThan(
+      source.indexOf("if (!needsAddress) return;"),
+    );
+    expect(source.indexOf("if (!needsAddress) return;")).toBeLessThan(
+      source.indexOf("if (!addressComplete(address, countryCode))"),
     );
     // In the dependencies, or an edit made during a failed submit is never
     // quoted afterwards and the button stays dark for ever.
-    expect(source).toContain("}, [needsAddress, address, countryCode, fetchJson, cartId, submitting, onPostageSettled]);");
+    expect(source).toContain(
+      "}, [needsAddress, address, countryCode, fetchJson, cartId, submitting, orderId, onPostageSettled]);",
+    );
   });
 
   it("shows that it is quoting in preference to a figure it is replacing", () => {
@@ -193,6 +230,33 @@ describe("a cart with a parcel in it", () => {
     const row = source.slice(source.indexOf("label={SHIPPING_LABEL}"));
     expect(row).toContain("SHIPPING_QUOTING_LABEL");
     expect(row.indexOf("quoting")).toBeLessThan(row.indexOf("formatMoney(shippingAmount"));
+  });
+
+  it("serializes quote writes and lets the newest address go last", () => {
+    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+      .replace(/\/\/.*$/gm, "");
+    expect(source).toContain("const quoteChainRef = useRef<Promise<void>>(Promise.resolve());");
+    expect(source).toContain("const quoteGeneration = ++quoteGenerationRef.current;");
+    expect(source).toMatch(
+      /quoteChainRef\.current\s*=\s*quoteChainRef\.current\s*\.catch\(\(\) => undefined\)\s*\.then\(async \(\) => \{/,
+    );
+    expect(source).toContain("if (quoteGeneration !== quoteGenerationRef.current) return;");
+    const incomplete = source.slice(
+      source.indexOf("if (!addressComplete(address, countryCode))"),
+      source.indexOf("let cancelled = false;", source.indexOf("if (!addressComplete(address, countryCode))")),
+    );
+    expect(incomplete).toContain("setQuoting(false);");
+  });
+
+  it("does not quote a cart after checkout completes", () => {
+    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+      .replace(/\/\/.*$/gm, "");
+    expect(source).toContain("if (submitting || orderId !== null) return;");
+    expect(source).toMatch(/\[needsAddress, address, countryCode, fetchJson, cartId, submitting, orderId, onPostageSettled\]/);
   });
 
   it("asks for a province only where Printful demands one", () => {
@@ -251,22 +315,33 @@ describe("when the payment session is created", () => {
     expect(source).toContain("setSessionPostage(postage);");
   });
 
-  it("reports the postage after the shipping method is attached, and nowhere else", () => {
-    // **Counted, not merely ordered.** The first version asserted only that
-    // the call appears below the attach, and a mutation that *added* a second
-    // one above it -- reporting the quote before the method is on the cart --
-    // passed. That extra call is finding 17 exactly: the parent creates a
-    // session while the cart total is still goods-only.
+  it("distrusts the held session while a new quote is unresolved", () => {
+    const handler = source.slice(source.indexOf("const onCartPriceChange"), source.indexOf("let paymentContent"));
+    expect(handler).toContain("setPostage(null);");
+    expect(handler).toContain("setSessionPostage(null);");
+    expect(handler).toContain("startedSessionForRef.current = null;");
+  });
+
+  it("does not enable payment before the replacement session matches the quote", () => {
+    expect(source).toMatch(
+      /const paymentSessionReady\s*=\s*stripeReady\s*&&\s*\(!needsAddress \|\| \(postage !== null && sessionPostage === postage\)\)/,
+    );
+    expect(source).toContain("stripeReady={paymentSessionReady}");
+  });
+
+  it("reports pending, settled and unavailable cart-price states", () => {
     const quoteEffect = source.slice(
-      source.indexOf("const applied = await setCartShippingMethod"),
+      source.indexOf("useEffect(() => {", source.indexOf("export function PayButton")),
       source.indexOf("async function handleSubmit"),
     );
-    // One call in the whole file. The prop's declaration and the parent's
-    // `onPostageSettled={setPostage}` carry no parenthesis, so this counts
-    // invocations and nothing else.
-    expect(source.match(/onPostageSettled\(/g)).toHaveLength(1);
-    expect(quoteEffect).toContain("onPostageSettled(applied.shippingAmount)");
-    expect(quoteEffect.indexOf("onPostageSettled(")).toBeGreaterThan(quoteEffect.indexOf("setShippingAmount(applied"));
+    expect(quoteEffect).toContain('onPostageSettled({ status: "pending" })');
+    expect(quoteEffect).toMatch(
+      /onPostageSettled\(\{\s*status: "settled",\s*total: applied\.total,\s*shippingAmount: applied\.shippingAmount,?\s*\}\)/,
+    );
+    expect(quoteEffect).toContain('onPostageSettled({ status: "unavailable" })');
+    expect(quoteEffect.indexOf('status: "settled"')).toBeGreaterThan(
+      quoteEffect.indexOf("setShippingAmount(applied.shippingAmount)"),
+    );
   });
 
   it("remounts the Elements subtree for a new session rather than re-binding", () => {

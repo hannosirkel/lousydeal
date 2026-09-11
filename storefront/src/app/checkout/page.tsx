@@ -153,36 +153,20 @@ export default async function CheckoutPage() {
         form={CHECKOUT_DOCUMENT.form}
         revision={CHECKOUT_DOCUMENT.revision}
       >
-        {/* The final price, explicit before the pay control -- the cart's own
-            total, not recomputed. §23 requires this; the notice under it says
-            the figure is also final.
-
-            LD-06 D3: the surcharge above it, where there is one, so a total
-            higher than the tier's price has the reason on the page that takes
-            the money. Its value is the line's `unit_price`, formatted and not
-            computed, and that is the line's whole figure only because
-            `isPayableCart` has just proved its quantity is one. */}
-        <Ledger>
-          {surcharge === undefined ? null : (
-            <LedgerRow label={surchargeLabel(surcharge)} value={surchargeValue(surcharge.unitPrice, cart.currencyCode)} />
-          )}
-          <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currencyCode)} />
-        </Ledger>
-        <FinePrint>{priceNotice(needsAddress)}</FinePrint>
-        {/* § 62²(2): the § 54(1) p 4, 10 and 11 information, immediately
-            before the order is transmitted. p 6, the total with taxes, is the
-            ledger row above. The subsection's sanction is that a buyer is not
-            bound by an order made without it. */}
-        {orderSummaryLines({ hasCertificate, hasPostedGoods: needsAddress }).map((line) => (
-          <p key={line} className="notice">
-            {line}
-          </p>
-        ))}
         <PaymentForm
           cartId={cart.id}
           stripePublishableKey={stripe.publishableKey}
           countries={region.countries ?? []}
           currencyCode={cart.currencyCode}
+          initialTotal={cart.total}
+          surcharge={
+            surcharge === undefined
+              ? undefined
+              : {
+                  label: surchargeLabel(surcharge),
+                  value: surchargeValue(surcharge.unitPrice, cart.currencyCode),
+                }
+          }
           /* LD-04 P7. Decided from the cart's own lines, here rather than in
              the component, so the rule is one a test can call. */
           needsAddress={needsAddress}
@@ -190,7 +174,20 @@ export default async function CheckoutPage() {
              to give, so the box is not shown and the gate does not wait for
              it. Decided here for the same reason `needsAddress` is. */
           needsConsent={hasCertificate}
-        />
+        >
+          <FinePrint>{priceNotice(needsAddress)}</FinePrint>
+          {/* § 62²(2): the § 54(1) p 4, 10 and 11 information, immediately
+              before the order is transmitted. p 6, the total with taxes, is
+              the ledger row above. */}
+          {orderSummaryLines({
+            hasCertificate,
+            hasPostedGoods: needsAddress,
+          }).map((line) => (
+            <p key={line} className="notice">
+              {line}
+            </p>
+          ))}
+        </PaymentForm>
       </DocumentFrame>
     </main>
   );

@@ -26,6 +26,7 @@ import { PRODUCT_TIERS } from "../commerce/product-model";
 import { priceSurcharge, type SurchargeLine } from "../commerce/surcharge";
 
 export const APPLY_SURCHARGE_WORKFLOW_ID = "apply-surcharge";
+export const CART_PRICE_LOCK_SECONDS = 600;
 
 export type SurchargeRefusalReason = "completed" | "no_certificate";
 
@@ -125,10 +126,21 @@ const readSurchargeMutationStep = createStep(
   },
 );
 
+const cartPriceLockOwnerStep = createStep(
+  "create-cart-price-lock-owner",
+  async (_input: Record<string, never>, { transactionId, runId }) => new StepResponse(`${transactionId}:${runId}`),
+);
+
 export const applySurchargeWorkflow = createWorkflow(
   { name: APPLY_SURCHARGE_WORKFLOW_ID, idempotent: false },
   (input: ApplySurchargeWorkflowInput) => {
-    acquireLockStep({ key: input.cart_id, timeout: 2, ttl: 10 });
+    const lockOwner = cartPriceLockOwnerStep({});
+    acquireLockStep({
+      key: input.cart_id,
+      ownerId: lockOwner,
+      timeout: 2,
+      ttl: CART_PRICE_LOCK_SECONDS,
+    });
 
     const mutation = readSurchargeMutationStep(input);
     const removed = when("remove-existing-surcharge", { mutation }, ({ mutation }) => mutation.removeIds.length > 0)
@@ -151,7 +163,7 @@ export const applySurchargeWorkflow = createWorkflow(
     }));
     const added = addToCartWorkflow.runAsStep({ input: addInput });
     const releaseKey = transform({ cartId: input.cart_id, added }, ({ cartId }) => cartId);
-    releaseLockStep({ key: releaseKey });
+    releaseLockStep({ key: releaseKey, ownerId: lockOwner });
 
     return new WorkflowResponse(mutation);
   },

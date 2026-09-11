@@ -59,6 +59,7 @@ import {
   ADDRESS_HEADING,
   ADDRESS_LABELS,
   ADDRESS_NOTE,
+  CART_LABELS,
   COUNTRY_LABEL,
   SHIPPING_LABEL,
   SHIPPING_PENDING_NOTICE,
@@ -140,7 +141,24 @@ interface PaymentFormProps {
   readonly needsConsent: boolean;
   /** The cart's own currency, for the postage row. */
   readonly currencyCode: string;
+  /** The cart total returned by Medusa when the server rendered this page. */
+  readonly initialTotal: number;
+  /** The optional server-priced adjustment shown immediately above the total. */
+  readonly surcharge?: { readonly label: string; readonly value: string };
+  /** Price disclosures which must remain between the total and the form. */
+  readonly children?: ReactNode;
 }
+
+type CartPriceState =
+  { readonly status: "settled"; readonly total: number } | { readonly status: "pending" | "unavailable" };
+
+export type CartPriceChange =
+  | {
+      readonly status: "settled";
+      readonly total: number;
+      readonly shippingAmount: number;
+    }
+  | { readonly status: "pending" | "unavailable" };
 
 /** Creates the cart's Stripe session, then renders the Payment Element once a client secret exists. */
 export function PaymentForm({
@@ -150,6 +168,9 @@ export function PaymentForm({
   needsAddress,
   needsConsent,
   currencyCode,
+  initialTotal,
+  surcharge,
+  children,
 }: PaymentFormProps) {
   const stripePromise = useMemo(() => loadStripe(stripePublishableKey), [stripePublishableKey]);
   const fetchJson = useMemo(() => createProxyFetchJson(), []);
@@ -167,6 +188,9 @@ export function PaymentForm({
    * do either.
    */
   const [postage, setPostage] = useState<number | null>(null);
+  const [cartPrice, setCartPrice] = useState<CartPriceState>(
+    needsAddress ? { status: "pending" } : { status: "settled", total: initialTotal },
+  );
   /** The postage the session in `clientSecret` was created against. */
   const [sessionPostage, setSessionPostage] = useState<number | null>(null);
   /**
@@ -277,9 +301,24 @@ export function PaymentForm({
     return confirm(returnUrl);
   }, []);
 
-  if (error !== null) {
-    return <p className="payment-error">{error}</p>;
-  }
+  const onCartPriceChange = useCallback((change: CartPriceChange) => {
+    if (change.status === "settled") {
+      setPostage(change.shippingAmount);
+      setCartPrice({ status: "settled", total: change.total });
+      return;
+    }
+    // Any cart write during the next quote can invalidate the held session,
+    // even when the final postage happens to return to the same figure.
+    setPostage(null);
+    setSessionPostage(null);
+    startedSessionForRef.current = null;
+    setCartPrice(change);
+  }, []);
+  const paymentSessionReady =
+    stripeReady && (!needsAddress || (postage !== null && sessionPostage === postage));
+
+  let paymentContent: ReactNode;
+  if (error !== null) paymentContent = <p className="payment-error">{error}</p>;
   /**
    * The cursor now waits for the *collection*, not the session.
    *
@@ -289,11 +328,11 @@ export function PaymentForm({
    * mount and needs nothing from the buyer, so it is the honest thing to wait
    * for: below it there is a form, above it there is nothing to fill in.
    */
-  if (paymentCollectionId === null) {
+  else if (paymentCollectionId === null) {
     // The one place `brand.md` §4's blinking cursor belongs: a state inside a
     // rendered page. As a route-level `loading.tsx` it made every page serve
     // nothing without JavaScript -- see V5c.
-    return (
+    paymentContent = (
       <>
         <p role="status">
           <span className="cursor" aria-hidden="true" />
@@ -307,46 +346,65 @@ export function PaymentForm({
         </noscript>
       </>
     );
-  }
+  } else
+    paymentContent = (
+      <PayButton
+        cartId={cartId}
+        fetchJson={fetchJson}
+        countries={countries}
+        needsAddress={needsAddress}
+        needsConsent={needsConsent}
+        currencyCode={currencyCode}
+        stripeReady={paymentSessionReady}
+        confirmPayment={confirmPayment}
+        onPostageSettled={onCartPriceChange}
+        cardSlot={
+          clientSecret === null ? (
+            // A parcel with no price yet. The buyer is still typing the address
+            // that produces one, and a card field above an unknown total is a
+            // card field asking to be filled in before the amount exists.
+            <p role="status">
+              <span className="cursor" aria-hidden="true" />
+              <span className="visually-hidden">{PREPARING_PAYMENT_LABEL}</span>
+            </p>
+          ) : (
+            /**
+             * **`key={clientSecret}` is load-bearing.** The installed
+             * `@stripe/react-stripe-js` treats `options.clientSecret` as
+             * immutable and warns "Unsupported prop change:
+             * options.clientSecret is not a mutable property" rather than
+             * re-binding, so a new session has to arrive as a new subtree.
+             *
+             * Which is also why nothing but the card lives in here any more: a
+             * remount of this subtree used to take the buyer's email, address,
+             * inscription and gift with it.
+             */
+            <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret }}>
+              <CardSection registerConfirm={registerConfirm} />
+            </Elements>
+          )
+        }
+      />
+    );
 
   return (
-    <PayButton
-      cartId={cartId}
-      fetchJson={fetchJson}
-      countries={countries}
-      needsAddress={needsAddress}
-      needsConsent={needsConsent}
-      currencyCode={currencyCode}
-      stripeReady={stripeReady}
-      confirmPayment={confirmPayment}
-      onPostageSettled={setPostage}
-      cardSlot={
-        clientSecret === null ? (
-          // A parcel with no price yet. The buyer is still typing the address
-          // that produces one, and a card field above an unknown total is a
-          // card field asking to be filled in before the amount exists.
-          <p role="status">
-            <span className="cursor" aria-hidden="true" />
-            <span className="visually-hidden">{PREPARING_PAYMENT_LABEL}</span>
-          </p>
-        ) : (
-          /**
-           * **`key={clientSecret}` is load-bearing.** The installed
-           * `@stripe/react-stripe-js` treats `options.clientSecret` as
-           * immutable and warns "Unsupported prop change:
-           * options.clientSecret is not a mutable property" rather than
-           * re-binding, so a new session has to arrive as a new subtree.
-           *
-           * Which is also why nothing but the card lives in here any more: a
-           * remount of this subtree used to take the buyer's email, address,
-           * inscription and gift with it.
-           */
-          <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret }}>
-            <CardSection registerConfirm={registerConfirm} />
-          </Elements>
-        )
-      }
-    />
+    <>
+      <Ledger>
+        {surcharge === undefined ? null : <LedgerRow label={surcharge.label} value={surcharge.value} />}
+        <LedgerRow
+          label={CART_LABELS.total}
+          value={
+            cartPrice.status === "settled"
+              ? formatMoney(cartPrice.total, currencyCode)
+              : cartPrice.status === "pending"
+                ? SHIPPING_PENDING_NOTICE
+                : SHIPPING_UNAVAILABLE_NOTICE
+          }
+        />
+      </Ledger>
+      {children}
+      {paymentContent}
+    </>
   );
 }
 
@@ -429,11 +487,11 @@ interface PayButtonProps {
   /** Confirms the payment through the `elements` instance in that slot. */
   readonly confirmPayment: ConfirmPayment;
   /**
-   * Reports the postage this form has settled on, or `null` where it has
-   * none — which is what tells the parent a payment session may be created,
-   * and created again when the figure changes.
+   * Reports whether postage is unresolved, unavailable, or attached with the
+   * new authoritative cart total. The parent uses the settled postage to
+   * decide when a payment session may be created.
    */
-  readonly onPostageSettled: (amount: number | null) => void;
+  readonly onPostageSettled: (change: CartPriceChange) => void;
 }
 
 /**
@@ -492,6 +550,8 @@ export function PayButton({
   const [shippingAmount, setShippingAmount] = useState<number | null>(null);
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [quoting, setQuoting] = useState(false);
+  const quoteChainRef = useRef<Promise<void>>(Promise.resolve());
+  const quoteGenerationRef = useRef(0);
   const setField = (field: keyof ShippingAddressInput, value: string) =>
     setAddress((current) => ({ ...current, [field]: value.slice(0, ADDRESS_LIMITS[field]) }));
   /**
@@ -546,19 +606,21 @@ export function PayButton({
     // starting while a submit is. Without it a buyer editing a field during
     // the two seconds `handleSubmit` takes fires a fresh
     // `setCartShippingMethod` that can land *between* `confirmPayment` and
-    // `completeCheckoutCart` -- changing the cart total after the card has
-    // been charged. Medusa's response to a changed total is to delete the
-    // payment session, which for a *succeeded* PaymentIntent Stripe cannot
-    // do; `deletePaymentSessionsStep` swallows that failure with a log line,
-    // so the session survives and completion records the old capture against
-    // the new total. That is the one sequence in this file that produces a
-    // genuinely wrong amount rather than a failed payment.
+    // `completeCheckoutCart` -- trying to change the cart after the card has
+    // been confirmed. The enclosing Medusa deletion workflow rejects a
+    // provider cancellation failure, but the buyer still gets a failed
+    // checkout. The backend now also locks public session creation against
+    // cart price changes; this client gate keeps its own submit sequence still.
     //
     // `submitting` is in the dependencies, so an edit made during a submit
     // that then fails is quoted the moment the submit ends.
-    if (submitting) return;
-    if (!needsAddress || !addressComplete(address, countryCode)) {
+    if (submitting || orderId !== null) return;
+    const quoteGeneration = ++quoteGenerationRef.current;
+    if (!needsAddress) return;
+    if (!addressComplete(address, countryCode)) {
       setShippingAmount(null);
+      setQuoting(false);
+      onPostageSettled({ status: "pending" });
       return;
     }
     // Not cleared upward here. The parent holds a session bound to the last
@@ -568,47 +630,64 @@ export function PayButton({
     let cancelled = false;
     setQuoting(true);
     setShippingError(null);
-    void (async () => {
-      try {
-        await setCartShippingAddress(fetchJson, cartId, { ...address, countryCode });
-        const options = await listCartShippingOptions(fetchJson, cartId);
-        // **`?? Infinity`, because a calculated option has no price yet.**
-        // Medusa's store route does not price one, so sorting on a bare
-        // `amount` compared `undefined` and put an unpriced option nowhere in
-        // particular. A priced option still sorts cheapest-first; unpriced
-        // ones keep the order Medusa returned them in, which is the only
-        // information available about them. This shop offers exactly one, so
-        // the sort decides nothing today and is kept honest for the day it
-        // does.
-        const cheapest = [...options].sort((first, second) => (first.amount ?? Infinity) - (second.amount ?? Infinity))[0];
-        if (cheapest === undefined) throw new Error(SHIPPING_UNAVAILABLE_NOTICE);
-        const applied = await setCartShippingMethod(fetchJson, cartId, cheapest.id);
-        if (!cancelled) {
-          setShippingAmount(applied.shippingAmount);
-          // **After the attach, never before.** This is what lets the parent
-          // create the payment session, and the whole of finding 17 was that
-          // one existed before the shipping method did.
-          onPostageSettled(applied.shippingAmount);
+    onPostageSettled({ status: "pending" });
+    // A quote already in flight is allowed to finish, then the newest complete
+    // address runs. Superseded queued addresses are skipped, so writes cannot
+    // land out of order and stale the total shown above.
+    quoteChainRef.current = quoteChainRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        if (quoteGeneration !== quoteGenerationRef.current) return;
+        try {
+          await setCartShippingAddress(fetchJson, cartId, {
+            ...address,
+            countryCode,
+          });
+          const options = await listCartShippingOptions(fetchJson, cartId);
+          // **`?? Infinity`, because a calculated option has no price yet.**
+          // Medusa's store route does not price one, so sorting on a bare
+          // `amount` compared `undefined` and put an unpriced option nowhere in
+          // particular. A priced option still sorts cheapest-first; unpriced
+          // ones keep the order Medusa returned them in, which is the only
+          // information available about them. This shop offers exactly one, so
+          // the sort decides nothing today and is kept honest for the day it
+          // does.
+          const cheapest = [...options].sort(
+            (first, second) => (first.amount ?? Infinity) - (second.amount ?? Infinity),
+          )[0];
+          if (cheapest === undefined) throw new Error(SHIPPING_UNAVAILABLE_NOTICE);
+          const applied = await setCartShippingMethod(fetchJson, cartId, cheapest.id);
+          if (!cancelled && quoteGeneration === quoteGenerationRef.current) {
+            setShippingAmount(applied.shippingAmount);
+            // **After the attach, never before.** This is what lets the parent
+            // create the payment session, and the whole of finding 17 was that
+            // one existed before the shipping method did.
+            onPostageSettled({
+              status: "settled",
+              total: applied.total,
+              shippingAmount: applied.shippingAmount,
+            });
+          }
+        } catch {
+          // The thrown message is not shown. It is Medusa's or Printful's, and
+          // a buyer reading "Printful quoted no usable shipping option to XX"
+          // learns nothing they can act on.
+          if (!cancelled && quoteGeneration === quoteGenerationRef.current) {
+            setShippingAmount(null);
+            setShippingError(SHIPPING_UNAVAILABLE_NOTICE);
+            onPostageSettled({ status: "unavailable" });
+          }
+        } finally {
+          if (!cancelled && quoteGeneration === quoteGenerationRef.current) setQuoting(false);
         }
-      } catch {
-        // The thrown message is not shown. It is Medusa's or Printful's, and
-        // a buyer reading "Printful quoted no usable shipping option to XX"
-        // learns nothing they can act on.
-        if (!cancelled) {
-          setShippingAmount(null);
-          setShippingError(SHIPPING_UNAVAILABLE_NOTICE);
-        }
-      } finally {
-        if (!cancelled) setQuoting(false);
-      }
-    })();
+      });
     return () => {
       cancelled = true;
     };
     // `address` and `countryCode` are the whole of the input; `fetchJson` and
     // `cartId` are stable for the life of this component. `submitting` is a
     // gate rather than an input: it only ever stops this running.
-  }, [needsAddress, address, countryCode, fetchJson, cartId, submitting, onPostageSettled]);
+  }, [needsAddress, address, countryCode, fetchJson, cartId, submitting, orderId, onPostageSettled]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();

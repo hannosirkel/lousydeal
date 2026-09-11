@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-11 |
 | Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
-| In flight | **D9** pull request #208, branch `deal/ld06-d9-report`, worktree `~/app/.worktrees/lousydeal/ld06-d9`; independently reviewed and awaiting the operator's merge. Final validation passed 93 files and 2,539 tests. The operator report counts code-bearing carts and paid orders by safe code bucket, states that Baldrick requests are not measured, and requires an explicit operator-supplied `test` or `live` label. D0–D8 merged as pull requests #199–#207 |
-| Next action | Once D9 merges, execute **D10** (Gate D record and Gate E with a real code) |
+| In flight | **D10** single correction PR, branch `deal/ld06-d10-gates`, worktree `~/app/.worktrees/lousydeal/ld06-d10`. Gate D corrected checkout total/session races, order rows counted without capture evidence, a shared short-lived surcharge-lock owner, and unlocked stock payment-session creation. Astra's final review is clean; validation passes 94 files and 2,549 tests. D0–D9 are merged as pull requests #199–#208 |
+| Next action | Finish automated validation and independent review, open and deploy the D10 PR to test, then run Gate E with a real coded order and record its outputs |
 | Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
