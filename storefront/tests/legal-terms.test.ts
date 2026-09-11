@@ -87,9 +87,12 @@ describe("price and tax", () => {
     // itself. Postage's own line and timing cannot rescue a missing adjustment
     // line at either the order summary or payment authorisation.
     const adjustment = paragraph("3", 1);
-    expect(adjustment).toMatch(/own line, with its amount/i);
-    expect(adjustment).toMatch(/order summary and payment authorisation/i);
-    expect(adjustment).toMatch(/before you pay/i);
+    const disclosure = adjustment
+      .split(". ")
+      .find((sentence) => /code adjustment/i.test(sentence)) ?? "";
+    expect(disclosure).toMatch(/own line, with its amount/i);
+    expect(disclosure).toMatch(/order summary and payment authorisation/i);
+    expect(disclosure).toMatch(/before you pay/i);
   });
 
   it("allows removal before payment and identifies the authorised total as charged", () => {
