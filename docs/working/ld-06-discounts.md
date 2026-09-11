@@ -517,7 +517,7 @@ the position and does not settle it.
 `backend/src/scripts/report-discounts.ts`, `backend/package.json`,
 `backend/tests/discount-report.test.ts`.
 
-- [ ] Answer §9's three questions from Medusa's own data, and say plainly which
+- [x] Answer §9's three questions from Medusa's own data, and say plainly which
       one is not measured.
 
 `npm run report:discounts`, in the shape of `report:vat-thresholds`: a pure
@@ -538,9 +538,19 @@ fabricated totals binds an operator's report too, because an operator will
 repeat what it says. A surcharge whose metadata a visitor has stripped counts as
 `unknown code` rather than disappearing.
 
-**It runs in whichever environment it is invoked in**, and prints that
-environment's name first. A test cart counted as a customer is Gate F's named
-failure. The report is never public and feeds no counter.
+**It reads whichever runtime database the command is connected to.** The
+operator supplies `test` or `live`, as `npm run report:discounts -- test` or
+`-- live`. The first report-owned line prints that label as operator supplied;
+it is not inferred from `NODE_ENV` and does not select or verify the database.
+Missing, extra or invalid labels fail before any query. A test cart counted as
+a customer is Gate F's named failure. The report is never public and feeds no
+counter.
+
+**Gate D was clean.** The final reviewer checked the installed Medusa 2.20.1
+CLI and query boundary as well as the branch: positional arguments arrive as
+used, an unpaginated graph query carries no implicit result limit, invalid
+labels fail before container resolution, and no visitor-controlled metadata
+reaches output.
 
 ### D10 — Gate D, Gate E with a real code, and the record
 
