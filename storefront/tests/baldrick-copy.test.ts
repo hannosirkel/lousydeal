@@ -45,6 +45,8 @@ const LINES: ReadonlyArray<readonly [string, string]> = Object.entries(BALDRICK_
 const removeApprovedDiscountCode = (line: string): string =>
   line.replace(/(^|[^A-Za-z0-9])BALDRICK20(?=$|[^A-Za-z0-9])/g, "$1");
 
+const FORBIDDEN_DISCOUNT_CODES = /(?<![A-Za-z0-9])(?:SAVE10|FREE|BLACKFRIDAY)(?![A-Za-z0-9])/i;
+
 function surchargeCodesTable(source: string): string {
   const uncommented = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   const start = uncommented.indexOf("export const SURCHARGE_CODES");
@@ -111,7 +113,12 @@ describe("the live discount", () => {
     ]);
     expect(discount).not.toMatch(/[$€£]|\bpercent\b|\bper cent\b|%/i);
     expect(discount).not.toMatch(/\b(?:I|we) (?:have |had )?applied\b/i);
-    expect(PROSE).not.toMatch(/SAVE10|FREE|BLACKFRIDAY/);
+    expect(PROSE).not.toMatch(FORBIDDEN_DISCOUNT_CODES);
+    // Backend normalisation accepts lowercase input, so lowercase code copy
+    // must be rejected on every Baldrick surface just as uppercase copy is.
+    for (const mutation of ["save10", "free", "blackfriday"]) {
+      expect(mutation).toMatch(FORBIDDEN_DISCOUNT_CODES);
+    }
   });
 
   it("names a code declared by the backend surcharge table", () => {
