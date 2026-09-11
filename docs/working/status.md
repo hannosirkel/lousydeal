@@ -8,10 +8,10 @@ does not — it points, it does not hold.
 | | |
 | --- | --- |
 | Updated | 2026-09-11 |
-| Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
-| In flight | **D10** Gate E confirmation correction PR #211, branch `deal/ld06-d10-close`, worktree `~/app/.worktrees/lousydeal/ld06-d10-close`. PRs #209 and #210 are merged. The first paid coded order exposed a second omission: its confirmation acknowledged printed goods without listing them. The correction carries every merch line into both email bodies. Validation passes 94 files and 2,548 tests; Astra's follow-up review is clean. D0–D9 are merged as pull requests #199–#208 |
-| Next action | Deploy PR #211 to test; complete a fresh coded Stripe test-mode checkout with merch, then read the certificate, counter, confirmation, order and Printful submission, and run `report:discounts` against test |
-| Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
+| Current slice | **none in flight.** LD-06 closed 2026-09-11 |
+| In flight | nothing. No open pull request in `lousydeal`, `deploys` or `orange`; no active worktree |
+| Next action | Plan **LD-08 — Launch polish** in `docs/working/`, then execute it. Include the missing Printful billing information in its production-readiness work |
+| Blocked | nothing |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -27,19 +27,21 @@ no rendered Secret. It is public, like the rest of the repository.
 | LD-03 — Gifting | complete 2026-09-08; nine rows, `lousydeal` only | [`ld-03-gifting.md`](./ld-03-gifting.md) |
 | LD-05 — Baldrick | complete 2026-09-08; nine rows, PRs 126–136 | [`ld-05-baldrick.md`](./ld-05-baldrick.md) |
 | LD-04 — Printful and merch | complete 2026-09-10; thirty-two rows across three repositories | [`ld-04-merch.md`](./ld-04-merch.md) |
+| LD-06 — Worse discounts | complete 2026-09-11; eleven rows and PRs 199–211 plus the closure record | [`ld-06-discounts.md`](./ld-06-discounts.md) |
 
 **Each of those has been driven end to end, not merely built.** LD-02 paid for a
 certificate on the test environment and sent the § 55 confirmation; LD-03 paid
 for a gift to a different address and the recipient's details reached no public
 surface; LD-05 held a real ten-turn conversation from the keyboard against a
 production build; LD-04's checkout was completed by the operator on 2026-09-10
-with real Printful postage — `ATTACHED postage = 6.48`, `cart total = 38.48`.
+with real Printful postage — `ATTACHED postage = 6.48`, `cart total = 38.48`;
+LD-06 captured `$44.47` for a coded order, issued its `$6.00` certificate and
+kept the surcharge out of its Printful order.
 
 ## Open
 
 | Slice | State |
 | --- | --- |
-| **LD-06 — Worse discounts** | **in flight.** Planned 2026-09-10 as eleven rows, D0–D10, `lousydeal` only. Five operator decisions are recorded at the head of the plan |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
 | **LD-08 — Launch polish** | not started, and last. Responsive review, accessibility, SEO, metadata, analytics, performance, error states, final copy and visual review, production readiness |
 
@@ -54,7 +56,7 @@ question at its current state, which is recorded below.
 | B — brand/copy | passed |
 | C — visual design | passed |
 | D — per-task code review | run per row; every merged row carries its answers in its slice plan |
-| E — rendered UI review | passed for LD-02, LD-03, LD-04 and LD-05 |
+| E — rendered UI review | passed for LD-02 through LD-06 |
 | F — integration review | **not run.** It is before production and belongs with LD-08 |
 
 ## What the operator closed on 2026-09-10
@@ -92,6 +94,7 @@ What is actually held, as against what the contract expects in §2b.
 | **Stripe live keys** | **no** | not before the publication gate, by design. An LD-08 item |
 | SMTP credentials, host, port, servername, egress CIDR | yes | mail verified sending from both environments |
 | Printful account, store token, four products | yes | eight scopes, verified by read-back; artwork fetched from this repository at a pinned commit |
+| **Printful billing information** | **no** | Required before publication. The LD-06 test order reached Printful with only its shirt, then failed at billing. An LD-08 item |
 | Printful webhook and its secret | yes | verified end to end — correctly signed 200, wrongly signed 401 |
 | Merch buyable end to end | yes, 2026-09-10 | the operator completed a checkout |
 | Union OSS registration, and the `EX` filing | yes / filed 2026-09-09 | the `EX` number follows within 35 working days; nothing waits on it |

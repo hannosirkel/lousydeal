@@ -566,7 +566,7 @@ reaches output.
 `storefront/tests/checkout-address.test.ts`, this document,
 `docs/working/status.md`.
 
-- [ ] Review every row against the contract, pay with a code on the test
+- [x] Review every row against the contract, pay with a code on the test
       environment, and read everything it produced.
 
 Gate E, on the test environment carrying D1–D9, at 390px and desktop:
@@ -604,6 +604,21 @@ The D10 closure PR replaces that boolean with every non-certificate,
 non-surcharge order line, in Medusa's order, and prints each title, variant,
 quantity and line total in both email bodies. The classification has no merch
 allowlist, so later catalogue additions cannot silently disappear.
+
+**Gate E passed on 2026-09-11.** The final paid order authorised and captured
+`$44.47`. Its certificate is #6 and shows `AMOUNT WASTED $6.00`: the $5.00
+certificate plus BALDRICK20's $1.00 adjustment, not the merchandise or postage.
+The rendered counter shows six deals, `$32.00` wasted and latest deal #6. The
+durable confirmation lists the certificate, the surcharge, and the shirt with
+its variant, quantity and line total.
+
+The stored order has one variant-less surcharge line. Its metadata records
+`BALDRICK20`, 20 percent and a `$5.00` base. The other two lines remain the
+variant-backed certificate and shirt. Printful received the shirt and no
+surcharge line. It refused fulfilment because the store has no billing
+information; that account setup is a publication item, not an LD-06 line
+classification failure. Finally, `npm run report:discounts -- test` reported
+two coded carts, two captured BALDRICK20 orders and 100 percent conversion.
 
 ## What the review changed
 
