@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 128" role="img" aria-labelledby="title description">
+  <title id="title">Lousy Deal Reddit cover</title>
+  <desc id="description">A receipt ledger states: item, nothing; price, five dollars; value, zero dollars; return, minus one hundred percent.</desc>
+  <defs>
+    <style>
+      @font-face { font-family: "IBM Plex Mono"; src: url("../storefront/public/fonts/IBMPlexMono-Bold.ttf"); font-weight: 700; }
+    </style>
+  </defs>
+  <rect width="1080" height="128" fill="#fafaf7"/>
+  <g font-family="IBM Plex Mono, monospace" font-size="20" font-weight="700">
+    <g fill="#6b6b66">
+      <text x="40" y="25">ITEM</text>
+      <text x="40" y="53">PRICE</text>
+      <text x="40" y="81">VALUE</text>
+      <text x="40" y="109">RETURN</text>
+    </g>
+    <g stroke="#6b6b66" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 10">
+      <line x1="150" y1="20" x2="750" y2="20"/>
+      <line x1="150" y1="48" x2="750" y2="48"/>
+      <line x1="150" y1="76" x2="750" y2="76"/>
+      <line x1="150" y1="104" x2="750" y2="104"/>
+    </g>
+    <g fill="#141412" text-anchor="end">
+      <text x="1040" y="25">NOTHING</text>
+      <text x="1040" y="53">$5.00</text>
+      <text x="1040" y="81">$0.00</text>
+      <text x="1040" y="109" fill="#b3261e">-100%</text>
+    </g>
+  </g>
+</svg>
