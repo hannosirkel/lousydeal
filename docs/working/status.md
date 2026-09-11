@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-11 |
 | Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
-| In flight | **D8** pull request #207, branch `deal/ld06-d8-documents`, worktree `~/app/.worktrees/lousydeal/ld06-d8`; independently reviewed and awaiting the operator's merge. Final validation passed 92 files and 2,525 tests. The Terms and home offer now disclose the optional, removable code adjustment and its amount before payment without claiming every code raises the price. D0–D7 merged as pull requests #199–#206 |
-| Next action | Once D8 merges, execute **D9** (report code-bearing carts and paid conversions from Medusa's own data) |
+| In flight | **D9** branch `deal/ld06-d9-report`, worktree `~/app/.worktrees/lousydeal/ld06-d9`; implementation and independent reviews complete, preparing its pull request. The operator report counts code-bearing carts and paid orders by safe code bucket, states that Baldrick requests are not measured, and requires an explicit operator-supplied `test` or `live` label. D0–D8 merged as pull requests #199–#207 |
+| Next action | Once D9 merges, execute **D10** (Gate D record and Gate E with a real code) |
 | Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
