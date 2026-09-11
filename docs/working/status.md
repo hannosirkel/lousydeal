@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-11 |
 | Current slice | **LD-06 — Worse discounts.** Plan: [`ld-06-discounts.md`](./ld-06-discounts.md) |
-| In flight | **D6** branch `deal/ld06-d6-confirmation`, worktree `~/app/.worktrees/lousydeal/ld06-d6`; implementation and independent Gate D review are complete. Its §55 confirmation makes a variant-less surcharge's server-owned title and order-line total durable, ahead of the total and in both bodies. D0–D5 merged as pull requests #199–#204 |
-| Next action | Open D6's pull request and wait for the operator's merge; then execute D7 (Baldrick issues the code) |
+| In flight | **D6** pull request #205, branch `deal/ld06-d6-confirmation`, worktree `~/app/.worktrees/lousydeal/ld06-d6`; independently reviewed and awaiting the operator's merge. Final validation passed 92 files and 2,514 tests. Its §55 confirmation makes the variant-less surcharge's server-owned title and order-line total durable, ahead of the total and in both bodies. D0–D5 merged as pull requests #199–#204 |
+| Next action | Once D6 merges, execute **D7** (Baldrick issues the code) |
 | Blocked | nothing. `FREE`'s fee was named by the operator on 2026-09-10: $1.00 |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
