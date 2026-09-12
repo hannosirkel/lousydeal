@@ -11,7 +11,10 @@ import { fileURLToPath } from "node:url";
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// Static rendering has no Next app-router provider; browser tests exercise navigation.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined, refresh: () => undefined }) }));
 
 import { MerchForm } from "../src/components/document/MerchForm";
 import { TierTable } from "../src/components/document/TierTable";

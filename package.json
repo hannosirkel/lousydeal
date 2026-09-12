@@ -14,7 +14,8 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "test:analytics-browser": "node storefront/tests/browser/analytics.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

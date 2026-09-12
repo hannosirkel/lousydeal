@@ -19,6 +19,7 @@
 import { MERCH_ADD_LABEL, MERCH_SIZE_LABEL } from "../../content/merch";
 import { STORE_CLOSED_NOTICE } from "../../content/checkout";
 import { Button } from "./Button";
+import { FunnelForm } from "../analytics/FunnelForm";
 
 export interface MerchFormProps {
   readonly action: (formData: FormData) => Promise<void>;
@@ -34,7 +35,7 @@ export function MerchForm({ action, title, variants, storeOpen }: MerchFormProps
   const selectId = `merch-size-${variants[0]?.variantId ?? "none"}`;
 
   return (
-    <form action={action} className="merch-form" data-analytics-event="merch_added">
+    <FunnelForm action={action} className="merch-form" event="merch_added">
       {only === undefined ? (
         <>
           {/* Labelled by the item, not by the word "Size" alone: four selects
@@ -68,6 +69,6 @@ export function MerchForm({ action, title, variants, storeOpen }: MerchFormProps
         {MERCH_ADD_LABEL}
         <span className="visually-hidden"> {title}</span>
       </Button>
-    </form>
+    </FunnelForm>
   );
 }

@@ -55,7 +55,7 @@ const withoutComments = (text: string): string =>
  * A fourth host is a decision, and this line is where it gets made.
  */
 const PERMITTED =
-  /^https?:\/\/(?:h|store-api-proxy\.invalid|localhost|127\.0\.0\.1|x\.com|bsky\.app|www\.googletagmanager\.com|connect\.facebook\.net)(?:[:/]|$)/;
+  /^https?:\/\/(?:h|store-api-proxy\.invalid|analytics\.invalid|localhost|127\.0\.0\.1|x\.com|bsky\.app|www\.googletagmanager\.com|connect\.facebook\.net|www\.facebook\.com)(?:[:/]|$)/;
 
 const privacyProse = PRIVACY.sections.flatMap((section) => section.body).join("\n");
 

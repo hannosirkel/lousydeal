@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ANALYTICS_EVENT_NAMES,
   emitAnalyticsEvent,
-  mayLoadAnalyticsForPath,
   sanitiseAnalyticsPayload,
   setAnalyticsEnabled,
   setAnalyticsTransport,
@@ -52,12 +51,6 @@ describe("the fixed analytics boundary", () => {
     ).toEqual({ route_class: "certificate", product_handle: "lousy-deal", currency: "USD", amount: 500 });
   });
 
-  it("does not load vendor code on certificate or withdrawal pages carrying private URL state", () => {
-    expect(mayLoadAnalyticsForPath("/done-deals/unguessable-slug")).toBe(false);
-    expect(mayLoadAnalyticsForPath("/legal/withdraw")).toBe(false);
-    expect(mayLoadAnalyticsForPath("/checkout")).toBe(true);
-  });
-
   it("rejects unknown events and remains non-fatal when vendors throw", () => {
     const transport = vi.fn(() => {
       throw new Error("blocked");
@@ -69,6 +62,18 @@ describe("the fixed analytics boundary", () => {
     expect(() => emitAnalyticsEvent("checkout_started", { currency: "usd", amount: 500 })).not.toThrow();
     expect(transport).toHaveBeenCalledWith("checkout_started", { currency: "USD", amount: 500 });
 
+    setAnalyticsEnabled(false);
+    setAnalyticsTransport(null);
+  });
+
+  it("does not retain unconsented interactions for replay after acceptance", () => {
+    const events: string[] = [];
+    setAnalyticsEnabled(false);
+    setAnalyticsTransport((name) => { events.push(name); });
+    expect(emitAnalyticsEvent("bad_discount_issued")).toBe(false);
+    setAnalyticsEnabled(true);
+    emitAnalyticsEvent("certificate_shared");
+    expect(events).toEqual(["certificate_shared"]);
     setAnalyticsEnabled(false);
     setAnalyticsTransport(null);
   });

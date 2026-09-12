@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-import { emitAnalyticsEvent, loadAnalyticsVendors, mayLoadAnalyticsForPath, setAnalyticsEnabled, type AnalyticsVendorConfig } from "../../lib/analytics";
+import { emitAnalyticsEvent, mountAnalyticsFrame, setAnalyticsEnabled, setAnalyticsTransport, type AnalyticsVendorConfig } from "../../lib/analytics";
 import { CONSENT_STORAGE_KEY, parseStoredConsent, serialiseConsent, type ConsentDecision } from "../../lib/consent";
 
 export type ConsentManagerProps = AnalyticsVendorConfig;
 
 /** The hydrated boundary between an explicit choice and any vendor resource. */
 export function ConsentManager({ googleTagId, metaPixelId }: ConsentManagerProps) {
-  const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [decision, setDecision] = useState<ConsentDecision | null>(null);
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const stop = useRef<(() => void) | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const control = useRef<HTMLButtonElement>(null);
+  const focusRequested = useRef(false);
 
   useEffect(() => {
     try {
@@ -28,18 +32,31 @@ export function ConsentManager({ googleTagId, metaPixelId }: ConsentManagerProps
   }, []);
 
   useEffect(() => {
-    if (!ready || decision !== "granted" || !mayLoadAnalyticsForPath(pathname)) {
-      setAnalyticsEnabled(false);
+    if (!ready || decision !== "granted" || (googleTagId === null && metaPixelId === null)) {
       return;
     }
+    const frame = mountAnalyticsFrame({ googleTagId, metaPixelId });
+    setAnalyticsTransport((name, payload) => { frame.emit(name, payload); });
     setAnalyticsEnabled(true);
-    const unload = loadAnalyticsVendors({ googleTagId, metaPixelId });
-    if (window.location.pathname === "/") emitAnalyticsEvent("landing_view", { routeClass: "landing" });
-    return () => {
+    const destroy = () => {
+      setAnalyticsTransport(null);
       setAnalyticsEnabled(false);
-      unload();
+      frame.destroy();
     };
-  }, [decision, googleTagId, metaPixelId, pathname, ready]);
+    stop.current = destroy;
+    return () => { destroy(); stop.current = null; };
+  }, [decision, googleTagId, metaPixelId, ready]);
+
+  useEffect(() => {
+    if (ready && decision === "granted" && pathname === "/") emitAnalyticsEvent("landing_view", { routeClass: "landing" });
+  }, [decision, pathname, ready]);
+
+  useEffect(() => {
+    if (!focusRequested.current) return;
+    if (open) panel.current?.focus();
+    else control.current?.focus();
+    focusRequested.current = false;
+  }, [open]);
 
   useEffect(() => {
     if (!ready || decision !== "granted") return;
@@ -48,7 +65,8 @@ export function ConsentManager({ googleTagId, metaPixelId }: ConsentManagerProps
       if (!(target instanceof Element)) return;
       const boundary = target.closest<HTMLElement>("[data-analytics-event]");
       if (boundary === null) return;
-      if ((event.type === "click" && boundary.tagName !== "A") || (event.type === "submit" && boundary.tagName !== "FORM")) return;
+      if (event.type === "click" && boundary.tagName !== "A") return;
+      if (event.type === "submit" && (boundary.tagName !== "FORM" || !["tier_selected", "checkout_started"].includes(boundary.dataset.analyticsEvent ?? ""))) return;
       emitAnalyticsEvent(boundary.dataset.analyticsEvent ?? "", {
         routeClass: boundary.dataset.analyticsRouteClass,
         productHandle: boundary.dataset.analyticsProductHandle,
@@ -65,15 +83,20 @@ export function ConsentManager({ googleTagId, metaPixelId }: ConsentManagerProps
   }, [decision, ready]);
 
   function choose(next: ConsentDecision): void {
+    if (next === "declined") stop.current?.();
     try { window.localStorage.setItem(CONSENT_STORAGE_KEY, serialiseConsent(next)); } catch { /* storage is optional */ }
     setDecision(next);
+    focusRequested.current = true;
     setOpen(false);
   }
 
   function revoke(): void {
+    stop.current?.();
     try { window.localStorage.setItem(CONSENT_STORAGE_KEY, serialiseConsent("declined")); } catch { /* refusal still works */ }
+    setAnalyticsTransport(null);
     setAnalyticsEnabled(false);
     setDecision("declined");
+    focusRequested.current = true;
     setOpen(true);
   }
 
@@ -81,15 +104,15 @@ export function ConsentManager({ googleTagId, metaPixelId }: ConsentManagerProps
   return (
     <aside className="consent-manager" aria-label="Analytics preferences">
       {open ? (
-        <div className="consent-manager-dialog" role="dialog" aria-labelledby="analytics-consent-title">
-          <p id="analytics-consent-title">May we use Google Analytics and Meta Pixel for the site&apos;s fixed, non-personal purchase funnel? They stay off unless you agree.</p>
+        <div ref={panel} tabIndex={-1} className="consent-manager-dialog" role="dialog" aria-labelledby="analytics-consent-title">
+          <p id="analytics-consent-title">May we use Google Analytics and Meta Pixel to measure the shop&apos;s purchase steps? They receive limited events and browser/network information. They stay off unless you agree.</p>
           <p className="fine-print"><a href="/legal/privacy">Read the Privacy policy</a>.</p>
           <p className="consent-manager-actions">
             <button className="button is-primary" type="button" onClick={() => choose("granted")}>Agree</button>
             <button className="button is-secondary" type="button" onClick={() => choose("declined")}>Refuse</button>
           </p>
         </div>
-      ) : <button className="consent-manager-control" type="button" onClick={() => setOpen(true)}>Privacy choices</button>}
+      ) : <button ref={control} className="consent-manager-control" type="button" onClick={() => { focusRequested.current = true; setOpen(true); }}>Privacy choices</button>}
       {decision === "granted" && !open ? <button className="consent-manager-control" type="button" onClick={revoke}>Stop analytics</button> : null}
     </aside>
   );

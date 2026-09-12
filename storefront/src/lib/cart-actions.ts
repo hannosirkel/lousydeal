@@ -164,7 +164,7 @@ export async function addToCart(formData: FormData): Promise<void> {
  * A buyer who wants two mugs presses the control twice, and Medusa merges the
  * lines.
  */
-export async function addMerchToCart(formData: FormData): Promise<void> {
+export async function addMerchToCart(formData: FormData, redirectAfter = true): Promise<void> {
   assertStoreOpen();
   const variantId = formData.get("variantId");
   if (typeof variantId !== "string") {
@@ -177,7 +177,7 @@ export async function addMerchToCart(formData: FormData): Promise<void> {
   await addLineToCart(fetchJson, cart.id, variantId, 1);
 
   cookieStore.set(CART_ID_COOKIE, cart.id, CART_COOKIE_OPTIONS);
-  redirect("/cart");
+  if (redirectAfter !== false) redirect("/cart");
 }
 
 type SurchargeRefusalReason = "unknown_code" | "no_certificate" | "completed";
@@ -191,7 +191,7 @@ function surchargeRefusalReason(error: unknown): SurchargeRefusalReason | null {
 }
 
 /** Apply one code to the cart named by the caller's private cart cookie. */
-export async function applyCode(formData: FormData): Promise<void> {
+export async function applyCode(formData: FormData, redirectAfter = true): Promise<void> {
   assertStoreOpen();
   const code = formData.get("code");
   if (typeof code !== "string") {
@@ -210,7 +210,7 @@ export async function applyCode(formData: FormData): Promise<void> {
     if (reason === null) throw error;
     redirect(`/cart?code_reason=${reason}`);
   }
-  redirect("/cart");
+  if (redirectAfter !== false) redirect("/cart");
 }
 
 /**

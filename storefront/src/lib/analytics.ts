@@ -1,3 +1,5 @@
+import { ANALYTICS_FRAME_TITLE } from "./analytics-frame";
+
 /** The entire analytics vocabulary. Adding a name here is a product/privacy decision. */
 export const ANALYTICS_EVENT_NAMES = [
   "landing_view",
@@ -25,6 +27,7 @@ type AnalyticsTransport = (name: AnalyticsEventName, payload: AnalyticsPayload) 
 
 let enabled = false;
 let transport: AnalyticsTransport | null = null;
+const enabledListeners = new Set<() => void>();
 
 const ROUTE_CLASSES = new Set<NonNullable<AnalyticsPayload["route_class"]>>([
   "landing", "tier", "goods", "cart", "checkout", "certificate", "withdrawal", "legal", "other",
@@ -32,7 +35,16 @@ const ROUTE_CLASSES = new Set<NonNullable<AnalyticsPayload["route_class"]>>([
 const HANDLE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function setAnalyticsEnabled(next: boolean): void {
+  const changed = enabled !== next;
   enabled = next;
+  if (changed && next) for (const listener of enabledListeners) listener();
+}
+
+/** Registers a currently visible surface, never past interaction history. */
+export function onAnalyticsEnabled(listener: () => void): () => void {
+  enabledListeners.add(listener);
+  if (enabled) listener();
+  return () => { enabledListeners.delete(listener); };
 }
 
 /** Exported for the loader and tests; callers never receive vendor globals. */
@@ -47,7 +59,7 @@ export function sanitiseAnalyticsPayload(value: unknown): AnalyticsPayload {
   if (typeof input.routeClass === "string" && ROUTE_CLASSES.has(input.routeClass as NonNullable<AnalyticsPayload["route_class"]>)) {
     payload.route_class = input.routeClass as NonNullable<AnalyticsPayload["route_class"]>;
   }
-  if (typeof input.productHandle === "string" && HANDLE.test(input.productHandle)) payload.product_handle = input.productHandle;
+  if (typeof input.productHandle === "string" && input.productHandle.length <= 80 && HANDLE.test(input.productHandle)) payload.product_handle = input.productHandle;
   if (typeof input.currency === "string" && /^[a-zA-Z]{3}$/.test(input.currency)) payload.currency = input.currency.toUpperCase();
   if (typeof input.amount === "number" && Number.isSafeInteger(input.amount) && input.amount >= 0) payload.amount = input.amount;
   return payload;
@@ -68,73 +80,40 @@ export interface AnalyticsVendorConfig {
   readonly metaPixelId: string | null;
 }
 
-/** Sensitive pages are useful without sending their bearer URLs to a vendor. */
-export function mayLoadAnalyticsForPath(pathname: string): boolean {
-  return !pathname.startsWith("/done-deals/") && pathname !== "/legal/withdraw";
-}
-
-declare global {
-  interface Window {
-    dataLayer?: unknown[][];
-    fbq?: MetaPixelQueue;
-  }
-}
-
-interface MetaPixelQueue {
-  (...args: unknown[]): void;
-  queue?: unknown[][];
-}
-
-/**
- * Loads both vendors only after a granted decision. The vendor calls are made
- * through one defensive transport so an extension, CSP, or vendor outage is a
- * measurement miss and never an application failure.
- */
-export function loadAnalyticsVendors(config: AnalyticsVendorConfig, document: Document = window.document): () => void {
-  const scripts: HTMLScriptElement[] = [];
-  try {
-    const google = config.googleTagId;
-    if (google !== null) {
-      const script = document.createElement("script");
-      script.async = true;
-      script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(google)}`;
-      document.head.append(script);
-      scripts.push(script);
-      window.dataLayer ??= [];
-      const gtag = (...args: unknown[]): void => { window.dataLayer?.push(args); };
-      gtag("js", new Date());
-      // No automatic page view or history measurement; only the approved events below are sent.
-      gtag("config", google, {
-        send_page_view: false,
-        allow_google_signals: false,
-        allow_ad_personalization_signals: false,
-      });
-      setAnalyticsTransport((name, payload) => gtag("event", name, payload));
-    }
-    const meta = config.metaPixelId;
-    if (meta !== null) {
-      const fbq: MetaPixelQueue = window.fbq ?? Object.assign(
-        (...args: unknown[]): void => { fbq.queue?.push(args); },
-        { queue: [] as unknown[][] },
-      );
-      window.fbq = fbq;
-      fbq("init", meta);
-      const script = document.createElement("script");
-      script.async = true;
-      script.src = "https://connect.facebook.net/en_US/fbevents.js";
-      document.head.append(script);
-      scripts.push(script);
-      const previous = transport;
-      setAnalyticsTransport((name, payload) => {
-        previous?.(name, payload);
-        fbq("trackCustom", name, payload);
-      });
-    }
-  } catch {
-    // A failed vendor setup is intentionally indistinguishable from no vendor.
-  }
-  return () => {
-    setAnalyticsTransport(null);
-    for (const script of scripts) script.remove();
+/** Mounts vendors in an opaque, revocable document instead of the storefront window. */
+export function mountAnalyticsFrame(config: AnalyticsVendorConfig, document: Document = window.document): { emit: AnalyticsTransport; destroy(): void } {
+  const frame = document.createElement("iframe");
+  frame.sandbox.add("allow-scripts");
+  frame.referrerPolicy = "no-referrer";
+  frame.title = ANALYTICS_FRAME_TITLE;
+  frame.hidden = true;
+  frame.src = "/analytics/frame";
+  let live = true;
+  let ready = false;
+  const queued: { kind: string; name: AnalyticsEventName; payload: AnalyticsPayload }[] = [];
+  const send = (message: unknown): void => {
+    try { frame.contentWindow?.postMessage(message, "*"); } catch { /* optional measurement */ }
+  };
+  const initialise = (event: MessageEvent): void => {
+    if (!live || ready || event.source !== frame.contentWindow || event.data?.kind !== "lousydeal.analytics.ready") return;
+    ready = true;
+    send({ kind: "lousydeal.analytics.configure", ...config });
+    for (const message of queued.splice(0)) send(message);
+  };
+  document.defaultView?.addEventListener("message", initialise);
+  try { document.body.append(frame); } catch { live = false; }
+  return {
+    emit(name, payload) {
+      if (!live) return;
+      const message = { kind: "lousydeal.analytics", name, payload };
+      if (ready) send(message);
+      else if (queued.length < 100) queued.push(message);
+    },
+    destroy() {
+      live = false;
+      queued.length = 0;
+      document.defaultView?.removeEventListener("message", initialise);
+      frame.remove();
+    },
   };
 }

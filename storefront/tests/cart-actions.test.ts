@@ -191,6 +191,7 @@ class TestStoreApiError extends Error {
 }
 
 async function runApplyCode(options: {
+  readonly redirectAfter?: boolean;
   readonly code?: string;
   readonly cartId?: string;
   readonly refusal?: string;
@@ -242,7 +243,10 @@ async function runApplyCode(options: {
       : acceptedRefusal
         ? `REDIRECT:/cart?code_reason=${options.refusal}`
         : `Store API ${String(options.refusalStatus ?? 422)}`;
-  await expect(applyCode(form)).rejects.toThrow(expected);
+  const result = applyCode(form, options.redirectAfter);
+  if (options.redirectAfter === false && options.cartId !== undefined && options.refusal === undefined) {
+    await expect(result).resolves.toBeUndefined();
+  } else await expect(result).rejects.toThrow(expected);
 
   vi.resetModules();
   for (const mocked of [
@@ -258,6 +262,15 @@ async function runApplyCode(options: {
 }
 
 describe("applying a code", () => {
+  it("resolves an enhanced successful action only after applying the code", async () => {
+    const run = await runApplyCode({ code: "BALDRICK20", cartId: "cart_1", redirectAfter: false });
+    expect(run.applied).toHaveLength(1);
+  });
+
+  it("preserves enhanced-action refusal redirects instead of reporting success", async () => {
+    const run = await runApplyCode({ code: "invalid", cartId: "cart_1", refusal: "unknown_code", redirectAfter: false });
+    expect(run.applied).toHaveLength(1);
+  });
   it("refuses a submission carrying no code", async () => {
     const { applyCode } = await import("../src/lib/cart-actions");
     await expect(applyCode(new FormData())).rejects.toThrow(/missing code/);
@@ -312,6 +325,9 @@ interface AddToCartRun {
 
 /** Drives `addToCart` against a stubbed `store-cart`, and reports what it did. */
 async function runAddToCart(options: {
+  merch?: boolean;
+  redirectAfter?: boolean;
+  addFails?: boolean;
   cookieCartId?: string;
   /** What `getCart` answers for the cookie's cart, or `"unresolvable"` for one that does not. */
   existingCart?: {
@@ -345,6 +361,7 @@ async function runAddToCart(options: {
       events.push(`remove:${lineId}`);
     },
     addLineToCart: async (_fetchJson: unknown, cartId: string, variantId: string, quantity: number) => {
+      if (options.addFails) throw new Error("add failed");
       added.push([cartId, variantId, quantity]);
       events.push(`add:${variantId}`);
     },
@@ -380,10 +397,13 @@ async function runAddToCart(options: {
     requireStoreClientConfig: () => ({ backendUrl: "http://backend.example", publishableKey: "pk" }),
   }));
 
-  const { addToCart } = await import("../src/lib/cart-actions");
+  const { addToCart, addMerchToCart } = await import("../src/lib/cart-actions");
   const form = new FormData();
   form.set("variantId", "var_chosen");
-  await expect(addToCart(form)).rejects.toThrow("REDIRECTED");
+  const result = options.merch ? addMerchToCart(form, options.redirectAfter) : addToCart(form);
+  if (options.addFails) await expect(result).rejects.toThrow("add failed");
+  else if (options.merch && options.redirectAfter === false) await expect(result).resolves.toBeUndefined();
+  else await expect(result).rejects.toThrow("REDIRECTED");
 
   vi.resetModules();
   for (const mocked of [
@@ -400,6 +420,16 @@ async function runAddToCart(options: {
 }
 
 describe("addToCart keeps the cart to one certificate", () => {
+  it("reports a successful enhanced merch action only after adding and writing the cart cookie", async () => {
+    const run = await runAddToCart({ merch: true, redirectAfter: false });
+    expect(run.added).toEqual([["cart_new", "var_chosen", 1]]);
+    expect(run.cookieWrittenAs).toBe("cart_new");
+  });
+
+  it("never resolves a failed enhanced merch action as a success", async () => {
+    const run = await runAddToCart({ merch: true, redirectAfter: false, addFails: true });
+    expect(run.cookieWrittenAs).toBeUndefined();
+  });
   it("clears the certificates that were there before adding the chosen tier", async () => {
     // Two lines, whether from two tiers or one tier added twice. Both go:
     // pressing "add" on a second tier is changing your mind, not ordering a
