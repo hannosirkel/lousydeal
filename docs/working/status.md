@@ -7,10 +7,10 @@ does not — it points, it does not hold.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-11 |
-| Current slice | **none in flight.** LD-08 preparation completed 2026-09-11 |
-| In flight | nothing. No open pull request in `lousydeal`, `deploys` or `orange`; no active worktree |
-| Next action | Plan **LD-08 — Launch polish** in `docs/working/`, then execute it. Include the missing Printful billing information and the `STORE_OPEN` launch gate in its production-readiness work |
+| Updated | 2026-09-12 |
+| Current slice | **LD-08 — Launch polish**, planned and in implementation |
+| In flight | `deal/ld08-launch` in `/home/hanno/app/.worktrees/lousydeal/ld08-launch`; no pull request yet |
+| Next action | Execute L1 in [`ld-08-launch-polish.md`](./ld-08-launch-polish.md): the fail-closed `STORE_OPEN` gate |
 | Blocked | nothing |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
