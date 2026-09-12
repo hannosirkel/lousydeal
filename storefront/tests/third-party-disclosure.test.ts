@@ -52,12 +52,59 @@ const withoutComments = (text: string): string =>
  * `rel="noreferrer"` so that pressing one does not hand over which certificate
  * it came from. `tests/share-links.test.ts` asserts each of those.
  *
- * A fourth host is a decision, and this line is where it gets made.
+ * **The three analytics vendor hosts are deliberately not here, and that is a
+ * correction rather than an omission.** They were added to this list when the
+ * isolated frame arrived, which is one line and looks like the same kind of
+ * decision `x.com` was. It is not. This pattern is applied to every file under
+ * `src`, so permitting a host here permits it *everywhere* -- and the shape
+ * argument that makes `x.com` tolerable (`<a href>` and nothing else) has no
+ * analogue for a host that exists to be fetched. With Google and Meta on this
+ * line, a `document.createElement("script")` with a `gtag/js` src added to
+ * `ConsentManager.tsx` above the consent check passed the whole suite: measured
+ * at 2620 tests green with exactly that injection in place. Every visitor with
+ * the question unanswered would have loaded Google on first paint.
+ *
+ * So the permission is scoped to the two files that implement the frame,
+ * following `COOKIE_FILES` and `STORAGE_FILES` in
+ * `browser-storage-disclosure.test.ts` -- a per-file allow-list is how this
+ * suite already says "here and nowhere else", and it was the right instrument
+ * the first time too.
  */
 const PERMITTED =
-  /^https?:\/\/(?:h|store-api-proxy\.invalid|analytics\.invalid|localhost|127\.0\.0\.1|x\.com|bsky\.app|www\.googletagmanager\.com|connect\.facebook\.net|www\.facebook\.com)(?:[:/]|$)/;
+  /^https?:\/\/(?:h|store-api-proxy\.invalid|analytics\.invalid|localhost|127\.0\.0\.1|x\.com|bsky\.app)(?:[:/]|$)/;
+
+/**
+ * The only two files that may name Google or Meta.
+ *
+ * `lib/analytics-frame.ts` builds the frame document; `app/analytics/frame/route.ts`
+ * serves it with the CSP that whitelists those hosts. Both describe what runs
+ * inside an opaque-origin sandbox, never what the storefront window loads.
+ */
+const ANALYTICS_VENDOR_FILES = new Set(["app/analytics/frame/route.ts", "lib/analytics-frame.ts"]);
+const ANALYTICS_VENDOR_URL = /^https?:\/\/(?:www\.googletagmanager\.com|connect\.facebook\.net|www\.facebook\.com)(?:[:/]|$)/;
+const ANALYTICS_VENDOR_HOST = /\b(?:www\.googletagmanager\.com|connect\.facebook\.net|www\.facebook\.com|(?:\*\.)?(?:google-analytics\.com|analytics\.google\.com))\b/g;
 
 const privacyProse = PRIVACY.sections.flatMap((section) => section.body).join("\n");
+
+type Source = { readonly file: string; readonly text: string };
+
+function offendingExternalHosts(input: readonly Source[]): string[] {
+  return input.flatMap(({ file, text }) =>
+    [...withoutComments(text).matchAll(/https?:\/\/[a-zA-Z0-9.-]+/g)]
+      .map((match) => match[0])
+      .filter((url) => !PERMITTED.test(url) && !(ANALYTICS_VENDOR_FILES.has(file) && ANALYTICS_VENDOR_URL.test(url)))
+      .map((url) => `${file}: ${url}`),
+  );
+}
+
+function analyticsHostsOutsideFrame(input: readonly Source[]): string[] {
+  return input.flatMap(({ file, text }) =>
+    [...withoutComments(text).matchAll(ANALYTICS_VENDOR_HOST)]
+      .map((match) => match[0])
+      .filter(() => !ANALYTICS_VENDOR_FILES.has(file))
+      .map((host) => `${file}: ${host}`),
+  );
+}
 
 describe("the scan", () => {
   it("reads the source tree", () => {
@@ -79,13 +126,47 @@ describe("what the pages load", () => {
   });
 
   it("names no other external host anywhere in the source", () => {
-    const offending = sources.flatMap(({ file, text }) =>
-      [...withoutComments(text).matchAll(/https?:\/\/[a-zA-Z0-9.-]+/g)]
-        .map((match) => match[0])
-        .filter((url) => !PERMITTED.test(url))
-        .map((url) => `${file}: ${url}`),
-    );
-    expect(offending).toEqual([]);
+    expect(offendingExternalHosts(sources)).toEqual([]);
+  });
+
+  it("reports an imperative Google or Meta script outside the isolated frame", () => {
+    const injected: readonly Source[] = [
+      {
+        file: "components/Tracker.tsx",
+        text: "const script = document.createElement('script'); script.src = 'https://www.googletagmanager.com/gtag/js?id=G-EXAMPLE'; document.head.append(script);",
+      },
+      {
+        file: "components/Tracker.tsx",
+        text: "const script = document.createElement('script'); script.src = 'https://connect.facebook.net/en_US/fbevents.js'; document.head.append(script);",
+      },
+    ];
+
+    expect(offendingExternalHosts(injected)).toEqual([
+      "components/Tracker.tsx: https://www.googletagmanager.com",
+      "components/Tracker.tsx: https://connect.facebook.net",
+    ]);
+  });
+
+  it("keeps every analytics vendor host in the frame implementation", () => {
+    expect(analyticsHostsOutsideFrame(sources)).toEqual([]);
+  });
+
+  it("mounts the vendor frame from the consent boundary and nowhere else", () => {
+    // **The host scan above is blind to this one, which is why it is separate.**
+    // The frame's `src` is the first-party `/analytics/frame`; no vendor host
+    // appears at the call site at all. So a `mountAnalyticsFrame` added to
+    // `layout.tsx` would satisfy every assertion above while putting Google and
+    // Meta into an iframe on every page before anybody had been asked -- the
+    // same failure the scoped allow-list closes, reached by the one route the
+    // spelling of a host cannot describe.
+    //
+    // Two files, and the second is where it is defined. `ConsentManager.tsx` is
+    // the only caller because it is the only place holding a decision.
+    const named = sources
+      .filter(({ text }) => /\bmountAnalyticsFrame\b/.test(withoutComments(text)))
+      .map(({ file }) => file)
+      .sort();
+    expect(named).toEqual(["components/analytics/ConsentManager.tsx", "lib/analytics.ts"]);
   });
 
   it("loads no script or stylesheet from anywhere, however the host is spelled", () => {
@@ -135,6 +216,27 @@ describe("what the pages load", () => {
       "react",
       "react-dom",
     ]);
+  });
+
+  it("does not advertise an undeclared browser-test runner", () => {
+    // `npm run test:analytics-browser` was listed here and failed
+    // `ERR_MODULE_NOT_FOUND` on `playwright`, which is an optional peer of
+    // `next` and is installed by nothing: `npm ci` then the script is a red
+    // run, not a green one, and the PR body cited it as evidence.
+    //
+    // **Declaring playwright would have been the wrong repair.** The harness
+    // fetches the live vendor SDKs over the network and needs an external
+    // Chromium, so it can never be a `scripts/validate` step -- a gate that
+    // reaches the internet is a gate that fails for the wrong reasons. It
+    // stays what it actually is: workstation evidence, invoked by path, with
+    // its prerequisites written down in
+    // `docs/working/ld08-analytics-verification.md`. This assertion is here so
+    // the shorthand is not quietly restored.
+    const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+      scripts: Record<string, string>;
+    };
+
+    expect(manifest.scripts).not.toHaveProperty("test:analytics-browser");
   });
 });
 

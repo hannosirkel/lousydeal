@@ -36,7 +36,9 @@ refusal redirects remain available.
 
 Run `npm ci` and install Playwright in a workstation tools directory. Set
 `PLAYWRIGHT_MODULE` to its module path and `CHROMIUM_EXECUTABLE` to Chromium.
-Run `npm run test:analytics-browser` from this checkout.
+Run `node storefront/tests/browser/analytics.mjs` from this checkout. This is
+workstation-only evidence, deliberately not an npm test command or CI
+dependency.
 
 The harness fetches public SDKs using example IDs into memory. It intercepts
 every browser vendor request and sends no measurements externally. Optional
