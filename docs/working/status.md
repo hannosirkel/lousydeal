@@ -9,9 +9,9 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-12 |
 | Current slice | **LD-08 — Launch polish**, planned and in implementation |
-| In flight | L0–L4, D1, M1 and O1 have Astra-reviewed open PRs. Disabled preparatory provider-report drafts are also ready: Meeme M2 #9, private inventory I2 #49 and public Orange O2 #98. |
-| Next action | Operator merges and verifies the stack one PR at a time, beginning with Lousy Deal L0 #215. In parallel, E0 supplies the dedicated `lousydeal-meeme-google-analytics` service-account credential/property grant and separate `lousydeal-meeme-meta-read` owned-asset token and identifiers. E1/F1/F2 follow those merges and the E0 preflight. |
-| Blocked | Provider-report activation and final live compatibility review wait on the two dedicated E0 credentials and their property/asset IDs, scopes, metrics and response semantics. Those key files are not present yet. Existing Buffer drafts and all other LD-08 work are unaffected. |
+| In flight | L0–L4, D1, M1 and O1 have Astra-reviewed open PRs. |
+| Next action | Operator merges and verifies the stack one PR at a time, beginning with Lousy Deal L0 #215. E1/F1/F2 follow those merges. |
+| Blocked | Provider reporting is deferred to LD-10 and does not block LD-08. The remaining launch prerequisites are recorded against their owning rows; existing Buffer drafts remain unaffected. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -43,9 +43,10 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-08 — Launch polish** | in implementation, and last. Application/configuration PRs are prepared through O1; M2/I2/O2 close the remaining gated provider-report contract before E1/F1/F2. |
+| **LD-08 — Launch polish** | in implementation, and last. Application/configuration PRs are prepared through O1; E1/F1/F2 follow their merge and verification order. |
+| **LD-10 — Provider reporting** | **deferred until after launch.** A non-launch-blocking Google Analytics and Meta aggregate-read plan. Its preparatory Meeme #9, private inventory #49 and Orange #98 drafts require re-review and rebase on repaired M1/O1. |
 
-**Nothing else is open.** On 2026-09-10 the operator closed every remaining
+**No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
 
 ## Gates
@@ -95,8 +96,8 @@ What is actually held, as against what the contract expects in §2b.
 | SMTP credentials, host, port, servername, egress CIDR | yes | mail verified sending from both environments |
 | Printful account, store token, four products | yes | eight scopes, verified by read-back; artwork fetched from this repository at a pinned commit |
 | **Printful billing information** | **no** | Required before publication. The LD-06 test order reached Printful with only its shirt, then failed at billing. An LD-08 item |
-| Google Analytics Data API authority | **no** | The measurement tag is held, but a dedicated read-only principal, numeric GA4 property ID and property Viewer grant are still required for Meeme's aggregate reports. |
-| Meta owned-asset read authority | **no** | The Facebook App ID/secret is held, but a valid authorized Page/linked professional Instagram asset token and verified read scopes are still required. |
+| Google Analytics Data API authority | **no** | Deferred LD-10 needs a dedicated read-only principal, numeric GA4 property ID and property Viewer grant for aggregate reports; it is not a launch prerequisite. |
+| Meta owned-asset read authority | **no** | Deferred LD-10 needs a valid authorized Page/linked professional Instagram asset token and verified read scopes; the Facebook App ID/secret is not data access authority and this is not a launch prerequisite. |
 | Printful webhook and its secret | yes | verified end to end — correctly signed 200, wrongly signed 401 |
 | Merch buyable end to end | yes, 2026-09-10 | the operator completed a checkout |
 | Union OSS registration, and the `EX` filing | yes / filed 2026-09-09 | the `EX` number follows within 35 working days; nothing waits on it |
