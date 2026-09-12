@@ -670,6 +670,7 @@ export const dynamic = "force-dynamic";
  * and neither verb has a legitimate caller here.
  */
 const POST_ONLY_PATHS: ReadonlySet<string> = new Set([STRIPE_WEBHOOK_PATH, PRINTFUL_WEBHOOK_PATH]);
+const COMMERCE_MUTATION_METHODS: ReadonlySet<string> = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 /**
  * Whether a resolved path refuses this method.
@@ -680,6 +681,14 @@ const POST_ONLY_PATHS: ReadonlySet<string> = new Set([STRIPE_WEBHOOK_PATH, PRINT
  */
 export function methodRefused(method: string, upstreamPath: string): boolean {
   return method !== "POST" && POST_ONLY_PATHS.has(upstreamPath);
+}
+
+/** POSTs below `/store/` mutate commerce, except the statutory withdrawal route. */
+export function storePurchaseMutationRefused(method: string, upstreamPath: string, storeOpen: boolean): boolean {
+  return COMMERCE_MUTATION_METHODS.has(method)
+    && upstreamPath.startsWith("/store/")
+    && upstreamPath !== "/store/withdrawals"
+    && !storeOpen;
 }
 
 async function handle(request: Request): Promise<Response> {
@@ -695,7 +704,10 @@ async function handle(request: Request): Promise<Response> {
     return new Response(null, { status: 404 });
   }
 
-  const { medusa } = getRuntimeConfig();
+  const { medusa, store } = getRuntimeConfig();
+  if (storePurchaseMutationRefused(request.method, upstreamPath, store.open)) {
+    return Response.json({ code: "store_closed" }, { status: 503 });
+  }
   if (medusa.backendUrl === null || medusa.publishableKey === null) {
     return new Response(null, { status: 503 });
   }

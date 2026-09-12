@@ -17,6 +17,7 @@
  */
 
 import { MERCH_ADD_LABEL, MERCH_SIZE_LABEL } from "../../content/merch";
+import { STORE_CLOSED_NOTICE } from "../../content/checkout";
 import { Button } from "./Button";
 
 export interface MerchFormProps {
@@ -24,9 +25,11 @@ export interface MerchFormProps {
   /** The item's name, for the accessible name of both controls. */
   readonly title: string;
   readonly variants: readonly { readonly variantId: string; readonly size: string }[];
+  readonly storeOpen: boolean;
 }
 
-export function MerchForm({ action, title, variants }: MerchFormProps) {
+export function MerchForm({ action, title, variants, storeOpen }: MerchFormProps) {
+  if (!storeOpen) return <p className="notice">{STORE_CLOSED_NOTICE}</p>;
   const only = variants.length === 1 ? variants[0] : undefined;
   const selectId = `merch-size-${variants[0]?.variantId ?? "none"}`;
 

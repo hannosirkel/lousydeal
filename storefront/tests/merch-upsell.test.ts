@@ -138,40 +138,46 @@ describe("what the upsell must not say", () => {
 });
 
 describe("the control", () => {
-  const render = (variants: readonly { variantId: string; size: string }[]) =>
+  const render = (variants: readonly { variantId: string; size: string }[], storeOpen: boolean) =>
     renderToStaticMarkup(
-      createElement(MerchForm, { action: (async () => undefined) as never, title: "A Thing", variants }),
+      createElement(MerchForm, { action: (async () => undefined) as never, title: "A Thing", variants, storeOpen }),
     );
 
   it("offers a size where there is a choice", () => {
-    const html = render(merchRowData([TEE])[0]?.variants ?? []);
+    const html = render(merchRowData([TEE])[0]?.variants ?? [], true);
     expect(html).toContain("<select");
     for (const size of ["S", "M", "L"]) expect(html).toContain(`>${size}</option>`);
   });
 
   it("offers no select where there is one size, because it would do nothing", () => {
     // `brand.md`: a control that does nothing is a lie in a control.
-    const html = render(merchRowData([MUG])[0]?.variants ?? []);
+    const html = render(merchRowData([MUG])[0]?.variants ?? [], true);
     expect(html).not.toContain("<select");
     expect(html).toContain('value="var_mug"');
   });
 
   it("posts the variant under the name the action reads, either way", () => {
     for (const variants of [merchRowData([TEE])[0]?.variants ?? [], merchRowData([MUG])[0]?.variants ?? []]) {
-      expect(render(variants)).toContain('name="variantId"');
+      expect(render(variants, true)).toContain('name="variantId"');
     }
   });
 
   it("names the item in the accessible name of both controls", () => {
     // Four rows of ADD are four identical entries in a controls list, and four
     // selects called Size are four more.
-    const html = render(merchRowData([TEE])[0]?.variants ?? []);
+    const html = render(merchRowData([TEE])[0]?.variants ?? [], true);
     expect(html.match(/A Thing/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
   it("sends no quantity, because nothing here offers one", () => {
     // A quantity the browser can send is a quantity a visitor can change.
-    expect(render(merchRowData([TEE])[0]?.variants ?? [])).not.toContain('name="quantity"');
+    expect(render(merchRowData([TEE])[0]?.variants ?? [], true)).not.toContain('name="quantity"');
+  });
+
+  it("replaces the purchase control with a closed-store notice", () => {
+    const html = render(merchRowData([MUG])[0]?.variants ?? [], false);
+    expect(html).toContain("Ordering is currently closed.");
+    expect(html).not.toContain("<form");
   });
 });
 

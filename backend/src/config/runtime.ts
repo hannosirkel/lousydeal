@@ -32,6 +32,9 @@ import {
 } from "./database-url";
 
 export interface BackendRuntimeConfig {
+  readonly store: {
+    readonly open: boolean;
+  };
   readonly http: {
     readonly jwtSecret: string;
     readonly cookieSecret: string;
@@ -236,6 +239,7 @@ const DEFAULT_ADMIN_CORS = "http://localhost:7000,http://localhost:7001,http://l
  */
 export function readBackendRuntimeConfig(environment: Environment): BackendRuntimeConfig {
   return {
+    store: { open: readStoreOpen(environment) },
     http: {
       jwtSecret: requireEnv(environment, "JWT_SECRET"),
       cookieSecret: requireEnv(environment, "COOKIE_SECRET"),
@@ -271,6 +275,11 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
       ),
     },
   };
+}
+
+/** Only the exact runtime value `true` permits commerce mutations. */
+export function readStoreOpen(environment: Environment): boolean {
+  return environment.STORE_OPEN?.trim() === "true";
 }
 
 /**

@@ -26,7 +26,15 @@ export default defineConfig({
     projects: [
       { test: { name: "repo", include: ["scripts/**/*.test.ts"], environment: "node" } },
       "./backend/vitest.config.*",
-      { test: { name: "storefront", root: "./storefront", include: ["tests/**/*.test.ts"], environment: "node" } },
+      {
+        test: {
+          name: "storefront",
+          root: "./storefront",
+          include: ["tests/**/*.test.ts"],
+          environment: "node",
+          setupFiles: ["tests/setup.ts"],
+        },
+      },
     ],
     // Nothing above matches until the first suite exists, and an empty run is
     // a failure without this. No row of the plan removes it — this file is in

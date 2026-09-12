@@ -21,6 +21,7 @@ import { describe, expect, it } from "vitest";
 import {
   ALLOWED_NAMESPACES,
   forwardStoreApiRequest,
+  storePurchaseMutationRefused,
   methodRefused,
   resolveStoreApiPath,
   resolveStoreApiTarget,
@@ -42,6 +43,26 @@ import {
   initiateStripePaymentSession,
   STRIPE_PROVIDER_ID,
 } from "../src/lib/store-payment";
+
+describe("the store-api proxy's availability gate", () => {
+  it("refuses a commerce write locally when its own runtime is closed", () => {
+    expect(storePurchaseMutationRefused("POST", "/store/carts", false)).toBe(true);
+    expect(storePurchaseMutationRefused("DELETE", "/store/carts/cart_1/line-items/item_1", false)).toBe(true);
+    expect(storePurchaseMutationRefused("PUT", "/store/carts/cart_1", false)).toBe(true);
+    expect(storePurchaseMutationRefused("PATCH", "/store/carts/cart_1", false)).toBe(true);
+    expect(storePurchaseMutationRefused("POST", "/store/carts/cart_1/complete", false)).toBe(true);
+  });
+
+  it("forwards a commerce write when open so a closed backend response remains observable", () => {
+    expect(storePurchaseMutationRefused("POST", "/store/carts", true)).toBe(false);
+  });
+
+  it("does not gate withdrawal or webhook requests", () => {
+    expect(storePurchaseMutationRefused("POST", "/store/withdrawals", false)).toBe(false);
+    expect(storePurchaseMutationRefused("POST", "/webhooks/printful", false)).toBe(false);
+    expect(storePurchaseMutationRefused("GET", "/store/carts/cart_1", false)).toBe(false);
+  });
+});
 
 describe("resolveStoreApiPath refuses every attack in the row's brief", () => {
   it("refuses a literal .. immediately after the mount prefix", () => {
