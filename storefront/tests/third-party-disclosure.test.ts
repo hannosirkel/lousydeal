@@ -27,6 +27,7 @@ import { describe, expect, it } from "vitest";
 import { PRIVACY } from "../src/content/legal/privacy";
 
 const srcDir = fileURLToPath(new URL("../src", import.meta.url));
+const browserCommandManifest = new URL("../../package.json", import.meta.url);
 
 const sources = readdirSync(srcDir, { recursive: true, encoding: "utf8" })
   .filter((name) => /\.tsx?$/.test(name))
@@ -113,6 +114,10 @@ describe("the scan", () => {
 });
 
 describe("what the pages load", () => {
+  it("checks browser-test commands from the workspace manifest", () => {
+    expect(fileURLToPath(browserCommandManifest)).toBe(fileURLToPath(new URL("../../package.json", import.meta.url)));
+  });
+
   it("reaches Stripe only from the checkout", () => {
     const importers = sources
       .filter(({ text }) => /from "@stripe\//.test(withoutComments(text)))
@@ -232,7 +237,7 @@ describe("what the pages load", () => {
     // its prerequisites written down in
     // `docs/working/ld08-analytics-verification.md`. This assertion is here so
     // the shorthand is not quietly restored.
-    const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+    const manifest = JSON.parse(readFileSync(browserCommandManifest, "utf8")) as {
       scripts: Record<string, string>;
     };
 
