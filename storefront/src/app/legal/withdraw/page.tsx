@@ -49,7 +49,10 @@ import {
 } from "../../../content/withdrawal";
 import { submitWithdrawal } from "./actions";
 
-export const metadata: Metadata = { title: WITHDRAWAL_DOCUMENT.title };
+export const metadata: Metadata = {
+  title: WITHDRAWAL_DOCUMENT.title,
+  alternates: { canonical: "/legal/withdraw" },
+};
 
 const one = (value: string | string[] | undefined): string =>
   (Array.isArray(value) ? value[0] : value) ?? "";

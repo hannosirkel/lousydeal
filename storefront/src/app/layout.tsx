@@ -42,6 +42,7 @@ import {
   toClientRuntimeConfig,
 } from "../config/runtime-config";
 import { plexMono } from "../fonts/plex-mono";
+import { requestOrigin } from "../lib/request-origin";
 
 import "./globals.css";
 
@@ -54,17 +55,13 @@ import "./globals.css";
  * request arrived on, which is the only place that fact exists at runtime.
  *
  * **The scheme is derived too.** `x-forwarded-proto` is what the tunnel sets,
- * and it decides the scheme: measured behind `next start`, a request carrying
- * `X-Forwarded-Proto: https` produced an `https://` image URL and one without
- * produced `http://` — so something upstream of this code supplies the header
- * even locally, and the `?? "https"` below is a fallback for the case where
- * nothing does rather than the usual path. It is https because an `http://`
- * image URL sends a scraper to a redirect, and not all of them follow one.
+ * and it decides the scheme. `requestOrigin` admits only `http` and `https`,
+ * and defaults an absent or unrecognised value to `https`: an `http://` image
+ * URL sends a scraper to a redirect, and not all of them follow one.
  */
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
-  const host = requestHeaders.get("host");
-  const proto = requestHeaders.get("x-forwarded-proto") ?? "https";
+  const origin = requestOrigin(requestHeaders);
 
   return {
     title: MASTHEAD_MARK,
@@ -72,7 +69,7 @@ export async function generateMetadata(): Promise<Metadata> {
     // Absent rather than guessed when the host is: `metadataBase` with a wrong
     // origin produces confidently wrong absolute URLs, and Next falls back to a
     // relative one, which every scraper resolves against the page it fetched.
-    ...(host === null ? {} : { metadataBase: new URL(`${proto}://${host}`) }),
+    ...(origin === null ? {} : { metadataBase: origin }),
   };
 }
 

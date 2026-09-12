@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-12 |
 | Current slice | **LD-08 — Launch polish**, planned and in implementation |
-| In flight | `deal/ld08-launch` in `/home/hanno/app/.worktrees/lousydeal/ld08-launch`; no pull request yet |
-| Next action | Review the L2 analytics fixes, then continue L3 in [`ld-08-launch-polish.md`](./ld-08-launch-polish.md). Browser evidence and required vendor-setting read-back: [`ld08-analytics-verification.md`](./ld08-analytics-verification.md) |
+| In flight | LD-08's stacked `lousydeal` branches: L0/L1/L2 precede `deal/ld08-l3-closeout` in `/home/hanno/app/.worktrees/lousydeal/ld08-l3-closeout` |
+| Next action | Review L3's SEO and rendered closeout, then continue L4 in [`ld-08-launch-polish.md`](./ld-08-launch-polish.md). L3's dated matrix and measured Lighthouse scores are recorded there; analytics evidence and required vendor-setting read-back remain in [`ld08-analytics-verification.md`](./ld08-analytics-verification.md). |
 | Blocked | nothing |
 
 Nothing in this file is a secret. No credential value, no live private hostname,

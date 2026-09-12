@@ -6,11 +6,17 @@
  * request rather than baked into the image.
  */
 
+import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { LegalDocument } from "../../../components/document/LegalDocument";
 import { getRuntimeConfig } from "../../../config/runtime-config";
 import { TERMS } from "../../../content/legal/terms";
+
+export const metadata: Metadata = {
+  title: TERMS.title,
+  alternates: { canonical: "/legal/terms" },
+};
 
 export default async function TermsPage() {
   await connection();

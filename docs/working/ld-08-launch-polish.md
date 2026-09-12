@@ -211,19 +211,73 @@ rendering failures, and focused system/browser/build tests.
 catalogue, non-indexed transactional/personal routes, and a dated rendered
 review record in this plan.
 
-- [ ] Write failing tests for canonical metadata, sitemap membership and
+- [x] Write failing tests for canonical metadata, sitemap membership and
       `noindex` on cart, checkout and individual certificates.
-- [ ] Run the production build and browser suite at 360×800 and 1440×900 with
+- [x] Run the production build and browser suite at 360×800 and 1440×900 with
       scripting on and off; record concrete accessibility, overflow, focus,
       contrast, reduced-motion, error-state and copy failures.
-- [ ] Fix only those reproduced failures, adding a focused regression test for
+- [x] Fix only those reproduced failures, adding a focused regression test for
       each durable behavior.
-- [ ] Measure the production homepage before consent: no Google/Meta requests,
+- [x] Measure the production homepage before consent: no Google/Meta requests,
       no horizontal overflow, and a Lighthouse mobile budget of performance
       ≥90, accessibility ≥95, best-practices ≥95 and SEO ≥95. A miss blocks
       completion unless the operator explicitly accepts that measured score as
       an exception; it is never rounded up or merely noted as complete.
-- [ ] Repeat the full rendered matrix and application gate.
+- [x] Repeat the full rendered matrix and application gate.
+
+#### L3 rendered review — 2026-09-12
+
+The Browser plugin was not available in this session, so the approved fallback
+was regular Playwright 1.57.0 with its Chromium 153 executable. A production
+Next.js 16.3.4 build ran against a local, deterministic Store API fixture with
+synthetic catalogue and certificate data. The fixture, browser script,
+screenshots and Lighthouse JSON stayed under `/tmp` and were not committed.
+
+The repeated matrix covered `/`, `/deal/lousy-deal`,
+`/goods/original-purchase-receipt`, `/cart`, `/checkout`, `/legal`,
+`/legal/terms`, `/legal/withdraw`, `/done-deals/browser-fixture`,
+`/design/certificate` and the branded 404 at `/missing-browser-fixture`. Each
+route ran at 360×800 and 1440×900, both with scripting enabled and disabled:
+44 route cases. Two more interaction cases proved visible keyboard focus,
+reduced motion, analytics refusal, a Baldrick turn and the no-script withdrawal
+GET-to-confirmation step. The scripting-enabled cases also ran axe-core 4.13.0
+at WCAG 2 A/AA and 2.1 A/AA.
+
+| Check | Repeated result |
+| --- | --- |
+| Meaningful document, title, expected status and no framework overlay | 44/44 |
+| Horizontal overflow | 0 px in 44/44 |
+| axe WCAG A/AA violations | 0 across 22 scripting-enabled route cases |
+| Relevant browser console warnings/errors | 0; Chromium logged only the intentional main-document 404 |
+| Google, Meta or any other third-party request before/refused consent | 0 |
+| Baldrick | present with scripting on only its four declared sales-assistance routes; absent without scripting |
+| System pages | branded 404 returned 404; deliberately broken certificate fixture returned branded 500 |
+| Visual review | mobile and desktop full-page captures showed no clipping, overlap, unreadable control or scroll trap |
+
+The first matrix reproduced one application failure: closing the store added a
+third cart return which omitted Baldrick, contrary to the cart's existing
+all-states contract. The focused guard failed at two mounts where it required
+three; adding Baldrick after the closed cart document made that test and the
+repeated browser case pass. Initial flags for the home/goods document names,
+the deliberately assistant-free certificate and the intentional 404 console
+entry were errors in the temporary harness, not application changes.
+
+Lighthouse 13.0.3 ran its mobile profile on the production homepage before
+consent, on the same Chromium 153 build. These are the reported scores, without
+rounding or an exception:
+
+| Category | Score | Budget |
+| --- | ---: | ---: |
+| Performance | 97 | ≥90 |
+| Accessibility | 100 | ≥95 |
+| Best practices | 100 | ≥95 |
+| SEO | 100 | ≥95 |
+
+It measured FCP 0.8 s, LCP 2.5 s, total blocking time 70 ms, CLS 0 and speed
+index 0.8 s. Its network log contained no origin other than the local
+storefront. The remaining coverage risk is deliberate: this pass used Chromium
+and deterministic local data; F2 owns cross-service and deployed-environment
+verification.
 
 ### L4 — Explicit Printful catalogue reconciliation runner
 

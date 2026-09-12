@@ -18,6 +18,7 @@ import { LEGAL_INDEX, LEGAL_ROUTES } from "../../content/legal-routes";
 
 export const metadata: Metadata = {
   title: LEGAL_INDEX.title,
+  alternates: { canonical: "/legal" },
 };
 
 export default function LegalIndexPage() {
