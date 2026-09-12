@@ -121,9 +121,10 @@ describe("what is recorded when you visit", () => {
     expect(claim(section("5"), /Cloudflare provides/)).toMatch(/sees the address each of your requests comes from/i);
   });
 
-  it("keeps the no-analytics claim free of exceptions", () => {
-    const analytics = claim(section("2"), /There is no analytics/);
-    expect(analytics).toMatch(/no measurement, no advertising pixel/i);
+  it("explains optional analytics without claiming identifiers or page addresses are sent", () => {
+    const analytics = claim(section("2"), /Google Analytics and Meta Pixel/);
+    expect(analytics).toMatch(/only after you agree/i);
+    expect(analytics).toMatch(/never a page address, query, title, certificate serial, form entry or other identifier/i);
     expect(prose).not.toMatch(/\bpicture of you\b/i);
   });
 });
@@ -271,11 +272,11 @@ describe("the payment record", () => {
 });
 
 describe("who else handles it", () => {
-  it("names three processors and no more, and a carrier as its own case", () => {
+  it("names the optional analytics vendors and carrier as their own cases", () => {
     // **Two until LD-04 P11.** The opener counted, so adding Printful without
     // touching it would have left the document contradicting itself in its
     // own first sentence.
-    const opener = claim(section("5"), /Three companies handle data/);
+    const opener = claim(section("5"), /Five companies can handle data/);
     expect(opener).toMatch(/these are all of them/i);
     expect(section("5")).not.toMatch(/two companies handle data/i);
     // Backblaze was named while holding nothing: the platform's backup jobs are

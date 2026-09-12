@@ -225,7 +225,7 @@ export default async function CartPage({
         {notice === undefined ? null : <p className="notice payment-error">{notice}</p>}
         <CodeForm action={applyCode} />
         {/* The only route to `/checkout` a shopper reaches by clicking. */}
-        <a className="button is-primary" href="/checkout" data-analytics-event="checkout_started">{CHECKOUT_LABEL}</a>
+        <Button href="/checkout">{CHECKOUT_LABEL}</Button>
         {merch.length === 0 ? null : (
           <>
             <Rule />
