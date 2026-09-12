@@ -9,9 +9,9 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-12 |
 | Current slice | **LD-08 — Launch polish**, planned and in implementation |
-| In flight | L0–L4 and D1 have Astra-reviewed open PRs. M1 and O1 retain their existing open PR/worktree mapping but are under remediation; their repaired forms require re-review before merge. |
-| Next action | Operator merges and verifies the stack one PR at a time, beginning with Lousy Deal L0 #215. E1/F1/F2 follow those merges. |
-| Blocked | Provider reporting is deferred to LD-10 and does not block LD-08. The remaining launch prerequisites are recorded against their owning rows; existing Buffer drafts remain unaffected. |
+| In flight | The LD-08 social launch kit merged as #213 and #214. Six stacked `lousydeal` PRs are open, each rebased on the one before it: L0 #215, L1 #216, L2 #217, L3 #218, L4 #219 and the plan update #220. D1 has its own open PR. M1 and O1 retain their existing open PR/worktree mapping but are under remediation; their repaired forms require re-review before merge. |
+| Next action | Operator merges and verifies the stack one PR at a time, beginning with Lousy Deal L0 #215, then #216, #217, #218, #219 and #220. E1/F1/F2 follow those merges. |
+| Blocked | Nothing. Provider reporting — tasks E0, M2, I2 and O2 — is decoupled from LD-08 by operator decision: it is prepared, gated on E0, an operator-owned external authorization, and named in no completion criterion, so LD-08 can close without it. The two prerequisites that do block publication, Printful billing and Stripe activation, are recorded against their owning rows; existing Buffer drafts remain unaffected. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -43,8 +43,8 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-08 — Launch polish** | in implementation, and last. Application/configuration PRs are prepared through O1; E1/F1/F2 follow their merge and verification order. |
-| **LD-10 — Provider reporting** | **deferred until after launch.** A non-launch-blocking Google Analytics and Meta aggregate-read plan. Its preparatory Meeme #9, private inventory #49 and Orange #98 drafts require re-review and rebase on repaired M1/O1. |
+| **LD-08 — Launch polish** | in implementation, and last. #213 and #214 are merged; #215–#220 are open and stacked. Application/configuration PRs are prepared through O1; E1/F1/F2 follow their merge and verification order. Its decoupled provider-reporting arm does not gate it. |
+| **Provider reporting**, inside LD-08 | **prepared, and gated on E0.** Tasks E0, M2, I2 and O2 of [`ld-08-launch-polish.md`](./ld-08-launch-polish.md) sit outside its completion criteria by operator decision. Their Meeme #9, private inventory #49 and Orange #98 drafts stay open as evidence and need re-review and rebase on the merged M1/O1 interface. Nothing in LD-08 waits on them. |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
@@ -96,8 +96,8 @@ What is actually held, as against what the contract expects in §2b.
 | SMTP credentials, host, port, servername, egress CIDR | yes | mail verified sending from both environments |
 | Printful account, store token, four products | yes | eight scopes, verified by read-back; artwork fetched from this repository at a pinned commit |
 | **Printful billing information** | **no** | Required before publication. The LD-06 test order reached Printful with only its shirt, then failed at billing. An LD-08 item |
-| Google Analytics Data API authority | **no** | Deferred LD-10 needs a dedicated read-only principal, numeric GA4 property ID and property Viewer grant for aggregate reports; it is not a launch prerequisite. |
-| Meta owned-asset read authority | **no** | Deferred LD-10 needs a valid authorized Page/linked professional Instagram asset token and verified read scopes; the Facebook App ID/secret is not data access authority and this is not a launch prerequisite. |
+| Google Analytics Data API authority | **no** | E0 needs a dedicated read-only principal, the numeric GA4 property ID and a property Viewer grant for aggregate reports. **Non-blocking:** the decoupled provider-reporting arm waits on it; LD-08 does not |
+| Meta owned-asset read authority | **no** | E0 needs a valid authorized Page and linked professional Instagram asset token with verified read scopes; the Facebook App ID/secret is not data access authority. **Non-blocking**, like the row above |
 | Printful webhook and its secret | yes | verified end to end — correctly signed 200, wrongly signed 401 |
 | Merch buyable end to end | yes, 2026-09-10 | the operator completed a checkout |
 | Union OSS registration, and the `EX` filing | yes / filed 2026-09-09 | the `EX` number follows within 35 working days; nothing waits on it |

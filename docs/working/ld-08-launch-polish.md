@@ -18,7 +18,7 @@ remains deliberately deferred.
 | Pull-request sizing | For LD-08, the usual 800 changed-line and 10-file bounds are guidance rather than a hard split point. Do not split coherent work merely to meet them. The operator explicitly approved exceeding them where coherence requires it, and every over-bound PR names this approval and the reason in its body. |
 | Analytics | Configure the supplied Google Analytics tag and Meta Pixel. Use basic consent: neither vendor's code nor any measurement request loads before opt-in, and refusal remains fully functional. |
 | Social management | Meeme gets no Buffer token. A fixed authenticated n8n webhook accepts a narrow draft request and creates Buffer drafts with `saveToDraft: true`; it cannot schedule or publish. Public posting remains an explicit operator-approved action. |
-| Provider reporting | Deferred to non-launch-blocking LD-10. It does not change the consent-gated Google Analytics and Meta Pixel collection in this slice, or the Buffer-only draft workflow. |
+| Provider reporting | **Decoupled from completion, not deleted.** The fixed read-only Google Analytics and Meta summaries stay planned here as E0, M2, I2 and O2 under constraint 14, and their existing drafts stay open, so the work is prepared rather than lost. They appear in no completion criterion and LD-08 does not wait on them. They are gated on E0, an operator-owned external authorization. This decision settles only that the arm does not gate LD-08; it does not authorize it into V1 scope against §25's "elaborate social automation" and §26's "automated social content", and it does not change the consent-gated Google Analytics and Meta Pixel collection in this slice, or the Buffer-only draft workflow. |
 | Reddit | Buffer does not support Reddit, and no Reddit API credential is provided. Meeme prepares post and reply copy as durable drafts, but a human publishes it. Do not add another credential or direct Reddit integration for V1. |
 | Printful billing | Manual publication item. The public Printful API can create products and orders but exposes no billing-method lifecycle. `STORE_OPEN` remains false until the operator confirms billing is configured. |
 | Printful live catalogue | Reproduce the four test-store products in the live Printful store from the repository's pinned artwork and committed catalogue; do not copy remote product identifiers between stores. |
@@ -35,13 +35,16 @@ There are four code owners and one explicit lifecycle:
 3. `orange` plus its private `orange-inventory` owns live non-secret settings,
    OpenBao projection, public exposure and the narrow Meeme-to-n8n credential
    path. Inventory lands before the public Orange interface that consumes it.
-4. `meeme` owns the draft-only social workflow contract, helper and operating
-   instructions. It never owns a Buffer credential.
+4. `meeme` owns the draft-only social workflow contract, its decoupled fixed
+   read-only provider summaries, helper and operating instructions. It never
+   owns a vendor credential.
 5. The launch lifecycle seeds already-provided credentials without printing
    them, configures the live Printful store and catalogue, deploys the closed
-   site, verifies it, and stops for the two external gates: Printful billing and
-   Stripe activation. Opening the shop is a later explicit one-value promotion,
-   not an automatic consequence of passing tests.
+   site, verifies it, and stops for the two external gates that block
+   completion: Printful billing and Stripe activation. Opening the shop is a
+   later explicit one-value promotion, not an automatic consequence of passing
+   tests. E0 is a third external gate, but a non-blocking one: no completion
+   criterion depends on it, and this slice closes with it still open.
 
 ## Global constraints
 
@@ -104,6 +107,17 @@ There are four code owners and one explicit lifecycle:
     prepare changes, but only the operator confirms Printful billing, accepts
     Stripe's account obligations, authorizes each public social post or reply
     and flips `STORE_OPEN=true`.
+14. **Provider reads are fixed, aggregate-only and decoupled.** This constraint
+    governs E0, M2, I2 and O2, which no completion criterion names. Reuse M1's
+    authenticated webhook, key and TLS pin. Meeme cannot select account IDs,
+    properties, Graph paths, fields, metrics, date ranges, cursors or
+    credentials. Google reports cover the preceding seven completed days and
+    the eleven fixed funnel events. Meta reports cover configured owned assets,
+    at most ten owned posts/media, and only verified aggregate insights, own
+    permalinks, publication times and comment counts. Never return commenter
+    identity, comment text, comment IDs, direct messages or raw provider
+    errors. Missing read credentials must not affect Buffer drafts, and nothing
+    absent here delays LD-08.
 
 ## Completion criteria
 
@@ -116,16 +130,29 @@ There are four code owners and one explicit lifecycle:
 | 5 | Desktop and mobile rendered review covers homepage, deal, goods, cart, checkout, legal, certificate, Baldrick and system pages; keyboard, reduced-motion and no-script paths work | L3, F2 |
 | 6 | Production build meets a recorded performance budget with no avoidable third-party work before consent | L3 |
 | 7 | Live Stripe and Printful credentials are projected from OpenBao without entering Git; the four live Printful products and webhook exist | L4, O1, E1 |
-| 8 | Meeme can create Buffer drafts for its six supported networks without receiving a Buffer credential or a publish-capable route; Reddit posts and replies remain manual drafts | M1, O1, E1 |
+| 8 | Meeme can create Buffer drafts for its six supported networks without receiving Buffer credentials or a publish-capable route; Reddit posts and replies remain manual drafts | M1, O1, E1 |
 | 9 | The closed live site is reachable without Cloudflare Access while test and non-store surfaces retain their existing gates | O1, F2 |
 | 10 | Gate F exercises the closed public site and the open test purchase path, including webhook, idempotent certificate, email, gift, merch, discount, analytics consent and absence of test data from public statistics | F1, F2 |
-| 11 | Status records the measured remaining operator prerequisites and the exact later `STORE_OPEN=true` promotion without assuming only two remain | F2 |
+| 11 | Status records the measured remaining operator prerequisites, marking each as blocking or non-blocking — E0 is non-blocking — and the exact later `STORE_OPEN=true` promotion, without assuming only two remain | F2 |
+
+**These eleven rows are the whole of completion.** The provider-reporting arm —
+tasks E0, M2, I2 and O2, governed by constraint 14 — is deliberately outside
+them. LD-08 does not wait on it. No criterion names those tasks; F2 may mark
+this slice complete while every one of them is unstarted; and their being
+unstarted is not a blocker to record. They remain in this plan, and their
+existing drafts remain open, so the work is prepared rather than lost. They are
+gated on E0, an operator-owned external authorization step that no agent can
+perform and that nothing in this slice requires anyone to perform.
 
 ## Tasks
 
 Each task is one reviewable pull request. Lousy Deal branches stack in the
 dependency order below; cross-repository tasks use their own repository's main
 branch and state their consumed interface commit.
+
+Tasks E0, M2, I2 and O2 are that decoupled provider-reporting arm. Read them as
+prepared work behind E0's gate, not as launch work: nothing above them in the
+completion criteria waits for them.
 
 ### L0 — Plan and resume point
 
@@ -415,10 +442,157 @@ post/reply draft command that performs no network write.
       document that public posting or replying is still Tier 3 approval.
 - [ ] Run `bash scripts/validate` and `habit-hooks`.
 
+### The provider-reporting arm — E0, M2, I2 and O2
+
+**Outside the completion criteria.** The four tasks below are prepared work,
+not launch work. LD-08 completes without them. Each is gated on E0, an
+operator-owned external authorization that no agent can perform. Their existing
+drafts — Meeme #9, private `orange-inventory` #49 and public `orange` #98 — are
+evidence only: none may be merged or treated as current until it has been
+re-reviewed and rebased on the merged M1/O1 interface.
+
+### E0 — Provider authorization and read-only preflight
+
+**Repositories changed:** none. **State owners:** Google Analytics and Meta.
+**Gates:** M2, I2 and O2. **Gates nothing in the completion criteria.**
+
+This operator-owned preflight may run while disabled M2/I2/O2 implementation
+and fixtures are prepared, but those rows are not final or integration-complete
+until its safe facts are recorded. It never publishes content, changes shop
+availability or delays LD-08.
+
+- [ ] For Google, enable the GA Data API for a dedicated service account,
+      grant that principal property-level Viewer access only, and place its
+      standard JSON key in an approved ignored Orange source. Record the
+      numeric GA4 property ID and prove a fixed seven-day `runReport` with the
+      `analytics.readonly` scope, without printing credential or report data.
+- [ ] For Meta, confirm the owned Facebook Page is linked to a professional
+      Instagram account, authorize the supplied app through an operator who
+      controls those assets, and place the resulting asset token in a separate
+      approved ignored Orange source. Do not treat the app ID/secret as data
+      access authority.
+- [ ] Against current official provider references and sanitized read-only
+      probes, record privately the exact Page/Instagram IDs, supported Graph
+      version, one-or-two useful aggregate metrics per channel, required
+      scopes/tasks/granular targets, token validity and expiry, and bounded
+      owned-post/media comment-count response shapes. Request no write,
+      moderation, individual-comment or messaging scope.
+- [ ] If provider onboarding or app review is incomplete, retain the M1/O1
+      drafts unchanged, leave provider reads disabled and record the exact
+      external prerequisite. That is a paused arm, never an LD-08 blocker, and
+      it never delays marking LD-08 complete.
+
+### M2 — Fixed aggregate provider reports
+
+**Repository:** `meeme`, stacked on merged M1. **Outside the completion
+criteria.**
+
+**Files:** the existing `skills/social-drafts/` helper and skill,
+`workflows/lousydeal-social-drafts/` logic/generator/export/tests, `TOOLS.md`
+and `docs/current/operating-model.md`.
+
+**Consumes:** E0's verified provider endpoints, metrics and response shapes.
+
+**Produces:** three additional read-only actions on M1's authenticated webhook.
+The generic reviewed workflow contains no live property or asset ID; O2 binds
+one exact private configuration object after verifying the generic artifact.
+
+- [ ] Re-review and rebase draft PR #9 on the merged M1 interface before
+      retaining any of its implementation.
+- [ ] Add `analytics-summary`: two fixed GA Data API `runReport` requests for
+      the preceding seven completed days in the property timezone. Return only
+      aggregate `activeUsers`, `sessions`, `eventCount`, and `eventCount`
+      grouped by the eleven fixed funnel event names, with at most eleven rows.
+- [ ] Add `social-insights` for `facebook` or `instagram`: one configured owned
+      asset, the preceding seven completed days, E0's pinned Graph API version
+      and no more than two metrics proven by E0.
+- [ ] Add `comment-summary` for `facebook` or `instagram`: the first bounded
+      page of at most ten owned posts/media, returning only the shop's own
+      permalink, publication timestamp and aggregate comment count. Never read
+      or return individual comments, authors, text, IDs, replies or messages.
+- [ ] Dispatch read actions before Buffer discovery. Keep M1's three actions
+      unchanged and useful when provider reads are disabled or unavailable.
+      The caller supplies no account/property/asset ID, URL, Graph path, field,
+      metric, date range, cursor, method or credential identifier.
+- [ ] Pin hosts, methods, paths, timeouts and response size. Refuse redirects,
+      pagination loops and raw provider errors; distinguish unavailable,
+      incomplete and zero. Disable n8n execution-data retention.
+- [ ] Prove the exact generated node chain with behavioral fixtures, artifact
+      parity and negative tests for foreign IDs, personal/free-form data,
+      provider failures and any write request. Run `bash scripts/validate` and
+      `habit-hooks`, then obtain Astra review.
+
+### I2 — Private provider bindings
+
+**Repository:** private `orange-inventory`, stacked on merged O1 inventory.
+**Outside the completion criteria.**
+
+**Files:** the existing Lousy Deal source registry/provider settings, focused
+validation and private operating record.
+
+- [ ] Re-review and rebase draft PR #49 on the merged O1 inventory before
+      retaining any of its implementation.
+- [ ] Declare only approved ignored source filenames and numeric GA property,
+      Facebook Page and linked professional Instagram account identifiers.
+      Keep each provider disabled until E0 succeeds; do not fabricate
+      placeholders or reuse an unrelated Google principal.
+- [ ] Record E0's proven Meta Graph version and final one-or-two metric
+      allow-list. I2 is not finalized while those values remain unset.
+- [ ] Validate inventory in old-Orange and O2 contexts, then obtain Astra
+      review. Inventory lands before O2.
+
+### O2 — Provider credential custody and bound workflow
+
+**Repository:** public-ready `orange`, stacked on merged O1. **Outside the
+completion criteria.**
+
+**Consumes:** M2's exact generic artifact and I2's private binding contract.
+
+**Files:** the existing OpenBao source/seed helpers, n8n credential import and
+workflow lifecycle, reserved examples, focused tests and provisioning docs.
+
+- [ ] Re-review and rebase draft PR #98 on the merged O1 interface before
+      retaining any of its implementation.
+- [ ] Add optional, separately selected GA read and Meta asset-token sources;
+      never make them prerequisites for O1's existing Buffer import. Keep their
+      values in the protected stdin/OpenBao/n8n path and out of arguments,
+      output, facts, diffs, temporary files and Meeme.
+- [ ] Prefer n8n's native Google service-account credential with only
+      `analytics.readonly`, property-level Viewer access and no delegation or
+      impersonation. Use a valid Page/Instagram asset token obtained through
+      the approved Facebook app; app ID/secret alone is not read authority.
+- [ ] Verify M2's generic artifact hash before any secret read or network call.
+      Bind only its designated exact configuration object, validate numeric IDs
+      and explicit provider-enable flags, and prove every other byte remains
+      derived from the reviewed template. Read back the bound definition and
+      credential metadata without values; a second run is unchanged.
+- [ ] Preserve O1 check-mode, TLS, least-privilege and tamper protections. Prove
+      Meeme receives only the existing webhook key/config and no provider,
+      Buffer or n8n administration credential. Run Orange's full gate and
+      obtain Astra review.
+- [ ] Activation, alongside E1's lifecycle and only after E0: confirm E0's
+      grants, resource bindings and validity metadata are still current without
+      expanding their scopes; seed only E0's approved sources; reconcile M2
+      through O2 twice; and from Meeme run every fixed read action plus
+      negative wrong-key and arbitrary-ID probes. Confirm the intended
+      property/Page/account, sanitized aggregate schema, no public content
+      change and continuing Buffer readiness. Empty live data proves access,
+      while fixtures retain populated-response coverage. E1 does not wait on
+      this bullet and is complete without it.
+- [ ] Verify rotation and revocation separately: replace each provider source
+      through the reviewed lifecycle, read back safe credential metadata and
+      repeat the fixed probes; then revoke the GA principal/key or the Meta
+      token, confirm reporting becomes unavailable without raw provider errors,
+      and record the operator recovery steps privately. Do not rotate the
+      Buffer credential for either.
+
 ### E1 — Explicit credential and vendor lifecycle
 
 **Repositories changed:** none. **State owners:** OpenBao, n8n, Stripe,
-Printful and Buffer.
+Printful, Buffer, Google Analytics and Meta.
+
+E1 covers the Google Analytics tag and Meta Pixel only. The decoupled provider
+reads are activated in O2 and are not a condition of E1.
 
 - [ ] Verify the supplied key files by name, owner, mode and parseable shape
       without printing values; seed only named sources through the reviewed
@@ -489,12 +663,17 @@ documentation only where runtime behavior changed.
 ## Dependency order
 
 `L0 → L1 → L2 → L3 → L4` is the application stack. `D1` follows L2's runtime
-interface. `M1` defines the social webhook before O1 consumes it. F1 verifies L4's
-open-PR digest on open test, then verifies the release workflow's distinct
+interface. `M1` defines the social webhook before O1 consumes it. F1 verifies
+L4's open-PR digest on open test, then verifies the release workflow's distinct
 rebuilt live digests closed through Access. E1 performs the explicit
 credential/vendor lifecycles. F2 applies the scoped Access removal, performs
 unauthenticated closed verification and lands the documentation-only closure
-PR.
+PR. That sequence is the whole completion path.
+
+The decoupled arm runs beside it and never inside it: `E0 → M2 and I2 → O2`,
+with M2's interface reviewed before O2 and I2 landing before O2. Disabled M2,
+I2 and O2 fixtures and contracts may be prepared before E0, but their reviewed
+final form follows E0's observed facts. F2 does not wait for any of them.
 
 ## Rollback
 
@@ -503,5 +682,7 @@ previous image. By the operator's decision above, no compatibility fence is
 added: an image predating `STORE_OPEN` ignores the setting if selected after
 public exposure. Disabling the n8n workflow removes Meeme's social write path
 without rotating Buffer; revoking its dedicated Buffer key is the
-credential-level rollback. Printful products may remain in the live store while
-closed because no order can reach them.
+credential-level rollback. If the decoupled arm has been activated, restoring
+M1's reviewed workflow removes the provider reads while retaining Buffer
+drafts, and the provider tokens can be revoked independently. Printful products
+may remain in the live store while closed because no order can reach them.
