@@ -954,11 +954,8 @@ a.button.is-secondary:hover {
 
 /* ---- Analytics consent ------------------------------------------------ */
 .consent-manager {
-  position: fixed;
-  right: var(--space-3);
-  bottom: var(--space-3);
-  z-index: 10;
-  max-width: min(34rem, calc(100vw - var(--space-6)));
+  max-width: 34rem;
+  margin-top: var(--space-4);
 }
 
 .consent-manager-dialog {

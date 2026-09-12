@@ -97,12 +97,12 @@ describe("where he is", () => {
     }
   });
 
-  it("is on both of the cart page's returns, including the empty one", () => {
+  it("is on all three cart returns, including closed and empty states", () => {
     // A cart with nothing in it is where somebody is most likely to have a
     // question. The file has two `<main>`s and a scan that counts files would
     // not see the difference.
     const cart = readFileSync(`${appDir}/cart/page.tsx`, "utf8");
-    expect(cart.match(/<Baldrick \/>/g) ?? []).toHaveLength(2);
+    expect(cart.match(/<Baldrick \/>/g) ?? []).toHaveLength(3);
   });
 });
 

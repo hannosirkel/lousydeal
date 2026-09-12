@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 import {
   ANALYTICS_EVENT_NAMES,
@@ -17,6 +19,16 @@ describe("analytics consent storage", () => {
     expect(parseStoredConsent(serialiseConsent("declined"))).toBe("declined");
     expect(parseStoredConsent("granted")).toBeNull();
     expect(parseStoredConsent("v0:granted")).toBeNull();
+  });
+
+  it("keeps the persistent privacy control in document flow after the footer", () => {
+    const css = readFileSync(fileURLToPath(new URL("../src/app/globals.css", import.meta.url)), "utf8");
+    const layout = readFileSync(fileURLToPath(new URL("../src/app/layout.tsx", import.meta.url)), "utf8");
+    const managerRules = css.match(/\.consent-manager\s*\{(?<rules>[^}]*)\}/)?.groups?.rules;
+
+    expect(managerRules).toBeDefined();
+    expect(managerRules).not.toMatch(/\bposition\s*:\s*(?:fixed|absolute|sticky)\b/);
+    expect(layout.indexOf("<ConsentManager")).toBeGreaterThan(layout.indexOf("<Footer"));
   });
 });
 
