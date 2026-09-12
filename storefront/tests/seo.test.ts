@@ -8,7 +8,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const requestHeaders = vi.hoisted(() => new Headers());
@@ -81,17 +81,14 @@ describe("transactional and personal indexing", () => {
     expect(route.metadata?.robots).toEqual({ index: false, follow: false });
   });
 
-  it("marks the certificate design noindex and keeps the PDF response header", async () => {
+  // The two certificate URLs that are not pages carry the same directive in a
+  // response header, and `tests/certificate-indexing.test.ts` proves it by
+  // calling them rather than by reading their source for the literal.
+  it("marks the certificate design noindex", async () => {
     const design = await import("../src/app/design/certificate/page") as {
       readonly metadata?: { readonly robots?: unknown };
     };
-    const pdfRoute = readFileSync(
-      fileURLToPath(new URL("../src/app/done-deals/[slug]/certificate.pdf/route.ts", import.meta.url)),
-      "utf8",
-    );
-
     expect(design.metadata?.robots).toEqual({ index: false, follow: false });
-    expect(pdfRoute).toContain('"x-robots-tag": "noindex, nofollow"');
   });
 
   it.each([
@@ -222,12 +219,19 @@ describe("crawler routes", () => {
     const disallowed = typeof configuredDisallow === "string"
       ? [configuredDisallow]
       : configuredDisallow ?? [];
+    // Every one of these carries `noindex` on its own response -- in metadata
+    // for the pages, in a header for the PDF and the share card. A `Disallow`
+    // here would be the classic own goal: a crawler that is not allowed to
+    // fetch the URL never reads the directive, and the address stays eligible
+    // for a URL-only listing. Crawlable and noindexed is the intended pair, so
+    // this asserts the absence rather than tolerating it.
     for (const path of [
       "/cart",
       "/checkout",
       "/design/certificate",
       "/done-deals/example",
       "/done-deals/example/certificate.pdf",
+      "/done-deals/example/opengraph-image",
     ]) {
       expect(disallowed.some((prefix) => path.startsWith(prefix))).toBe(false);
     }
