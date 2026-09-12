@@ -38,6 +38,7 @@ import {
 } from "../content/home";
 import { addToCart } from "../lib/cart-actions";
 import { Counter } from "../components/document/Counter";
+import { getRuntimeConfig } from "../config/runtime-config";
 import { createStoreFetchJson, listTiers } from "../lib/medusa-client";
 import { formatMoney } from "../lib/money";
 import { getDealTotals } from "../lib/store-deal";
@@ -46,6 +47,7 @@ import { cheapest, NO_VALUE, tierRowData } from "../lib/tier-rows";
 
 export default async function HomePage() {
   await connection();
+  const { store } = getRuntimeConfig();
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const tiers = await listTiers(fetchJson);
   // `null` when the figures could not be read, which is not the same answer as
@@ -75,7 +77,7 @@ export default async function HomePage() {
     return {
       ...data,
       action: (
-        <OrderForm action={addToCart} variantId={data.variantId} label={ACQUIRE_LABEL} forTier={data.title} />
+        <OrderForm action={addToCart} variantId={data.variantId} label={ACQUIRE_LABEL} forTier={data.title} storeOpen={store.open} />
       ),
     };
   });
@@ -97,6 +99,7 @@ export default async function HomePage() {
           action={addToCart}
           variantId={offer.variantId}
           label={`${ACQUIRE_LABEL_PREFIX} ${formatMoney(offer.amount, offer.currencyCode)}`}
+          storeOpen={store.open}
         />
 
         <Rule />

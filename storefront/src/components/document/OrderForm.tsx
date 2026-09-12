@@ -14,6 +14,7 @@
  */
 
 import { Button } from "./Button";
+import { STORE_CLOSED_NOTICE } from "../../content/checkout";
 
 export interface OrderFormProps {
   /** The Server Action the page defines; this component never defines one. */
@@ -23,9 +24,11 @@ export interface OrderFormProps {
   readonly label: string;
   /** Appended to the accessible name only, when the visible label is ambiguous. */
   readonly forTier?: string;
+  readonly storeOpen: boolean;
 }
 
-export function OrderForm({ action, variantId, label, forTier }: OrderFormProps) {
+export function OrderForm({ action, variantId, label, forTier, storeOpen }: OrderFormProps) {
+  if (!storeOpen) return <p className="notice">{STORE_CLOSED_NOTICE}</p>;
   return (
     <form action={action}>
       <input type="hidden" name="variantId" value={variantId} />

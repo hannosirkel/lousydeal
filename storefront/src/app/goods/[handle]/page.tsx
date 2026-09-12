@@ -28,6 +28,7 @@ import {
   GOODS_LABELS,
   GOODS_NOTICE,
 } from "../../../content/merch";
+import { getRuntimeConfig } from "../../../config/runtime-config";
 import { addMerchToCart } from "../../../lib/cart-actions";
 import { createStoreFetchJson, listMerch } from "../../../lib/medusa-client";
 import { goodsImagePath, merchRowData } from "../../../lib/merch-rows";
@@ -35,6 +36,7 @@ import { requireStoreClientConfig } from "../../../lib/store-session";
 
 export default async function GoodsPage({ params }: { readonly params: Promise<{ readonly handle: string }> }) {
   await connection();
+  const { store } = getRuntimeConfig();
   const { handle } = await params;
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const rows = merchRowData(await listMerch(fetchJson));
@@ -66,7 +68,7 @@ export default async function GoodsPage({ params }: { readonly params: Promise<{
           <figcaption>{GOODS_FIGURE_CAPTION}</figcaption>
         </figure>
 
-        <MerchForm action={addMerchToCart} title={row.title} variants={row.variants} />
+        <MerchForm action={addMerchToCart} title={row.title} variants={row.variants} storeOpen={store.open} />
 
         <Rule />
         <p className="notice">{GOODS_NOTICE}</p>

@@ -226,7 +226,7 @@ async function renderCheckout(lines: readonly RenderedLine[], total = 6): Promis
   vi.resetModules();
   vi.doMock("next/headers", () => ({ cookies: async () => ({ get: () => ({ value: "cart_1" }) }) }));
   vi.doMock("../src/config/runtime-config", () => ({
-    getRuntimeConfig: () => ({ stripe: { publishableKey: "pk_test_fixture" } }),
+    getRuntimeConfig: () => ({ stripe: { publishableKey: "pk_test_fixture" }, store: { open: true } }),
   }));
   vi.doMock("../src/lib/store-session", () => ({
     CART_ID_COOKIE: "lousydeal_cart_id",
