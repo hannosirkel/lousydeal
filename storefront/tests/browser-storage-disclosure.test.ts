@@ -39,6 +39,7 @@ import { describe, expect, it } from "vitest";
 
 import { CART_ID_COOKIE } from "../src/lib/store-session";
 import { PRIVACY } from "../src/content/legal/privacy";
+import { CONSENT_STORAGE_KEY } from "../src/lib/consent";
 
 /**
  * Files permitted to reach a cookie store.
@@ -58,6 +59,8 @@ const COOKIE_FILES = new Set([
   // is declared -- and the test below pins it to forwarding only.
   "app/api/store/[...path]/route.ts",
 ]);
+
+const STORAGE_FILES = new Set(["components/analytics/ConsentManager.tsx"]);
 
 /**
  * Every way a cookie can be written from this codebase.
@@ -161,7 +164,7 @@ describe("what the browser is asked to keep", () => {
     expect(sources.map(({ file }) => file)).not.toContain("middleware.tsx");
   });
 
-  it("uses no browser storage at all", () => {
+  it("uses browser storage only for the disclosed consent preference", () => {
     // Rule 3. §2 says the site sets one cookie and nothing else; local or
     // session storage would make that false without failing anything.
     for (const { file, text } of sources) {
@@ -170,9 +173,12 @@ describe("what the browser is asked to keep", () => {
       // writes a cookie and names it nowhere the first scan could see.
       const objectForm = /\.cookies\.set\(\s*\{/.test(code);
       expect(`${file}: ${String(objectForm)}`).toBe(`${file}: false`);
-      expect(`${file}: ${String(/\blocalStorage\b/.test(code))}`).toBe(`${file}: false`);
+      const storage = /\blocalStorage\b/.test(code);
+      expect(`${file}: ${String(storage)}`).toBe(`${file}: ${String(STORAGE_FILES.has(file))}`);
       expect(`${file}: ${String(/\bsessionStorage\b/.test(code))}`).toBe(`${file}: false`);
       expect(`${file}: ${String(/\bdocument\.cookie\b/.test(code))}`).toBe(`${file}: false`);
     }
+    expect(privacyProse).toContain(CONSENT_STORAGE_KEY);
+    expect(privacyProse).toMatch(/agreed or refused/i);
   });
 });

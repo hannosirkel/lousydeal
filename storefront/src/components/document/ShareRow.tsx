@@ -76,7 +76,7 @@ export function ShareRow({ url }: ShareRowProps) {
               referrer would tell the service which certificate somebody came
               from, before they had decided to say so.
             */}
-            <a href={href} rel="noopener noreferrer" target="_blank">
+            <a href={href} rel="noopener noreferrer" target="_blank" data-analytics-event="certificate_shared" data-analytics-route-class="certificate">
               {SHARE_TARGETS[target]}
             </a>
           </li>

@@ -10,7 +10,7 @@ does not — it points, it does not hold.
 | Updated | 2026-09-12 |
 | Current slice | **LD-08 — Launch polish**, planned and in implementation |
 | In flight | `deal/ld08-launch` in `/home/hanno/app/.worktrees/lousydeal/ld08-launch`; no pull request yet |
-| Next action | Execute L1 in [`ld-08-launch-polish.md`](./ld-08-launch-polish.md): the fail-closed `STORE_OPEN` gate |
+| Next action | Review the L2 analytics fixes, then continue L3 in [`ld-08-launch-polish.md`](./ld-08-launch-polish.md). Browser evidence and required vendor-setting read-back: [`ld08-analytics-verification.md`](./ld08-analytics-verification.md) |
 | Blocked | nothing |
 
 Nothing in this file is a secret. No credential value, no live private hostname,

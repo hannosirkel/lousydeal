@@ -39,6 +39,7 @@ export const BALDRICK_INPUT_LABEL = "Ask Baldrick something";
 export const BALDRICK_SEND_LABEL = "Ask";
 
 export interface SurfaceProps {
+  readonly elementRef?: import("react").Ref<HTMLElement>;
   readonly messages: readonly Message[];
   /** Whether he is between the question and the answer. */
   readonly indicating: boolean;
@@ -51,6 +52,7 @@ export interface SurfaceProps {
 }
 
 export function Surface({
+  elementRef,
   messages,
   indicating,
   replies,
@@ -60,7 +62,7 @@ export function Surface({
   onQuickReply,
 }: SurfaceProps) {
   return (
-    <section className="baldrick" aria-labelledby="baldrick-heading">
+    <section ref={elementRef} className="baldrick" aria-labelledby="baldrick-heading">
       <h2 className="baldrick-heading" id="baldrick-heading">
         {BALDRICK_HEADING}
       </h2>

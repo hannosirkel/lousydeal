@@ -53,6 +53,10 @@ export interface RuntimeConfig {
     /** Server-owned at runtime; only this boolean is projected to the browser. */
     readonly open: boolean;
   };
+  readonly analytics: {
+    readonly googleTagId: string | null;
+    readonly metaPixelId: string | null;
+  };
   /**
    * Trader identity, server-side only. Every field is public information and
    * none of it is in `ClientRuntimeConfig`: what the browser is handed is a
@@ -84,6 +88,10 @@ export function getRuntimeConfig(env: EnvRecord = process.env): RuntimeConfig {
     store: {
       open: readStoreOpen(env),
     },
+    analytics: {
+      googleTagId: readEnv("GOOGLE_ANALYTICS_TAG_ID", env) ?? null,
+      metaPixelId: readEnv("META_PIXEL_ID", env) ?? null,
+    },
     merchant: {
       legalName: readEnv("MERCHANT_LEGAL_NAME", env) ?? null,
       address: readEnv("MERCHANT_ADDRESS", env) ?? null,
@@ -112,6 +120,7 @@ export function getRuntimeConfig(env: EnvRecord = process.env): RuntimeConfig {
 export interface ClientRuntimeConfig {
   readonly stripe: RuntimeConfig["stripe"];
   readonly store: RuntimeConfig["store"];
+  readonly analytics: RuntimeConfig["analytics"];
 }
 
 /**
@@ -120,7 +129,7 @@ export interface ClientRuntimeConfig {
  * listed here that is not a key of `ClientRuntimeConfig` — fails at `tsc`,
  * not in this suite.
  */
-export const CLIENT_RUNTIME_CONFIG_KEYS: readonly (keyof ClientRuntimeConfig)[] = ["stripe", "store"];
+export const CLIENT_RUNTIME_CONFIG_KEYS: readonly (keyof ClientRuntimeConfig)[] = ["stripe", "store", "analytics"];
 
 /** The id `layout.tsx` gives the inert JSON script element carrying the projection below. */
 export const RUNTIME_CONFIG_ELEMENT_ID = "lousydeal-runtime-config";
@@ -130,6 +139,7 @@ export function toClientRuntimeConfig(config: RuntimeConfig): ClientRuntimeConfi
   return {
     stripe: config.stripe,
     store: config.store,
+    analytics: config.analytics,
   };
 }
 

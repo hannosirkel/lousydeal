@@ -211,9 +211,7 @@ describe("with scripting off, he is not there at all", () => {
     }
   });
 
-  it("is the only client component any of those three pages pulls in", () => {
-    // If a page mounted a second one, "scripting off still sells" would stop
-    // being a property of this row and start being a property of that one.
+  it("limits client boundaries to Baldrick and the cart's progressively enhanced server-action form", () => {
     for (const entry of EXPECTED) {
       const source = readFileSync(`${appDir}/${entry}`, "utf8");
       const local = [...source.matchAll(/from "([./][^"]*)"/g)].map(([, path]) => path);
@@ -225,12 +223,11 @@ describe("with scripting off, he is not there at all", () => {
           return false;
         }
       });
-      // Exactly one, and it is him. An empty list would mean the resolution
-      // above silently found nothing and the guard was checking a null set --
-      // which is what it did until this assertion was tightened.
-      expect(`${entry}: ${clients.join(",")}`).toBe(
-        `${entry}: ${"../".repeat(entry.split("/").length)}components/baldrick/Baldrick`,
-      );
+      const prefix = "../".repeat(entry.split("/").length);
+      expect(clients).toEqual([
+        `${prefix}components/baldrick/Baldrick`,
+        ...(entry === "cart/page.tsx" ? [`${prefix}components/analytics/FunnelForm`] : []),
+      ]);
     }
   });
 });

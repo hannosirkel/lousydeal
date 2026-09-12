@@ -19,6 +19,7 @@ import { cookies } from "next/headers";
 import { connection } from "next/server";
 
 import { Baldrick } from "../../components/baldrick/Baldrick";
+import { FunnelForm } from "../../components/analytics/FunnelForm";
 import { Button } from "../../components/document/Button";
 import { DocumentFrame } from "../../components/document/DocumentFrame";
 import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
@@ -78,11 +79,11 @@ function lineValue(quantity: number, unitPrice: number, currencyCode: string): s
 
 function CodeForm({ action }: { readonly action: (formData: FormData) => Promise<void> }) {
   return (
-    <form action={action} className="code-form field baldrick-ask">
+    <FunnelForm action={action} className="code-form field baldrick-ask" event="bad_discount_accepted">
       <label htmlFor="cart-code">{CODE_LABEL}</label>
       <input id="cart-code" name="code" type="text" maxLength={64} required autoComplete="off" spellCheck={false} />
       <Button type="submit">{CODE_APPLY_LABEL}</Button>
-    </form>
+    </FunnelForm>
   );
 }
 
