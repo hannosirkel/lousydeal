@@ -22,9 +22,11 @@ export const PostStoreCartSurcharge = z.object({ code: z.string().trim().min(1).
 const COMMERCE_MUTATION_METHODS = ["POST", "PUT", "PATCH", "DELETE"] as const;
 
 export function isCommerceMutation(method: string, path: string): boolean {
+  const normalizedPath = path.toLowerCase();
   return COMMERCE_MUTATION_METHODS.includes(method as (typeof COMMERCE_MUTATION_METHODS)[number])
-    && path.startsWith("/store/")
-    && path !== "/store/withdrawals";
+    && normalizedPath.startsWith("/store/")
+    && normalizedPath !== "/store/withdrawals"
+    && normalizedPath !== "/store/withdrawals/";
 }
 
 export function storeOpenGate(
@@ -52,7 +54,7 @@ export default defineMiddlewares({
       middlewares: [validateAndTransformBody(PostStoreCartSurcharge)],
     },
     {
-      matcher: "/store/:path*",
+      matcher: "/store/*",
       methods: [...COMMERCE_MUTATION_METHODS],
       middlewares: [(request, response, next) => {
         if (!isCommerceMutation(request.method, request.path)) {

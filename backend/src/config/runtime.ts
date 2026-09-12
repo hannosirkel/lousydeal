@@ -279,7 +279,7 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
 
 /** Only the exact runtime value `true` permits commerce mutations. */
 export function readStoreOpen(environment: Environment): boolean {
-  return environment.STORE_OPEN?.trim() === "true";
+  return environment.STORE_OPEN === "true";
 }
 
 /**

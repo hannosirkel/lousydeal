@@ -9,7 +9,10 @@ describe("STORE_OPEN", () => {
     [{ STORE_OPEN: " false " }, false],
     [{ STORE_OPEN: "TRUE" }, false],
     [{ STORE_OPEN: "1" }, false],
-    [{ STORE_OPEN: "true " }, true],
+    [{ STORE_OPEN: "true " }, false],
+    [{ STORE_OPEN: " true" }, false],
+    [{ STORE_OPEN: "\ntrue\n" }, false],
+    [{ STORE_OPEN: "true" }, true],
   ] as const)("reads %o as %s", (environment, expected) => {
     expect(readStoreOpen(environment)).toBe(expected);
   });
