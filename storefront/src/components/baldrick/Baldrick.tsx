@@ -27,7 +27,7 @@ import { Component, useCallback, useEffect, useRef, useState, type ReactNode } f
 
 import { BALDRICK_GREETING, BALDRICK_SCRIPT } from "../../content/baldrick";
 import {
-  EMPTY_CONVERSATION,
+  initialConversation,
   offered,
   respond,
   type Conversation,
@@ -87,7 +87,25 @@ export function BaldrickWidget() {
    * him where nothing above him moves when he does.
    */
   const [mounted, setMounted] = useState(false);
-  const [conversation, setConversation] = useState<Conversation>({ ...EMPTY_CONVERSATION, step: BALDRICK_GREETING });
+  /**
+   * **He opens at the greeting step, which is where B4 always said he was.**
+   *
+   * `BALDRICK_GREETING` is documented in `content/baldrick.ts` as "the step the
+   * widget opens at", and that step declares two quick replies. Opening at
+   * `EMPTY_CONVERSATION` left `step` at `null`; `offered` returns nothing at
+   * `null` and `Surface` renders nothing for an empty list, so those two
+   * buttons were written, closed over by B4's reachability guard, and never
+   * once shown to anybody. They were unreachable rather than answered badly:
+   * there was no first button press to change the behaviour of.
+   *
+   * Opening at the step they belong to is what makes them appear. It moves no
+   * typed path -- `respond` re-matches typed text against the whole script
+   * regardless -- and it changes nothing about the cart, so L2's "instrument
+   * the existing interaction boundaries without changing their commerce
+   * behavior" holds. It also gives `bad_discount_issued` below a button path
+   * to key on, which is how the defect was noticed.
+   */
+  const [conversation, setConversation] = useState<Conversation>(() => initialConversation(BALDRICK_GREETING));
   const [shown, setShown] = useState<readonly Message[]>([]);
   const [indicating, setIndicating] = useState(false);
   const [presenting, setPresenting] = useState(false);

@@ -25,6 +25,23 @@ access to native storage. Chromium request tests exercise the unmodified SDK
 through that compatibility boundary. Google generates transient measurement
 identifiers; neither vendor receives a customer, cart or order identifier.
 
+## One behaviour change outside the instrumentation, declared
+
+Instrumenting `bad_discount_issued` exposed a copy defect and this slice fixes
+it, which is the only visitor-visible change here that is not measurement. The
+widget opened its conversation at `step: null`. `offered` reads the step, so it
+returned nothing, and `Surface` renders no list for an empty array: the two
+quick replies the greeting declares, "What do I get" and "Is there a discount",
+were written, closed over by the script's reachability guard, and never once
+rendered. The widget now opens at `BALDRICK_GREETING`, which is what
+`content/baldrick.ts` already documents that constant to mean, and both buttons
+appear and reach their steps.
+
+Nothing else moves. Typed messages re-match against the whole script regardless
+of the step, so no typed path changes; no cart, price or checkout behaviour is
+touched. `baldrick-widget.test.ts` covers the opening state, both presses and
+the discount event that keys on one of them.
+
 `baldrick_opened` means the widget first intersects the viewport while consent
 is active. Acceptance can measure a widget that is currently visible. Earlier
 interactions are never retained or replayed. Discount issuance follows the
