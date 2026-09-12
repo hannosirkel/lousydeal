@@ -9,9 +9,9 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-12 |
 | Current slice | **LD-08 — Launch polish**, planned and in implementation |
-| In flight | L0–L4, D1, M1 and O1 have reviewed open PRs. `deal/ld08-m2-plan` records the Astra-reviewed M2/I2/O2 provider-report extension before its stacked implementation PRs. |
-| Next action | Land this plan update and prepare disabled M2/I2/O2 fixtures while E0 obtains the dedicated GA principal/property grant and Meta owned-asset token/read-only probe. Finalize those stacked PRs from E0's verified facts; E1/F1/F2 follow operator merges. |
-| Blocked | Final provider-report activation and final M2/I2/O2 review wait on E0's Google and Meta authorization. Existing Buffer drafts and all other LD-08 work are unaffected. |
+| In flight | L0–L4, D1, M1 and O1 have Astra-reviewed open PRs. Disabled preparatory provider-report drafts are also ready: Meeme M2 #9, private inventory I2 #49 and public Orange O2 #98. |
+| Next action | Operator merges and verifies the stack one PR at a time, beginning with Lousy Deal L0 #215. In parallel, E0 supplies the dedicated `lousydeal-meeme-google-analytics` service-account credential/property grant and separate `lousydeal-meeme-meta-read` owned-asset token and identifiers. E1/F1/F2 follow those merges and the E0 preflight. |
+| Blocked | Provider-report activation and final live compatibility review wait on the two dedicated E0 credentials and their property/asset IDs, scopes, metrics and response semantics. Those key files are not present yet. Existing Buffer drafts and all other LD-08 work are unaffected. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
