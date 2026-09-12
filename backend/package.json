@@ -10,6 +10,7 @@
     "seed:administrator": "medusa exec \"$(if [ -f ./src/scripts/seed-administrator.js ]; then echo ./src/scripts/seed-administrator.js; else echo ./src/scripts/seed-administrator.ts; fi)\"",
     "seed:product": "medusa exec \"$(if [ -f ./src/scripts/seed-product.js ]; then echo ./src/scripts/seed-product.js; else echo ./src/scripts/seed-product.ts; fi)\"",
     "seed:merch": "medusa exec \"$(if [ -f ./src/scripts/seed-merch.js ]; then echo ./src/scripts/seed-merch.js; else echo ./src/scripts/seed-merch.ts; fi)\"",
+    "sync:printful": "medusa exec \"$(if [ -f ./src/scripts/sync-printful.js ]; then echo ./src/scripts/sync-printful.js; else echo ./src/scripts/sync-printful.ts; fi)\"",
     "report:vat-thresholds": "medusa exec \"$(if [ -f ./src/scripts/report-vat-thresholds.js ]; then echo ./src/scripts/report-vat-thresholds.js; else echo ./src/scripts/report-vat-thresholds.ts; fi)\"",
     "report:discounts": "medusa exec \"$(if [ -f ./src/scripts/report-discounts.js ]; then echo ./src/scripts/report-discounts.js; else echo ./src/scripts/report-discounts.ts; fi)\"",
     "predeploy": "npm run redis:preflight && medusa db:migrate --execute-safe-links && npm run seed:administrator && npm run configure:commerce && npm run seed:product && npm run seed:merch",
