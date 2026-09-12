@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-12 |
 | Current slice | **LD-08 — Launch polish**, planned and in implementation |
-| In flight | LD-08's stacked `lousydeal` branches: L0/L1/L2 precede `deal/ld08-l3-closeout` in `/home/hanno/app/.worktrees/lousydeal/ld08-l3-closeout` |
-| Next action | Re-review L3's corrected crawl/index and mobile privacy-control boundaries with the retained rendered evidence, then continue L4 in [`ld-08-launch-polish.md`](./ld-08-launch-polish.md). L3's dated 44-case closed-store matrix, exact mobile link/Baldrick interaction and Lighthouse scores are recorded there; open-state cart/checkout verification remains F2, while analytics evidence and required vendor-setting read-back remain in [`ld08-analytics-verification.md`](./ld08-analytics-verification.md). |
+| In flight | LD-08's stacked `lousydeal` branches: L0/L1/L2/L3 precede `deal/ld08-l4-printful` in `/home/hanno/app/.worktrees/lousydeal/ld08-l4-printful` |
+| Next action | Review L4's explicit, locally verified Printful reconciliation lifecycle, then continue D1/M1/O1 in [`ld-08-launch-polish.md`](./ld-08-launch-polish.md). L4 has made no external call: E1 still owns live credential verification, two reconciliation runs and safe read-back. L3's dated closed-store/browser evidence remains recorded here; open-state cart/checkout verification remains F2, while analytics evidence and required vendor-setting read-back remain in [`ld08-analytics-verification.md`](./ld08-analytics-verification.md). |
 | Blocked | nothing |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
