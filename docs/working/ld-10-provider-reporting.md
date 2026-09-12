@@ -28,7 +28,9 @@ The webhook accepts no account/property/asset IDs, paths, fields, metrics, date
 ranges, cursors, credentials, methods or free-form query values. The
 implementation pins hosts, methods, paths, timeouts and response sizes; refuses
 redirects and pagination loops; retains no n8n execution data; and returns
-sanitized state only (`unavailable`, `incomplete` or `zero`), never raw provider
+either a populated success containing only the fixed allow-listed aggregate
+schema and safe owned-post metadata in the table, or a distinct sanitized
+`unavailable`, `incomplete` or `empty` state. It never returns raw provider
 errors.
 
 It must never read, request or return commenter identity, text or IDs; replies;
@@ -83,7 +85,9 @@ tests, `TOOLS.md`, and the operating-model documentation as required.
 - [ ] Add behavioral fixtures, generated-artifact parity checks and negative
       tests rejecting arbitrary identifiers, paths, fields, metrics, date
       ranges, cursors, credentials, free-form data, provider errors and every
-      write request.
+      write request. Cover populated safe success and each distinct
+      unavailable/incomplete/empty result without inventing a live provider
+      schema before P1.
 - [ ] Run Meeme's full validation and `habit-hooks`, then obtain review.
 
 ### I3 — Private bindings and disabled defaults
@@ -107,7 +111,8 @@ and the private operating record.
 
 ### O3 — Credential custody and bound workflow import
 
-**Repository:** public-ready `orange`, stacked on M3 and I3.
+**Repository:** public-ready `orange`, based on repaired O1 and consuming M3's
+reviewed generic artifact plus I3's landed private binding contract.
 
 **Files:** OpenBao source/seed helpers, n8n credential import and workflow
 lifecycle, reserved examples, focused tests and provisioning documentation.
@@ -138,30 +143,40 @@ Analytics, Meta and Meeme.
 - [ ] With both providers explicitly enabled, verify the bound GA property and
       Meta owned assets through every fixed read action, plus wrong-key,
       arbitrary-ID and provider-unavailable probes. Confirm sanitized aggregate
-      schemas, an empty-data access result where applicable, no public content
-      change and continuing Buffer-draft readiness.
+      schemas; fixture coverage for a populated safe success; distinct
+      unavailable/incomplete/empty results; no public content change; and
+      continuing Buffer-draft readiness.
 - [ ] Verify credential rotation by replacing each source through the reviewed
       lifecycle, reading back safe credential metadata and repeating the fixed
       probes. Verify revocation separately: revoke the GA principal/key or the
       Meta token, confirm reporting becomes unavailable without raw errors, and
       record the operator recovery steps privately.
-- [ ] Exercise the disabled-state rollback: turn both explicit enable flags
-      off, disable the reporting workflow if needed, and confirm every report
-      action is unavailable while M1's Buffer drafts and manual Reddit drafts
-      remain usable. Do not rotate the Buffer credential for this rollback.
+- [ ] Exercise the normal disabled-state rollback: turn both explicit enable
+      flags off while the shared M1 workflow remains active, and confirm every
+      report action is unavailable while Buffer discovery/create-draft/status
+      and manual Reddit drafts remain usable. Do not rotate the Buffer
+      credential for this rollback.
+- [ ] If a full workflow rollback is necessary, restore and activate the
+      reviewed M1 artifact through O1, then verify Buffer
+      discovery/create-draft/status before declaring recovery complete.
 
 ## Dependency order and completion
 
 `repaired M1/O1 → P1 → M3 and I3 → O3 → V3`. M3 and I3 may prepare only
 fixtures and disabled contracts before P1, but their final interface and
-bindings follow P1's verified facts. I3 lands before O3. This slice completes
+bindings follow P1's verified facts. O3 is an Orange branch based on repaired
+O1, not a cross-repository Git stack: it consumes M3's reviewed artifact and
+I3's landed private binding contract. I3 lands before O3. This slice completes
 only after V3's enabled, rotation/revocation and disabled-state evidence is
 recorded. It remains non-launch-blocking throughout.
 
 ## Rollback
 
-Set both provider-enable flags to disabled and disable the reporting workflow.
-If a credential may be exposed or must be retired, revoke the Google service
-account key or Meta token and remove it through the OpenBao/n8n lifecycle.
-Restore the reviewed M1 Buffer-draft workflow if necessary; it retains six
-network drafts and manual Reddit drafts without provider reporting.
+Set both provider-enable flags to disabled while leaving the shared M1 workflow
+active. That is the normal rollback and retains Buffer
+discovery/create-draft/status plus manual Reddit drafts. If a full workflow
+rollback is necessary, restore and activate the reviewed M1 artifact through
+O1, then verify Buffer discovery/create-draft/status before declaring recovery
+complete. If a credential may be exposed or must be retired, revoke the Google
+service-account key or Meta token and remove it through the OpenBao/n8n
+lifecycle.

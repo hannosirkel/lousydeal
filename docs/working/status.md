@@ -9,7 +9,7 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-12 |
 | Current slice | **LD-08 — Launch polish**, planned and in implementation |
-| In flight | L0–L4, D1, M1 and O1 have Astra-reviewed open PRs. |
+| In flight | L0–L4 and D1 have Astra-reviewed open PRs. M1 and O1 retain their existing open PR/worktree mapping but are under remediation; their repaired forms require re-review before merge. |
 | Next action | Operator merges and verifies the stack one PR at a time, beginning with Lousy Deal L0 #215. E1/F1/F2 follow those merges. |
 | Blocked | Provider reporting is deferred to LD-10 and does not block LD-08. The remaining launch prerequisites are recorded against their owning rows; existing Buffer drafts remain unaffected. |
 
