@@ -78,7 +78,7 @@ function lineValue(quantity: number, unitPrice: number, currencyCode: string): s
 
 function CodeForm({ action }: { readonly action: (formData: FormData) => Promise<void> }) {
   return (
-    <form action={action} className="code-form field baldrick-ask">
+    <form action={action} className="code-form field baldrick-ask" data-analytics-event="bad_discount_accepted">
       <label htmlFor="cart-code">{CODE_LABEL}</label>
       <input id="cart-code" name="code" type="text" maxLength={64} required autoComplete="off" spellCheck={false} />
       <Button type="submit">{CODE_APPLY_LABEL}</Button>
@@ -225,7 +225,7 @@ export default async function CartPage({
         {notice === undefined ? null : <p className="notice payment-error">{notice}</p>}
         <CodeForm action={applyCode} />
         {/* The only route to `/checkout` a shopper reaches by clicking. */}
-        <Button href="/checkout">{CHECKOUT_LABEL}</Button>
+        <a className="button is-primary" href="/checkout" data-analytics-event="checkout_started">{CHECKOUT_LABEL}</a>
         {merch.length === 0 ? null : (
           <>
             <Rule />

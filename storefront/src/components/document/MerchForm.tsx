@@ -34,7 +34,7 @@ export function MerchForm({ action, title, variants, storeOpen }: MerchFormProps
   const selectId = `merch-size-${variants[0]?.variantId ?? "none"}`;
 
   return (
-    <form action={action} className="merch-form">
+    <form action={action} className="merch-form" data-analytics-event="merch_added">
       {only === undefined ? (
         <>
           {/* Labelled by the item, not by the word "Size" alone: four selects

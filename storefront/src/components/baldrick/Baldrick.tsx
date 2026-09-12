@@ -37,6 +37,7 @@ import {
 } from "../../lib/baldrick/conversation";
 import { conversationSeed, draw } from "../../lib/baldrick/pool";
 import { play, prefersReducedMotion, schedule, type PresentationStep } from "../../lib/baldrick/presenter";
+import { emitAnalyticsEvent } from "../../lib/analytics";
 import { BALDRICK_LIMITS, Surface } from "./Surface";
 
 /**
@@ -122,6 +123,7 @@ export function BaldrickWidget() {
 
   useEffect(() => {
     setMounted(true);
+    emitAnalyticsEvent("baldrick_opened");
     setShown([{ speaker: "baldrick", lines: greeting() }]);
     return () => {
       // Unmounting mid-answer must not leave timers emitting into a component
@@ -136,6 +138,8 @@ export function BaldrickWidget() {
       stop(true);
 
       const next = respond(conversation, utterance, BALDRICK_SCRIPT);
+      emitAnalyticsEvent("baldrick_intent");
+      if (utterance.kind === "quick" && utterance.id === "open-discount") emitAnalyticsEvent("bad_discount_issued");
       const said = next.transcript.at(-1);
       const asked = next.transcript.at(-2);
       if (said === undefined || asked === undefined) return;

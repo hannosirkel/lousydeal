@@ -101,6 +101,7 @@ import {
   type ShippingAddressInput,
 } from "../../lib/shipping-address";
 import { completeCheckoutCart, createPaymentCollection, initiateStripePaymentSession } from "../../lib/store-payment";
+import { emitAnalyticsEvent } from "../../lib/analytics";
 
 /** This route's own mount point (`src/app/api/store/[...path]/route.ts`), never the backend origin. */
 const STORE_API_PROXY_PREFIX = "/api/store";
@@ -168,6 +169,7 @@ export function PaymentForm({
   countries,
   needsAddress,
   needsConsent,
+  currencyCode,
   currencyCode,
   initialTotal,
   items,
@@ -796,6 +798,7 @@ export function PayButton({
         throw new Error(confirmation.error.message ?? "Payment could not be confirmed.");
       }
       const order = await completeCheckoutCart(fetchJson, cartId);
+      emitAnalyticsEvent("purchase_completed", { currency: currencyCode });
       setOrderId(order.orderId);
     } catch (thrown: unknown) {
       setError(thrown instanceof Error ? thrown.message : "Payment could not be completed.");
@@ -809,7 +812,7 @@ export function PayButton({
   }
 
   return (
-    <form onSubmit={(event) => void handleSubmit(event)}>
+    <form onSubmit={(event) => void handleSubmit(event)} data-analytics-event="checkout_started" data-analytics-currency={currencyCode}>
       {/* C3b. `type="email"` and `required` are the enforcing half here, and
           unlike the consent box below they are enough: `requestSubmit()` runs
           constraint validation, so there is no bypass of the kind that made
@@ -893,7 +896,11 @@ export function PayButton({
           gift flow degrades. */}
       <details
         className="gift"
-        onToggle={(event) => setGiftOpen((event.currentTarget as HTMLDetailsElement).open)}
+        onToggle={(event) => {
+          const open = (event.currentTarget as HTMLDetailsElement).open;
+          setGiftOpen(open);
+          if (open) emitAnalyticsEvent("gift_selected");
+        }}
       >
         <summary>{GIFT_SUMMARY}</summary>
         {/* Before the fields, not after: what is public, what is not, and that

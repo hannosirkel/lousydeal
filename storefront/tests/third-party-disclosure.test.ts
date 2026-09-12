@@ -55,7 +55,7 @@ const withoutComments = (text: string): string =>
  * A fourth host is a decision, and this line is where it gets made.
  */
 const PERMITTED =
-  /^https?:\/\/(?:h|store-api-proxy\.invalid|localhost|127\.0\.0\.1|x\.com|bsky\.app)(?:[:/]|$)/;
+  /^https?:\/\/(?:h|store-api-proxy\.invalid|localhost|127\.0\.0\.1|x\.com|bsky\.app|www\.googletagmanager\.com|connect\.facebook\.net)(?:[:/]|$)/;
 
 const privacyProse = PRIVACY.sections.flatMap((section) => section.body).join("\n");
 
@@ -143,7 +143,7 @@ describe("the document that relies on all of it", () => {
     // Backblaze was here and held nothing: the platform's backup jobs are nine
     // and none is this shop. A guard that *requires* a false name is worse than
     // no guard -- removing the falsehood would have failed the suite.
-    for (const party of ["Stripe", "Cloudflare", "Printful"]) {
+    for (const party of ["Stripe", "Cloudflare", "Printful", "Google Analytics", "Meta Pixel"]) {
       expect(privacyProse).toContain(party);
     }
     // §5 says "this is all of them". Nothing that is not in the code may be
@@ -153,8 +153,6 @@ describe("the document that relies on all of it", () => {
     // a wallet `<PaymentElement>` genuinely offers. The entries are the
     // products, not the companies.
     for (const absent of [
-      "Google Analytics",
-      "Meta",
       "Facebook",
       "Brevo",
       "Sentry",
