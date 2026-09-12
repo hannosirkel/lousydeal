@@ -10,7 +10,7 @@ does not — it points, it does not hold.
 | Updated | 2026-09-12 |
 | Current slice | **LD-08 — Launch polish**, planned and in implementation |
 | In flight | LD-08's stacked `lousydeal` branches: L0/L1/L2 precede `deal/ld08-l3-closeout` in `/home/hanno/app/.worktrees/lousydeal/ld08-l3-closeout` |
-| Next action | Review L3's SEO and rendered closeout, then continue L4 in [`ld-08-launch-polish.md`](./ld-08-launch-polish.md). L3's dated matrix and measured Lighthouse scores are recorded there; analytics evidence and required vendor-setting read-back remain in [`ld08-analytics-verification.md`](./ld08-analytics-verification.md). |
+| Next action | Re-review L3's corrected crawl/index boundaries and retained rendered evidence, then continue L4 in [`ld-08-launch-polish.md`](./ld-08-launch-polish.md). L3's dated 44-case closed-store matrix, two interactions and exact Lighthouse scores are recorded there; open-state cart/checkout verification remains F2, while analytics evidence and required vendor-setting read-back remain in [`ld08-analytics-verification.md`](./ld08-analytics-verification.md). |
 | Blocked | nothing |
 
 Nothing in this file is a secret. No credential value, no live private hostname,

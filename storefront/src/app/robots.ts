@@ -9,7 +9,10 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/", "/analytics/", "/cart", "/checkout", "/design/", "/done-deals/"],
+      // Pages and PDFs carrying `noindex` must remain crawlable so a crawler
+      // can read that directive. These two namespaces are endpoints, not
+      // indexable documents.
+      disallow: ["/api/", "/analytics/"],
     },
     ...(origin === null ? {} : { sitemap: new URL("/sitemap.xml", origin).href }),
   };

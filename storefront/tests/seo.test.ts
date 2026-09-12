@@ -7,8 +7,8 @@
  * same image remains correct on every environment.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { existsSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const requestHeaders = vi.hoisted(() => new Headers());
@@ -23,6 +23,11 @@ vi.mock("next/server", () => ({ connection: async () => undefined }));
 beforeEach(() => {
   requestHeaders.delete("host");
   requestHeaders.delete("x-forwarded-proto");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
 });
 
 describe("canonical metadata", () => {
@@ -46,7 +51,6 @@ describe("canonical metadata", () => {
     ["terms", "../src/app/legal/terms/page", "/legal/terms"],
     ["refunds", "../src/app/legal/refunds/page", "/legal/refunds"],
     ["privacy", "../src/app/legal/privacy/page", "/legal/privacy"],
-    ["withdrawal", "../src/app/legal/withdraw/page", "/legal/withdraw"],
     ["imprint", "../src/app/legal/imprint/page", "/legal/imprint"],
   ])("gives the %s page its own canonical path", async (_name, modulePath, canonical) => {
     const route = await import(modulePath) as { readonly metadata?: { readonly alternates?: unknown } };
@@ -75,6 +79,36 @@ describe("transactional and personal indexing", () => {
   ])("marks %s noindex and nofollow", async (_name, modulePath) => {
     const route = await import(modulePath) as { readonly metadata?: { readonly robots?: unknown } };
     expect(route.metadata?.robots).toEqual({ index: false, follow: false });
+  });
+
+  it("marks the certificate design noindex and keeps the PDF response header", async () => {
+    const design = await import("../src/app/design/certificate/page") as {
+      readonly metadata?: { readonly robots?: unknown };
+    };
+    const pdfRoute = readFileSync(
+      fileURLToPath(new URL("../src/app/done-deals/[slug]/certificate.pdf/route.ts", import.meta.url)),
+      "utf8",
+    );
+
+    expect(design.metadata?.robots).toEqual({ index: false, follow: false });
+    expect(pdfRoute).toContain('"x-robots-tag": "noindex, nofollow"');
+  });
+
+  it.each([
+    ["clean form", {}, undefined],
+    ["confirmation", { step: "confirm" }, { index: false, follow: false }],
+    ["receipt", { step: "done" }, { index: false, follow: false }],
+    ["prefilled form", { consumerName: "Private Person" }, { index: false, follow: false }],
+  ])("keeps the withdrawal %s on the clean canonical with the right index policy", async (_name, query, policy) => {
+    const route = await import("../src/app/legal/withdraw/page") as unknown as {
+      readonly generateMetadata?: (input: {
+        readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+      }) => Promise<{ readonly alternates?: unknown; readonly robots?: unknown }>;
+    };
+    expect(route.generateMetadata).toBeTypeOf("function");
+    const result = await route.generateMetadata?.({ searchParams: Promise.resolve(query) });
+    expect(result?.alternates).toEqual({ canonical: "/legal/withdraw" });
+    expect(result?.robots).toEqual(policy);
   });
 });
 
@@ -117,7 +151,61 @@ describe("crawler routes", () => {
     expect(paths.some((path) => path.startsWith("/done-deals/"))).toBe(false);
   });
 
-  it("keeps crawler discovery public while excluding every private namespace", async () => {
+  it("builds the default sitemap from request origin and the configured Store API", async () => {
+    requestHeaders.set("host", "shop.example");
+    requestHeaders.set("x-forwarded-proto", "https");
+    vi.stubEnv("MEDUSA_BACKEND_URL", "https://store.example");
+    vi.stubEnv("MEDUSA_PUBLISHABLE_API_KEY", "pk_example");
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+      const url = new URL(input instanceof Request ? input.url : input.toString());
+      if (url.pathname === "/store/regions") {
+        return Response.json({ regions: [{ id: "reg_1", currency_code: "usd" }] });
+      }
+      if (url.pathname === "/store/products") {
+        return Response.json({
+          products: [
+            {
+              id: "tier_1",
+              handle: "lousy-deal",
+              title: "Lousy Deal",
+              variants: [{ id: "variant_1", calculated_price: { calculated_amount: 5, currency_code: "usd" } }],
+            },
+            {
+              id: "merch_1",
+              handle: "printed-thing",
+              title: "Printed Thing",
+              variants: [{
+                id: "variant_2",
+                title: "One size",
+                calculated_price: { calculated_amount: 10, currency_code: "usd" },
+                metadata: { printful_variant_id: "1" },
+              }],
+            },
+          ],
+        });
+      }
+      return Response.json({}, { status: 404 });
+    }));
+
+    const { default: sitemap } = await import("../src/app/sitemap");
+    const paths = (await sitemap()).map(({ url }) => new URL(url).pathname);
+
+    expect(paths).toContain("/deal/lousy-deal");
+    expect(paths).toContain("/goods/printed-thing");
+    expect(fetch).toHaveBeenCalledTimes(4);
+  });
+
+  it("propagates a Store API failure instead of publishing a partial sitemap", async () => {
+    requestHeaders.set("host", "shop.example");
+    vi.stubEnv("MEDUSA_BACKEND_URL", "https://store.example");
+    vi.stubEnv("MEDUSA_PUBLISHABLE_API_KEY", "pk_example");
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("catalogue unavailable"); }));
+
+    const { default: sitemap } = await import("../src/app/sitemap");
+    await expect(sitemap()).rejects.toThrow("catalogue unavailable");
+  });
+
+  it("allows noindex pages to be crawled while excluding non-page endpoints", async () => {
     requestHeaders.set("host", "shop.example");
     requestHeaders.set("x-forwarded-proto", "https");
     const { default: robots } = await import("../src/app/robots");
@@ -126,8 +214,22 @@ describe("crawler routes", () => {
     expect(output.rules).toEqual({
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/", "/analytics/", "/cart", "/checkout", "/design/", "/done-deals/"],
+      disallow: ["/api/", "/analytics/"],
     });
     expect(output.sitemap).toBe("https://shop.example/sitemap.xml");
+
+    const configuredDisallow = output.rules instanceof Array ? undefined : output.rules.disallow;
+    const disallowed = typeof configuredDisallow === "string"
+      ? [configuredDisallow]
+      : configuredDisallow ?? [];
+    for (const path of [
+      "/cart",
+      "/checkout",
+      "/design/certificate",
+      "/done-deals/example",
+      "/done-deals/example/certificate.pdf",
+    ]) {
+      expect(disallowed.some((prefix) => path.startsWith(prefix))).toBe(false);
+    }
   });
 });

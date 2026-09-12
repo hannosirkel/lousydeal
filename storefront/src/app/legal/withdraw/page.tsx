@@ -49,10 +49,21 @@ import {
 } from "../../../content/withdrawal";
 import { submitWithdrawal } from "./actions";
 
-export const metadata: Metadata = {
-  title: WITHDRAWAL_DOCUMENT.title,
-  alternates: { canonical: "/legal/withdraw" },
-};
+type WithdrawalSearchParams = Record<string, string | string[] | undefined>;
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  readonly searchParams: Promise<WithdrawalSearchParams>;
+}): Promise<Metadata> {
+  const parameters = await searchParams;
+  const carriesQueryState = Object.keys(parameters).length > 0;
+  return {
+    title: WITHDRAWAL_DOCUMENT.title,
+    alternates: { canonical: "/legal/withdraw" },
+    ...(carriesQueryState ? { robots: { index: false, follow: false } } : {}),
+  };
+}
 
 const one = (value: string | string[] | undefined): string =>
   (Array.isArray(value) ? value[0] : value) ?? "";
@@ -60,7 +71,7 @@ const one = (value: string | string[] | undefined): string =>
 export default async function WithdrawPage({
   searchParams,
 }: {
-  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+  readonly searchParams: Promise<WithdrawalSearchParams>;
 }) {
   await connection();
   const params = await searchParams;

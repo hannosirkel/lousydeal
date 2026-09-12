@@ -230,8 +230,12 @@ review record in this plan.
 The Browser plugin was not available in this session, so the approved fallback
 was regular Playwright 1.57.0 with its Chromium 153 executable. A production
 Next.js 16.3.4 build ran against a local, deterministic Store API fixture with
-synthetic catalogue and certificate data. The fixture, browser script,
-screenshots and Lighthouse JSON stayed under `/tmp` and were not committed.
+synthetic catalogue and certificate data. The fixture, executable browser
+script, exact commands, machine-readable route/console/network results, raw
+Lighthouse JSON and representative screenshots are retained through review in
+the controller's ignored
+`.superpowers/sdd/ld-08-launch-polish/l3-evidence/` package and are not part of
+the repository commit.
 
 The repeated matrix covered `/`, `/deal/lousy-deal`,
 `/goods/original-purchase-receipt`, `/cart`, `/checkout`, `/legal`,
@@ -240,7 +244,10 @@ The repeated matrix covered `/`, `/deal/lousy-deal`,
 route ran at 360×800 and 1440×900, both with scripting enabled and disabled:
 44 route cases. Two more interaction cases proved visible keyboard focus,
 reduced motion, analytics refusal, a Baldrick turn and the no-script withdrawal
-GET-to-confirmation step. The scripting-enabled cases also ran axe-core 4.13.0
+GET-to-confirmation step. Cart and checkout were deliberately exercised in the
+public `STORE_OPEN=false` state; their open-state rendering remains deferred to
+F2, where the sanctioned runtime integration is available. The
+scripting-enabled cases also ran axe-core 4.11.0
 at WCAG 2 A/AA and 2.1 A/AA.
 
 | Check | Repeated result |
@@ -254,13 +261,26 @@ at WCAG 2 A/AA and 2.1 A/AA.
 | System pages | branded 404 returned 404; deliberately broken certificate fixture returned branded 500 |
 | Visual review | mobile and desktop full-page captures showed no clipping, overlap, unreadable control or scroll trap |
 
-The first matrix reproduced one application failure: closing the store added a
-third cart return which omitted Baldrick, contrary to the cart's existing
-all-states contract. The focused guard failed at two mounts where it required
-three; adding Baldrick after the closed cart document made that test and the
-repeated browser case pass. Initial flags for the home/goods document names,
-the deliberately assistant-free certificate and the intentional 404 console
-entry were errors in the temporary harness, not application changes.
+The first implementation matrix reproduced one application failure: closing
+the store added a third cart return which omitted Baldrick, contrary to the
+cart's existing all-states contract. The focused guard failed at two mounts
+where it required three; adding Baldrick after the closed cart document made
+that test and the repeated browser case pass. Independent review then found
+that `robots.txt` blocked crawlers from pages carrying `noindex`, and that
+query-bearing withdrawal confirmations, receipts and prefilled forms inherited
+the clean form's index policy. Focused red tests reproduced both boundaries;
+`robots.txt` now excludes only API/analytics endpoints while noindex pages and
+certificate PDFs remain crawlable, and every query-bearing withdrawal state is
+canonicalized to the clean form but emits `noindex, nofollow`. The default
+sitemap's catalogue success and failure paths also gained direct stubbed tests.
+
+During evidence replay, four goods-image 404 console failures exposed a fixture
+assembly error: copying the source `public` directory into the already traced
+standalone `public` directory nested it one level too deep. Copying directory
+contents and restarting the server removed all four; no application code was
+changed for that harness-only failure. Earlier flags for the home/goods
+document names, the deliberately assistant-free certificate and the intentional
+404 console entry were likewise harness errors, not application changes.
 
 Lighthouse 13.0.3 ran its mobile profile on the production homepage before
 consent, on the same Chromium 153 build. These are the reported scores, without
@@ -268,12 +288,12 @@ rounding or an exception:
 
 | Category | Score | Budget |
 | --- | ---: | ---: |
-| Performance | 97 | ≥90 |
+| Performance | 98 | ≥90 |
 | Accessibility | 100 | ≥95 |
 | Best practices | 100 | ≥95 |
 | SEO | 100 | ≥95 |
 
-It measured FCP 0.8 s, LCP 2.5 s, total blocking time 70 ms, CLS 0 and speed
+It measured FCP 0.8 s, LCP 2.4 s, total blocking time 71 ms, CLS 0 and speed
 index 0.8 s. Its network log contained no origin other than the local
 storefront. The remaining coverage risk is deliberate: this pass used Chromium
 and deterministic local data; F2 owns cross-service and deployed-environment
