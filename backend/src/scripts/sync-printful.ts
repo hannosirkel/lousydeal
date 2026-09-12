@@ -63,10 +63,18 @@ export async function runPrintfulSync(
     throw new ConfigError("Printful sync requires PRINTFUL_API_TOKEN and PRINTFUL_ARTWORK_BASE_URL");
   }
 
-  const result = await port.reconcile(
-    port.createClient({ token: selected.apiToken }),
-    { artworkBaseUrl: selected.artworkBaseUrl.replace(/\/+$/, "") },
-  );
+  let result: SyncResult;
+  try {
+    result = await port.reconcile(
+      port.createClient({ token: selected.apiToken }),
+      { artworkBaseUrl: selected.artworkBaseUrl.replace(/\/+$/, "") },
+    );
+  } catch {
+    // Medusa serializes an escaped error. Deliberately create a new one with
+    // no cause: Printful failures may contain credentials, response text and
+    // remote identifiers in their message and enumerable properties.
+    throw new Error("Printful catalogue reconciliation failed");
+  }
   const summary = {
     mutations: result.created.length + result.updated.length,
     created: result.created.length,
