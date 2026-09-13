@@ -25,8 +25,10 @@
  * closed: `res.cookies.set({ name: "…", value, maxAge })`, whose object form
  * presents no string first argument to the name scan and imports nothing from
  * `next/headers`; and the same write from a `middleware.ts`, which did not
- * exist and so was scanned by nothing. The docstring above claimed to prevent
- * exactly what those two did.
+ * exist and so was scanned by nothing. The recursive source walk now covers
+ * both Next's legacy middleware convention and its current `proxy.ts`
+ * convention. The docstring above claimed to prevent exactly what those two
+ * writes did.
  *
  * The scan is over source text rather than a parsed module graph, which makes
  * it cruder than it could be and harder to defeat by accident, which is the
@@ -154,14 +156,14 @@ describe("what the browser is asked to keep", () => {
     expect(code).not.toMatch(/cookieStore/);
   });
 
-  it("has no middleware, which is a file the scan above would not have covered", () => {
-    // Gate D wrote the cookie from `src/middleware.ts`. It is scanned now --
-    // the walk is over `src`, so it would be caught by the rule above -- but a
-    // middleware is worth refusing outright for a second reason: it runs on
-    // every request including the legal pages, and V5c already removed a root
-    // `loading.tsx` for the same class of surprise.
+  it("has no legacy middleware; the declared proxy is covered by the scan", () => {
+    // Gate D wrote the cookie from `src/middleware.ts`. The walk is now over
+    // all of `src`, so both that legacy convention and Next's current
+    // `proxy.ts` convention are checked by the rules above. Refuse the legacy
+    // duplicate while proving the active request boundary is in the scan.
     expect(sources.map(({ file }) => file)).not.toContain("middleware.ts");
     expect(sources.map(({ file }) => file)).not.toContain("middleware.tsx");
+    expect(sources.map(({ file }) => file)).toContain("proxy.ts");
   });
 
   it("uses browser storage only for the disclosed consent preference", () => {
