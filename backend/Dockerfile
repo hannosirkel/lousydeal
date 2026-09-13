@@ -132,6 +132,15 @@ RUN find . -depth \( -name esbuild -o -name '@esbuild' \) -exec rm -rf {} + \
 # node:24.18.1-trixie-slim
 FROM node:24.20.0-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0 AS runtime
 
+# This pinned Node image still ships perl-base 5.40.1-6. Debian's exact
+# security update fixes CVE-2026-13221, CVE-2026-42496 and CVE-2026-8376;
+# --only-upgrade keeps this to the one already-installed package, and the
+# exact version makes a repository change fail visibly instead of drifting.
+RUN apt-get update \
+  && apt-get install --yes --no-install-recommends --only-upgrade \
+    perl-base=5.40.1-6+deb13u1 \
+  && rm -rf /var/lib/apt/lists/*
+
 LABEL org.opencontainers.image.description="Lousy Deal Medusa backend"
 LABEL org.opencontainers.image.licenses=UNLICENSED
 

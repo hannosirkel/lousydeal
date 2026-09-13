@@ -8,9 +8,9 @@ does not — it points, it does not hold.
 | | |
 | --- | --- |
 | Updated | 2026-09-13 |
-| Current slice | **LD-08 — Launch polish**, planned and in implementation |
-| In flight | Read-only GitHub inspection on 2026-09-13 found L0 #215 open with completed checks but `REVIEW_REQUIRED`; L1 #216, L2 #217, L3 #218, L4 #219 and the earlier plan PR #220 remain open and stacked. M1 (Meeme #8) and O1's inventory (#48) and Orange (#97) companions are remediated and Astra-reviewed open PRs; their merge/deployed verification order still applies. A refreshed inspection found Orange #97 open at `b25a08e` with all checks successful; no Orange merge or deployment is claimed. |
-| Next action | Obtain the required review for Lousy Deal L0 #215, then have the operator re-check and merge the Lousy Deal stack one PR at a time in order (#215, #216, #217, #218, #219 and #220). Merge and verify the Astra-reviewed M1/O1 companions in their stated order before E1/F1/F2; do not infer a merge or deployed state from this plan. |
+| Current slice | **LD-08 — Launch polish**, implementation merged; release and deployed verification in progress |
+| In flight | L0–L4 (#215–#219), the LD-10 deferral plan (#220), D1 (Deploys #41), M1 (Meeme #8) and O1 (inventory #48, Orange #97) were confirmed merged on 2026-09-13. Main release `34747098069` built both images but correctly stopped before promotion when Trivy found three fixed critical CVEs in the pinned image's `perl-base` 5.40.1-6. The isolated `deal/ld08-release-cve` hotfix pins Debian's fixed 5.40.1-6+deb13u1 in both final runtime stages; both local images build, retain their runtime identity and command, and pass the unchanged Trivy 0.74.0 critical/fixed-only scan. No deployment or public exposure is claimed yet. |
+| Next action | Review and merge the release hotfix, require its main release to promote exact digests, then execute E1, F1 and F2 in the plan's order. Do not enable live Printful until its token has been paired with a newly subscribed webhook secret and seeded through the reviewed lifecycle. |
 | Blocked | **Closed public publication** may proceed after manual Printful billing plus F2's scoped Access removal and closed-site verification with `STORE_OPEN=false`; it is not blocked by missing Stripe metadata or the later `STORE_OPEN=true` promotion. **LD-08 completion** remains blocked until all eleven criteria are evidenced, including criterion 7's separate Printful and live Stripe runtime/key and webhook safe-metadata evidence. **Payment opening** is a later, separate milestone blocked on operator Stripe account acceptance and the explicit `STORE_OPEN=true` promotion. Provider reporting is a deferred, non-blocking [`LD-10`](./ld-10-provider-reporting.md) follow-up; its authority and draft PRs do not delay LD-08, and the shared Buffer-draft workflow remains unaffected. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -43,7 +43,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-08 — Launch polish** | in implementation, and last. #213 and #214 are merged; #215–#220 are open and stacked. Application/configuration PRs are prepared through the open, remediated M1/O1 companions; E1/F1/F2 follow their merge and verification order. |
+| **LD-08 — Launch polish** | implementation is merged and the release hotfix is in review. E1/F1/F2 follow its successful merged-main release and promotion. |
 | **LD-10 — Provider reporting** | **deferred post-launch, non-blocking.** [`ld-10-provider-reporting.md`](./ld-10-provider-reporting.md) owns the external authority, aggregate-report, private-binding, Orange lifecycle and recovery work. Its Meeme #9, private inventory #49 and Orange #98 drafts are evidence only and require re-review/rebase on repaired, merged M1/O1 before use. |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
