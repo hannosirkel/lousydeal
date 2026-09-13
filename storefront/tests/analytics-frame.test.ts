@@ -77,9 +77,13 @@ describe("the isolated analytics frame", () => {
     expect(frame.meta.at(-1)).toEqual(["trackCustom", "certificate_shared", {}]);
   });
 
-  it("does not embed malformed IDs or script terminators", () => {
+  it("does not initialize either vendor from malformed IDs", () => {
     const frame = start({ googleTagId: '</script><script>alert("SECRET")', metaPixelId: "123?SECRET" });
     expect(frame.html).not.toContain("SECRET");
+    expect(frame.appended).toEqual([]);
+    expect(frame.commands).toEqual([]);
+    expect(frame.meta).toEqual([]);
+    expect(frame.fbq).toBeUndefined();
   });
 
   it("keeps the other vendor running when an SDK dispatcher throws", () => {
