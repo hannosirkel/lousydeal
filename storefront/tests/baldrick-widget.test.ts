@@ -25,8 +25,8 @@ import {
   Surface,
   type SurfaceProps,
 } from "../src/components/baldrick/Surface";
-import { BALDRICK_DISCLAIMER, BALDRICK_PAUSE_LABEL, BALDRICK_SCRIPT } from "../src/content/baldrick";
-import type { Message } from "../src/lib/baldrick/conversation";
+import { BALDRICK_DISCLAIMER, BALDRICK_GREETING, BALDRICK_PAUSE_LABEL, BALDRICK_SCRIPT } from "../src/content/baldrick";
+import { initialConversation, offered, respond, type Message } from "../src/lib/baldrick/conversation";
 
 const shell = readFileSync(new URL("../src/components/baldrick/Baldrick.tsx", import.meta.url), "utf8");
 const surface = readFileSync(new URL("../src/components/baldrick/Surface.tsx", import.meta.url), "utf8");
@@ -277,6 +277,37 @@ describe("the shell, which is the part no test can render", () => {
 
   it("hides the quick replies until he has finished answering", () => {
     expect(code(shell)).toContain("presenting ? [] : offered(conversation, BALDRICK_SCRIPT)");
+  });
+
+  it("opens at the greeting step, so the two buttons B4 wrote are on offer", () => {
+    // **This is the state the widget starts in, asserted against the real
+    // script**, because the defect it fixes was a copy defect: `greeting`
+    // declares `open-what` and `open-discount`, `unknownStep` proves both point
+    // somewhere, and B4's reachability guard counts them -- and until the shell
+    // opened at the step, `offered` was reading `step: null` and returning
+    // nothing, so `Surface` rendered no list and neither button ever appeared.
+    // A guard on the script alone cannot see that; only one that starts where
+    // the shell starts can.
+    expect(code(shell)).toContain("initialConversation(BALDRICK_GREETING)");
+
+    const opening = initialConversation(BALDRICK_GREETING);
+    expect(offered(opening, BALDRICK_SCRIPT).map((reply) => reply.id)).toEqual(["open-what", "open-discount"]);
+  });
+
+  it("lets the greeting's own buttons reach their steps rather than the fallback", () => {
+    // The press, which had no coverage at all. Both go where the greeting says.
+    // `discount` is the one with a consequence beyond the copy: the shell emits
+    // `bad_discount_issued` on `next.step === "discount"`, so a button that
+    // resolved to `fallback` would have left the button path uncounted while
+    // the typed path was measured -- two names for one funnel step.
+    const opening = initialConversation(BALDRICK_GREETING);
+    for (const [id, label, step] of [
+      ["open-what", "What do I get", "what_do_i_get"],
+      ["open-discount", "Is there a discount", "discount"],
+    ] as const) {
+      expect(respond(opening, { kind: "quick", id, label }, BALDRICK_SCRIPT).step).toBe(step);
+    }
+    expect(code(shell)).toContain('if (next.step === "discount") emitAnalyticsEvent("bad_discount_issued");');
   });
 
   it("reads the motion preference at the moment it schedules", () => {

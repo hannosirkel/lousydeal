@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   EMPTY_CONVERSATION,
+  initialConversation,
   offered,
   respond,
   unknownStep,
@@ -69,6 +70,21 @@ describe("a single turn", () => {
 });
 
 describe("state, which is what makes it a conversation", () => {
+  it("starts at a step when it is opened at one, and its buttons work from there", () => {
+    // **The state a widget actually opens in.** `EMPTY_CONVERSATION` is not it:
+    // `offered` reads the step, so a conversation opened at `null` can display
+    // no quick reply, and a button that is never displayed cannot be pressed
+    // -- the greeting's two were unreachable rather than mishandled.
+    const opening = initialConversation("gift");
+    expect(offered(opening, SCRIPT).map((r) => r.id)).toEqual(["gift-go-on", "gift-no"]);
+
+    // The other half, and the one with no coverage before: the press resolves
+    // against the opening step like any other, rather than through `fallback`.
+    const pressed = respond(opening, quick("gift-go-on", "Go on"), SCRIPT);
+    expect(said(pressed)).toEqual(["gift-how-1"]);
+    expect(pressed.step).toBe("gift_how");
+  });
+
   it("offers the step's quick replies, and only while it is at that step", () => {
     const asked = respond(EMPTY_CONVERSATION, typed("a gift please"), SCRIPT);
     expect(offered(asked, SCRIPT).map((r) => r.id)).toEqual(["gift-go-on", "gift-no"]);
@@ -79,7 +95,10 @@ describe("state, which is what makes it a conversation", () => {
 
   it("lets a second turn depend on the first", () => {
     // The property that separates a character from an FAQ: the same button id
-    // means nothing at the start and something after the gift step.
+    // means nothing while the conversation is at no step, and something after
+    // the gift step. `EMPTY_CONVERSATION` is still reached in earnest -- every
+    // flow that ends returns to it -- which is why this stays keyed on it even
+    // though the widget now opens at the greeting instead.
     const cold = respond(EMPTY_CONVERSATION, quick("gift-go-on", "Go on"), SCRIPT);
     expect(said(cold)).toEqual(["fallback-1"]);
 

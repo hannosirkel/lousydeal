@@ -9,6 +9,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+// Static rendering has no Next app-router provider; browser tests exercise navigation.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined, refresh: () => undefined }) }));
+
 import {
   CART_CODE_NOTICES,
   CART_LABELS,

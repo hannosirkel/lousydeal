@@ -77,7 +77,7 @@ describe("the cookies", () => {
     // writer defaults `expiresIn` to 31536e6 ms, and the caller passes
     // `domain: "." + document.location.hostname`.
     const count = claim(section("2"), /cookies can be set/);
-    expect(count).toMatch(/three cookies/i);
+    expect(count).toMatch(/three essential cookies/i);
     expect(count).not.toMatch(/\bone cookie\b/i);
     expect(section("2")).toContain("__stripe_mid");
     expect(section("2")).toContain("__stripe_sid");
@@ -121,9 +121,16 @@ describe("what is recorded when you visit", () => {
     expect(claim(section("5"), /Cloudflare provides/)).toMatch(/sees the address each of your requests comes from/i);
   });
 
-  it("keeps the no-analytics claim free of exceptions", () => {
-    const analytics = claim(section("2"), /There is no analytics/);
-    expect(analytics).toMatch(/no measurement, no advertising pixel/i);
+  it("distinguishes prohibited customer data from vendor measurement identifiers", () => {
+    const analytics = claim(section("2"), /Google Analytics and Meta Pixel/);
+    expect(analytics).toMatch(/only after you agree/i);
+    expect(analytics).toMatch(/we do not send the address or title/i);
+    expect(analytics).toMatch(/customer or order identifiers/i);
+    expect(section("2")).toMatch(/network address and browser\/device information/i);
+    expect(section("2")).toMatch(/no first-party analytics cookies/i);
+    expect(section("2")).toMatch(/no automatic expiry/i);
+    expect(section("2")).toMatch(/cannot recall requests already sent/i);
+    expect(section("2")).not.toMatch(/longest-lived|or other identifier/i);
     expect(prose).not.toMatch(/\bpicture of you\b/i);
   });
 });
@@ -271,11 +278,11 @@ describe("the payment record", () => {
 });
 
 describe("who else handles it", () => {
-  it("names three processors and no more, and a carrier as its own case", () => {
+  it("names the optional analytics vendors and carrier as their own cases", () => {
     // **Two until LD-04 P11.** The opener counted, so adding Printful without
     // touching it would have left the document contradicting itself in its
     // own first sentence.
-    const opener = claim(section("5"), /Three companies handle data/);
+    const opener = claim(section("5"), /Five companies can handle data/);
     expect(opener).toMatch(/these are all of them/i);
     expect(section("5")).not.toMatch(/two companies handle data/i);
     // Backblaze was named while holding nothing: the platform's backup jobs are

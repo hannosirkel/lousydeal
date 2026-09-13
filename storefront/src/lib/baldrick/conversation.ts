@@ -79,14 +79,34 @@ export interface Conversation {
   readonly utterances: readonly string[];
   readonly transcript: readonly Message[];
   /**
-   * Where the visitor is, or `null` at the start and whenever a flow was left.
-   * Only quick replies can be *at* a step; a typed message is always matched
-   * afresh, which is what makes a flow abandonable.
+   * Where the visitor is, or `null` wherever they are at no step: an empty
+   * conversation, and whenever a flow was left. Only quick replies can be *at*
+   * a step; a typed message is always matched afresh, which is what makes a
+   * flow abandonable.
+   *
+   * `null` is not the same thing as "the beginning". A widget may open at a
+   * step it wrote buttons for -- see {@link initialConversation} -- and this
+   * one does.
    */
   readonly step: string | null;
 }
 
 export const EMPTY_CONVERSATION: Conversation = { utterances: [], transcript: [], step: null };
+
+/**
+ * The opening state: at a step, with nothing said yet.
+ *
+ * **Deliberately not {@link EMPTY_CONVERSATION}.** That one is `step: null`,
+ * which is where a finished flow returns to and where a cold quick reply must
+ * still reach `fallback`. A widget opening there can show no quick replies at
+ * all, because `offered` has no step to read them from -- so a greeting that
+ * declares two buttons renders none, and the copy is dead on arrival. Naming
+ * the opening state here rather than spreading `EMPTY_CONVERSATION` at the call
+ * site is what makes that a decision somebody can find.
+ */
+export function initialConversation(step: string): Conversation {
+  return { ...EMPTY_CONVERSATION, step };
+}
 
 /**
  * What a step id means when the script has no such step.

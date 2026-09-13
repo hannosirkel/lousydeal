@@ -33,6 +33,7 @@ import type { ReactNode } from "react";
 
 import { Footer } from "../components/document/Footer";
 import { Masthead } from "../components/document/Masthead";
+import { ConsentManager } from "../components/analytics/ConsentManager";
 import { MASTHEAD_LINE, MASTHEAD_MARK } from "../content/chrome";
 import {
   getRuntimeConfig,
@@ -98,6 +99,7 @@ export default async function RootLayout({ children }: { readonly children: Reac
           <Masthead />
           {children}
           <Footer merchant={config.merchant} />
+          <ConsentManager googleTagId={config.analytics.googleTagId} metaPixelId={config.analytics.metaPixelId} />
         </div>
       </body>
     </html>

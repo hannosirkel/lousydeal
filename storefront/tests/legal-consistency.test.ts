@@ -122,7 +122,7 @@ describe("what every surface says about the confirmation", () => {
    * the record of why.
    */
   it.each(mentionsTheConfirmation)("%s does not assert that we withhold it", (_name, text) => {
-    expect(text).not.toMatch(/do(?:es)? not (?:yet )?send/i);
+    expect(text).not.toMatch(/do(?:es)? not (?:yet )?send\b[^.\n]*\b(?:confirmation|email|e-mail|message|receipt)\b/i);
     expect(text).not.toMatch(/\bno confirmation is (?:sent|given)\b/i);
     // The form the positive rule above would not catch on its own.
     expect(text).not.toMatch(/\bwe never send\b/i);

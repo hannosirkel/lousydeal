@@ -30,7 +30,7 @@ export interface OrderFormProps {
 export function OrderForm({ action, variantId, label, forTier, storeOpen }: OrderFormProps) {
   if (!storeOpen) return <p className="notice">{STORE_CLOSED_NOTICE}</p>;
   return (
-    <form action={action}>
+    <form action={action} data-analytics-event="tier_selected">
       <input type="hidden" name="variantId" value={variantId} />
       <Button type="submit">
         {label}

@@ -39,6 +39,7 @@ describe("getRuntimeConfig", () => {
       medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
       stripe: { publishableKey: "pk_test_example" },
       store: { open: false },
+      analytics: { googleTagId: null, metaPixelId: null },
       merchant: {
         legalName: "Example Trader OÜ",
         address: "Example tn 1, 10000 Tallinn, Estonia",
@@ -56,6 +57,7 @@ describe("getRuntimeConfig", () => {
       medusa: { backendUrl: null, publishableKey: null },
       stripe: { publishableKey: null },
       store: { open: false },
+      analytics: { googleTagId: null, metaPixelId: null },
       merchant: { legalName: null, address: null, email: null, registryCode: null, vatNumber: null, phoneNumber: null },
     });
   });
@@ -87,6 +89,7 @@ describe("only a named, pinned subset of the runtime config is published to the 
     medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
     stripe: { publishableKey: "pk_test_example" },
     store: { open: false },
+    analytics: { googleTagId: "G-EXAMPLE", metaPixelId: "123456789" },
     merchant: {
       legalName: "Example Trader OÜ",
       address: "Example tn 1, 10000 Tallinn, Estonia",
@@ -149,6 +152,7 @@ describe("serializeRuntimeConfig", () => {
       medusa: { backendUrl: null, publishableKey: null },
       stripe: { publishableKey: `${closingTag}<script>alert(1)</script>` },
       store: { open: false },
+      analytics: { googleTagId: null, metaPixelId: null },
       merchant: NO_MERCHANT,
     };
     const serialized = serializeRuntimeConfig(toClientRuntimeConfig(withClosingTag));
@@ -161,6 +165,7 @@ describe("serializeRuntimeConfig", () => {
       medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
       stripe: { publishableKey: "pk_test_example" },
       store: { open: true },
+      analytics: { googleTagId: null, metaPixelId: null },
       merchant: NO_MERCHANT,
     };
     const projected = toClientRuntimeConfig(value);
