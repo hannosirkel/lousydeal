@@ -9,9 +9,9 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-13 |
 | Current slice | **LD-08 — Launch polish**, implementation merged; release and deployed verification in progress |
-| In flight | L0–L4 (#215–#219), the LD-10 deferral plan (#220), D1 (Deploys #41), M1 (Meeme #8) and O1 (inventory #48, Orange #97) were confirmed merged on 2026-09-13. Main release `34747098069` built both images but correctly stopped before promotion when Trivy found three fixed critical CVEs in the pinned image's `perl-base` 5.40.1-6. The isolated `deal/ld08-release-cve` hotfix pins Debian's fixed 5.40.1-6+deb13u1 in both final runtime stages; both local images build, retain their runtime identity and command, and pass the unchanged Trivy 0.74.0 critical/fixed-only scan. No deployment or public exposure is claimed yet. |
-| Next action | Review and merge the release hotfix, require its main release to promote exact digests, then execute E1, F1 and F2 in the plan's order. Do not enable live Printful until its token has been paired with a newly subscribed webhook secret and seeded through the reviewed lifecycle. |
-| Blocked | **Closed public publication** may proceed after manual Printful billing plus F2's scoped Access removal and closed-site verification with `STORE_OPEN=false`; it is not blocked by missing Stripe metadata or the later `STORE_OPEN=true` promotion. **LD-08 completion** remains blocked until all eleven criteria are evidenced, including criterion 7's separate Printful and live Stripe runtime/key and webhook safe-metadata evidence. **Payment opening** is a later, separate milestone blocked on operator Stripe account acceptance and the explicit `STORE_OPEN=true` promotion. Provider reporting is a deferred, non-blocking [`LD-10`](./ld-10-provider-reporting.md) follow-up; its authority and draft PRs do not delay LD-08, and the shared Buffer-draft workflow remains unaffected. |
+| In flight | L0–L4 (#215–#219), the LD-10 deferral (#220), D1 (Deploys #41), M1 (Meeme #8), O1 (inventory #48, Orange #97), the release repair (#221) and the predeploy mail-provider repair (Orange #99) are merged. Release `34753505217` validated, built, scanned and promoted main. Live runs backend `sha256:49b5cf3c…` and storefront `sha256:3210535f…`; test retains its distinct Gate F digests. Both Argo applications were Synced/Healthy after the 2026-09-13 reconcile. Live and test remain `STORE_OPEN=false`; Cloudflare Access still gates both public hostnames. |
+| Next action | Complete the two human-authority steps already prepared: obtain a short-lived OpenBao OIDC operator session, seed/verify the live Printful and Meeme social sources, then merge and reconcile private inventory #50; and rotate the exposed test-mode Stripe keys before any further Stripe test. Separately disable Google Enhanced Measurement and the named Google/Meta account-side automatic collection settings. Recover only Gate F order #7's two original failed email rows after explicit authorization, then complete E1/F2 and the final evidence PR. |
+| Blocked | **Closed public publication** waits on operator confirmation of Printful billing, the scoped Access removal and unauthenticated closed-site verification; it does not require live Stripe readiness. **LD-08 completion** still requires all eleven criteria, including live Stripe runtime/key and webhook evidence, Buffer draft lifecycle evidence, clean analytics account read-back, recovered Gate F mail and public verification. **Payment opening** is later and remains blocked on Stripe account acceptance plus an explicit `STORE_OPEN=true` promotion. Provider reporting remains deferred and non-blocking in [`LD-10`](./ld-10-provider-reporting.md). |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -43,7 +43,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-08 — Launch polish** | implementation is merged and the release hotfix is in review. E1/F1/F2 follow its successful merged-main release and promotion. |
+| **LD-08 — Launch polish** | implementation and release repairs are merged and deployed closed. E1/F1/F2 are partially evidenced; external account authority and final publication gates remain. |
 | **LD-10 — Provider reporting** | **deferred post-launch, non-blocking.** [`ld-10-provider-reporting.md`](./ld-10-provider-reporting.md) owns the external authority, aggregate-report, private-binding, Orange lifecycle and recovery work. Its Meeme #9, private inventory #49 and Orange #98 drafts are evidence only and require re-review/rebase on repaired, merged M1/O1 before use. |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
@@ -58,7 +58,7 @@ question at its current state, which is recorded below.
 | C — visual design | passed |
 | D — per-task code review | run per row; every merged row carries its answers in its slice plan |
 | E — rendered UI review | passed for LD-02 through LD-06 |
-| F — integration review | **not run.** It is before production and belongs with LD-08 |
+| F — integration review | **in progress.** Gate F order #7 proved the $44.47 certificate, merch, surcharge, gift, Stripe test authorization and analytics-absent test flow; email recovery and duplicate-webhook evidence remain. Test was returned closed immediately. |
 
 ## What the operator closed on 2026-09-10
 
@@ -91,10 +91,11 @@ What is actually held, as against what the contract expects in §2b.
 | Domain `lousydeal.com` | yes | DNS not yet published |
 | Company identity, Aislopica OÜ | yes | §2b |
 | Merchant identity in the private `orange.yml` | yes | both environments render `Aislopica OÜ`; the imprint has no gap |
-| Stripe test-mode keys | yes | `.keys/stripe-lousydeal-test` in the Orange checkout, provider-first per `006` |
+| Stripe test-mode keys | **rotation required** | Both test-mode values were exposed in a 2026-09-13 operator-session command output. Treat them as compromised, rotate them in Stripe, then update through the existing OpenBao lifecycle before another Stripe test. No live key was involved. |
 | **Stripe live keys** | **no** | not before the publication gate, by design. An LD-08 item |
 | SMTP credentials, host, port, servername, egress CIDR | yes | mail verified sending from both environments |
-| Printful account, store token, four products | yes | eight scopes, verified by read-back; artwork fetched from this repository at a pinned commit |
+| Printful test store | yes | Existing token, webhook and four products remain the Gate F test path. Order #7 reached Printful and failed at the known missing-billing gate. |
+| Printful live store | prepared, not projected | The live token is paired with a newly subscribed signing secret; exactly four committed products were reconciled, and the immediate second run reported four unchanged and zero mutations. Private inventory #50 enables projection after OpenBao seeding. |
 | **Printful billing information** | **no** | Required before publication. The LD-06 test order reached Printful with only its shirt, then failed at billing. An LD-08 item |
 | Google Analytics Data API authority | **no** | LD-10 needs a dedicated read-only principal, the numeric GA4 property ID and a property Viewer grant for aggregate reports. **Non-blocking:** the deferred post-launch initiative waits on it; LD-08 does not |
 | Meta owned-asset read authority | **no** | LD-10 needs a valid authorized Page and linked professional Instagram asset token with verified read scopes; the Facebook App ID/secret is not data access authority. **Non-blocking**, like the row above |
@@ -108,8 +109,11 @@ What is actually held, as against what the contract expects in §2b.
 
 ## Deployment
 
-Both environments run the storefront and are gated behind Cloudflare Access.
-**Deploying is not publishing**, and nothing here has been published.
+Both environments run the storefront closed and are still gated behind
+Cloudflare Access. Through the live origin, the complete homepage returned 200
+with the closure notice and trader identity while cart creation returned 503
+`store_closed`; live public totals remained zero while test held seven deals.
+**Deploying is not publishing**, and the site is not yet public.
 `deploys/lousydeal/` carries the base and both overlays; images are promoted by
 digest.
 
