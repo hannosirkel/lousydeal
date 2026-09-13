@@ -36,7 +36,9 @@ import {
   CODE_LABEL,
   CODE_REMOVE_LABEL,
   RETURN_LABEL,
+  STORE_CLOSED_NOTICE,
 } from "../../content/checkout";
+import { getRuntimeConfig } from "../../config/runtime-config";
 import { MERCH_APOLOGY, MERCH_HEADING, MERCH_TABLE_HEADINGS,
   MERCH_REMOVE_LABEL,
 } from "../../content/merch";
@@ -118,6 +120,16 @@ export default async function CartPage({
   searchParams = Promise.resolve({}),
 }: { readonly searchParams?: Promise<CartSearchParams> } = {}) {
   await connection();
+  if (!getRuntimeConfig().store.open) {
+    return (
+      <main>
+        <DocumentFrame title={CART_DOCUMENT.title} form={CART_DOCUMENT.form} revision={CART_DOCUMENT.revision}>
+          <p className="notice">{STORE_CLOSED_NOTICE}</p>
+          <Button variant="secondary" href="/">{RETURN_LABEL}</Button>
+        </DocumentFrame>
+      </main>
+    );
+  }
   const notice = codeNotice(await searchParams);
   const cookieStore = await cookies();
   const cartId = cookieStore.get(CART_ID_COOKIE)?.value;
@@ -236,7 +248,7 @@ export default async function CartPage({
                 value: row.value,
                 price: row.price,
                 variantId: row.variants[0]?.variantId ?? "",
-                action: <MerchForm action={addMerchToCart} title={row.title} variants={row.variants} />,
+                action: <MerchForm action={addMerchToCart} title={row.title} variants={row.variants} storeOpen />,
               }))}
             />
             {/* Beneath the table, and the whole of the apology. */}

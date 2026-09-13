@@ -27,6 +27,7 @@
  */
 
 import { readEnv, type EnvRecord } from "./env";
+import { readStoreOpen } from "../lib/store-availability";
 
 export interface RuntimeConfig {
   readonly medusa: {
@@ -47,6 +48,10 @@ export interface RuntimeConfig {
   readonly stripe: {
     /** Stripe's publishable key is public by design; no secret key lives here. */
     readonly publishableKey: string | null;
+  };
+  readonly store: {
+    /** Server-owned at runtime; only this boolean is projected to the browser. */
+    readonly open: boolean;
   };
   /**
    * Trader identity, server-side only. Every field is public information and
@@ -76,6 +81,9 @@ export function getRuntimeConfig(env: EnvRecord = process.env): RuntimeConfig {
     stripe: {
       publishableKey: readEnv("STRIPE_PUBLISHABLE_KEY", env) ?? null,
     },
+    store: {
+      open: readStoreOpen(env),
+    },
     merchant: {
       legalName: readEnv("MERCHANT_LEGAL_NAME", env) ?? null,
       address: readEnv("MERCHANT_ADDRESS", env) ?? null,
@@ -103,6 +111,7 @@ export function getRuntimeConfig(env: EnvRecord = process.env): RuntimeConfig {
  */
 export interface ClientRuntimeConfig {
   readonly stripe: RuntimeConfig["stripe"];
+  readonly store: RuntimeConfig["store"];
 }
 
 /**
@@ -111,7 +120,7 @@ export interface ClientRuntimeConfig {
  * listed here that is not a key of `ClientRuntimeConfig` — fails at `tsc`,
  * not in this suite.
  */
-export const CLIENT_RUNTIME_CONFIG_KEYS: readonly (keyof ClientRuntimeConfig)[] = ["stripe"];
+export const CLIENT_RUNTIME_CONFIG_KEYS: readonly (keyof ClientRuntimeConfig)[] = ["stripe", "store"];
 
 /** The id `layout.tsx` gives the inert JSON script element carrying the projection below. */
 export const RUNTIME_CONFIG_ELEMENT_ID = "lousydeal-runtime-config";
@@ -120,6 +129,7 @@ export const RUNTIME_CONFIG_ELEMENT_ID = "lousydeal-runtime-config";
 export function toClientRuntimeConfig(config: RuntimeConfig): ClientRuntimeConfig {
   return {
     stripe: config.stripe,
+    store: config.store,
   };
 }
 

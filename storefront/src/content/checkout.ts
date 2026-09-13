@@ -90,6 +90,7 @@ export const CART_SURCHARGE_NOTICE =
 export const CART_LINK_LABEL = "Return to the order summary";
 
 export const CHECKOUT_LABEL = "Proceed to payment";
+export const STORE_CLOSED_NOTICE = "Ordering is currently closed.";
 
 /** The address the order confirmation is sent to. C3b. */
 export const EMAIL_LABEL = "Email address";

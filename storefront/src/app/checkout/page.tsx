@@ -49,6 +49,7 @@ import {
   orderSummaryLines,
   priceNotice,
   RETURN_LABEL,
+  STORE_CLOSED_NOTICE,
 } from "../../content/checkout";
 import { cartHasCertificate, cartNeedsAddress, cartRefusedForSurcharge, isPayableCart } from "../../lib/checkout-rules";
 import { createStoreFetchJson, getDefaultRegion, listTiers } from "../../lib/medusa-client";
@@ -71,6 +72,17 @@ function lineValue(quantity: number, unitPrice: number, currencyCode: string): s
 
 export default async function CheckoutPage() {
   await connection();
+  const { stripe, store } = getRuntimeConfig();
+  if (!store.open) {
+    return (
+      <main>
+        <DocumentFrame title={CHECKOUT_DOCUMENT.title} form={CHECKOUT_DOCUMENT.form} revision={CHECKOUT_DOCUMENT.revision}>
+          <p className="notice">{STORE_CLOSED_NOTICE}</p>
+          <Button variant="secondary" href="/">{RETURN_LABEL}</Button>
+        </DocumentFrame>
+      </main>
+    );
+  }
   const cookieStore = await cookies();
   const cartId = cookieStore.get(CART_ID_COOKIE)?.value;
 
@@ -94,7 +106,6 @@ export default async function CheckoutPage() {
     );
   }
 
-  const { stripe } = getRuntimeConfig();
   if (stripe.publishableKey === null) {
     throw new Error("STRIPE_PUBLISHABLE_KEY must be set to render checkout");
   }

@@ -115,6 +115,7 @@ describe("readBackendRuntimeConfig", () => {
   it("assembles the http secrets, the database connection, the Redis parts, the Stripe values and the mail configuration from the environment", () => {
     const config: BackendRuntimeConfig = readBackendRuntimeConfig(validEnvironment);
     expect(config).toEqual({
+      store: { open: false },
       http: {
         jwtSecret: "jwt-secret-value",
         cookieSecret: "cookie-secret-value",

@@ -45,6 +45,7 @@ const rows: TierRow[] = TIERS.map((tier) => ({
     variantId: tierRowData(tier).variantId,
     label: "Acquire",
     forTier: tier.title,
+    storeOpen: true,
   }),
 }));
 
@@ -79,7 +80,7 @@ describe("the page's own mapping", () => {
 
 describe("the order form", () => {
   const form = renderToStaticMarkup(
-    createElement(OrderForm, { action: async () => undefined, variantId: "var_1", label: "Acquire for $5.00" }),
+    createElement(OrderForm, { action: async () => undefined, variantId: "var_1", label: "Acquire for $5.00", storeOpen: true }),
   );
 
   it("posts the variant id the server action reads", () => {
@@ -100,13 +101,26 @@ describe("the order form", () => {
     // Three table buttons reading only "ACQUIRE" are three identical entries
     // in a controls list for three different prices.
     const named = renderToStaticMarkup(
-      createElement(OrderForm, { action: async () => undefined, variantId: "var_3", label: "Acquire", forTier: "Lousy Deal Pro" }),
+      createElement(OrderForm, { action: async () => undefined, variantId: "var_3", label: "Acquire", forTier: "Lousy Deal Pro", storeOpen: true }),
     );
     expect(named).toContain('<span class="visually-hidden"> Lousy Deal Pro</span>');
     // And without putting a second copy of the price into the markup. (React
     // injects a form-replay script containing `$$reactFormReplay`, so the test
     // is for a currency figure, not for the character.)
     expect(named).not.toMatch(/[$€£]\d/);
+  });
+
+  it("replaces the purchase control with a closed-store notice", () => {
+    const closed = renderToStaticMarkup(
+      createElement(OrderForm, {
+        action: async () => undefined,
+        variantId: "var_1",
+        label: "Acquire",
+        storeOpen: false,
+      }),
+    );
+    expect(closed).toContain("Ordering is currently closed.");
+    expect(closed).not.toContain("<form");
   });
 });
 

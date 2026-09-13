@@ -16,11 +16,24 @@ import { fileURLToPath } from "node:url";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const proxyRuntime = vi.hoisted(() => ({
+  current: {
+    medusa: { backendUrl: "https://backend.invalid", publishableKey: "pk_store_fixture" },
+    store: { open: false },
+  },
+}));
+
+vi.mock("../src/config/runtime-config", () => ({
+  getRuntimeConfig: () => proxyRuntime.current,
+}));
 
 import {
   ALLOWED_NAMESPACES,
+  POST,
   forwardStoreApiRequest,
+  storePurchaseMutationRefused,
   methodRefused,
   resolveStoreApiPath,
   resolveStoreApiTarget,
@@ -42,6 +55,84 @@ import {
   initiateStripePaymentSession,
   STRIPE_PROVIDER_ID,
 } from "../src/lib/store-payment";
+
+describe("the store-api proxy's availability gate", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("refuses a commerce write locally when the storefront is closed and its backend would be open", async () => {
+    proxyRuntime.current = {
+      medusa: { backendUrl: "https://backend.invalid", publishableKey: "pk_store_fixture" },
+      store: { open: false },
+    };
+    const upstream = vi.fn(async () => new Response(null, { status: 201 }));
+    vi.stubGlobal("fetch", upstream);
+
+    const response = await POST(
+      new Request("https://storefront.invalid/api/store/store/carts", { method: "POST" }),
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ code: "store_closed" });
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
+  it("forwards a commerce write when the storefront is open so the backend closed response remains observable", async () => {
+    proxyRuntime.current = {
+      medusa: { backendUrl: "https://backend.invalid", publishableKey: "pk_store_fixture" },
+      store: { open: true },
+    };
+    const upstream = vi.fn(async () => Response.json({ code: "store_closed" }, { status: 503 }));
+    vi.stubGlobal("fetch", upstream);
+
+    const response = await POST(
+      new Request("https://storefront.invalid/api/store/store/carts", { method: "POST" }),
+    );
+
+    expect(upstream).toHaveBeenCalledOnce();
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ code: "store_closed" });
+  });
+
+  it("does not gate withdrawal or webhook requests through the real proxy entrypoint", async () => {
+    proxyRuntime.current = {
+      medusa: { backendUrl: "https://backend.invalid", publishableKey: "pk_store_fixture" },
+      store: { open: false },
+    };
+    const upstream = vi.fn(async () => new Response(null, { status: 202 }));
+    vi.stubGlobal("fetch", upstream);
+
+    const withdrawal = await POST(
+      new Request("https://storefront.invalid/api/store/store/withdrawals", { method: "POST" }),
+    );
+    const webhook = await POST(
+      new Request("https://storefront.invalid/api/store/webhooks/printful", { method: "POST" }),
+    );
+
+    expect(withdrawal.status).toBe(202);
+    expect(webhook.status).toBe(202);
+    expect(upstream).toHaveBeenCalledTimes(2);
+  });
+
+  it("classifies every commerce mutation for the local guard", () => {
+    expect(storePurchaseMutationRefused("POST", "/store/carts", false)).toBe(true);
+    expect(storePurchaseMutationRefused("DELETE", "/store/carts/cart_1/line-items/item_1", false)).toBe(true);
+    expect(storePurchaseMutationRefused("PUT", "/store/carts/cart_1", false)).toBe(true);
+    expect(storePurchaseMutationRefused("PATCH", "/store/carts/cart_1", false)).toBe(true);
+    expect(storePurchaseMutationRefused("POST", "/store/carts/cart_1/complete", false)).toBe(true);
+  });
+
+  it("forwards a commerce write when open so a closed backend response remains observable", () => {
+    expect(storePurchaseMutationRefused("POST", "/store/carts", true)).toBe(false);
+  });
+
+  it("does not gate withdrawal or webhook requests", () => {
+    expect(storePurchaseMutationRefused("POST", "/store/withdrawals", false)).toBe(false);
+    expect(storePurchaseMutationRefused("POST", "/webhooks/printful", false)).toBe(false);
+    expect(storePurchaseMutationRefused("GET", "/store/carts/cart_1", false)).toBe(false);
+  });
+});
 
 describe("resolveStoreApiPath refuses every attack in the row's brief", () => {
   it("refuses a literal .. immediately after the mount prefix", () => {

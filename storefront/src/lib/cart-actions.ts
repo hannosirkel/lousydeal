@@ -27,6 +27,7 @@ import type { FetchJson } from "./medusa-client";
 import { createStoreFetchJson, getDefaultRegion, listTiers, StoreApiError } from "./medusa-client";
 import { addLineToCart, applySurcharge, createCart, getCart, removeLineFromCart } from "./store-cart";
 import { CART_COOKIE_OPTIONS, CART_ID_COOKIE, requireStoreClientConfig } from "./store-session";
+import { assertStoreOpen } from "./store-availability";
 
 /**
  * The cart this add goes into: the one the cookie names, or a new one.
@@ -109,6 +110,7 @@ async function cartToAddTo(
  * from and, since P9a, the one that actually excludes merch.
  */
 export async function addToCart(formData: FormData): Promise<void> {
+  assertStoreOpen();
   const variantId = formData.get("variantId");
   if (typeof variantId !== "string") {
     throw new Error("addToCart: missing variantId");
@@ -163,6 +165,7 @@ export async function addToCart(formData: FormData): Promise<void> {
  * lines.
  */
 export async function addMerchToCart(formData: FormData): Promise<void> {
+  assertStoreOpen();
   const variantId = formData.get("variantId");
   if (typeof variantId !== "string") {
     throw new Error("addMerchToCart: missing variantId");
@@ -189,6 +192,7 @@ function surchargeRefusalReason(error: unknown): SurchargeRefusalReason | null {
 
 /** Apply one code to the cart named by the caller's private cart cookie. */
 export async function applyCode(formData: FormData): Promise<void> {
+  assertStoreOpen();
   const code = formData.get("code");
   if (typeof code !== "string") {
     throw new Error("applyCode: missing code");
@@ -229,6 +233,7 @@ export async function applyCode(formData: FormData): Promise<void> {
  * and it is already not.
  */
 export async function removeFromCart(formData: FormData): Promise<void> {
+  assertStoreOpen();
   const lineId = formData.get("lineId");
   if (typeof lineId !== "string") {
     throw new Error("removeFromCart: missing lineId");

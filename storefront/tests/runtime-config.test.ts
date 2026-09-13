@@ -38,6 +38,7 @@ describe("getRuntimeConfig", () => {
     expect(config).toEqual({
       medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
       stripe: { publishableKey: "pk_test_example" },
+      store: { open: false },
       merchant: {
         legalName: "Example Trader OÜ",
         address: "Example tn 1, 10000 Tallinn, Estonia",
@@ -54,6 +55,7 @@ describe("getRuntimeConfig", () => {
     expect(getRuntimeConfig({})).toEqual({
       medusa: { backendUrl: null, publishableKey: null },
       stripe: { publishableKey: null },
+      store: { open: false },
       merchant: { legalName: null, address: null, email: null, registryCode: null, vatNumber: null, phoneNumber: null },
     });
   });
@@ -63,6 +65,11 @@ describe("getRuntimeConfig", () => {
     const second = getRuntimeConfig({ STRIPE_PUBLISHABLE_KEY: "pk_test_second" });
     expect(first.stripe.publishableKey).toBe("pk_test_first");
     expect(second.stripe.publishableKey).toBe("pk_test_second");
+  });
+
+  it("opens only for the exact true setting", () => {
+    expect(getRuntimeConfig({ STORE_OPEN: "true" }).store.open).toBe(true);
+    expect(getRuntimeConfig({ STORE_OPEN: "TRUE" }).store.open).toBe(false);
   });
 });
 
@@ -79,6 +86,7 @@ describe("only a named, pinned subset of the runtime config is published to the 
   const config: RuntimeConfig = {
     medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
     stripe: { publishableKey: "pk_test_example" },
+    store: { open: false },
     merchant: {
       legalName: "Example Trader OÜ",
       address: "Example tn 1, 10000 Tallinn, Estonia",
@@ -140,6 +148,7 @@ describe("serializeRuntimeConfig", () => {
     const withClosingTag: RuntimeConfig = {
       medusa: { backendUrl: null, publishableKey: null },
       stripe: { publishableKey: `${closingTag}<script>alert(1)</script>` },
+      store: { open: false },
       merchant: NO_MERCHANT,
     };
     const serialized = serializeRuntimeConfig(toClientRuntimeConfig(withClosingTag));
@@ -151,6 +160,7 @@ describe("serializeRuntimeConfig", () => {
     const value: RuntimeConfig = {
       medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
       stripe: { publishableKey: "pk_test_example" },
+      store: { open: true },
       merchant: NO_MERCHANT,
     };
     const projected = toClientRuntimeConfig(value);

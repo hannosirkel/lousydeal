@@ -20,6 +20,7 @@ import { DocumentFrame } from "../../../components/document/DocumentFrame";
 import { OrderForm } from "../../../components/document/OrderForm";
 import { Quotation } from "../../../components/document/Quotation";
 import { DEAL_DOCUMENT } from "../../../content/deal";
+import { getRuntimeConfig } from "../../../config/runtime-config";
 import { ACQUIRE_LABEL_PREFIX } from "../../../content/home";
 import { addToCart } from "../../../lib/cart-actions";
 import { createStoreFetchJson, listTiers } from "../../../lib/medusa-client";
@@ -29,6 +30,7 @@ import { NO_VALUE, requireTier, tierPath, upgrades } from "../../../lib/tier-row
 
 export default async function DealPage({ params }: { readonly params: Promise<{ readonly handle: string }> }) {
   await connection();
+  const { store } = getRuntimeConfig();
   const { handle } = await params;
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const tiers = await listTiers(fetchJson);
@@ -47,6 +49,7 @@ export default async function DealPage({ params }: { readonly params: Promise<{ 
               action={addToCart}
               variantId={tier.variantId}
               label={`${ACQUIRE_LABEL_PREFIX} ${formatMoney(tier.amount, tier.currencyCode)}`}
+              storeOpen={store.open}
             />
           }
           upgrades={upgrades(tiers, tier).map((upgrade) => ({

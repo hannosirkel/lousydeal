@@ -9,9 +9,20 @@ import { fileURLToPath } from "node:url";
  * to stay true across every route that puts a tier in a cart.
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CART_COOKIE_OPTIONS, CART_ID_COOKIE, requireStoreClientConfig } from "../src/lib/store-session";
+
+const originalStoreOpen = process.env.STORE_OPEN;
+
+beforeEach(() => {
+  process.env.STORE_OPEN = "true";
+});
+
+afterAll(() => {
+  if (originalStoreOpen === undefined) delete process.env.STORE_OPEN;
+  else process.env.STORE_OPEN = originalStoreOpen;
+});
 
 describe("the cart cookie", () => {
   it("is written with every attribute that keeps it out of reach", () => {
@@ -58,6 +69,48 @@ describe("requireStoreClientConfig", () => {
 });
 
 describe("addToCart", () => {
+  it("refuses every directly callable commerce action before it reads form data", async () => {
+    const previous = process.env.STORE_OPEN;
+    try {
+      delete process.env.STORE_OPEN;
+      vi.resetModules();
+      const actions = await import("../src/lib/cart-actions");
+      const form = new FormData();
+      await expect(actions.addToCart(form)).rejects.toThrow("store_closed");
+      await expect(actions.addMerchToCart(form)).rejects.toThrow("store_closed");
+      await expect(actions.applyCode(form)).rejects.toThrow("store_closed");
+      await expect(actions.removeFromCart(form)).rejects.toThrow("store_closed");
+    } finally {
+      if (previous === undefined) delete process.env.STORE_OPEN;
+      else process.env.STORE_OPEN = previous;
+      vi.resetModules();
+    }
+  });
+
+  it("does not construct a Medusa dependency for a closed purchase", async () => {
+    const previous = process.env.STORE_OPEN;
+    try {
+      process.env.STORE_OPEN = "false";
+      vi.resetModules();
+      const createStoreFetchJson = vi.fn();
+      vi.doMock("../src/lib/medusa-client", async (importOriginal) => ({
+        ...await importOriginal<typeof import("../src/lib/medusa-client")>(),
+        createStoreFetchJson,
+      }));
+      const { addToCart } = await import("../src/lib/cart-actions");
+      const form = new FormData();
+      form.set("variantId", "var_1");
+
+      await expect(addToCart(form)).rejects.toThrow("store_closed");
+      expect(createStoreFetchJson).not.toHaveBeenCalled();
+    } finally {
+      if (previous === undefined) delete process.env.STORE_OPEN;
+      else process.env.STORE_OPEN = previous;
+      vi.resetModules();
+      vi.doUnmock("../src/lib/medusa-client");
+    }
+  });
+
   it("refuses a submission carrying no variant", async () => {
     const { addToCart } = await import("../src/lib/cart-actions");
     await expect(addToCart(new FormData())).rejects.toThrow(/missing variantId/);
