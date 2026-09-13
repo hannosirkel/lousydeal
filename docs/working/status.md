@@ -7,11 +7,11 @@ does not — it points, it does not hold.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-12 |
+| Updated | 2026-09-13 |
 | Current slice | **LD-08 — Launch polish**, planned and in implementation |
-| In flight | LD-08's stacked `lousydeal` branches: L0/L1/L2/L3 precede `deal/ld08-l4-printful` in `/home/hanno/app/.worktrees/lousydeal/ld08-l4-printful` |
-| Next action | Review L4's explicit, locally verified Printful reconciliation lifecycle, then continue D1/M1/O1 in [`ld-08-launch-polish.md`](./ld-08-launch-polish.md). L4 has made no external call: E1 still owns live credential verification, two reconciliation runs and safe read-back. L3's dated closed-store/browser evidence remains recorded here; open-state cart/checkout verification remains F2, while analytics evidence and required vendor-setting read-back remain in [`ld08-analytics-verification.md`](./ld08-analytics-verification.md). |
-| Blocked | nothing |
+| In flight | Read-only GitHub inspection on 2026-09-13 found L0 #215 open with completed checks but `REVIEW_REQUIRED`; L1 #216, L2 #217, L3 #218, L4 #219 and the earlier plan PR #220 remain open and stacked. M1 (Meeme #8) and O1's inventory (#48) and Orange (#97) companions are remediated and Astra-reviewed open PRs; their merge/deployed verification order still applies. A refreshed inspection found Orange #97 open at `b25a08e` with all checks successful; no Orange merge or deployment is claimed. |
+| Next action | Obtain the required review for Lousy Deal L0 #215, then have the operator re-check and merge the Lousy Deal stack one PR at a time in order (#215, #216, #217, #218, #219 and #220). Merge and verify the Astra-reviewed M1/O1 companions in their stated order before E1/F1/F2; do not infer a merge or deployed state from this plan. |
+| Blocked | **Closed public publication** may proceed after manual Printful billing plus F2's scoped Access removal and closed-site verification with `STORE_OPEN=false`; it is not blocked by missing Stripe metadata or the later `STORE_OPEN=true` promotion. **LD-08 completion** remains blocked until all eleven criteria are evidenced, including criterion 7's separate Printful and live Stripe runtime/key and webhook safe-metadata evidence. **Payment opening** is a later, separate milestone blocked on operator Stripe account acceptance and the explicit `STORE_OPEN=true` promotion. Provider reporting is a deferred, non-blocking [`LD-10`](./ld-10-provider-reporting.md) follow-up; its authority and draft PRs do not delay LD-08, and the shared Buffer-draft workflow remains unaffected. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -43,9 +43,10 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-08 — Launch polish** | not started, and last. Responsive review, accessibility, SEO, metadata, analytics, performance, error states, final copy and visual review, production readiness |
+| **LD-08 — Launch polish** | in implementation, and last. #213 and #214 are merged; #215–#220 are open and stacked. Application/configuration PRs are prepared through the open, remediated M1/O1 companions; E1/F1/F2 follow their merge and verification order. |
+| **LD-10 — Provider reporting** | **deferred post-launch, non-blocking.** [`ld-10-provider-reporting.md`](./ld-10-provider-reporting.md) owns the external authority, aggregate-report, private-binding, Orange lifecycle and recovery work. Its Meeme #9, private inventory #49 and Orange #98 drafts are evidence only and require re-review/rebase on repaired, merged M1/O1 before use. |
 
-**Nothing else is open.** On 2026-09-10 the operator closed every remaining
+**No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
 
 ## Gates
@@ -95,6 +96,8 @@ What is actually held, as against what the contract expects in §2b.
 | SMTP credentials, host, port, servername, egress CIDR | yes | mail verified sending from both environments |
 | Printful account, store token, four products | yes | eight scopes, verified by read-back; artwork fetched from this repository at a pinned commit |
 | **Printful billing information** | **no** | Required before publication. The LD-06 test order reached Printful with only its shirt, then failed at billing. An LD-08 item |
+| Google Analytics Data API authority | **no** | LD-10 needs a dedicated read-only principal, the numeric GA4 property ID and a property Viewer grant for aggregate reports. **Non-blocking:** the deferred post-launch initiative waits on it; LD-08 does not |
+| Meta owned-asset read authority | **no** | LD-10 needs a valid authorized Page and linked professional Instagram asset token with verified read scopes; the Facebook App ID/secret is not data access authority. **Non-blocking**, like the row above |
 | Printful webhook and its secret | yes | verified end to end — correctly signed 200, wrongly signed 401 |
 | Merch buyable end to end | yes, 2026-09-10 | the operator completed a checkout |
 | Union OSS registration, and the `EX` filing | yes / filed 2026-09-09 | the `EX` number follows within 35 working days; nothing waits on it |
