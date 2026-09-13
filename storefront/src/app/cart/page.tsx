@@ -15,6 +15,7 @@
  * the day anything is discounted.
  */
 
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { connection } from "next/server";
 
@@ -50,6 +51,10 @@ import { formatMoney } from "../../lib/money";
 import { getCart } from "../../lib/store-cart";
 import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-session";
 import { surchargeLabel, surchargeValue } from "../../lib/surcharge";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 /**
  * What one line reads as: the quantity and the unit price, never their
@@ -128,6 +133,7 @@ export default async function CartPage({
           <p className="notice">{STORE_CLOSED_NOTICE}</p>
           <Button variant="secondary" href="/">{RETURN_LABEL}</Button>
         </DocumentFrame>
+        <Baldrick />
       </main>
     );
   }

@@ -131,6 +131,17 @@ export default async function CertificateCard({ params }: CardProps) {
         { name: "IBM Plex Mono", data: regular, style: "normal", weight: 400 },
         { name: "IBM Plex Mono", data: bold, style: "normal", weight: 700 },
       ],
+      // The same instruction `page.tsx` puts in its metadata and
+      // `certificate.pdf/route.ts` puts in a header, for the same reason and
+      // one more. A file-convention image has no metadata to carry it, so like
+      // the Route Handler it says so on the response.
+      //
+      // The extra reason is that the page's own `noindex` does not reach here.
+      // This card is fetched in the context of *whatever page embeds it* --
+      // a forum thread, somebody's timeline -- and those pages are indexable.
+      // An image crawler that finds no directive on this response indexes the
+      // serial, the inscription and the amount at a URL that is now published.
+      headers: { "x-robots-tag": "noindex, nofollow" },
     },
   );
 }

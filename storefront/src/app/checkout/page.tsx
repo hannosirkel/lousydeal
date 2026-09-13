@@ -30,6 +30,7 @@
  * on `StoreRegionCountry`).
  */
 
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { connection } from "next/server";
 
@@ -58,6 +59,10 @@ import { getCheckoutCart } from "../../lib/store-checkout";
 import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-session";
 import { isSurchargeLine, surchargeLabel, surchargeValue } from "../../lib/surcharge";
 import { PaymentForm } from "./PaymentForm";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 function lineLabel(title: string, variantTitle: string | null): string {
   const detail = variantTitle?.trim() ?? "";

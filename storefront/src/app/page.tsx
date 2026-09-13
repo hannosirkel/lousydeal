@@ -17,6 +17,7 @@
  * is no second copy of a price to drift.
  */
 
+import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { Baldrick } from "../components/baldrick/Baldrick";
@@ -44,6 +45,10 @@ import { formatMoney } from "../lib/money";
 import { getDealTotals } from "../lib/store-deal";
 import { requireStoreClientConfig } from "../lib/store-session";
 import { cheapest, NO_VALUE, tierRowData } from "../lib/tier-rows";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default async function HomePage() {
   await connection();

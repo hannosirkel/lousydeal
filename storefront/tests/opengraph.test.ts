@@ -172,10 +172,11 @@ describe("the metadata that points at it", () => {
     expect(route).toMatch(/from "next\/server"/);
   });
 
-  it("defaults the scheme to https and omits the base when the host is unknown", () => {
-    const layout = text("../src/app/layout.tsx");
-    expect(layout).toContain('x-forwarded-proto');
-    expect(layout).toMatch(/\?\?\s*"https"/);
-    expect(layout).toMatch(/host === null \? \{\} :/);
+  it("defaults the scheme to https and omits the base when the host is unknown", async () => {
+    const { requestOrigin } = await import("../src/lib/request-origin");
+    expect(requestOrigin(new Headers({ host: "shop.example" }))?.href).toBe("https://shop.example/");
+    expect(requestOrigin(new Headers({ host: "shop.example", "x-forwarded-proto": "javascript" }))?.href)
+      .toBe("https://shop.example/");
+    expect(requestOrigin(new Headers())).toBeNull();
   });
 });

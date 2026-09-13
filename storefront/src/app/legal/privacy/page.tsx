@@ -6,11 +6,17 @@
  * request rather than baked into the image.
  */
 
+import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { LegalDocument } from "../../../components/document/LegalDocument";
 import { getRuntimeConfig } from "../../../config/runtime-config";
 import { PRIVACY } from "../../../content/legal/privacy";
+
+export const metadata: Metadata = {
+  title: PRIVACY.title,
+  alternates: { canonical: "/legal/privacy" },
+};
 
 export default async function PrivacyPage() {
   await connection();

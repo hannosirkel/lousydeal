@@ -13,6 +13,7 @@
  * `src/lib/cart-actions.ts`, which this page and the home page share.
  */
 
+import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { Baldrick } from "../../../components/baldrick/Baldrick";
@@ -27,6 +28,15 @@ import { createStoreFetchJson, listTiers } from "../../../lib/medusa-client";
 import { formatMoney } from "../../../lib/money";
 import { requireStoreClientConfig } from "../../../lib/store-session";
 import { NO_VALUE, requireTier, tierPath, upgrades } from "../../../lib/tier-rows";
+
+export async function generateMetadata({
+  params,
+}: {
+  readonly params: Promise<{ readonly handle: string }>;
+}): Promise<Metadata> {
+  const { handle } = await params;
+  return { alternates: { canonical: tierPath(handle) } };
+}
 
 export default async function DealPage({ params }: { readonly params: Promise<{ readonly handle: string }> }) {
   await connection();

@@ -6,11 +6,17 @@
  * rendered request rather than baked into the image.
  */
 
+import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { LegalDocument } from "../../../components/document/LegalDocument";
 import { getRuntimeConfig } from "../../../config/runtime-config";
 import { IMPRINT } from "../../../content/legal/imprint";
+
+export const metadata: Metadata = {
+  title: IMPRINT.title,
+  alternates: { canonical: "/legal/imprint" },
+};
 
 export default async function ImprintPage() {
   await connection();

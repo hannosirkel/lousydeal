@@ -14,6 +14,7 @@
  * invented.
  */
 
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
@@ -33,6 +34,15 @@ import { addMerchToCart } from "../../../lib/cart-actions";
 import { createStoreFetchJson, listMerch } from "../../../lib/medusa-client";
 import { goodsImagePath, merchRowData } from "../../../lib/merch-rows";
 import { requireStoreClientConfig } from "../../../lib/store-session";
+
+export async function generateMetadata({
+  params,
+}: {
+  readonly params: Promise<{ readonly handle: string }>;
+}): Promise<Metadata> {
+  const { handle } = await params;
+  return { alternates: { canonical: `/goods/${encodeURIComponent(handle)}` } };
+}
 
 export default async function GoodsPage({ params }: { readonly params: Promise<{ readonly handle: string }> }) {
   await connection();
