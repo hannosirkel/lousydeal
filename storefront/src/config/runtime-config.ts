@@ -30,6 +30,12 @@ import { readEnv, type EnvRecord } from "./env";
 import { readStoreOpen } from "../lib/store-availability";
 
 export interface RuntimeConfig {
+  readonly site: {
+    /** Server-only canonical origin used to collapse the configured www alias. */
+    readonly baseUrl: string | null;
+    /** Normalized hostname from baseUrl; never derived from a request header. */
+    readonly canonicalHost: string | null;
+  };
   readonly medusa: {
     /**
      * Server-side only. T9 answered the question this comment used to pose:
@@ -76,8 +82,35 @@ export interface RuntimeConfig {
   };
 }
 
+const HOSTNAME = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+
+function siteConfig(env: EnvRecord): RuntimeConfig["site"] {
+  const configured = readEnv("SITE_BASE_URL", env);
+  if (configured === undefined) return { baseUrl: null, canonicalHost: null };
+
+  let url: URL;
+  try {
+    url = new URL(configured);
+  } catch {
+    return { baseUrl: null, canonicalHost: null };
+  }
+  if (
+    !["http:", "https:"].includes(url.protocol)
+    || url.username !== ""
+    || url.password !== ""
+    || url.pathname !== "/"
+    || url.search !== ""
+    || url.hash !== ""
+    || !HOSTNAME.test(url.hostname)
+  ) {
+    return { baseUrl: null, canonicalHost: null };
+  }
+  return { baseUrl: url.origin, canonicalHost: url.hostname.toLowerCase() };
+}
+
 export function getRuntimeConfig(env: EnvRecord = process.env): RuntimeConfig {
   return {
+    site: siteConfig(env),
     medusa: {
       backendUrl: readEnv("MEDUSA_BACKEND_URL", env) ?? null,
       publishableKey: readEnv("MEDUSA_PUBLISHABLE_API_KEY", env) ?? null,

@@ -27,6 +27,7 @@ describe("getRuntimeConfig", () => {
       MEDUSA_BACKEND_URL: "http://backend.example:9000",
       MEDUSA_PUBLISHABLE_API_KEY: "pk_medusa_example",
       STRIPE_PUBLISHABLE_KEY: "pk_test_example",
+      SITE_BASE_URL: "https://canonical.example.test:8443",
       MERCHANT_LEGAL_NAME: "Example Trader OÜ",
       MERCHANT_ADDRESS: "Example tn 1, 10000 Tallinn, Estonia",
       MERCHANT_EMAIL: "trader@example.test",
@@ -36,6 +37,7 @@ describe("getRuntimeConfig", () => {
     });
 
     expect(config).toEqual({
+      site: { baseUrl: "https://canonical.example.test:8443", canonicalHost: "canonical.example.test" },
       medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
       stripe: { publishableKey: "pk_test_example" },
       store: { open: false },
@@ -54,6 +56,7 @@ describe("getRuntimeConfig", () => {
 
   it("has null values, never a fabricated default, when the record is empty", () => {
     expect(getRuntimeConfig({})).toEqual({
+      site: { baseUrl: null, canonicalHost: null },
       medusa: { backendUrl: null, publishableKey: null },
       stripe: { publishableKey: null },
       store: { open: false },
@@ -73,6 +76,17 @@ describe("getRuntimeConfig", () => {
     expect(getRuntimeConfig({ STORE_OPEN: "true" }).store.open).toBe(true);
     expect(getRuntimeConfig({ STORE_OPEN: "TRUE" }).store.open).toBe(false);
   });
+
+  it.each([
+    "ftp://canonical.example.test",
+    "https://user:pass@canonical.example.test",
+    "https://canonical.example.test/path",
+    "https://canonical.example.test?query=1",
+    "https://canonical.example.test#fragment",
+    "not a URL",
+  ])("does not claim a canonical host from malformed SITE_BASE_URL %s", (value) => {
+    expect(getRuntimeConfig({ SITE_BASE_URL: value }).site).toEqual({ baseUrl: null, canonicalHost: null });
+  });
 });
 
 /**
@@ -86,6 +100,7 @@ describe("getRuntimeConfig", () => {
  */
 describe("only a named, pinned subset of the runtime config is published to the browser", () => {
   const config: RuntimeConfig = {
+    site: { baseUrl: "https://canonical.example.test", canonicalHost: "canonical.example.test" },
     medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
     stripe: { publishableKey: "pk_test_example" },
     store: { open: false },
@@ -132,6 +147,12 @@ describe("only a named, pinned subset of the runtime config is published to the 
     }
     expect("merchant" in toClientRuntimeConfig(config)).toBe(false);
   });
+
+  it("does not publish the server-only canonical origin", () => {
+    const serialized = JSON.stringify(toClientRuntimeConfig(config));
+    expect(serialized).not.toContain("canonical.example.test");
+    expect("site" in toClientRuntimeConfig(config)).toBe(false);
+  });
 });
 
 /**
@@ -149,6 +170,7 @@ describe("serializeRuntimeConfig", () => {
     // actually publishes.
     const closingTag = `</${"script"}>`;
     const withClosingTag: RuntimeConfig = {
+      site: { baseUrl: null, canonicalHost: null },
       medusa: { backendUrl: null, publishableKey: null },
       stripe: { publishableKey: `${closingTag}<script>alert(1)</script>` },
       store: { open: false },
@@ -162,6 +184,7 @@ describe("serializeRuntimeConfig", () => {
 
   it("round-trips through JSON.parse unchanged", () => {
     const value: RuntimeConfig = {
+      site: { baseUrl: null, canonicalHost: null },
       medusa: { backendUrl: "http://backend.example:9000", publishableKey: "pk_medusa_example" },
       stripe: { publishableKey: "pk_test_example" },
       store: { open: true },

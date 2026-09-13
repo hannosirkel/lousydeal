@@ -73,6 +73,7 @@ describe("no NEXT_PUBLIC_ anywhere in the storefront's own source", () => {
   it("scans every file this guard exists to cover", () => {
     expect(relativePaths).toContain("src/config/env.ts");
     expect(relativePaths).toContain("src/config/runtime-config.ts");
+    expect(relativePaths).toContain("src/proxy.ts");
     expect(relativePaths).toContain("src/app/layout.tsx");
     expect(relativePaths).toContain("next.config.ts");
     expect(relativePaths).toContain("src/app/page.tsx");
