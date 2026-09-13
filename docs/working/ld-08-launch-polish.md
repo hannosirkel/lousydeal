@@ -507,11 +507,14 @@ documentation only where runtime behavior changed.
       open.
 - [ ] Verify public counters contain no test order and no fabricated number.
 - [ ] Record exact dated evidence, remaining operator gates and rollback
-      digest. Mark LD-08 complete only when code/configuration/integration are
-      complete; distinguish Printful billing from Stripe runtime/key/webhook
-      evidence, and leave opening payments blocked on the missing Stripe
-      activation evidence, manual Printful billing and the later explicit
-      `STORE_OPEN=true` change.
+      digest. Mark LD-08 complete only after all eleven criteria are met,
+      including criterion 7's separate Printful and live Stripe runtime/key and
+      webhook safe-metadata evidence. If that Stripe evidence is missing,
+      record any approved closed public publication separately with
+      `STORE_OPEN=false` and leave LD-08 open. Manual Printful billing,
+      operator Stripe account acceptance and the later explicit
+      `STORE_OPEN=true` change are distinct operator gates, not substitutes
+      for criterion 7 evidence.
 
 ## Dependency order
 
