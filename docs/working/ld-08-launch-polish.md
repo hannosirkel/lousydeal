@@ -434,21 +434,21 @@ E1 covers the consent-gated Google Analytics tag and Meta Pixel, not automated
 provider reporting. It records distinct Printful and Stripe evidence; neither
 vendor's evidence is substituted for the other's.
 
-- [ ] Verify the supplied key files by name, owner, mode and parseable shape
+- [x] Verify the supplied key files by name, owner, mode and parseable shape
       without printing values; seed only named sources through the reviewed
       Orange lifecycle.
-- [ ] Read back sanitized OpenBao metadata and n8n credential IDs; deploy and
+- [x] Read back sanitized OpenBao metadata and n8n credential IDs; deploy and
       activate M1's reviewed workflow.
-- [ ] Query Buffer for connected channels and prove the three operator-approved
+- [x] Query Buffer for connected channels and prove the three operator-approved
       launch profiles — TikTok, Instagram and X — are allow-listed; create one
       non-publishing draft and remove it after verification. Keep the reviewed
       six-network implementation intact, defer Facebook, LinkedIn and YouTube
       Buffer connections and runtime verification to LD-10, and record Reddit
       as manual publication.
-- [ ] Configure/read back the supplied Google Analytics tag and Meta Pixel IDs
+- [x] Configure/read back the supplied Google Analytics tag and Meta Pixel IDs
       in live runtime state. F2 performs browser request verification after
       public exposure.
-- [ ] Seed and verify the live Printful token/webhook and catalogue first. Run
+- [x] Seed and verify the live Printful token/webhook and catalogue first. Run
       the existing merch seed only after a reviewed lifecycle runner has called
       `syncMerchProducts` for the live store. Verify exactly four handles,
       their SKU joins and pinned artwork, then run the lifecycle again and
@@ -468,20 +468,20 @@ collection except for the explicitly named test purchase and approved
 promotion commands below. Orange owns the only test-opening control:
 `argocd_lousydeal_test_store_open_override`, which defaults to `false`.
 
-- [ ] As each stacked Lousy Deal PR becomes ready, label-promote its open-PR
+- [x] As each stacked Lousy Deal PR becomes ready, label-promote its open-PR
       digest to test for operator verification, retargeting the PR to `main`
       after its predecessor merges and before applying the deployment label.
       After D1, M1 and O1 have landed, use Orange's documented explicit
       test-only override to open test; do not alter live or create a second
       deployment seam.
-- [ ] Complete the existing real-dependency smoke matrix on test: purchase,
+- [x] Complete the existing real-dependency smoke matrix on test: purchase,
       duplicate webhook, certificate, confirmation email, gift, merch,
       surcharge and Printful submission; verify analytics remains absent.
-- [ ] Run Orange's documented normal reconciliation/close command immediately
+- [x] Run Orange's documented normal reconciliation/close command immediately
       after the test matrix. It must remove the explicit test override, return
       test to its default closed state, and retain its Access gate; live remains
       closed throughout.
-- [ ] Merge L4, let the existing release workflow rebuild main and promote its
+- [x] Merge L4, let the existing release workflow rebuild main and promote its
       distinct live digests with `STORE_OPEN=false`. Record both the verified
       test digest and rebuilt live digests, retain Cloudflare Access, and
       verify through the gate that public reads work while commerce writes
