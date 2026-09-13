@@ -9,7 +9,11 @@ The contract is [`fresh-build.md`](./fresh-build.md), especially its security,
 analytics and secret-handling constraints. This slice may begin only after the
 operator has launched and M1/O1's repaired, merged social-draft interface is
 available. It preserves that workflow: Buffer creates drafts only for the six
-supported networks, and Reddit remains manual post/reply drafts.
+supported networks, and Reddit remains manual post/reply drafts. LD-08 launch
+acceptance covers the three profiles already connected — TikTok, Instagram and
+X. Connecting and runtime-verifying Facebook, LinkedIn and YouTube in Buffer is
+a non-launch-blocking carry-forward here; it does not require another workflow
+or credential path.
 
 ## Outcome and boundaries
 
@@ -44,6 +48,21 @@ preflight. Existing draft PRs — Meeme #9, private `orange-inventory` #49 and
 public `orange` #98 — are evidence only. Reuse is allowed solely after
 re-review and rebasing each change on the repaired, merged M1/O1 interface;
 none may be merged or treated as current without that work.
+
+### P0 — Remaining Buffer channel connections
+
+**Repositories changed:** none. **State owner:** Buffer.
+
+- [ ] Connect the existing Lousy Deal Facebook, LinkedIn and YouTube accounts
+      to Buffer without changing M1's reviewed six-network allow-list or giving
+      Meeme a Buffer credential.
+- [ ] Through the existing authenticated draft-only webhook, read back all six
+      allow-listed profiles and verify a removable draft for each newly
+      connected channel. Keep every result as a draft; publishing remains an
+      explicit operator action.
+- [ ] If the Buffer account's plan does not permit six simultaneous channels,
+      record that account limit instead of adding another provider, credential
+      or publishing path. This carry-forward does not reopen LD-08.
 
 ### P1 — Operator authorization and preflight
 
@@ -162,7 +181,8 @@ Analytics, Meta and Meeme.
 
 ## Dependency order and completion
 
-`repaired M1/O1 → P1 → M3 and I3 → O3 → V3`. M3 and I3 may prepare only
+`repaired M1/O1 → P0 and P1 → M3 and I3 → O3 → V3`. P0 and P1 are independent;
+M3 and I3 may prepare only
 fixtures and disabled contracts before P1, but their final interface and
 bindings follow P1's verified facts. O3 is an Orange branch based on repaired
 O1, not a cross-repository Git stack: it consumes M3's reviewed artifact and

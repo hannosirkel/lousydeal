@@ -117,7 +117,7 @@ There are four code owners and one explicit lifecycle:
 | 5 | Desktop and mobile rendered review covers homepage, deal, goods, cart, checkout, legal, certificate, Baldrick and system pages; keyboard, reduced-motion and no-script paths work | L3, F2 |
 | 6 | Production build meets a recorded performance budget with no avoidable third-party work before consent | L3 |
 | 7 | Separate safe-metadata evidence verifies: (a) the live Printful source, webhook and four reconciled products, and (b) the live Stripe runtime source/key and webhook configuration. Printful evidence never proves Stripe readiness. A closed public site may be published before Stripe activation, but this criterion cannot be signed off and payments cannot open until the Stripe evidence exists. | L4, O1, E1 |
-| 8 | Meeme can create Buffer drafts for its six supported networks without receiving Buffer credentials or a publish-capable route; Reddit posts and replies remain manual drafts | M1, O1, E1 |
+| 8 | Meeme can create Buffer drafts for the three launch networks the operator connected — TikTok, Instagram and X — without receiving Buffer credentials or a publish-capable route; the reviewed code retains support for Facebook, LinkedIn and YouTube, whose Buffer connections and runtime verification are deferred to LD-10, and Reddit posts and replies remain manual drafts | M1, O1, E1 |
 | 9 | The closed live site is reachable without Cloudflare Access while test and non-store surfaces retain their existing gates | O1, F2 |
 | 10 | Gate F exercises the closed public site and Orange's explicitly opened, Access-gated test purchase path, then returns test to its normal closed state. It covers webhook, idempotent certificate, email, gift, merch, discount, analytics consent and absence of test data from public statistics. | F1, F2 |
 | 11 | Status records the measured remaining operator prerequisites, including the exact later `STORE_OPEN=true` promotion, without assuming only two remain. | F2 |
@@ -439,9 +439,12 @@ vendor's evidence is substituted for the other's.
       Orange lifecycle.
 - [ ] Read back sanitized OpenBao metadata and n8n credential IDs; deploy and
       activate M1's reviewed workflow.
-- [ ] Query Buffer for connected channels and prove the six supported Lousy
-      Deal profiles are allow-listed; create one non-publishing draft and
-      remove it after verification. Record Reddit as manual publication.
+- [ ] Query Buffer for connected channels and prove the three operator-approved
+      launch profiles — TikTok, Instagram and X — are allow-listed; create one
+      non-publishing draft and remove it after verification. Keep the reviewed
+      six-network implementation intact, defer Facebook, LinkedIn and YouTube
+      Buffer connections and runtime verification to LD-10, and record Reddit
+      as manual publication.
 - [ ] Configure/read back the supplied Google Analytics tag and Meta Pixel IDs
       in live runtime state. F2 performs browser request verification after
       public exposure.
