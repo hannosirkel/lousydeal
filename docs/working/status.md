@@ -43,7 +43,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-08 — Launch polish** | in implementation, and last. #213 and #214 are merged; #215–#220 are open and stacked. Application/configuration PRs are prepared through the open, remediated M1/O1 companions; E1/F1/F2 follow their merge and verification order. |
+| **LD-08 — Launch polish** | implementation is merged and the release hotfix is in review. E1/F1/F2 follow its successful merged-main release and promotion. |
 | **LD-10 — Provider reporting** | **deferred post-launch, non-blocking.** [`ld-10-provider-reporting.md`](./ld-10-provider-reporting.md) owns the external authority, aggregate-report, private-binding, Orange lifecycle and recovery work. Its Meeme #9, private inventory #49 and Orange #98 drafts are evidence only and require re-review/rebase on repaired, merged M1/O1 before use. |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
