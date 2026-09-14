@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-14 |
 | Current slice | **LD-10 — Meeme reporting, social delivery and operating polish is active.** |
-| In flight | The operator approved the expanded [`LD-10`](./ld-10-provider-reporting.md) design: fixed transaction/traffic/conversion and owned-social aggregates, Instagram repair, gated B2 media uploads, test ordering, and the favicon/footer/form-spacing/Stripe-trust polish. This planning PR is the first row; implementation has not started. |
-| Next action | Merge L10-P after validation and Astra review, then open test ordering through I10-A/O10-A while L10-U and the reporting interface begin independently. |
+| In flight | LD-10 execution is under way. I10-A/O10-A opened the Access-gated test shop with Stripe sandbox; L10-U implements the favicon, primary social footer links, local control spacing and Stripe card-form disclosure and is awaiting merge. |
+| Next action | Merge L10-U after final Astra re-review, then begin L10-C, the aggregate-only commerce report interface. |
 | Blocked | Runtime completion needs a dedicated GA Viewer principal and dedicated B2 bucket/key. Their absence does not block the plan, storefront polish, Instagram repair, commerce interface or test opening. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -58,7 +58,7 @@ question at its current state, which is recorded below.
 | C — visual design | passed |
 | D — per-task code review | run per row; every merged row carries its answers in its slice plan |
 | E — rendered UI review | passed for LD-02 through LD-06 |
-| F — integration review | **passed.** Gate F order #7 proved the $44.47 certificate, merch, surcharge, gift, Stripe test authorization and analytics-absent test flow. Its two original failed mail rows were recovered with provider identifiers present. After rotating the exposed test Stripe pair, two sequential replays of the exact original signed event left the certificate, Printful submission, notifications, capture and order transaction unchanged. Test remains closed and Access-gated. |
+| F — integration review | **passed.** Gate F order #7 proved the $44.47 certificate, merch, surcharge, gift, Stripe test authorization and analytics-absent test flow. Its two original failed mail rows were recovered with provider identifiers present. After rotating the exposed test Stripe pair, two sequential replays of the exact original signed event left the certificate, Printful submission, notifications, capture and order transaction unchanged. Test is open for sandbox ordering and remains Access-gated. |
 
 ## What the operator closed on 2026-09-10
 
@@ -111,7 +111,12 @@ What is actually held, as against what the contract expects in §2b.
 ## Deployment
 
 The live storefront is public and runs with `STORE_OPEN=true`; the test
-storefront remains closed and Access-gated. Release `34788653897` built source
+storefront also runs with `STORE_OPEN=true`, uses Stripe sandbox and remains
+Access-gated. The 2026-09-14 reconciliation left both applications
+Synced/Healthy and rolled all six workloads ready. A bounded internal smoke
+created an uncompleted test cart/payment session and proved cart, checkout and
+Stripe readiness without confirming payment or completing an order. Release
+`34788653897` built source
 revision `827ed15` and promoted backend
 `sha256:228fca784da04e4382ef5c5c5dc2f5125a3773cb7278a9c7c5871d396bd2fda7`
 and storefront

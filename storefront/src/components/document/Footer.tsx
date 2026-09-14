@@ -49,6 +49,47 @@ export function Footer({ merchant }: { readonly merchant: MerchantIdentity }) {
     <footer className="footer">
       <hr />
 
+      <nav className="footer-column footer-social" aria-labelledby="footer-social">
+        <h2 id="footer-social" className="footer-heading">
+          Social
+        </h2>
+        <ul role="list">
+          <li>
+            <a
+              href="https://www.tiktok.com/@lousydeal"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="TikTok"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 3v10.2a3.2 3.2 0 1 1-2.2-3V7.1A6.2 6.2 0 1 0 17 13.2V8.6A7.3 7.3 0 0 0 21 10V7a4.3 4.3 0 0 1-4-4Z" />
+              </svg>
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://www.instagram.com/lousydealcom"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.5" cy="6.5" r="1" className="social-dot" />
+              </svg>
+            </a>
+          </li>
+          <li>
+            <a href="https://x.com/lousydealcom" target="_blank" rel="noopener noreferrer" aria-label="X">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 3h4.8l4 5.4L17.5 3H20l-6 6.9L20.5 21h-4.8l-4.7-6.3L5.6 21H3l6.8-7.8Z" />
+              </svg>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
       <div className="footer-columns">
         {/* Each column is a nav with its own accessible name, so a screen
             reader hears "Legal" rather than a fourth unlabelled list. */}
@@ -73,6 +114,7 @@ export function Footer({ merchant }: { readonly merchant: MerchantIdentity }) {
             <Contact merchant={merchant} />
           </p>
         </section>
+
       </div>
 
       <p className="fine-print">

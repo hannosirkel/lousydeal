@@ -85,6 +85,10 @@ const ANALYTICS_VENDOR_FILES = new Set(["app/analytics/frame/route.ts", "lib/ana
 const ANALYTICS_VENDOR_URL = /^https?:\/\/(?:www\.googletagmanager\.com|connect\.facebook\.net|www\.facebook\.com)(?:[:/]|$)/;
 const ANALYTICS_VENDOR_HOST = /\b(?:www\.googletagmanager\.com|connect\.facebook\.net|www\.facebook\.com|(?:\*\.)?(?:google-analytics\.com|analytics\.google\.com))\b/g;
 
+/** Social destinations are inert links, and only the footer may name them. */
+const SOCIAL_LINK_FILE = "components/document/Footer.tsx";
+const SOCIAL_LINK_HOST = /^https:\/\/(?:www\.tiktok\.com|www\.instagram\.com)$/;
+
 const privacyProse = PRIVACY.sections.flatMap((section) => section.body).join("\n");
 
 type Source = { readonly file: string; readonly text: string };
@@ -93,7 +97,11 @@ function offendingExternalHosts(input: readonly Source[]): string[] {
   return input.flatMap(({ file, text }) =>
     [...withoutComments(text).matchAll(/https?:\/\/[a-zA-Z0-9.-]+/g)]
       .map((match) => match[0])
-      .filter((url) => !PERMITTED.test(url) && !(ANALYTICS_VENDOR_FILES.has(file) && ANALYTICS_VENDOR_URL.test(url)))
+      .filter((url) =>
+        !PERMITTED.test(url)
+        && !(ANALYTICS_VENDOR_FILES.has(file) && ANALYTICS_VENDOR_URL.test(url))
+        && !(file === SOCIAL_LINK_FILE && SOCIAL_LINK_HOST.test(url))
+      )
       .map((url) => `${file}: ${url}`),
   );
 }
@@ -149,6 +157,24 @@ describe("what the pages load", () => {
     expect(offendingExternalHosts(injected)).toEqual([
       "components/Tracker.tsx: https://www.googletagmanager.com",
       "components/Tracker.tsx: https://connect.facebook.net",
+    ]);
+  });
+
+  it("reports a social host anywhere outside the footer", () => {
+    const injected: readonly Source[] = [
+      {
+        file: "components/Tracker.tsx",
+        text: "const image = new Image(); image.src = 'https://www.tiktok.com/pixel';",
+      },
+      {
+        file: "app/page.tsx",
+        text: "const script = document.createElement('script'); script.src = 'https://www.instagram.com/embed.js';",
+      },
+    ];
+
+    expect(offendingExternalHosts(injected)).toEqual([
+      "components/Tracker.tsx: https://www.tiktok.com",
+      "app/page.tsx: https://www.instagram.com",
     ]);
   });
 

@@ -79,6 +79,7 @@ import {
   PAYING_LABEL,
   PAYMENT_NEEDS_SCRIPTING,
   PREPARING_PAYMENT_LABEL,
+  STRIPE_PAYMENT_NOTICE,
 } from "../../content/checkout";
 import { NO_INSCRIPTION } from "../../content/certificate";
 import { paySubmitBlocked, payDisabled, paymentSessionNeeded } from "../../lib/checkout-rules";
@@ -1063,6 +1064,9 @@ export function PayButton({
         </p>
       ) : null}
 
+      <FinePrint>
+        <span>{STRIPE_PAYMENT_NOTICE}</span>
+      </FinePrint>
       {cardSlot}
       {error !== null && (
         <p className="payment-error" role="alert">

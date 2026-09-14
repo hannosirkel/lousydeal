@@ -230,9 +230,11 @@ export default async function CartPage({
           <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currency_code)} />
         </Ledger>
         {notice === undefined ? null : <p className="notice payment-error">{notice}</p>}
-        <CodeForm action={applyCode} />
-        {/* The only route to `/checkout` a shopper reaches by clicking. */}
-        <Button href="/checkout">{CHECKOUT_LABEL}</Button>
+        <div className="cart-code-controls">
+          <CodeForm action={applyCode} />
+          {/* The only route to `/checkout` a shopper reaches by clicking. */}
+          <Button href="/checkout">{CHECKOUT_LABEL}</Button>
+        </div>
         {merch.length === 0 ? null : (
           <>
             <Rule />

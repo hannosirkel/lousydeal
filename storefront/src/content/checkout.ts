@@ -92,6 +92,10 @@ export const CART_LINK_LABEL = "Return to the order summary";
 export const CHECKOUT_LABEL = "Proceed to payment";
 export const STORE_CLOSED_NOTICE = "Ordering is currently closed.";
 
+/** The card field is Stripe's, not a field Lousy Deal handles. */
+export const STRIPE_PAYMENT_NOTICE =
+  "Stripe provides the card form. Lousy Deal does not receive or store your full card number.";
+
 /** The address the order confirmation is sent to. C3b. */
 export const EMAIL_LABEL = "Email address";
 
