@@ -7,11 +7,11 @@ does not — it points, it does not hold.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-13 |
-| Current slice | **LD-08 — Launch polish is complete.** The live store is public, open and using the verified live payment configuration. |
-| In flight | No LD-08 implementation or launch gate remains. On 2026-09-13 the operator confirmed Printful billing, supplied and activated Stripe live credentials, merged the public-exposure and runtime changes, refreshed OIDC, and authorized opening. Live was reconciled with `STORE_OPEN=true`; test remains closed and Access-gated. Public HTTP, consent, responsive checkout and live Payment Element verification passed after the opening deployment. |
-| Next action | Monitor the first genuine live order through payment, certificate, mail and Printful fulfillment as an operational check. Start [`LD-10`](./ld-10-provider-reporting.md) only when the operator chooses; it is not V1 or launch work. |
-| Blocked | Nothing blocks V1 or the live shop. Provider reporting and the remaining three Buffer connections are deferred, non-blocking LD-10 work. |
+| Updated | 2026-09-14 |
+| Current slice | **LD-10 — Meeme reporting, social delivery and operating polish is active.** |
+| In flight | The operator approved the expanded [`LD-10`](./ld-10-provider-reporting.md) design: fixed transaction/traffic/conversion and owned-social aggregates, Instagram repair, gated B2 media uploads, test ordering, and the favicon/footer/form-spacing/Stripe-trust polish. This planning PR is the first row; implementation has not started. |
+| Next action | Merge L10-P after validation and Astra review, then open test ordering through I10-A/O10-A while L10-U and the reporting interface begin independently. |
+| Blocked | Runtime completion needs a dedicated GA Viewer principal and dedicated B2 bucket/key. Their absence does not block the plan, storefront polish, Instagram repair, commerce interface or test opening. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -44,7 +44,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-10 — Provider reporting** | **deferred post-launch, non-blocking.** [`ld-10-provider-reporting.md`](./ld-10-provider-reporting.md) owns the external authority, aggregate-report, private-binding, Orange lifecycle and recovery work. Its Meeme #9, private inventory #49 and Orange #98 drafts are evidence only and require re-review/rebase on repaired, merged M1/O1 before use. |
+| **LD-10 — Meeme reporting, social delivery and operating polish** | **active.** [`ld-10-provider-reporting.md`](./ld-10-provider-reporting.md) owns the approved cross-system execution contract. Its old Meeme #9, private inventory #49 and Orange #98 drafts are evidence only and require fresh review before any reuse. |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.

@@ -1,202 +1,469 @@
-# LD-10 — Provider reporting
+# LD-10 — Meeme reporting, social delivery and operating polish
 
-Add a strictly read-only, aggregate Google Analytics and Meta reporting path
-after launch. This is deferred work: it neither blocks LD-08 nor changes the
-consent-gated Google Analytics and Meta Pixel collection already delivered for
-the storefront.
+> **For agentic workers:** REQUIRED SUB-SKILL: use
+> `superpowers:subagent-driven-development` or `superpowers:executing-plans`
+> task by task. Every behaviour change follows red-green-refactor. Each task
+> closes with one pull request in one repository.
 
-The contract is [`fresh-build.md`](./fresh-build.md), especially its security,
-analytics and secret-handling constraints. This slice may begin only after the
-operator has launched and M1/O1's repaired, merged social-draft interface is
-available. It preserves that workflow: Buffer creates drafts only for the six
-supported networks, and Reddit remains manual post/reply drafts. LD-08 launch
-acceptance covers the three profiles already connected — TikTok, Instagram and
-X. Connecting and runtime-verifying Facebook, LinkedIn and YouTube in Buffer is
-a non-launch-blocking carry-forward here; it does not require another workflow
-or credential path.
+**Goal:** Give Meeme gated access to truthful transaction, traffic, conversion
+and owned-social aggregates; repair Instagram drafts; give campaign media a
+durable upload path; open test ordering; and close the small storefront trust
+and spacing gaps reported after launch.
 
-## Outcome and boundaries
+**Architecture:** Meeme continues to call one authenticated, TLS-pinned n8n
+workflow and never receives Buffer, Google Analytics, Medusa, database or
+storage credentials. n8n exposes only fixed actions. Actual commerce totals
+come from a narrow aggregate-only backend route, consented traffic and funnel
+events come from GA4, and owned-post metrics come from Buffer's existing
+personal API rather than a second Meta credential. Campaign media lives in a
+dedicated public Backblaze B2 bucket; Meeme sends one bounded file through a
+second authenticated webhook trigger and credential-aware n8n HTTP nodes upload
+it through B2's native API. Buffer receives only the stable public object URL.
 
-Meeme may request three fixed summaries through its existing authenticated,
-TLS-pinned webhook. It never receives a provider, Buffer or n8n administration
-credential, and no route can publish, schedule, reply, moderate or send a
-message.
+**Tech stack:** TypeScript, Next.js App Router, Medusa v2, JavaScript, n8n
+workflow JSON, Ansible, OpenBao, Backblaze B2 S3-compatible API, GA Data API,
+Buffer GraphQL API and Kubernetes/Argo CD.
 
-| Action | Fixed result |
-| --- | --- |
-| `analytics-summary` | The preceding seven completed days in the bound GA4 property timezone: aggregate `activeUsers`, `sessions`, `eventCount`, and `eventCount` by the eleven fixed funnel events, at most eleven rows. |
-| `social-insights` | One bound Facebook or Instagram owned asset, the preceding seven completed days and at most two pre-authorized aggregate metrics. |
-| `comment-summary` | At most ten bound owned posts/media: the shop's own permalink, publication timestamp and aggregate comment count. |
+**Spec:** This document is the approved specification and execution plan. It
+extends [`fresh-build.md`](./fresh-build.md) without reopening LD-08.
 
-The webhook accepts no account/property/asset IDs, paths, fields, metrics, date
-ranges, cursors, credentials, methods or free-form query values. The
-implementation pins hosts, methods, paths, timeouts and response sizes; refuses
-redirects and pagination loops; retains no n8n execution data; and returns
-either a populated success containing only the fixed allow-listed aggregate
-schema and safe owned-post metadata in the table, or a distinct sanitized
-`unavailable`, `incomplete` or `empty` state. It never returns raw provider
-errors.
+## Global constraints
 
-It must never read, request or return commenter identity, text or IDs; replies;
-direct messages; arbitrary posts; individual comments; or any personal data.
-No provider write, moderation or messaging permission belongs in this slice.
+- Repositories hold no credential values or rendered secrets. Ignored Orange
+  sources and OpenBao remain the only secret path.
+- Meeme receives only the existing n8n webhook credential and public response
+  data. It receives no provider, storage, database or n8n administration key.
+- Reporting accepts no caller-selected account, property, metric, date range,
+  query, path, cursor or identifier.
+- All summaries cover the preceding seven completed days in the bound property
+  timezone, unless the response explicitly identifies a current partial day.
+- Transaction results contain aggregates only: no customer, email, address,
+  inscription, order/cart/payment identifier or card metadata.
+- GA figures are consented analytics and may differ from actual commerce.
+  `commerce-summary` is authoritative for paid orders and money.
+- Buffer remains draft-only. No implementation may publish, schedule, reply,
+  moderate or send a direct message.
+- Provider errors are classified into a small fixed vocabulary and raw messages
+  remain operator-private. Workflow execution payload retention stays off.
+- Media delivery URLs are stable, public and HTTPS. B2 authorization and
+  temporary upload tokens never leave n8n.
+- Test remains Cloudflare Access-gated, uses Stripe sandbox credentials and may
+  accept orders. The known Printful test-store billing limitation is separate.
+- The footer exposes the previously approved primary channels only: TikTok,
+  Instagram and X. All links have accessible names and safe external-link
+  behaviour.
+- The payment disclosure says that Stripe supplies the card form and that the
+  merchant does not receive or store the buyer's full card number. It does not
+  imply that Stripe is the merchant or that the merchant receives no payment
+  metadata at all.
+- Pull-request size bounds are guidance. Any required override names the
+  operator's standing approval and explains why splitting would weaken review.
+- Run the owning repository's complete validation and `habit-hooks` before
+  review. Public/public-ready changes receive Astra review before merge.
 
-## Tasks
+## Fixed interfaces
 
-Each task is one reviewable pull request or one explicitly operator-owned
-preflight. Existing draft PRs — Meeme #9, private `orange-inventory` #49 and
-public `orange` #98 — are evidence only. Reuse is allowed solely after
-re-review and rebasing each change on the repaired, merged M1/O1 interface;
-none may be merged or treated as current without that work.
+The existing social webhook adds the three report actions without changing its
+authentication boundary. The media action uses a second multipart webhook
+trigger with the same authentication and TLS boundary:
 
-### P0 — Remaining Buffer channel connections
+| Action | Request | Fixed response |
+| --- | --- | --- |
+| `commerce-summary` | `{ "action": "commerce-summary" }` | Currency-separated daily paid-order count, gross, refunded, net, certificate count and merch units; at most seven rows. |
+| `analytics-summary` | `{ "action": "analytics-summary" }` | Daily `activeUsers`, `sessions` and the existing fixed funnel-event counts; at most seven rows plus the fixed event summary. |
+| `social-summary` | `{ "action": "social-summary", "channel": "instagram" }` | One exact owned channel, fixed seven-day Buffer aggregate metrics and freshness. The channel is one of the existing fixed aliases, not an arbitrary ID. |
+| `media-upload` | Authenticated multipart request containing one `media` file and its normalized name | One stable public URL under the bound bucket/prefix. The file is JPEG, PNG or MP4 and no larger than 8 MiB. |
 
-**Repositories changed:** none. **State owner:** Buffer.
+Every report response is one of `available`, `empty`, `incomplete` or
+`unavailable`. Zero is distinct from unavailable. The media action is one of
+`stored` or a fixed refusal code. No response includes a remote credential,
+provider request, raw error, private identifier or n8n execution ID.
 
-- [ ] Connect the existing Lousy Deal Facebook, LinkedIn and YouTube accounts
-      to Buffer without changing M1's reviewed six-network allow-list or giving
-      Meeme a Buffer credential.
-- [ ] Through the existing authenticated draft-only webhook, read back all six
-      allow-listed profiles and verify a removable draft for each newly
-      connected channel. Keep every result as a draft; publishing remains an
-      explicit operator action.
-- [ ] If the Buffer account's plan does not permit six simultaneous channels,
-      record that account limit instead of adding another provider, credential
-      or publishing path. This carry-forward does not reopen LD-08.
+## Work items
 
-### P1 — Operator authorization and preflight
+### L10-P — Approve and publish this execution contract
 
-**Repositories changed:** none. **State owners:** Google Analytics and Meta.
+**Repository:** `lousydeal`
 
-- [ ] Create a dedicated Google service account, enable the GA Data API and
-      grant it Viewer only on the intended GA4 property. Use only the
-      `analytics.readonly` scope, no delegation or impersonation. Place its
-      standard JSON key only in an approved ignored Orange source; record the
-      numeric property ID privately.
-- [ ] Obtain a separate Meta read token from an operator controlling the bound
-      owned Facebook Page and linked professional Instagram asset. Verify the
-      asset binding, approved Graph version, least scopes/tasks/granular
-      targets, validity/expiry and one-or-two useful aggregate metrics per
-      channel. An app ID or secret alone is not read authority.
-- [ ] Use current official provider documentation and sanitized, fixed probes
-      to verify the GA seven-day report and bounded Meta owned-post/media
-      response shapes. Do not print credentials, identifiers or report data,
-      and request no write, moderation, individual-comment or messaging scope.
-- [ ] If either authorization is incomplete, record the external prerequisite,
-      leave every provider flag disabled and keep the Buffer-draft workflow
-      unchanged. This is a deferred-slice pause, never a launch blocker.
+**Files:**
 
-### M3 — Fixed aggregate report workflow
+- Modify: `docs/working/ld-10-provider-reporting.md`
+- Modify: `docs/working/status.md`
 
-**Repository:** `meeme`, stacked on repaired M1.
+- [ ] Replace the deferred three-provider sketch with this approved design and
+      set LD-10 as the active slice.
+- [ ] Run `bash scripts/validate` and `habit-hooks`.
+- [ ] Obtain Astra review, open the PR, and merge it before implementation rows.
 
-**Files:** the social-drafts helper/skill, workflow generator/logic/export and
-tests, `TOOLS.md`, and the operating-model documentation as required.
+### I10-A — Open test ordering with Stripe sandbox
 
-- [ ] Re-review and rebase draft PR #9 on repaired M1 before retaining any
-      useful implementation. Add the three fixed actions and only the action
-      inputs/results described above; no live property or asset identifier is
-      committed into the generic artifact.
-- [ ] Preserve M1's existing Buffer discovery/create-draft/status actions and
-      make them fully usable when reports are disabled or unavailable. Dispatch
-      reporting reads before Buffer discovery without adding a publishing
-      capability.
-- [ ] Add behavioral fixtures, generated-artifact parity checks and negative
-      tests rejecting arbitrary identifiers, paths, fields, metrics, date
-      ranges, cursors, credentials, free-form data, provider errors and every
-      write request. Cover populated safe success and each distinct
-      unavailable/incomplete/empty result without inventing a live provider
-      schema before P1.
-- [ ] Run Meeme's full validation and `habit-hooks`, then obtain review.
+**Repository:** private `orange-inventory`
 
-### I3 — Private bindings and disabled defaults
+**Files:** the existing Lousy Deal test runtime binding, focused inventory
+validation and private operating status only.
 
-**Repository:** private `orange-inventory`, stacked on repaired O1 inventory.
+**Interface produced:** test renders `STORE_OPEN=true`; live is unchanged.
 
-**Files:** the Lousy Deal source registry/provider settings, focused validation
-and the private operating record.
+- [ ] Write or extend the focused inventory test so it fails while test renders
+      `STORE_OPEN=false` and proves the Stripe test source remains selected.
+- [ ] Change only the durable test `store_open` binding to `true`; do not use
+      the temporary Gate-F override and do not alter Access policy.
+- [ ] Run the inventory gate in both its own and Orange contexts, then
+      `habit-hooks`.
+- [ ] Obtain Astra review and merge inventory before reconciliation.
 
-- [ ] Re-review and rebase draft PR #49 on repaired O1 before retaining any
-      useful implementation. Declare only approved ignored source filenames,
-      the numeric GA property ID and the bound Facebook Page/linked Instagram
-      identifiers; never fabricate placeholders or reuse an unrelated
-      principal.
-- [ ] Store the preflight's Graph version and metric allow-list in the private
-      binding. Both provider-enable flags default to disabled and remain so
-      until P1 authorization and exact bindings are verified.
-- [ ] Validate the inventory in both the existing Orange context and O3's
-      context. Inventory lands before O3 and is reviewed without exposing a
-      credential or private identifier in a public repository.
+### O10-A — Reconcile and verify the open test store
 
-### O3 — Credential custody and bound workflow import
+**Repository changes:** none. **State owners:** Orange, Argo CD and test.
 
-**Repository:** public-ready `orange`, based on repaired O1 and consuming M3's
-reviewed generic artifact plus I3's landed private binding contract.
+- [ ] Apply the reviewed inventory through the existing Orange playbook and
+      reconcile Argo CD. Do not patch an Argo-owned resource by hand.
+- [ ] Verify the test storefront still redirects unauthenticated clients to
+      Access, then authenticate and prove cart creation, checkout and the
+      Stripe sandbox Payment Element are available.
+- [ ] Submit at most one operator-approved Stripe sandbox order and verify the
+      normal certificate/mail path. Record the existing Printful test billing
+      limitation if the cart contains merch; it does not close by changing
+      payment or storefront code.
 
-**Files:** OpenBao source/seed helpers, n8n credential import and workflow
-lifecycle, reserved examples, focused tests and provisioning documentation.
+### L10-U — Storefront trust and polish
 
-- [ ] Re-review and rebase draft PR #98 on repaired O1 before retaining any
-      useful implementation. Add separately selected GA-read and Meta-read
-      sources that never become prerequisites for Buffer import.
-- [ ] Import secrets only through the approved ignored-file, stdin, OpenBao and
-      n8n lifecycle. Keep values out of arguments, output, facts, diffs,
-      temporary files and Meeme. Prefer n8n's native Google service-account
-      credential; import the separate Meta asset token as a bound read-only
+**Repository:** `lousydeal`
+
+**Files:**
+
+- Create: `storefront/src/app/favicon.ico`
+- Modify: `storefront/src/components/document/Footer.tsx`
+- Modify: `storefront/src/components/document/MerchForm.tsx`
+- Modify: `storefront/src/app/cart/page.tsx`
+- Modify: `storefront/src/app/checkout/PaymentForm.tsx`
+- Modify: `storefront/src/content/checkout.ts`
+- Modify: `storefront/src/app/globals.css`
+- Modify: focused storefront tests under `storefront/tests/`
+
+**Interfaces produced:** a conventional ICO fallback; three labelled social
+links; visibly separated cart/merch controls; truthful Stripe disclosure
+immediately before the Stripe-owned element.
+
+- [ ] Add failing rendered-markup tests proving the footer links only to the
+      canonical TikTok, Instagram and X profiles, opens them safely, and gives
+      each icon an accessible name.
+- [ ] Add a failing favicon test that reads the ICO header and proves the
+      fallback contains at least 16px and 32px square images derived from the
+      existing stamp colours.
+- [ ] Add failing structural/style tests proving the cart code form and
+      checkout button, and the merch size/select and add button, use narrowly
+      named wrappers with a non-zero design-token gap.
+- [ ] Add a failing checkout render test proving the text immediately before
+      the card slot says Stripe provides the card form and that Lousy Deal does
+      not receive or store the full card number.
+- [ ] Render the three social links as accessible inline SVG icons without a
+      client component, tracking library or new network request. Keep legal and
+      company footer content unchanged.
+- [ ] Generate the ICO from `icon.svg`, retaining the SVG metadata route and
+      adding no new brand drawing.
+- [ ] Add only component-local spacing classes; do not increase global button
+      or field margins.
+- [ ] Add the checkout copy as ordinary HTML before `cardSlot`; link Stripe to
+      its privacy notice if a link improves clarity, without adding a logo or
+      script.
+- [ ] Run the focused tests, `bash scripts/validate`, browser QA at narrow and
+      wide viewports, and `habit-hooks`; obtain Astra review.
+
+### L10-C — Aggregate commerce report route
+
+**Repository:** `lousydeal`
+
+**Files:**
+
+- Create: `backend/src/commerce/meeme-report.ts`
+- Create: `backend/src/api/integrations/meeme-report/route.ts`
+- Create/modify: focused backend tests and runtime-config validation
+- Modify: backend environment documentation as required
+
+**Interface produced:** authenticated `GET /integrations/meeme-report` with no caller
+query surface and the fixed `CommerceSummary` response.
+
+```ts
+interface CommerceSummaryDay {
+  readonly date: string;
+  readonly currencies: readonly {
+    readonly currency: string;
+    readonly paidOrders: number;
+    readonly grossMinor: number;
+    readonly refundedMinor: number;
+    readonly netMinor: number;
+    readonly certificates: number;
+    readonly merchUnits: number;
+  }[];
+}
+
+interface CommerceSummary {
+  readonly status: "available" | "empty" | "incomplete";
+  readonly from: string;
+  readonly through: string;
+  readonly omittedRecords: number;
+  readonly days: readonly CommerceSummaryDay[];
+}
+```
+
+There are exactly seven day objects and at most eight ISO-4217 currency rows
+inside each. Amounts are integer minor units. Captured payments are attributed
+to the capture timestamp; certificate and merch counts follow their order onto
+that capture day. Refunds are negative movements attributed to the refund
+timestamp, not rewritten into the original sale cohort, so a day's net may be
+negative. A malformed, ambiguous or unrepresentable record increments
+`omittedRecords` and makes the response `incomplete`; it is never silently
+excluded from an `available` result. A provider/query failure returns HTTP 503
+with only `{ "status": "unavailable" }`.
+
+- [ ] Write unit tests for deterministic completed-day bounds, currency
+      separation, paid/refunded/net arithmetic and certificate/merch counts.
+      Watch them fail before adding the aggregator.
+- [ ] Implement the pure aggregator from the minimum Medusa order/payment
+      projection. A missing or ambiguous payment state is excluded rather than
+      guessed.
+- [ ] Write route tests proving missing/wrong report credential is refused,
+      query parameters are refused, output has no forbidden identifiers or
+      personal fields, and a backend/provider failure becomes a sanitized
+      unavailable response.
+- [ ] Implement constant-time credential comparison and the fixed server-side
+      seven-completed-day query. The credential comes only from runtime
+      environment/OpenBao.
+- [ ] Start a real Medusa and prove `/integrations/meeme-report` reaches the
+      handler with the dedicated key, while missing/wrong keys and every query
+      string fail. This guards against inherited `/admin` or `/store` auth.
+- [ ] Run backend focused tests, `bash scripts/validate`, the backend smoke
+      suite, and `habit-hooks`; obtain Astra review.
+
+### M10-S — Repair Buffer channel and draft behaviour
+
+**Repository:** `meeme`
+
+**Files:** social-drafts logic, generator/export, helper CLI, tests, skill and
+operating documentation.
+
+**Interfaces produced:** Instagram post/reel metadata; safe channel capability
+status; TikTok image-or-video drafts; fixed provider refusal categories.
+
+- [ ] Add failing tests proving an Instagram image draft emits
+      `metadata.instagram={type:"post",shouldShareToFeed:true}`, an Instagram
+      video emits `type:"reel"`, and TikTok accepts one image or one video.
+- [ ] Add failing tests for a read-only channel probe that distinguishes exact
+      connected/unlocked identity from automatic-post capability and reminder
+      fallback.
+- [ ] Add failing tests mapping only reviewed Buffer failures to
+      `media_unusable`, `channel_authorization`, `provider_validation` or the
+      fallback `buffer_rejected`, with raw messages absent from Meeme output.
+- [ ] Implement the smallest request/discovery/classifier changes and
+      regenerate the workflow JSON from source.
+- [ ] Run a private, removable Instagram draft control with the same public
+      image: capture the original raw failure operator-side, repeat with the
+      new metadata, delete any resulting draft, and retain no secret output.
+- [ ] Reconcile Meeme's normal checkout to merged `main`; do not leave the
+      operating helper dependent on a campaign worktree.
+- [ ] Run the complete Meeme validation and `habit-hooks`; obtain Astra review.
+
+### M10-R — Add fixed commerce, GA and Buffer reporting actions
+
+**Repository:** `meeme`, stacked after M10-S.
+
+**Files:** social workflow logic/generator/export, helper CLI, tests, skill,
+`TOOLS.md` and operating-model documentation.
+
+**Interfaces consumed:** L10-C's `CommerceSummary`; existing Buffer exact-channel
+resolver; GA4 fixed event names.
+
+- [ ] Add failing request-contract tests for `commerce-summary`,
+      `analytics-summary` and `social-summary`, including rejection of every
+      caller-supplied ID, date, metric, path, query or credential.
+- [ ] Add provider fixtures for populated, empty, incomplete and unavailable
+      responses. Prove zero remains zero and raw provider errors/identifiers do
+      not escape.
+- [ ] Implement the three fixed dispatch paths before Buffer draft discovery,
+      so a disabled provider cannot disable draft creation.
+- [ ] Use Buffer `aggregatedPostMetrics` against the exact resolved channel and
+      fixed seven-day bounds. Return only allow-listed numeric metrics and
+      freshness.
+- [ ] Use the GA Data API only for `activeUsers`, `sessions` and the existing
+      fixed event names. Do not add a separate conversion action.
+- [ ] Regenerate the workflow export and run complete Meeme validation plus
+      `habit-hooks`; obtain Astra review.
+
+### M10-B — Add bounded media upload commands
+
+**Repository:** `meeme`, stacked after M10-R.
+
+**Files:** workflow upload/validation logic, generator/export, helper CLI,
+tests, skill and operating documentation.
+
+**Interface produced:** a second authenticated webhook trigger plus a local
+command that reads one bounded regular file, submits it as multipart media, and
+prints only the stable public URL.
+
+- [ ] Add failing tests for accepted JPEG, PNG and MP4 types; filename
+      normalization; byte and checksum bounds; unique object names; and
+      rejection of paths, traversal, mixed encodings, redirects and arbitrary
+      hosts.
+- [ ] Add tests proving the returned stable URL is accepted by the exact same
+      runtime-bound origin/prefix validator used by `create-draft`, while
+      sibling buckets, credentials in URLs, redirects, traversal and prefix
+      lookalikes are rejected by both CLI and workflow.
+- [ ] Implement credential-free validation nodes, then use credential-aware
+      HTTP nodes to authorize to B2, obtain a temporary native upload URL and
+      upload the binary with B2's required checksum. Code nodes never access
+      the B2 credential or temporary token, and execution retention stays off.
+- [ ] Implement the bounded upload helper without logging authorization
+      material or local file content. Keep the 8 MiB maximum below n8n's
+      existing request-body limit; do not raise the instance-wide limit.
+- [ ] Against real B2, prove the intended JPEG/PNG/MP4 upload succeeds and
+      altered checksum, content type, size, bucket and prefix attempts fail.
+- [ ] Regenerate the workflow export; run complete Meeme validation and
+      `habit-hooks`; obtain Astra review.
+
+### I10-B — Bind report and media resources privately
+
+**Repository:** private `orange-inventory`
+
+**Files:** the Lousy Deal/Meeme source registry, provider settings, focused
+validation and private operating record.
+
+**Interfaces produced:** exact GA property/timezone, exact commerce route,
+exact B2 endpoint/bucket/prefix/public base, fixed enable flags and approved
+ignored source filenames.
+
+- [ ] Add failing private validation for complete-or-disabled GA, commerce and
+      media bindings. Reject placeholders, public-repository leakage and
+      unrelated credential reuse.
+- [ ] Bind only verified identifiers and endpoints. GA, commerce and media
+      enable independently; Buffer drafts never depend on them.
+- [ ] Run the inventory gate in its own and Orange contexts and `habit-hooks`;
+      obtain Astra review and merge before O10-B.
+
+### D10-B — Project the commerce report credential into the backend
+
+**Repository:** public `deploys`
+
+**Files:** Lousy Deal backend base/overlay manifests and focused manifest tests.
+
+- [ ] Add failing render tests for the named secret-key reference and exact
+      n8n-to-backend ingress needed by the report path. Prove neither storefront
+      nor unrelated workloads receive the key.
+- [ ] Add the optional backend environment projection and narrow NetworkPolicy
+      rule. Preserve digest promotion, test/live separation and default deny.
+- [ ] Render and schema-check both overlays, run the complete deploys gate and
+      `habit-hooks`, and obtain Astra review.
+
+### O10-S — Import the repaired social-draft artifact
+
+**Repository:** public-ready `orange`, after M10-S.
+
+- [ ] Add failing artifact-parity tests, pin M10-S's merged digest alongside the
+      retained rollback digest, and import/activate it through the existing
+      workflow lifecycle without touching report or media credentials.
+- [ ] Verify Instagram capability status and a removable draft through the
+      repaired interface, plus continuing X/TikTok readiness.
+- [ ] Run the complete Orange gate and `habit-hooks`; obtain Astra review.
+
+### O10-B — Custody credentials, project runtime state and import reports/media
+
+**Repository:** public-ready `orange`
+
+**Files:** OpenBao source/seed helpers, ExternalSecret projections, backend
+runtime/environment binding, n8n credential/workflow lifecycle, reserved
+examples, focused tests and operator documentation. No private value or
+identifier is committed.
+
+**Interfaces consumed:** L10-C, M10-R, M10-B and I10-B.
+
+- [ ] Add failing lifecycle tests for separate optional commerce-report, GA
+      Viewer and B2 upload sources. Absence disables only its action.
+- [ ] Import credentials only through ignored source, stdin, OpenBao and n8n
+      lifecycle, with `no_log`; never place values in arguments, facts, diffs,
+      temporary files or Meeme.
+- [ ] Verify the generic workflow digest before secret access or network work,
+      bind only the private configuration object, and prove all other bytes are
+      derived from the reviewed template.
+- [ ] Generate the report key through the approved secret lifecycle, project
+      the same value into the backend and a narrow n8n header credential, bind
+      the backend URL, and verify D10-B permits only n8n-to-backend reachability.
+- [ ] Import B2 as a credential used only by credential-aware HTTP nodes. Code
+      nodes have no path to it. Project the exact public media origin and prefix
+      into Meeme's non-secret helper config so uploaded URLs pass the same
+      allow-list in the workflow and CLI.
+- [ ] Read back only safe credential metadata. A second run is unchanged.
+- [ ] Run the complete Orange gate, public-content validation and
+      `habit-hooks`; obtain Astra review.
+
+### P10-G — Analytics and Buffer authority preflight
+
+**Repository changes:** none. **State owners:** Google Analytics, Buffer and
+Orange ignored sources.
+
+- [ ] Create a dedicated GA service account, enable the GA Data API, grant
+      Viewer only on the intended property, and place its JSON key only in the
+      approved ignored source. Record the numeric property ID privately.
+- [ ] Verify the existing Buffer key has `insightsRead`; connect Facebook,
+      LinkedIn and YouTube if the account plan permits, otherwise record the
+      account limit without adding another provider.
+- [ ] Put credential values only into the approved ignored source files and
+      verify safe metadata without printing values.
+
+### P10-B — B2 media resource preflight
+
+**Repository changes:** none. **State owners:** Backblaze B2 and Orange ignored
+sources.
+
+- [ ] Create a dedicated public B2 bucket and a dedicated application key
+      restricted to the one media prefix and only the permissions needed to
+      authorize, upload and read back metadata. Do not reuse the backup
       credential.
-- [ ] Verify M3's generic artifact hash before secret access or network work.
-      Bind only the designated private configuration object, validate numeric
-      IDs and explicit enable flags, and prove every other byte is derived from
-      the reviewed template. Read back only safe metadata; a second run is
-      unchanged.
-- [ ] Retain O1's check-mode, TLS, least-privilege and tamper protections.
-      Prove Meeme receives only its existing webhook key/config, not provider,
-      Buffer or n8n administration credentials. Run Orange's full gate and
-      obtain review.
+- [ ] Put credential values only into the approved ignored source files and
+      verify safe metadata without printing values.
 
-### V3 — Integration, rotation and disabled-state recovery
+### V10 — Integrated verification, recovery and closure
 
-**Repositories changed:** none. **State owners:** OpenBao, n8n, Google
-Analytics, Meta and Meeme.
+**Repository changes:** closure record only after runtime verification.
 
-- [ ] With both providers explicitly enabled, verify the bound GA property and
-      Meta owned assets through every fixed read action, plus wrong-key,
-      arbitrary-ID and provider-unavailable probes. Confirm sanitized aggregate
-      schemas; fixture coverage for a populated safe success; distinct
-      unavailable/incomplete/empty results; no public content change; and
-      continuing Buffer-draft readiness.
-- [ ] Verify credential rotation by replacing each source through the reviewed
-      lifecycle, reading back safe credential metadata and repeating the fixed
-      probes. Verify revocation separately: revoke the GA principal/key or the
-      Meta token, confirm reporting becomes unavailable without raw errors, and
-      record the operator recovery steps privately.
-- [ ] Exercise the normal disabled-state rollback: turn both explicit enable
-      flags off while the shared M1 workflow remains active, and confirm every
-      report action is unavailable while Buffer discovery/create-draft/status
-      and manual Reddit drafts remain usable. Do not rotate the Buffer
-      credential for this rollback.
-- [ ] If a full workflow rollback is necessary, restore and activate the
-      reviewed M1 artifact through O1, then verify Buffer
-      discovery/create-draft/status before declaring recovery complete.
+- [ ] Verify commerce data against actual paid-order aggregates and verify GA
+      traffic/funnel responses separately. Prove arbitrary-input and wrong-key
+      refusals and provider-independent availability.
+- [ ] Verify fixed Buffer aggregates against one owned channel, and prove a
+      provider outage reports unavailable rather than zero.
+- [ ] Upload one bounded media fixture through Meeme, verify the stable public
+      URL directly, create removable Instagram and TikTok drafts through the
+      reviewed workflow, then remove the drafts. Do not publish.
+- [ ] Rotate each new credential through the reviewed lifecycle, repeat safe
+      probes, then exercise disabled-state recovery without disturbing Buffer
+      drafts or the open stores.
+- [ ] Browser-check the deployed favicon, footer, both spacing fixes and Stripe
+      disclosure at narrow and wide viewports. Verify live stays open and test
+      stays Access-gated but order-enabled on Stripe sandbox.
+- [ ] Update `docs/working/status.md` and durable current/decision records,
+      retire this plan only when no row is open, run full validation and
+      `habit-hooks`, and obtain final Astra review.
 
-## Dependency order and completion
+## Dependency and merge order
 
-`repaired M1/O1 → P0 and P1 → M3 and I3 → O3 → V3`. P0 and P1 are independent;
-M3 and I3 may prepare only
-fixtures and disabled contracts before P1, but their final interface and
-bindings follow P1's verified facts. O3 is an Orange branch based on repaired
-O1, not a cross-repository Git stack: it consumes M3's reviewed artifact and
-I3's landed private binding contract. I3 lands before O3. This slice completes
-only after V3's enabled, rotation/revocation and disabled-state evidence is
-recorded. It remains non-launch-blocking throughout.
+`L10-P → I10-A → O10-A` opens test independently. `L10-U` is independent.
+`L10-C → D10-B` establishes the commerce producer and deployment seam.
+`M10-S → O10-S` repairs Instagram independently. `M10-S → M10-R → P10-B →
+M10-B` is the media path, so M10-B can close against its dedicated real
+resource. `M10-R → P10-G → I10-B → O10-B → V10` is the reporting/activation
+path: external capabilities are verified before their exact private bindings
+land, and O10-B owns activation and reconciliation. P10-G never blocks the
+independent media branch. Interface suppliers merge before consumers. Existing
+Meeme #9, private
+inventory #49 and Orange #98 remain evidence only and are not merged without a
+fresh diff review against this contract. Existing Lousy Deal #231 is a bounded
+launch-video workaround; it does not replace M10-B's ongoing media path.
 
 ## Rollback
 
-Set both provider-enable flags to disabled while leaving the shared M1 workflow
-active. That is the normal rollback and retains Buffer
-discovery/create-draft/status plus manual Reddit drafts. If a full workflow
-rollback is necessary, restore and activate the reviewed M1 artifact through
-O1, then verify Buffer discovery/create-draft/status before declaring recovery
-complete. If a credential may be exposed or must be retired, revoke the Google
-service-account key or Meta token and remove it through the OpenBao/n8n
-lifecycle.
+Disable GA, commerce and media actions independently in private bindings while
+leaving the shared Buffer draft workflow active. Restore the last reviewed
+workflow artifact by digest if necessary. Close test ordering by restoring its
+durable `store_open=false` binding; do not use a manual Kubernetes patch.
+Revoke a suspected GA, report or B2 credential at its provider/source, seed the
+replacement through OpenBao, and repeat the fixed safe probes. Storefront UI
+rollback is the previous reviewed application image.
