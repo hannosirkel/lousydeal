@@ -141,6 +141,16 @@ export JWT_SECRET=store-smoke-jwt-secret
 export COOKIE_SECRET=store-smoke-cookie-secret
 export STRIPE_SECRET_KEY=sk_test_store_smoke
 export STRIPE_WEBHOOK_SECRET=whsec_store_smoke
+# L10-C is deliberately enabled with a generated local-only key so the built
+# server registers and exercises the dedicated integration route without any
+# deployed credential or Stripe call.
+meeme_report_key="$(printf 'a%.0s' {1..64})"
+export MEEME_REPORT_KEY="${meeme_report_key}"
+export MEEME_REPORT_TIMEZONE=UTC
+# This script owns a freshly recreated local database, so commerce mutation
+# smoke coverage must exercise the open-store path rather than production's
+# default closed state.
+export STORE_OPEN=true
 export MEDUSA_ADMIN_EMAIL=store-smoke@example.test
 export MEDUSA_ADMIN_PASSWORD=store-smoke-administrator-password
 export MEDUSA_DISABLE_TELEMETRY=true

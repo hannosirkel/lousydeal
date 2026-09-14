@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-14 |
 | Current slice | **LD-10 — Meeme reporting, social delivery and operating polish is active.** |
-| In flight | LD-10 execution is under way. I10-A/O10-A opened the Access-gated test shop with Stripe sandbox; L10-U implements the favicon, primary social footer links, local control spacing and Stripe card-form disclosure and is awaiting merge. |
-| Next action | Merge L10-U after final Astra re-review, then begin L10-C, the aggregate-only commerce report interface. |
+| In flight | LD-10 execution is under way. I10-A/O10-A opened the Access-gated test shop with Stripe sandbox; L10-U is merged. L10-C's aggregate commerce route, candidate registry and conservative omission accounting passed the real Medusa smoke, full validation and final Astra review. |
+| Next action | Merge L10-C after its pull-request checks pass, then continue with the next LD-10 row. |
 | Blocked | Runtime completion needs a dedicated GA Viewer principal and dedicated B2 bucket/key. Their absence does not block the plan, storefront polish, Instagram repair, commerce interface or test opening. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,

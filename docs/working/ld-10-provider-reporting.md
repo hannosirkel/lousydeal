@@ -230,6 +230,10 @@ with only `{ "status": "unavailable" }`.
 - [ ] Implement constant-time credential comparison and the fixed server-side
       seven-completed-day query. The credential comes only from runtime
       environment/OpenBao.
+- [ ] Use exactly `MEEME_REPORT_KEY`, `MEEME_REPORT_TIMEZONE` and
+      `x-meeme-report-key`: D10-B projects both values; I10-B validates the
+      shared backend/n8n timezone; O10-B delivers both; M10-R preserves the
+      fixed dates with that exact header; V10 covers timezone and DST edges.
 - [ ] Start a real Medusa and prove `/integrations/meeme-report` reaches the
       handler with the dedicated key, while missing/wrong keys and every query
       string fail. This guards against inherited `/admin` or `/store` auth.

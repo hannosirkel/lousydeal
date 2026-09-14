@@ -4,6 +4,7 @@ import { ConfigError, optionalEnv, requireEnv } from "../src/config/env";
 import {
   type BackendRuntimeConfig,
   readBackendRuntimeConfig,
+  readMeemeReportRuntimeConfig,
   readRedisRuntimeConfig,
   redisConnectionOptions,
   redisConnectionUrl,
@@ -165,6 +166,7 @@ describe("readBackendRuntimeConfig", () => {
         webhookSecret: "stripe-webhook-secret-value",
         paymentMethodConfiguration: undefined,
       },
+      meemeReport: null,
     });
   });
 
@@ -258,6 +260,31 @@ describe("readBackendRuntimeConfig", () => {
       const config = readBackendRuntimeConfig({ ...validEnvironment, PRINTFUL_API_TOKEN: value });
       expect(`${JSON.stringify(value)}: ${String(config.printfulApiToken)}`).toBe(`${JSON.stringify(value)}: null`);
     }
+  });
+});
+
+describe("readMeemeReportRuntimeConfig", () => {
+  const key = "a".repeat(64);
+
+  it("is disabled only when both report values are absent", () => {
+    expect(readMeemeReportRuntimeConfig({})).toBeNull();
+  });
+
+  it("reads the canonical key and a valid IANA timezone together", () => {
+    expect(readMeemeReportRuntimeConfig({
+      MEEME_REPORT_KEY: ` ${key} `,
+      MEEME_REPORT_TIMEZONE: " Europe/Tallinn ",
+    })).toEqual({ key, timeZone: "Europe/Tallinn" });
+  });
+
+  it.each([
+    [{ MEEME_REPORT_KEY: key }, "MEEME_REPORT_TIMEZONE"],
+    [{ MEEME_REPORT_TIMEZONE: "Europe/Tallinn" }, "MEEME_REPORT_KEY"],
+    [{ MEEME_REPORT_KEY: "not-a-canonical-key", MEEME_REPORT_TIMEZONE: "Europe/Tallinn" }, "MEEME_REPORT_KEY"],
+    [{ MEEME_REPORT_KEY: key, MEEME_REPORT_TIMEZONE: "Not/AZone" }, "MEEME_REPORT_TIMEZONE"],
+  ])("refuses partial or invalid configuration and names only the variable", (environment, name) => {
+    expect(() => readMeemeReportRuntimeConfig(environment)).toThrow(ConfigError);
+    expect(() => readMeemeReportRuntimeConfig(environment)).toThrow(new RegExp(name));
   });
 });
 
