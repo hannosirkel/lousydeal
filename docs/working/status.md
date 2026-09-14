@@ -7,11 +7,11 @@ does not — it points, it does not hold.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-13 |
-| Current slice | **LD-08 — Launch polish is complete.** The live store is public, open and using the verified live payment configuration. |
-| In flight | No LD-08 implementation or launch gate remains. On 2026-09-13 the operator confirmed Printful billing, supplied and activated Stripe live credentials, merged the public-exposure and runtime changes, refreshed OIDC, and authorized opening. Live was reconciled with `STORE_OPEN=true`; test remains closed and Access-gated. Public HTTP, consent, responsive checkout and live Payment Element verification passed after the opening deployment. |
-| Next action | Monitor the first genuine live order through payment, certificate, mail and Printful fulfillment as an operational check. Start [`LD-10`](./ld-10-provider-reporting.md) only when the operator chooses; it is not V1 or launch work. |
-| Blocked | Nothing blocks V1 or the live shop. Provider reporting and the remaining three Buffer connections are deferred, non-blocking LD-10 work. |
+| Updated | 2026-09-14 |
+| Current slice | **Post-launch marketing asset.** LD-08 and the V1 launch remain complete. |
+| In flight | `campaign/tiktok-launch-video` proposes a reproducible eight-second vertical launch video and reviewed caption. It changes no commerce or deployment behavior. |
+| Next action | Merge and deploy the asset, verify `https://lousydeal.com/social/launch.mp4`, then create a private TikTok draft through Meeme's reviewed workflow. Continue monitoring the first genuine live order as an operational check. Start [`LD-10`](./ld-10-provider-reporting.md) only when the operator chooses. |
+| Blocked | TikTok drafting waits for the public video URL. Nothing blocks V1 or the live shop. Provider reporting and the remaining three Buffer connections remain deferred, non-blocking LD-10 work. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.

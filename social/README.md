@@ -5,7 +5,7 @@ files for uploads. Keep the SVG files as editable masters.
 
 | Service | Profile image | Cover or post image |
 | --- | --- | --- |
-| TikTok | `profile.png` | `card-square.png` for posts |
+| TikTok | `profile.png` | `card-square.png` for posts; `launch.mp4` for launch |
 | Facebook | `profile.png` | `cover.png` |
 | Instagram | `profile.png` | `card-square.png` for posts |
 | X | `profile.png` | `cover.png` |
@@ -58,3 +58,17 @@ Do not add emoji, exclamation marks, fabricated totals, reviews or testimonials.
 
 Platform interfaces and crops change. Preview each upload before publication.
 Move the image only when needed to avoid a service's profile-image overlay.
+
+## Launch video
+
+`storefront/public/social/launch.mp4` is an eight-second, silent 1080 by 1920
+H.264 video for TikTok and other vertical-video surfaces. It uses only the
+committed social card and IBM Plex Mono files. Regenerate it with FFmpeg 7:
+
+```bash
+bash social/generate-launch-video.sh
+```
+
+Use `social/launch-caption.txt` as the reviewed caption. The video and caption
+state that the store is open and describe the product; they make no demand,
+scarcity or popularity claim.
