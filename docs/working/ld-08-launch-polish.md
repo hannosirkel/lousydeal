@@ -20,7 +20,7 @@ remains deliberately deferred.
 | Social management | Meeme gets no Buffer token. A fixed authenticated n8n webhook accepts a narrow draft request and creates Buffer drafts with `saveToDraft: true`; it cannot schedule or publish. Public posting remains an explicit operator-approved action. |
 | Provider reporting | **Deferred to LD-10.** The fixed read-only Google Analytics and Meta summaries are a post-launch, non-blocking follow-up in [`ld-10-provider-reporting.md`](./ld-10-provider-reporting.md). That work does not alter this slice's consent-gated Google Analytics and Meta Pixel collection or its Buffer-only draft workflow. |
 | Reddit | Buffer does not support Reddit, and no Reddit API credential is provided. Meeme prepares post and reply copy as durable drafts, but a human publishes it. Do not add another credential or direct Reddit integration for V1. |
-| Printful billing | Manual publication item. The public Printful API can create products and orders but exposes no billing-method lifecycle. `STORE_OPEN` remains false until the operator confirms billing is configured. |
+| Printful billing | Manual publication item. The public Printful API can create products and orders but exposes no billing-method lifecycle. The operator confirmed the live billing method on 2026-09-13 before opening. |
 | Printful live catalogue | Reproduce the four test-store products in the live Printful store from the repository's pinned artwork and committed catalogue; do not copy remote product identifiers between stores. |
 | Rollback compatibility | Selecting the previous image is acceptable without additional fencing. The operator accepts that an image predating `STORE_OPEN` ignores the closed-store setting if used after public exposure. |
 
@@ -37,12 +37,12 @@ There are four code owners and one explicit lifecycle:
    path. Inventory lands before the public Orange interface that consumes it.
 4. `meeme` owns the draft-only social workflow contract, helper and operating
    instructions. It never owns a vendor credential.
-5. The launch lifecycle seeds already-provided credentials without printing
-   them, configures the live Printful store and catalogue, deploys the closed
-   site, verifies it, and stops for the two external gates that block
-   completion: Printful billing and Stripe activation. Opening the shop is a
-   later explicit one-value promotion, not an automatic consequence of passing
-   tests. Provider reporting is deferred to LD-10 and has no launch role.
+5. The launch lifecycle seeded the provided credentials without printing them,
+   configured the live Printful store and catalogue, deployed and verified the
+   closed site, then stopped for Printful billing and Stripe activation. After
+   the operator closed both gates, a separate explicit one-value promotion
+   opened the shop. Provider reporting remains deferred to LD-10 and has no
+   launch role.
 
 ## Global constraints
 
@@ -120,7 +120,7 @@ There are four code owners and one explicit lifecycle:
 | 8 | Meeme can create Buffer drafts for the three launch networks the operator connected — TikTok, Instagram and X — without receiving Buffer credentials or a publish-capable route; the reviewed code retains support for Facebook, LinkedIn and YouTube, whose Buffer connections and runtime verification are deferred to LD-10, and Reddit posts and replies remain manual drafts | M1, O1, E1 |
 | 9 | The closed live site is reachable without Cloudflare Access while test and non-store surfaces retain their existing gates | O1, F2 |
 | 10 | Gate F exercises the closed public site and Orange's explicitly opened, Access-gated test purchase path, then returns test to its normal closed state. It covers webhook, idempotent certificate, email, gift, merch, discount, analytics consent and absence of test data from public statistics. | F1, F2 |
-| 11 | Status records the measured remaining operator prerequisites, including the exact later `STORE_OPEN=true` promotion, without assuming only two remain. | F2 |
+| 11 | Status records the measured operator prerequisites and the explicit `STORE_OPEN=true` promotion that followed their completion. | F2 |
 
 **These eleven rows are the whole of completion.** Provider reporting is a
 separate, deferred LD-10 follow-up and does not appear in this launch plan's
@@ -139,7 +139,7 @@ branch and state their consumed interface commit.
 **Files:** `docs/working/ld-08-launch-polish.md`,
 `docs/working/status.md`.
 
-- [ ] Record this plan, the PR-size ruling, the external gates and the
+- [x] Record this plan, the PR-size ruling, the external gates and the
       current resume point.
 
 **Verification:** `markdownlint-cli2 docs/working/ld-08-launch-polish.md docs/working/status.md`.
@@ -160,17 +160,17 @@ storefront/backend tests.
 explicit client projection, `assertStoreOpen()` for server actions, and a
 backend write guard returning HTTP 503 with `{ code: "store_closed" }`.
 
-- [ ] Write failing config tests for absent/false/malformed/true settings.
-- [ ] Write failing action and middleware tests proving closed writes never
+- [x] Write failing config tests for absent/false/malformed/true settings.
+- [x] Write failing action and middleware tests proving closed writes never
       call their Medusa dependency and open writes remain unchanged.
-- [ ] Write failing proxy tests for mismatched settings in both directions:
+- [x] Write failing proxy tests for mismatched settings in both directions:
       closed storefront/open backend still refuses locally, and open
       storefront/closed backend receives the backend refusal. Withdrawal and
       webhook routes remain outside both guards.
-- [ ] Add the minimal strict reader and both enforcement layers.
-- [ ] Replace enabled purchase controls with a concise closed-store notice;
+- [x] Add the minimal strict reader and both enforcement layers.
+- [x] Replace enabled purchase controls with a concise closed-store notice;
       keep navigation, catalogue and legal content usable.
-- [ ] Run focused tests red, then green, and the complete application gate.
+- [x] Run focused tests red, then green, and the complete application gate.
 
 ### L2 — Consent-gated Google and Meta analytics
 
@@ -187,23 +187,23 @@ focused tests including the existing third-party and storage disclosure guards.
 `META_PIXEL_ID`, a client emitter for the eleven fixed events, and one consent
 surface that loads both vendors only after opt-in.
 
-- [ ] Write failing tests for an unanswered/refused/revoked choice loading no
+- [x] Write failing tests for an unanswered/refused/revoked choice loading no
       vendor code or request, and accepted consent loading only configured IDs.
-- [ ] Write failing event tests that reject unknown names and strip prohibited
+- [x] Write failing event tests that reject unknown names and strip prohibited
       fields while vendor failures remain non-fatal.
-- [ ] Write failing request tests for consent followed by direct visits and
+- [x] Write failing request tests for consent followed by direct visits and
       client navigation to certificate and withdrawal-result URLs: no request
       may contain a raw URL, query string, title, serial or form contents.
-- [ ] Implement the smallest local-storage consent manager and vendor loaders;
+- [x] Implement the smallest local-storage consent manager and vendor loaders;
       use basic consent so neither vendor mounts before acceptance. Configure
       Google with `send_page_view: false`, automatic history measurement off,
       Google signals/ad personalization off, and explicit safe event fields;
       never emit Meta's automatic `PageView`.
-- [ ] Instrument the existing interaction boundaries without changing their
+- [x] Instrument the existing interaction boundaries without changing their
       commerce behavior.
-- [ ] Correct Privacy and storage disclosures to name Google, Meta, purpose,
+- [x] Correct Privacy and storage disclosures to name Google, Meta, purpose,
       consent, revocation and the one first-party preference value.
-- [ ] Run focused tests red, then green, and the complete application gate.
+- [x] Run focused tests red, then green, and the complete application gate.
 
 ### L3 — SEO, accessibility, responsive and performance closeout
 
@@ -332,14 +332,14 @@ the selected runtime configuration and invokes the existing
 `syncMerchProducts` once. It prints only safe product handles and change counts,
 never a token, remote identifier or response body.
 
-- [ ] Write a failing script-port test proving missing Printful configuration
+- [x] Write a failing script-port test proving missing Printful configuration
       refuses before a network call and configured input invokes
       `syncMerchProducts` with the committed catalogue and pinned artwork base.
-- [ ] Write a failing idempotency test proving an unchanged second
+- [x] Write a failing idempotency test proving an unchanged second
       reconciliation reports no mutations and preserves SKU joins.
-- [ ] Add the minimal Medusa exec wrapper and package command; do not duplicate
+- [x] Add the minimal Medusa exec wrapper and package command; do not duplicate
       reconciliation logic already owned by `modules/printful/sync.ts`.
-- [ ] Run the focused unit tests red, then green, and the complete application
+- [x] Run the focused unit tests red, then green, and the complete application
       gate. E1 supplies the real-store read-back.
 
 ### D1 — Deployment contract defaults closed
@@ -352,12 +352,12 @@ documentation.
 
 **Consumes:** the exact runtime variable names from L1/L2.
 
-- [ ] Add `STORE_OPEN=false` to storefront, backend and worker/predeploy
+- [x] Add `STORE_OPEN=false` to storefront, backend and worker/predeploy
       workloads that assemble runtime config; add optional analytics variables
       only to the storefront.
-- [ ] Assert test renders closed with no analytics IDs and live renders closed
+- [x] Assert test renders closed with no analytics IDs and live renders closed
       pending Orange's runtime patch.
-- [ ] Run `bash scripts/validate` and strict Kustomize schema validation for
+- [x] Run `bash scripts/validate` and strict Kustomize schema validation for
       both Lousy Deal overlays.
 
 ### O1 — Live configuration, public closed exposure and gated n8n seam
@@ -373,28 +373,28 @@ import lifecycle and current documentation.
 
 **Consumes:** D1 variable names and M1's fixed webhook/credential identifiers.
 
-- [ ] Add reserved-example and test-first contracts for `STORE_OPEN`, both
+- [x] Add reserved-example and test-first contracts for `STORE_OPEN`, both
       analytics identifiers, the live Printful credential projection, the
       Meeme webhook key and encrypted Buffer credential import.
-- [ ] Extend the seed/import lifecycle so supplied ignored key files reach
+- [x] Extend the seed/import lifecycle so supplied ignored key files reach
       OpenBao/n8n under least-privilege paths without values in arguments,
       output, facts or diffs.
-- [ ] Enable Meeme's n8n access with only its fixed webhook key; do not install
+- [x] Enable Meeme's n8n access with only its fixed webhook key; do not install
       the Buffer API key or n8n owner/API key on Meeme. Replace the current
       all-or-nothing `openclaw_n8n_enabled` behavior with separately declared
       webhook and API capabilities, and negatively test Meeme's rendered
       secret registry, installed files and OpenBao policy for the API object.
-- [ ] Keep live `STORE_OPEN=false`, test analytics absent, and make only the
+- [x] Keep live `STORE_OPEN=false`, test analytics absent, and make only the
       live storefront's Access gate configurable. Inventory selects public,
       but F1 must verify the deployed closed response through the existing
       gate before F2 applies that selection. Preserve all backend/admin/test
       gates.
-- [ ] Own the default-false
+- [x] Own the default-false
       `argocd_lousydeal_test_store_open_override` and document its normal
       reconciliation/close command. F1 alone uses the explicit test-only
       override for the purchase matrix and must run that command afterward;
       this is the existing Orange control, not a second deployment seam.
-- [ ] Validate private inventory in both contexts, then Orange's full gate;
+- [x] Validate private inventory in both contexts, then Orange's full gate;
       land inventory before Orange.
 
 ### M1 — Meeme social drafts
@@ -410,20 +410,20 @@ validate generated workflow parity.
 bounded JSON draft and creating Buffer drafts only; a separate local Reddit
 post/reply draft command that performs no network write.
 
-- [ ] Write failing unit/contract tests for fixed channel aliases, length and
+- [x] Write failing unit/contract tests for fixed channel aliases, length and
       media constraints, HTML/control-character rejection, `saveToDraft: true`,
       sanitized responses and absence of publish/schedule fields from the
       webhook input. The Buffer request itself fixes
       `schedulingType: automatic`, `mode: addToQueue` and
       `saveToDraft: true`, and the response must report draft status.
-- [ ] Generate the n8n workflow that holds the encrypted Buffer credential,
+- [x] Generate the n8n workflow that holds the encrypted Buffer credential,
       resolves only connected allow-listed channel IDs and creates one draft
       per requested supported channel.
-- [ ] Add a narrow helper that reads its webhook key from the installed file,
+- [x] Add a narrow helper that reads its webhook key from the installed file,
       never prints it, and exposes only list-channels/create-draft/status.
-- [ ] Add Reddit post/reply draft output to the workspace with no API call and
+- [x] Add Reddit post/reply draft output to the workspace with no API call and
       document that public posting or replying is still Tier 3 approval.
-- [ ] Run `bash scripts/validate` and `habit-hooks`.
+- [x] Run `bash scripts/validate` and `habit-hooks`.
 
 ### E1 — Explicit credential and vendor lifecycle
 
@@ -455,7 +455,7 @@ vendor's evidence is substituted for the other's.
       observe no change. A later inventory change enables both optional source
       and workload mapping. Do not submit a fulfillment order until the
       operator confirms billing.
-- [ ] Separately verify the live Stripe runtime source/key and webhook
+- [x] Separately verify the live Stripe runtime source/key and webhook
       configuration through safe metadata only. Do not take a live payment or
       set `STORE_OPEN=true`. A closed public site may be published before this
       activation evidence exists, but criterion 7 remains incomplete and
@@ -496,20 +496,20 @@ recorded with its actual state.
 **Files:** this plan, `docs/working/status.md`, and durable current/decision
 documentation only where runtime behavior changed.
 
-- [ ] Run the reviewed Orange lifecycle that removes Access only from the live
+- [x] Run the reviewed Orange lifecycle that removes Access only from the live
       storefront, then from an unauthenticated client verify public content,
       withdrawal and SEO while cart, surcharge, checkout and payment writes
       return the stable closed-store response without a state change.
-- [ ] Exercise unanswered, refused, accepted and revoked analytics consent in
+- [x] Exercise unanswered, refused, accepted and revoked analytics consent in
       a real browser. Confirm vendor requests are absent before/refused/after
       revocation and use only safe route classes after acceptance, including
       direct and client-side visits to certificate and withdrawal-result URLs.
-- [ ] Confirm the test environment retains Access and is closed after F1's
+- [x] Confirm the test environment retains Access and is closed after F1's
       mandatory Orange reconciliation/close command. Reuse F1's dated open-test
       matrix evidence; F2 neither creates another opening path nor leaves test
       open.
-- [ ] Verify public counters contain no test order and no fabricated number.
-- [ ] Record exact dated evidence, remaining operator gates and rollback
+- [x] Verify public counters contain no test order and no fabricated number.
+- [x] Record exact dated evidence, remaining operator gates and rollback
       digest. Mark LD-08 complete only after all eleven criteria are met,
       including criterion 7's separate Printful and live Stripe runtime/key and
       webhook safe-metadata evidence. If that Stripe evidence is missing,
@@ -519,23 +519,81 @@ documentation only where runtime behavior changed.
       `STORE_OPEN=true` change are distinct operator gates, not substitutes
       for criterion 7 evidence.
 
+### E1 and F2 completion evidence — 2026-09-13
+
+The operator confirmed the live Printful billing method and Stripe account
+activation before opening. Stripe reported the Estonian account as submitted,
+charge-enabled and payout-enabled. The live runtime source advanced to OpenBao
+version 3 and projected exactly the ten expected fields. From the refreshed
+backend workload, authentication, live-mode key shapes, the active Lousy Deal
+payment-method configuration and the sole enabled webhook were verified using
+safe metadata only. The webhook has the exact Medusa Stripe destination, the
+eight required Payment Intent events and API version `2026-02-25.clover`.
+
+An initial endpoint was found to have inherited no pinned API version. It was
+replaced and its signing secret was advanced through OpenBao before the store
+opened. At that point the live completed-order and Payment Intent counts were
+both zero. The final read-back found only the replacement endpoint, and a
+generated signature inside the refreshed backend workload proved its projected
+secret accepted a valid signature and rejected an invalid one. Backend, worker
+and storefront were then restarted onto the final projection.
+
+The closed public pass first proved that the apex served the full site while
+cart, surcharge, checkout and payment mutations returned the stable
+`store_closed` response without changing the zero live-order total. `www`
+redirected permanently to the apex, the sitemap contained fourteen public
+routes, personal/transactional routes retained their indexing controls, and
+live admin plus both test hosts retained Cloudflare Access. The test store was
+also still closed after Gate F.
+
+Regular Playwright 1.62.1 with Chromium 153 was used because the Browser plugin
+was unavailable. Across the fourteen sitemap routes and four no-script routes,
+Google and Meta made zero requests before consent, after refusal and after
+revocation. Acceptance loaded both configured live identifiers; direct and
+client-side sensitive-route checks leaked no certificate or withdrawal data,
+and the browser reported no application errors. Mobile cart and checkout
+rendering showed the certificate, merch controls, payment total and statutory
+consent without clipping or overlap.
+
+After the operator authorized the separate opening step, Orange reconciled the
+live deployment with `STORE_OPEN=true` and left test closed. All live and test
+workloads became healthy. An unauthenticated browser created a real empty live
+cart, added the standard deal, reached checkout, and loaded six Stripe Payment
+Element frames using only the live publishable key. The payment control was
+left disabled and no charge was submitted: a fabricated purchase is not launch
+evidence. The completed live-order count remained zero. Gate F already proved
+the full payment, webhook, certificate, confirmation-mail, merch, Printful,
+gift and surcharge lifecycle against the test dependencies; the first genuine
+live order is now an operational monitoring event, not unfinished V1 scope.
+
 ## Dependency order
 
-`L0 → L1 → L2 → L3 → L4` is the application stack. `D1` follows L2's runtime
-interface. `M1` defines the social webhook before O1 consumes it. F1 uses
-Orange's single explicit test-only override to verify the open-test digest,
-runs the normal reconciliation/close command, and then verifies the release
-workflow's distinct rebuilt live digests closed through Access. E1 performs the
-explicit credential/vendor lifecycles. F2 applies the scoped Access removal,
-performs unauthenticated closed verification and lands the documentation-only
-closure PR. That sequence is the whole completion path.
+`L0 → L1 → L2 → L3 → L4` was the application stack. `D1` followed L2's runtime
+interface, and `M1` defined the social webhook before O1 consumed it. F1 used
+Orange's single explicit test-only override, ran the normal close
+reconciliation and verified the distinct live release closed through Access.
+E1 completed the credential/vendor lifecycles. F2 removed the scoped live
+Access gate, performed unauthenticated closed verification, and, after the
+operator closed the external gates, verified the separately opened store. This
+closure PR is the final step in that sequence.
 
 ## Rollback
 
-Set or retain `STORE_OPEN=false` and roll the application digest back to the
-previous image. By the operator's decision above, no compatibility fence is
-added: an image predating `STORE_OPEN` ignores the setting if selected after
-public exposure. Disabling the n8n workflow removes Meeme's social write path
+For an operational stop, set live `STORE_OPEN=false` in private inventory and
+run the normal Orange reconciliation; leave the public read-only site and test
+gate unchanged. The accepted previous-image rollback is backend
+`sha256:076fab16bcbbaddd7f43cbed2470052bf29bb5e6166e51f6ce2f93a9dc113736`
+and storefront
+`sha256:13739dbb90b89a3cd0b665fe1702efd7c498fdb59f6dcc2a1f14da0a874b1b76`.
+That pair retains the store gate and needs no finer-grained mechanism. An image
+older than the store-gate implementation ignores `STORE_OPEN` and can accept
+orders even when inventory says false; do not use one as a payment-isolating
+rollback.
+
+If the Stripe webhook must be replaced again, close the store first, create and
+verify the new endpoint, advance the exact OpenBao source version, force the
+ExternalSecret refresh and restart its consumers before deleting the endpoint
+being replaced. Disabling the n8n workflow removes Meeme's social write path
 without rotating Buffer; revoking its dedicated Buffer key is the
 credential-level rollback. Printful products may remain in the live store while
 closed because no order can reach them.
