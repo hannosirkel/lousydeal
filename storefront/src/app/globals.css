@@ -300,6 +300,39 @@ small {
   padding: 3px 0;
 }
 
+.footer-social ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.footer-social {
+  margin-bottom: var(--space-4);
+}
+
+.footer-social a {
+  display: inline-flex;
+  padding: var(--space-1);
+}
+
+.footer-social svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.footer-social rect,
+.footer-social circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.footer-social .social-dot {
+  fill: currentColor;
+  stroke: none;
+}
+
 /* The index is a list of documents, each a link over its own summary. The
    summary is not a link: two targets for one destination reads as a repeat to
    anyone tabbing through. */
@@ -546,6 +579,22 @@ a.button.is-secondary:hover {
   display: flex;
   gap: var(--space-2);
   align-items: baseline;
+}
+
+.merch-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.cart-code-controls {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: flex-start;
+  margin-top: var(--space-3);
 }
 
 /* Legal prose takes the body step, like every other legal sentence on the

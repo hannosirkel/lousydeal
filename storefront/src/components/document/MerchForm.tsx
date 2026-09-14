@@ -51,24 +51,32 @@ export function MerchForm({ action, title, variants, storeOpen }: MerchFormProps
               because a select with a value always satisfies it; with an empty
               option it makes the browser refuse the submission, scripting off
               included. */}
-          <select id={selectId} name="variantId" defaultValue="" required>
-            <option value="" disabled>
-              {MERCH_SIZE_LABEL}
-            </option>
-            {variants.map((variant) => (
-              <option key={variant.variantId} value={variant.variantId}>
-                {variant.size}
+          <div className="merch-controls">
+            <select id={selectId} name="variantId" defaultValue="" required>
+              <option value="" disabled>
+                {MERCH_SIZE_LABEL}
               </option>
-            ))}
-          </select>
+              {variants.map((variant) => (
+                <option key={variant.variantId} value={variant.variantId}>
+                  {variant.size}
+                </option>
+              ))}
+            </select>
+            <Button type="submit">
+              {MERCH_ADD_LABEL}
+              <span className="visually-hidden"> {title}</span>
+            </Button>
+          </div>
         </>
       ) : (
-        <input type="hidden" name="variantId" value={only.variantId} />
+        <div className="merch-controls">
+          <input type="hidden" name="variantId" value={only.variantId} />
+          <Button type="submit">
+            {MERCH_ADD_LABEL}
+            <span className="visually-hidden"> {title}</span>
+          </Button>
+        </div>
       )}
-      <Button type="submit">
-        {MERCH_ADD_LABEL}
-        <span className="visually-hidden"> {title}</span>
-      </Button>
     </FunnelForm>
   );
 }
