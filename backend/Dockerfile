@@ -26,7 +26,7 @@
 # start-up, from whatever later projects the Secrets.
 
 # node:24.18.1-trixie-slim
-FROM node:24.20.0-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0 AS build
+FROM node:24.21.0-trixie-slim@sha256:db3ae80f5d8df06e04dabdf7b44cbf008d32de168205fa0294444aabbc08c590 AS build
 
 WORKDIR /src
 
@@ -77,7 +77,7 @@ RUN NODE_ENV=production \
 # compiler, no `@swc`, no `typescript` and no build cache reaches the image
 # that ships.
 # node:24.18.1-trixie-slim
-FROM node:24.20.0-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0 AS runtime-dependencies
+FROM node:24.21.0-trixie-slim@sha256:db3ae80f5d8df06e04dabdf7b44cbf008d32de168205fa0294444aabbc08c590 AS runtime-dependencies
 
 WORKDIR /src
 
@@ -130,7 +130,7 @@ RUN find . -depth \( -name esbuild -o -name '@esbuild' \) -exec rm -rf {} + \
        -exec grep -la 'Go buildinf:' {} + 2>/dev/null)"
 
 # node:24.18.1-trixie-slim
-FROM node:24.20.0-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0 AS runtime
+FROM node:24.21.0-trixie-slim@sha256:db3ae80f5d8df06e04dabdf7b44cbf008d32de168205fa0294444aabbc08c590 AS runtime
 
 # This pinned Node image still ships perl-base 5.40.1-6. Debian's exact
 # security update fixes CVE-2026-13221, CVE-2026-42496 and CVE-2026-8376;
