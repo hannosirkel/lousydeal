@@ -75,6 +75,11 @@ export interface BackendRuntimeConfig {
   };
   readonly redis: RedisRuntimeConfig;
   readonly stripe: StripeRuntimeConfig;
+  /** Fixed, private reporting access for Meeme, or `null` when disabled. */
+  readonly meemeReport: {
+    readonly key: string;
+    readonly timeZone: string;
+  } | null;
   /**
    * How this deployment sends mail, or `null` if it cannot.
    *
@@ -274,7 +279,34 @@ export function readBackendRuntimeConfig(environment: Environment): BackendRunti
         "STRIPE_PAYMENT_METHOD_CONFIGURATION_ID",
       ),
     },
+    meemeReport: readMeemeReportRuntimeConfig(environment),
   };
+}
+
+const MEEME_REPORT_KEY = /^[0-9a-f]{64}$/;
+
+/**
+ * Read the report's all-or-nothing configuration without ever quoting a
+ * credential value in a refusal. `Intl` validates the deployment's IANA name;
+ * there is intentionally no UTC fallback because that would move report days.
+ */
+export function readMeemeReportRuntimeConfig(environment: Environment): BackendRuntimeConfig["meemeReport"] {
+  const key = optionalEnv(environment, "MEEME_REPORT_KEY");
+  const timeZone = optionalEnv(environment, "MEEME_REPORT_TIMEZONE");
+  if (key === undefined && timeZone === undefined) return null;
+  if (key === undefined || timeZone === undefined) {
+    const missing = key === undefined ? "MEEME_REPORT_KEY" : "MEEME_REPORT_TIMEZONE";
+    throw new ConfigError(`Meeme report is partly configured: ${missing} is missing.`);
+  }
+  if (!MEEME_REPORT_KEY.test(key)) {
+    throw new ConfigError("MEEME_REPORT_KEY must be canonical 64-character lowercase hexadecimal.");
+  }
+  try {
+    new Intl.DateTimeFormat("en", { timeZone });
+  } catch {
+    throw new ConfigError("MEEME_REPORT_TIMEZONE must be a valid IANA timezone.");
+  }
+  return { key, timeZone };
 }
 
 /** Only the exact runtime value `true` permits commerce mutations. */
