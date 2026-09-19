@@ -10,7 +10,7 @@ does not — it points, it does not hold.
 | Updated | 2026-09-21 |
 | Current slice | **No active slice. LD-10 — Meeme reporting, social delivery and operating polish is complete.** |
 | In flight | Nothing. Every LD-10 code, deployment, credential, recovery and operator-cleanup row is closed. |
-| Next action | Choose the next initiative. LD-07 remains deferred out of V1. |
+| Next action | Decide whether to start LD-11 — User experience, which is planned and not started. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -45,6 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
+| **LD-11 — User experience** | **open, not started.** [`ld-11-user-experience.md`](./ld-11-user-experience.md) — twelve rows. Part one repairs the LD-03/LD-04 seam the first live order exposed on 2026-09-19: a gift message quoting the order total instead of the certificate's amount, and one denying a parcel the order contains. Both reached a third party. Part two walks the flows no rendered review has covered, because Gate E passed LD-02 through LD-06 and the site opened with LD-08, LD-09 and LD-10 unwalked. Not V1. |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
