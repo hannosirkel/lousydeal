@@ -1,0 +1,13 @@
+{
+  "path": ["backend/src", "storefront/src", "scripts"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**",
+    "**/tests/fixtures/**"
+  ],
+  "threshold": 0,
+  "minLines": 5,
+  "minTokens": 50
+}
