@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, not started.** [`ld-11-user-experience.md`](./ld-11-user-experience.md) — twelve rows. Part one repairs the LD-03/LD-04 seam the first live order exposed on 2026-09-19: a gift message quoting the order total instead of the certificate's amount, and one denying a parcel the order contains. Both reached a third party. Part two walks the flows no rendered review has covered, because Gate E passed LD-02 through LD-06 and the site opened with LD-08, LD-09 and LD-10 unwalked. Not V1. |
+| **LD-11 — User experience** | **open, not started.** [`ld-11-user-experience.md`](./ld-11-user-experience.md) — twelve rows in two parts. Six repair what the first live order proved on 2026-09-19, including a gift message that quotes the order total rather than the certificate's amount and one that denies a parcel the order contains; both reached a third party. Six walk the flows Gate E has never covered — the rendered UI review passed for LD-02 through LD-06 only, and LD-08, LD-09 and LD-10 opened to the public unreviewed at that level. Not V1. |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.

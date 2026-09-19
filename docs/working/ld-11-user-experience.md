@@ -1,18 +1,34 @@
-# LD-11 — Gift and upsell flow clarity
+# LD-11 — User experience
 
-Make a gift order describe itself truthfully to both people in it, and make the
-checkout's two name fields impossible to confuse.
+Perfect the experience of lousydeal.com: repair the flow defects the first live
+order proved, then walk every remaining flow before a customer finds the next
+one.
 
-The contract is [`fresh-build.md`](./fresh-build.md); this slice repairs the
-seam between [LD-03](./ld-03-gifting.md) (gifting, complete 2026-09-08) and
+The contract is [`fresh-build.md`](./fresh-build.md). Part one repairs the seam
+between [LD-03](./ld-03-gifting.md) (gifting, complete 2026-09-08) and
 [LD-04](./ld-04-merch.md) (merch, complete 2026-09-10). Neither slice is wrong
-on its own. LD-03 built a gift message for an order that could only ever be one
-certificate; LD-04 made an order able to carry a parcel two days later and
-nothing revisited what the gift message says.
+on its own: LD-03 built a gift message for an order that could only ever be one
+certificate, and LD-04 made an order able to carry a parcel two days later
+without anything revisiting what that message says.
 
-**This slice is evidence-driven and the evidence is the first live order.** It
-is not a speculative usability pass. Every row below names a defect that order
-demonstrated on 2026-09-19.
+**Two parts, and they are different kinds of work.** Part one is six rows, each
+naming a defect live order #1 demonstrated on 2026-09-19 — sized because the
+defect is already known. Part two is six audit rows, each walking one flow and
+*producing* findings rather than consuming them; each is sized by the flow it
+walks and its output is a list of fix rows for the operator to choose from. A
+part-two row that finds nothing is a passing row, not a wasted one.
+
+**Part two exists because Gate E has a hole.** `status.md` records the rendered
+UI review as "passed for LD-02 through LD-06". LD-08's launch polish, LD-09's
+visual identity and LD-10's storefront work have never had one. The site opened
+to the public on 2026-09-13 with three slices unreviewed at the rendered level,
+and both of order #1's customer-facing defects were of a kind a rendered walk
+finds.
+
+**Part one is evidence, part two is method.** No row in part one is a
+speculative usability opinion; no row in part two pretends to know its answer
+before the walk. Keeping the two apart is what stops the second kind quietly
+becoming redecoration.
 
 ## What the first live order measured
 
@@ -96,14 +112,41 @@ LD-03's and LD-04's, carried forward. What this slice adds:
 
 ## Rows
 
-| Row | What it does | Repository |
-| --- | --- | --- |
-| F1 | Gift message states the certificate's amount, not the order's | `lousydeal` |
-| F2 | Gift message stops denying a parcel that exists | `lousydeal` |
-| F3 | Gift tests cover an order carrying merch | `lousydeal` |
-| F4 | Checkout separates the public pair from the private four | `lousydeal` |
-| F5 | The gift block says where a parcel goes | `lousydeal` |
-| F6 | Settle constraint 4, and give the operator an inscription route | `lousydeal` |
+### Part one — what order #1 proved
+
+| Row | What it does |
+| --- | --- |
+| F1 | Gift message states the certificate's amount, not the order's |
+| F2 | Gift message stops denying a parcel that exists |
+| F3 | Gift tests cover an order carrying merch |
+| F4 | Checkout separates the public pair from the private four |
+| F5 | The gift block says where a parcel goes |
+| F6 | Settle constraint 4, and give the operator an inscription route |
+
+### Part two — the flows nobody has walked
+
+| Row | What it walks |
+| --- | --- |
+| G1 | Home, deal and goods — the browse flow |
+| G2 | Cart, and whether a discount code is comprehensible |
+| G3 | Checkout, end to end, as one document |
+| G4 | The certificate and its share surfaces |
+| G5 | Baldrick's reach and his dead ends |
+| G6 | 390px across every route |
+
+Every part-two row is executed the same way, and the method is the row's
+contract rather than a suggestion:
+
+1. Walk the flow on the live site as a first-time visitor, at 390px and at
+   desktop width. 390px is this repository's width: `GIFT_PREVIEW_EMPTY`'s
+   defect and the bearer row's blank-leader defect were both found there and
+   nowhere else.
+2. Record what a visitor **cannot work out**, not what could be prettier. The
+   test is comprehension, not taste.
+3. Write each finding as a fix row with its evidence attached. Fix nothing in
+   the audit row itself — an audit that fixes as it goes produces a diff nobody
+   can review against a finding nobody wrote down.
+4. A row that finds nothing says so and closes.
 
 ### F1 — The gift message states the certificate's amount
 
@@ -213,6 +256,96 @@ The row builds the smallest thing that is one — most likely a
 **Done when** constraint 4 reads the same in both documents, and an inscription
 can be changed without a person writing SQL.
 
+### G1 — Home, deal and goods: the browse flow
+
+Does a first-time visitor understand what is for sale before they are asked to
+pay for it?
+
+**It starts with a known symptom.** `CART_NEEDS_CERTIFICATE_NOTICE` exists
+because a cart can hold printed goods and no certificate — the merch upsell is
+reachable from the wrong end, and the shop's answer today is a notice at the
+cart telling the visitor they started backwards. A notice repairing a browse
+path is evidence the browse path leaks.
+
+Walk: home → a deal → goods → cart, and goods → cart without a deal.
+
+**Done when** the audit records whether a visitor can reach a merch-only cart
+without intending to, and what the browse flow would have to do so they cannot.
+
+### G2 — Cart, and whether a discount code is comprehensible
+
+`BALDRICK20` raises the price. That is the entire product and it is not up for
+review — but whether a visitor *understands it before applying it* is exactly
+what this row asks.
+
+Order #1 is the evidence: the recipient had to be told afterwards, in writing,
+that the discount had added a dollar. The buyer knew, being the operator. No
+other buyer will be.
+
+Also walk `CART_SURCHARGE_NOTICE`'s state, which the copy itself admits is
+reachable "because the public line-item route can change the line's quantity" —
+a state whose repair instruction is three sentences long.
+
+**Done when** the audit records what the cart tells a visitor about a code
+before it is applied, and whether the surcharge state can be reached by
+ordinary use rather than by hand.
+
+### G3 — Checkout, end to end, as one document
+
+F4 repairs the two name fields. This row walks everything around them:
+the email hint, the country select, the address block that appears only with a
+parcel, the consent statement, the price notice, the gift disclosure, and the
+Payment Element.
+
+**It is the one route on this site that requires scripting**, which makes it
+the one route where a failure has no fallback. Walk it as a document, in order,
+and record where the sequence asks for something the visitor cannot yet answer.
+
+**Done when** the audit records the order in which checkout asks for things and
+whether that order matches what a buyer can know at each step.
+
+### G4 — The certificate and its share surfaces
+
+The certificate, its PDF, its OpenGraph card and `ShareRow`.
+
+**The known question is whether an owner understands the page is public.** The
+operator did not immediately connect `Name on the certificate` with the `BEARER`
+row on their own product, which is the strongest possible evidence that a buyer
+will not either. §5 makes the slug unenumerable and the page `noindex`, so the
+page is *unlisted* rather than *private*, and nothing on it says which.
+
+**Done when** the audit records what the certificate page tells its owner about
+who can see it, and whether the share row's notice covers the page itself or
+only the three links.
+
+### G5 — Baldrick's reach and his dead ends
+
+Baldrick is deliberately lazy and that is not a defect to repair — `brand.md`
+specifies it and four guards enforce it.
+
+**The UX question is different: can a visitor with a real question get out of
+him?** He may not summarise a legal document, state a figure, or claim to pass
+anything on. So every real question must terminate somewhere real — the
+Imprint, *Refunds and Withdrawal*, or the trader's address — rather than in
+another response pool. `baldrick-reach.test.ts` asserts reachability; this row
+asks whether a person experiences it as reach or as a loop.
+
+**Done when** the audit records, for each intent, where a visitor lands and
+whether that destination answers them.
+
+### G6 — 390px across every route
+
+Not a flow but a sweep, and last on purpose: it re-walks whatever G1 through G5
+changed.
+
+Every route at 390px: home, deal, goods, cart, checkout, certificate, the legal
+set, `not-found`, and the empty and error states of each. This repository has
+found two rendered defects this way that every passing assertion missed, which
+is the argument for doing it deliberately rather than incidentally.
+
+**Done when** no route scrolls horizontally, no control is unreachable, and no
+document's leader, rule or ledger breaks at that width.
+
 ## Open questions for the operator
 
 1. **Should the buyer be told what the recipient's message will say?** The
@@ -231,4 +364,10 @@ can be changed without a person writing SQL.
 - It does not add a moderation policy for inscriptions. §5 draws that line and
   this slice keeps it: a mechanical filter, not a judgement.
 - It does not give Baldrick an LLM backend. `AGENTS.md` forbids it and nothing
-  here needs it.
+  here needs it. G5 asks where he sends people, never what he is.
+- **It does not change how mail leaves the application.** The notification
+  provider supports one recipient and no CC. That is a real gap and it is not
+  user experience; the operator settled it as out of scope on 2026-09-19.
+- It does not redecorate. Gate C passed and LD-09 owns the visual identity.
+  Part two's test is whether a visitor can work something out, never whether a
+  reviewer would have chosen differently.
