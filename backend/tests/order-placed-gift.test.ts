@@ -61,16 +61,24 @@ const ENVIRONMENT: Record<string, string> = {
  * Live order #1, as the subscriber sees it.
  *
  * **The shape every other case in this file lacks.** Until F3 every gift order
- * here was one certificate line, `total: new BigNumber(25)` against one item of
- * `2500`, so the order total and the certificate's own amount were the same
- * number in every test. F1's and F2's defects are both invisible under that
- * fixture, which is how they reached a recipient on 2026-09-19.
+ * here was one certificate line, so the order total and the certificate's own
+ * amount were the same number in every test. F1's and F2's defects are both
+ * invisible under that fixture, which is how they reached a recipient on
+ * 2026-09-19.
  *
  * The figures are order #1's: a $5.00 certificate, `BALDRICK20`'s $1.00
  * surcharge, a $29.00 cap and $6.40 of postage. The certificate is worth
  * `$6.00` — tier plus surcharge, which is what LD-06 decided a coded
  * certificate is worth — and the order totals `$41.40`. They differ by
  * $35.40, and no assertion in this file could previously tell them apart.
+ *
+ * **Line totals are major units**, as `order-placed-confirmation.test.ts` and
+ * `order-placed-surcharge.test.ts` write them: `amount()` reads the value as
+ * given and `addMajor` sums it, so `5 + 1` is the `$6.00` certificate. The
+ * default fixture below pairs a `2500` line with `new BigNumber(25)`, which is
+ * harmless there only because nothing asserts an amount against it — copying
+ * that pair here made the certificate `$600.00` and the `$6.00` assertion
+ * vacuous, which is what the first draft of this row did.
  *
  * `variant_id: null` is what makes the surcharge line a surcharge
  * (`isSurchargeLine`); the cap carries a non-null one so it is read as
@@ -80,13 +88,13 @@ const ENVIRONMENT: Record<string, string> = {
 const MERCH_GIFT_ORDER = {
   total: new BigNumber(41.4),
   items: [
-    { title: "Lousy Deal", product_handle: "lousy-deal", total: 500, variant_id: "variant_deal", detail: { quantity: 1 } },
-    { title: "Discount", total: 100, variant_id: null, detail: { quantity: 1 } },
+    { title: "Lousy Deal", product_handle: "lousy-deal", total: new BigNumber(5), variant_id: "variant_deal", detail: { quantity: 1 } },
+    { title: "Discount (BALDRICK20)", total: new BigNumber(1), variant_id: null, detail: { quantity: 1 } },
     {
       title: "Lousy Deals Trucker Cap",
       product_handle: "lousy-deals-trucker-cap",
       variant_title: "One size",
-      total: 2900,
+      total: new BigNumber(29),
       variant_id: "variant_cap",
       detail: { quantity: 1 },
     },
@@ -256,10 +264,10 @@ describe("a gift order", () => {
  * F3 builds the fixture; F1 and F2 invert what it proves. Asserting today's
  * behaviour rather than tomorrow's is what makes this row closable on its own
  * and what makes the next two rows' diffs reviewable: when F1 lands, the first
- * test here changes from `$41.40` to `$6.00` and that one-line diff *is* the
- * defect being fixed. A fixture that asserted the corrected behaviour would
- * have to ship red, which would leave `main` with a failing suite between
- * rows.
+ * test here inverts — `$41.40` becomes the figure the gift message must *not*
+ * carry and `$6.00` the one it must — and that diff *is* the defect being
+ * fixed. A fixture that asserted the corrected behaviour would have to ship
+ * red, which would leave `main` with a failing suite between rows.
  */
 describe("a gift order carrying merch, as it behaves today", () => {
   it("quotes the order total in the gift message, not the certificate's amount", async () => {
@@ -291,7 +299,11 @@ describe("a gift order carrying merch, as it behaves today", () => {
     const gift = sent.find((n) => n.template === "gift-message");
 
     expect(gift?.content?.text).toContain("there is nothing else coming");
-    expect(gift?.content?.text).not.toMatch(/cap|post|parcel/i);
+    // Named, not pattern-matched: `/cap|post/i` also catches "escape" and
+    // "postal", so it would fail for the wrong reason the day unrelated copy
+    // changes. F2's first candidate shape names what is on its way, which is
+    // exactly this string.
+    expect(gift?.content?.text).not.toContain("Lousy Deals Trucker Cap");
   });
 
   it("still sends both messages, once each, to the right two addresses", async () => {

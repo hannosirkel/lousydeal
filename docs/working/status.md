@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, planned, not started.** Sixteen rows in three parts. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
+| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; F3 in flight. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
