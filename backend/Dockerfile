@@ -25,7 +25,7 @@
 # reads. `src/config/runtime.ts` re-reads all of it from `process.env` at
 # start-up, from whatever later projects the Secrets.
 
-# node:24.18.1-trixie-slim
+# node:24.21.0-trixie-slim
 FROM node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS build
 
 WORKDIR /src
@@ -76,7 +76,7 @@ RUN NODE_ENV=production \
 # development half omitted. It is installed in its own stage so that no
 # compiler, no `@swc`, no `typescript` and no build cache reaches the image
 # that ships.
-# node:24.18.1-trixie-slim
+# node:24.21.0-trixie-slim
 FROM node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS runtime-dependencies
 
 WORKDIR /src
@@ -129,7 +129,7 @@ RUN find . -depth \( -name esbuild -o -name '@esbuild' \) -exec rm -rf {} + \
   && test -z "$(find . -type f \( -perm -u+x -o -size +1M \) \
        -exec grep -la 'Go buildinf:' {} + 2>/dev/null)"
 
-# node:24.18.1-trixie-slim
+# node:24.21.0-trixie-slim
 FROM node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS runtime
 
 # This pinned Node image still ships perl-base 5.40.1-6. Debian's exact

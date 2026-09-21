@@ -27,7 +27,7 @@
 # argument. The storefront reads all of it from `process.env` per request, in
 # `storefront/src/config/runtime-config.ts`.
 
-# node:24.18.1-trixie-slim
+# node:24.21.0-trixie-slim
 FROM node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS build
 
 WORKDIR /src
@@ -49,7 +49,7 @@ COPY storefront/ storefront/
 # and `next.config.ts`'s own header explains why none is read here.
 RUN NODE_ENV=production npm run build --workspace storefront
 
-# node:24.18.1-trixie-slim
+# node:24.21.0-trixie-slim
 FROM node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS runtime
 
 # This pinned Node image still ships perl-base 5.40.1-6. Debian's exact
