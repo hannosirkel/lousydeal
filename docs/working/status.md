@@ -7,11 +7,11 @@ does not — it points, it does not hold.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-14 |
-| Current slice | **LD-10 — Meeme reporting, social delivery and operating polish is active.** |
-| In flight | LD-10 execution is under way. I10-A/O10-A opened the Access-gated test shop with Stripe sandbox; L10-U is merged. L10-C's aggregate commerce route, candidate registry and conservative omission accounting passed the real Medusa smoke, full validation and final Astra review. |
-| Next action | Merge L10-C after its pull-request checks pass, then continue with the next LD-10 row. |
-| Blocked | Runtime completion needs a dedicated GA Viewer principal and dedicated B2 bucket/key. Their absence does not block the plan, storefront polish, Instagram repair, commerce interface or test opening. |
+| Updated | 2026-09-21 |
+| Current slice | **No active slice. LD-10 — Meeme reporting, social delivery and operating polish is complete.** |
+| In flight | Nothing. Every LD-10 code, deployment, credential, recovery and operator-cleanup row is closed. |
+| Next action | Choose the next initiative. LD-07 remains deferred out of V1. |
+| Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
 no rendered Secret. It is public, like the rest of the repository.
@@ -29,6 +29,7 @@ no rendered Secret. It is public, like the rest of the repository.
 | LD-04 — Printful and merch | complete 2026-09-10; thirty-two rows across three repositories | [`ld-04-merch.md`](./ld-04-merch.md) |
 | LD-06 — Worse discounts | complete 2026-09-11; eleven rows and PRs 199–211 plus the closure record | [`ld-06-discounts.md`](./ld-06-discounts.md) |
 | LD-08 — Launch polish | complete 2026-09-13; the public live store is open with analytics, fulfillment and live payment configuration verified | [`ld-08-launch-polish.md`](./ld-08-launch-polish.md) |
+| LD-10 — Provider reporting | complete 2026-09-21; fixed commerce, analytics and owned-social reports, bounded campaign media, test ordering and storefront polish are active | [`provider-reporting.md`](../current/provider-reporting.md) |
 
 **Each of those has been driven end to end, not merely built.** LD-02 paid for a
 certificate on the test environment and sent the § 55 confirmation; LD-03 paid
@@ -44,7 +45,6 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-10 — Meeme reporting, social delivery and operating polish** | **active.** [`ld-10-provider-reporting.md`](./ld-10-provider-reporting.md) owns the approved cross-system execution contract. Its old Meeme #9, private inventory #49 and Orange #98 drafts are evidence only and require fresh review before any reuse. |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
@@ -97,15 +97,16 @@ What is actually held, as against what the contract expects in §2b.
 | Printful test store | yes | Existing token, webhook and four products remain the Gate F test path. Order #7 reached Printful and failed at the known missing-billing gate. |
 | Printful live store | projected and verified | The dedicated live source and signing secret are projected. The 2026-09-13 runtime reconciliation reported zero mutations, four unchanged handles and zero unrecognised products; the idempotent Medusa join reported four records and nine variants. The v2 provider read-back returned HTTP 200, the exact live destination and four expected event types, with its public key present. |
 | **Printful billing information** | yes | The operator confirmed the live store's billing method on 2026-09-13 before payments opened. |
-| Buffer profiles | three-network launch scope verified | Meeme's gated status and channel checks pass. Instagram, TikTok and X are available exactly as supplied; one private X draft was created through Meeme and removed in the same operator session. Facebook, LinkedIn and YouTube remain supported in code, but their Buffer connections and runtime verification are deferred to LD-10. |
-| Google Analytics Data API authority | **no** | LD-10 needs a dedicated read-only principal, the numeric GA4 property ID and a property Viewer grant for aggregate reports. **Non-blocking:** the deferred post-launch initiative waits on it; LD-08 does not |
-| Meta owned-asset read authority | **no** | LD-10 needs a valid authorized Page and linked professional Instagram asset token with verified read scopes; the Facebook App ID/secret is not data access authority. **Non-blocking**, like the row above |
+| Buffer profiles | three-network launch scope verified | Meeme's gated status and channel checks pass. Instagram, TikTok and X are available, posting-authorized and automatic; Facebook, LinkedIn and YouTube remain unavailable. The deployed aggregate query returns a sanitized Instagram result through the same seam. The private Instagram and TikTok verification drafts were deleted by the operator on 2026-09-21; neither was scheduled or published. |
+| Google Analytics Data API authority | **active through the gated seam** | The dedicated read-only principal authenticated against the privately bound property, whose timezone is `Europe/Tallinn`. Its exact OpenBao grant, n8n credential and reviewed workflow are active; repeat imports are unchanged. Meeme receives only the sanitized seven-day traffic and fixed funnel-event response. |
+| Meta owned-asset read authority | not required | The approved LD-10 design reads owned-social aggregates through Buffer. It does not import a separate Facebook App credential. |
+| B2 campaign-media authority | **active through the gated seam** | The privately bound public staging bucket and source are verified and seeded. The operator explicitly authorized its bucket-scoped management authority for disposable campaign media; Meeme's reviewed interface remains upload-only under its fixed campaign prefix. One approved PNG was uploaded and its stable public URL returned HTTP 200 with the expected type and length. |
 | Printful webhook and its secret | test and live verified | Test was verified end to end — correctly signed 200, wrongly signed 401. The 2026-09-13 live provider read-back returned HTTP 200, matched the exact destination and all four expected event types, and reported its public key while the workload held the projected signing secret. |
 | Merch buyable end to end | yes, 2026-09-10 | the operator completed a checkout |
 | Union OSS registration, and the `EX` filing | yes / filed 2026-09-09 | the `EX` number follows within 35 working days; nothing waits on it |
 | Article 28 agreement with Printful | held by incorporation | its Data Processing Terms are incorporated by ToS §19; nothing to countersign |
 | Destination VAT rates verified against TEDB | yes, 2026-09-10 | all 27 agree; a pass is dated, not permanent |
-| Cloudflare Access | scoped | The live storefront is public. Live admin, test storefront and test admin still answer with the Access redirect. |
+| Cloudflare Access | scoped | The live storefront is public. Live admin, test storefront and test admin remain Access-gated; authenticated test visitors may order with Stripe sandbox. |
 | The two VAT counters | **a standing procedure, not an open item** | `npm run report:vat-thresholds`. Nothing schedules it, deliberately. Crossing €100,000 must reach EMTA within 15 working days |
 
 ## Deployment
@@ -129,6 +130,18 @@ cart, reached checkout, and loaded Stripe's Payment Element with only the live
 publishable key; no payment was submitted and the completed live-order count
 remained zero. `deploys/lousydeal/` carries the base and both overlays; images
 are promoted by digest.
+
+Subsequent digest promotions deployed LD-10's storefront polish and aggregate
+commerce route. The 2026-09-20 public read-back found the favicon, three social
+links, both control-gap rules and Stripe disclosure in the deployed assets;
+live and its favicon returned HTTP 200 while test still redirected to Access.
+Meeme's fixed reports returned the real paid commerce aggregate and separately
+empty GA/Instagram results for the same seven completed Tallinn dates. Its
+bounded media helper also stored and directly verified the approved campaign
+PNG before creating the two private, unpublished Buffer verification drafts.
+The operator deleted both drafts on 2026-09-21. The inactive local rollback
+copy of the rotated commerce key was then irreversibly removed under explicit
+operator authorization.
 
 ## Deferred ideas
 
