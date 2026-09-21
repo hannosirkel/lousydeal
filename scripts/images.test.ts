@@ -345,3 +345,13 @@ describe("every Dockerfile stage is pinned, non-root and unwrapped", () => {
     });
   }
 });
+
+describe("the backend runtime dependency stage", () => {
+  it("always creates the workspace node_modules directory copied by the runtime stage", () => {
+    const runs = directives("backend/Dockerfile", "RUN");
+
+    expect(runs).toContain(
+      "npm ci --omit=dev --workspace backend --include-workspace-root && mkdir -p backend/node_modules",
+    );
+  });
+});
