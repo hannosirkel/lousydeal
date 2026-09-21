@@ -26,21 +26,30 @@ which is why this plan was first written as though LD-08, LD-09 and LD-10 had
 never been reviewed at the rendered level. That was wrong twice over, and
 stating what *has* been walked is what keeps part two honest:
 
-| Slice | Rendered record |
-| --- | --- |
-| LD-03 | G9, on a real gift order |
-| LD-06 | D10, 2026-09-11, 390px and desktop, open cart and checkout with a code, a mug, attached postage and payment |
-| LD-09 | V15, 2026-09-05, desktop and 390px |
-| LD-08 | L3, 2026-09-12, 44 route cases, scripting on and off, at `STORE_OPEN=false`; and F2, the public verification, which did reach the live site but while it was closed — cart, surcharge, checkout and payment all returned `store_closed` |
-| LD-10 | desktop and mobile browser checks — favicon, social links, cart and merch control spacing, Stripe disclosure, card frames — recorded in [`provider-reporting.md`](../current/provider-reporting.md), not labelled Gate E and with no payment submitted |
+| Slice | Rendered record | Where |
+| --- | --- | --- |
+| LD-03 | G9, "a real gift, to two addresses", a real Stripe test-mode payment | test |
+| LD-06 | D10, 2026-09-11, 390px and desktop: a code, a shirt, attached postage, and a paid order capturing `$44.47`. It failed twice before passing | test |
+| LD-09 | V15, 2026-09-05, desktop and 390px, scripting disabled | built server |
+| LD-08 | L3, 2026-09-12, 44 route cases, scripting on and off, at 360×800 and 1440×900 | `STORE_OPEN=false` |
+| LD-08 | F2, 2026-09-13 — and this one reached the live store **open**; see below | live, open |
+| LD-10 | desktop and mobile browser checks: favicon, social links, cart and merch control spacing, Stripe disclosure, card frames. "No payment was submitted during this check" | live |
 
-**So the hole is not "these slices were never looked at".** It is this:
-**no rendered walk has ever reached a live open store.** LD-03, LD-06 and LD-09
-walked the test environment or a build; LD-08's F2 reached production but found
-a closed shop, so the cart and checkout it exercised were the refusing ones;
-LD-10's checks were a runtime verification that submitted no payment. The
-flows a paying customer meets on lousydeal.com have been walked by exactly one
-person — the buyer of order #1 — and they found two defects doing it.
+**F2 is the one that matters, and it is quoted rather than summarised, because
+this paragraph has been written wrongly twice before.** `ld-08-launch-polish.md`
+records, after the operator authorised opening:
+
+> An unauthenticated browser created a real empty live cart, added the standard
+> deal, reached checkout, and loaded six Stripe Payment Element frames using
+> only the live publishable key. The payment control was left disabled and no
+> charge was submitted: a fabricated purchase is not launch evidence.
+
+**So the live open store has been walked — once, with one certificate, as far
+as the disabled pay control.** That is the whole of it. What no walk of any
+kind has ever covered on the open store is a gift, a parcel, a discount code,
+or anything at or after the moment the pay control is pressed. Every defect in
+part one and part three is in that untouched region, which is why a customer
+found them and F2 did not. Part two is sized to cover it.
 
 **Part one is evidence, part two is method, and part three is evidence of a
 second kind.** No row in part one or part three is a speculative usability
@@ -137,8 +146,9 @@ contract rather than a suggestion:
 
 1. Walk the flow on the live site as a first-time visitor, at 390px and at
    desktop width. 390px is this repository's width: `GIFT_PREVIEW_EMPTY`'s
-   defect and the bearer row's blank-leader defect were both found there and
-   nowhere else.
+   defect was found there and `checkout.ts` records it, and the bearer row's
+   blank-leader defect is the other of the two this repository found by looking
+   rather than by asserting.
 2. Record what a visitor **cannot work out**, not what could be prettier. The
    test is comprehension, not taste.
 3. Write each finding as a fix row with its evidence attached. Fix nothing in
@@ -178,9 +188,13 @@ perfect is not an audit row.
 **Runs after F3**, whose fixture is what makes this row's assertion possible.
 
 `sendGift` takes `total`, which its caller computed from `order.total`. It
-should take the certificate's own amount — `deal.amount_paid`, formatted by the
-same `formatMoney` — so the figure in the email is the figure on the document
-it links to.
+should take the certificate's own amount instead, so the figure in the email is
+the figure on the document it links to. **The subscriber already holds that
+figure**: `readCertificate` computes `amountPaid` from the certificate line's
+own total plus any surcharge, and passes it into issuance. It is not read back
+off the deal — `IssuedDeal` carries the gift fields and the slug, not
+`amount_paid` — so the row passes the value the subscriber already has,
+formatted by the same `formatMoney`.
 
 The buyer's § 55 confirmation is unaffected and must stay unaffected: the buyer
 paid the order total, is owed it itemised, and `buildOrderConfirmation` already
@@ -189,8 +203,9 @@ prints it correctly with merch and surcharge broken out.
 Delete the comment claiming both messages should print one number, and replace
 it with the reason they must not.
 
-- [ ] Pass the certificate's own `deal.amount_paid` to `sendGift` instead of the
-      order total, and replace the comment claiming both messages print one
+- [ ] Pass the certificate's own `amountPaid`, as `readCertificate` already
+      computes it, to `sendGift` instead of the order total, and replace the
+      comment claiming both messages print one
       number with the reason they must not. Verified by a test in
       `order-placed-gift.test.ts` driving F3's merch-bearing gift fixture and
       asserting the gift message quotes the certificate's amount while
@@ -268,7 +283,8 @@ postage, whose order total differs from its certificate amount.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/content/checkout.ts`,
-`storefront/tests/checkout-order-summary.test.ts`.
+`storefront/tests/checkout-gift.test.ts`,
+`storefront/tests/checkout-inscription.test.ts`.
 
 `INSCRIPTION_NOTICE` and `GIFT_NOTICE` both already say which fields are public
 and which are not. A buyer who had read both still put the recipient's name in
@@ -300,7 +316,8 @@ a rendering in front of it:
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/content/checkout.ts`,
 `storefront/src/app/checkout/PaymentForm.tsx`,
-`storefront/tests/checkout-order-summary.test.ts`.
+`storefront/tests/checkout-gift.test.ts`,
+`storefront/tests/checkout-address.test.ts`.
 
 The gift block collects an email address and no postal address; the shipping
 address is a separate field belonging to the merch upsell. On order #1 the
@@ -438,8 +455,9 @@ The certificate, its PDF, its OpenGraph card and `ShareRow`.
 **The known question is whether an owner understands the page is public.** The
 operator did not immediately connect `Name on the certificate` with the `BEARER`
 row on their own product, which is the strongest possible evidence that a buyer
-will not either. §5 makes the slug unenumerable and the page `noindex`, so the
-page is *unlisted* rather than *private*, and nothing on it says which.
+will not either. §5 makes the slug unenumerable and LD-08's L3 made the page
+`noindex` — two decisions from two slices — so the page is *unlisted* rather
+than *private*, and nothing on it says which.
 
 - [ ] Walk a real certificate, its PDF, its OpenGraph card and `ShareRow` at
       390px and desktop width, as an owner seeing it for the first time.
@@ -461,8 +479,10 @@ specifies it and four guards enforce it.
 him?** He may not summarise a legal document, state a figure, or claim to pass
 anything on. So every real question must terminate somewhere real — the
 Imprint, *Refunds and Withdrawal*, or the trader's address — rather than in
-another response pool. `baldrick-reach.test.ts` asserts reachability; this row
-asks whether a person experiences it as reach or as a loop.
+another response pool. **No test asks this.** `baldrick-reach.test.ts` asserts
+which pages mount the widget and, more to its point, which must never mount it;
+`baldrick-copy.test.ts` guards what he may say. Neither follows an intent to
+where it lands, which is what this row does.
 
 - [ ] Hold a real conversation per intent in `BALDRICK_INTENTS` from the
       keyboard, at 390px and desktop width, following each to where it
@@ -505,9 +525,21 @@ is the argument for doing it deliberately rather than incidentally.
 **Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/content/checkout.ts`,
 `storefront/src/content/legal/terms.ts`,
-`storefront/tests/checkout-order-summary.test.ts`. Under the first option below
-the two content files are untouched and `storefront/src/lib/store-checkout.ts`
-joins the list instead, since completion has to return the deal's slug.
+`storefront/tests/checkout-order-summary.test.ts`,
+`storefront/tests/checkout-session.test.ts`.
+
+**The two options have different file lists, and the second option's is the one
+above.** The first option — making the promise true — is not a storefront
+change at all: `completeCheckoutCart` lives in
+`storefront/src/lib/store-payment.ts`, and it has nothing to return, because
+issuance is asynchronous in `order-placed.ts` and
+`backend/src/api/store/deals/[slug]` is keyed by slug. Option one therefore
+needs a backend route keyed by order, or a completion response carrying the
+slug, plus its test — `backend/src/api/store/deals/`,
+`backend/src/subscribers/order-placed.ts` and a backend test join the list, and
+the row is then plausibly two pull requests rather than one. **If the row
+chooses option one it is decomposed first**, per the planning standard. This is
+what "the larger change" means below, stated as files rather than as a feeling.
 
 Findings 1 and 2 of the pay-path reading, which are one row because they are
 one defect: the end state
@@ -558,7 +590,8 @@ states its choice before it writes the test:
 **Files:** `storefront/src/lib/store-checkout.ts`,
 `storefront/src/app/checkout/page.tsx`,
 `storefront/src/app/checkout/PaymentForm.tsx`,
-`storefront/tests/checkout-order-summary.test.ts`.
+`storefront/tests/checkout-session.test.ts`,
+`storefront/tests/store-checkout.test.ts`.
 **Runs after H1**, whose end state is where a redirect return has to land.
 
 Finding 3 of the pay-path reading. `getCheckoutCart` never reads
@@ -590,7 +623,7 @@ is read by nothing. That is the half with no fallback.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/content/checkout.ts`,
-`storefront/tests/checkout-order-summary.test.ts`.
+`storefront/tests/checkout-session.test.ts`.
 
 Finding 4 of the pay-path reading. `thrown.message` goes straight into the
 rendered error, so a buyer
@@ -622,13 +655,15 @@ where something may have been, and that notice must not invite a retry.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/lib/shipping-address.ts`,
-`storefront/tests/checkout-order-summary.test.ts`.
+`storefront/tests/checkout-address.test.ts`,
+`storefront/tests/shipping-address.test.ts`.
 
 Finding 5 of the pay-path reading, which was added to `findings.md` when this
 row was found to be resting on evidence nobody had written down.
 
-`countryCode` is seeded from `countries[0]?.iso_2` against a list sorted by
-alpha-2, so the default is whichever country sorts first. The control that sets
+`countryCode` is seeded from `countries[0]?.iso_2` — the first row of whatever
+order Medusa returns the region's countries in, which nothing in the storefront
+sorts or chooses. The default is therefore a country the buyer never picked. The control that sets
 it then sits *below* the address fieldset it governs, and `addressComplete`
 accepts any non-blank string per field.
 

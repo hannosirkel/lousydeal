@@ -127,8 +127,8 @@ stale between the reading and the review; a symbol survives an edit above it.
    defect 2 above — a sentence in our own mail or copy that is simply false —
    and not a matter of taste.
 3. **A paid cart still renders the payment form.** `getCheckoutCart` never
-   reads `completed_at`, although `store-cart.ts` and `cart-actions.ts` both do
-   for the cart page. A reload, a back-button or Stripe's own return to
+   reads `completed_at`, although `store-cart.ts` declares the field and
+   `cart-actions.ts` reads it for the cart page. A reload, a back-button or Stripe's own return to
    `return_url` — which `handleSubmit` sets to
    `${window.location.origin}/checkout` — re-renders
    checkout for an order already paid, and the session it then re-creates makes
@@ -141,9 +141,11 @@ stale between the reading and the review; a symbol survives an edit above it.
    control, and invites a second press against an intent Stripe has already
    settled.
 5. **Postage is quoted before the buyer has said where they are.**
-   `PaymentForm.tsx` seeds `countryCode` from `countries[0]?.iso_2` against a
-   list sorted by alpha-2, so the default is whichever country sorts first, and
-   the control that sets it sits *below* the address fieldset it governs.
+   `PaymentForm.tsx` seeds `countryCode` from `countries[0]?.iso_2` — the first
+   row of whatever order Medusa returns the region's countries in, which
+   nothing in the storefront sorts or chooses — so the default is a country the
+   buyer never picked, and the control that sets it sits *below* the address
+   fieldset it governs.
    `addressComplete` accepts any non-blank string per field, so a parcel cart
    quotes against the wrong country before the buyer reaches that control,
    attaches a shipping method at that postage and mints a PaymentIntent against
@@ -198,7 +200,8 @@ tell a live order from a stalled one, which is the same carry-forward as above.
 **Order #1's recipient was sent their tracking on 2026-09-21**, on the
 operator's instruction, as a second message to a recipient. LD-03's constraint
 7 says the recipient's address "is used to send one message and is then only
-order data. No list, no second send, no re-send, no reminder." This was a
+order data. No list, no second send, no re-send, no reminder, no 'your friend
+hasn't opened it yet'." This was a
 knowing exception: a real parcel was addressed to somebody who had been told in
 writing that nothing else was coming, and who therefore had no reason to expect
 or collect it. The message carried the tracking link and the correction, and no
