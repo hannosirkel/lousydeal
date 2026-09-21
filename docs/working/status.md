@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, not started.** [`ld-11-user-experience.md`](./ld-11-user-experience.md) — sixteen rows in three parts. Six repair what the first live order proved on 2026-09-19, including a gift message that quotes the order total rather than the certificate's amount and one that denies a parcel the order contains; both reached a third party. Six walk the flows Gate E has never covered — the rendered UI review passed for LD-02 through LD-06 only, and LD-08, LD-09 and LD-10 opened to the public unreviewed at that level. Four repair the pay path a reading proved on 2026-09-21: checkout ends in a raw order id, the § 54(1) copy above the pay control promises a certificate the product never shows, a paid cart still renders the payment form, and Medusa's wording reaches the buyer after the card is charged. Not V1. |
+| **LD-11 — User experience** | **open, planned, not started.** Sixteen rows in three parts. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
@@ -58,7 +58,7 @@ question at its current state, which is recorded below.
 | B — brand/copy | passed |
 | C — visual design | passed |
 | D — per-task code review | run per row; every merged row carries its answers in its slice plan |
-| E — rendered UI review | passed for LD-02 through LD-06 |
+| E — rendered UI review | passed for LD-02 through LD-06; LD-09 by V15 on 2026-09-05; LD-08 by L3 on 2026-09-12, in the `STORE_OPEN=false` state only. **LD-10 has none.** |
 | F — integration review | **passed.** Gate F order #7 proved the $44.47 certificate, merch, surcharge, gift, Stripe test authorization and analytics-absent test flow. Its two original failed mail rows were recovered with provider identifiers present. After rotating the exposed test Stripe pair, two sequential replays of the exact original signed event left the certificate, Printful submission, notifications, capture and order transaction unchanged. Test is open for sandbox ordering and remains Access-gated. |
 
 ## What the operator closed on 2026-09-10

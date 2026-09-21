@@ -27,7 +27,10 @@ identity is deliberately absent from this public document.
 
 The certificate records `$6.00` — the tier plus its surcharge, which is what
 LD-06 decided a coded certificate is worth. Four things went wrong, and three
-of them reached a third party.
+of them reached a third party: defects 1 and 2 as false sentences in the gift
+message, and defect 3 as a certificate that renders `The bearer` and carries no
+dedication. Only defect 4 never left the shop. **Every count of this list in
+another document says three**, and the plan's introduction is written to match.
 
 1. **The gift message quoted `$41.40`.** `order-placed.ts` formats the order
    total once and hands the same string to both messages, under a comment
@@ -45,8 +48,12 @@ of them reached a third party.
 3. **The buyer put the recipient's name in the wrong field.** `display_name`
    and `dedication` were both empty; `gift_recipient_name` and
    `gift_sender_name` both held the recipient's name. The certificate rendered
-   `The bearer` and carried no dedication. `brand.md` already names this as the
-   failure its gift notice exists to prevent — the notice did not prevent it.
+   `The bearer` and carried no dedication. `brand.md`'s gift notice names the
+   *mirror image* of this — a buyer who puts the recipient's name into
+   `NAME ON THE CERTIFICATE` expecting privacy — and order #1 went the other
+   way, leaving the public pair empty. The notice is written against one
+   direction of a confusion that runs both ways, which is F4's actual subject:
+   the two name groups are indistinguishable, not underexplained.
 4. **Nothing in the product can edit an issued inscription.** §5 requires that
    an operator can sanitise, hide or blank an inscription without a reissue,
    and the render is derived precisely so they can. There is no route, no
@@ -82,16 +89,21 @@ Six `$5.00` PaymentIntents sat in live Stripe on 2026-09-20, all
 `requires_payment_method`, all abandoned within four minutes. They turned out
 to be benign — a certificate-only cart's intent is created when the checkout
 page mounts, so every visit to checkout leaves one — but reading the path far
-enough to establish that found four defects on the way, none of which any row
+enough to establish that found five defects on the way, none of which any row
 above reaches.
 
-1. **Checkout's success state is a raw order id.** `PaymentForm.tsx:810-812` is
-   the whole of it: `<p>Order placed: {orderId}</p>`. No link, no styling, no
-   statement of where the confirmation went or what it carries.
+Each is cited by symbol rather than by line. Line numbers in this file went
+stale between the reading and the review; a symbol survives an edit above it.
+
+1. **Checkout's success state is a raw order id.** The success branch of
+   `PaymentForm.tsx` is the whole of it: `<p>Order placed: {orderId}</p>`. No
+   link, no styling, no statement of where the confirmation went or what it
+   carries.
 2. **The § 54(1) copy above the pay control contradicts the product.**
-   `CERTIFICATE_ALONE` (`content/checkout.ts:282-283`) and its merch variant
-   (`:320`) both tell the buyer the certificate "is shown to you as soon as you
-   have paid". It is not shown at all. Issuance is asynchronous in
+   `CERTIFICATE_ALONE` in `storefront/src/content/checkout.ts` and the
+   `hasPostedGoods` variant of `what` in the same file both tell the buyer the
+   certificate "is shown to you as soon as you have paid". It is not shown at
+   all. Issuance is asynchronous in
    `order-placed.ts` and the link travels only in the § 55 confirmation; the
    storefront cannot even look a deal up by order, because
    `backend/src/api/store/deals/[slug]` is slug-only. This is the same class as
@@ -100,7 +112,8 @@ above reaches.
 3. **A paid cart still renders the payment form.** `getCheckoutCart` never
    reads `completed_at`, although `store-cart.ts` and `cart-actions.ts` both do
    for the cart page. A reload, a back-button or Stripe's own return to
-   `return_url` — which is `/checkout` (`PaymentForm.tsx:796`) — re-renders
+   `return_url` — which `handleSubmit` sets to
+   `${window.location.origin}/checkout` — re-renders
    checkout for an order already paid, and the session it then re-creates makes
    Medusa cancel a *succeeded* PaymentIntent, which throws. The buyer reads
    `Store API proxy returned 500` over a form for something they have bought.
@@ -110,6 +123,17 @@ above reaches.
    the buyer `Medusa did not place an order for cart cart_…`, re-enables the
    control, and invites a second press against an intent Stripe has already
    settled.
+5. **Postage is quoted before the buyer has said where they are.**
+   `PaymentForm.tsx` seeds `countryCode` from `countries[0]?.iso_2` against a
+   list sorted by alpha-2, so the default is whichever country sorts first, and
+   the control that sets it sits *below* the address fieldset it governs.
+   `addressComplete` accepts any non-blank string per field, so a parcel cart
+   quotes against the wrong country before the buyer reaches that control,
+   attaches a shipping method at that postage and mints a PaymentIntent against
+   that total; the real country then arrives, Medusa cancels it, and a fresh one
+   is minted. That is Gate D's finding 17 (`checkout-rules.ts`) again, once per
+   parcel order, as designed behaviour rather than as a bug. The same effect has
+   no debounce, so the first quote goes out against a one-character postcode.
 
 **None of these was found by a rendered walk**, which is why part three is not
 folded into part two: they are defects of state and of copy that only reading
@@ -135,8 +159,10 @@ so the next reader does not rediscover it as a bug — which is how it was found
 this time.
 
 **LD-04 promised a Medusa fulfilment and did not build one.**
-`ld-04-merch.md:159`, `:558-560` and `:1003` all say the parcel becomes "a real
-Medusa fulfilment rather than a side effect". What shipped writes
+`ld-04-merch.md:558-560` says the parcel becomes "a real Medusa fulfilment
+rather than a side effect"; `:159` and `:1003` promise the same thing in their
+own words ("the real Medusa product, order and fulfilment model", "mapped onto
+the Medusa fulfilment"). What shipped writes
 `printful_submission` and sends mail; the provider's `createFulfillment` is a
 stub nothing invokes, the `fulfillment` and `order_fulfillment` tables are
 empty, and every merch order shows unfulfilled in Admin for ever — with the
