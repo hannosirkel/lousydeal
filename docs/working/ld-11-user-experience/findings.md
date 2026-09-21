@@ -60,13 +60,30 @@ another document says three**, and the plan's introduction is written to match.
    script and no admin surface that does it. The repair on 2026-09-19 was a
    hand-written `UPDATE` against the live database over `kubectl exec`.
 
+**And one thing went right, unaided, which is the fifth observation and not a
+fifth defect.** The gift block collects an email address and no postal address;
+the shipping address is a separate field belonging to the merch upsell. The
+buyer entered the *recipient's* postal address there, which was correct, and
+nothing on the page told them to. They had to work out that the shipping
+address is where the parcel goes and that it is not derived from the gift
+block. It is recorded here because a buyer who guesses wrong sends a stranger's
+hat to themselves, and because F5 rests on it: without this line F5 would be a
+row with no finding behind it.
+
 ## A recorded decision was reversed on 2026-09-19
 
 LD-03's global constraint 4 reads, settled by the operator on 2026-09-07:
 
-> **The recipient's name and email are never public.** The public certificate
-> carries what the *buyer* typed into §5's `display_name` and `dedication`. A
-> gift adds no public field.
+> **The recipient's name and email are never public.** Settled by the operator
+> on 2026-09-07. The public certificate carries what the *buyer* typed into
+> §5's `display_name` and `dedication` — the fields LD-02 already publishes,
+> already filters, and already warns are public before payment. A gift adds no
+> public field. A third party's name on an indexable page, supplied by someone
+> else, is a different thing from your own name on your own certificate, and
+> this slice does not do it.
+
+Quoted whole, because F6 makes two documents assert this text is identical and
+an abridged third copy here would be the first thing to falsify that.
 
 On 2026-09-19 the operator directed that the recipient's name be written to
 `display_name` on live deal #1, which publishes it on the certificate's public

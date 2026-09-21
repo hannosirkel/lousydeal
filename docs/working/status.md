@@ -58,7 +58,7 @@ question at its current state, which is recorded below.
 | B — brand/copy | passed |
 | C — visual design | passed |
 | D — per-task code review | run per row; every merged row carries its answers in its slice plan |
-| E — rendered UI review | passed for LD-02 through LD-06; LD-09 by V15 on 2026-09-05; LD-08 by L3 on 2026-09-12, in the `STORE_OPEN=false` state only. **LD-10 has none.** |
+| E — rendered UI review | passed for LD-02 through LD-06 (LD-06 by D10 on 2026-09-11, open cart and checkout); LD-09 by V15 on 2026-09-05; LD-08 by L3 on 2026-09-12 at `STORE_OPEN=false` and F2 on 2026-09-13. LD-10 had desktop and mobile browser checks, recorded in [`provider-reporting.md`](../current/provider-reporting.md) but not run as Gate E and with no payment submitted. **None has reached a live open store:** F2 reached production while it was closed, and the rest ran against test or a build. |
 | F — integration review | **passed.** Gate F order #7 proved the $44.47 certificate, merch, surcharge, gift, Stripe test authorization and analytics-absent test flow. Its two original failed mail rows were recovered with provider identifiers present. After rotating the exposed test Stripe pair, two sequential replays of the exact original signed event left the certificate, Printful submission, notifications, capture and order transaction unchanged. Test is open for sandbox ordering and remains Access-gated. |
 
 ## What the operator closed on 2026-09-10

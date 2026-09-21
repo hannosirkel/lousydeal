@@ -20,19 +20,27 @@ part-two row that finds nothing is a passing row, not a wasted one. Part three
 is four rows carrying the five defects a reading of the pay path proved on
 2026-09-21, sized like part one's because they are equally known.
 
-**Part two exists because Gate E has a hole, and the hole is narrower than
-`status.md` said.** That file's gate row read "passed for LD-02 through LD-06",
+**Part two exists because Gate E has a hole, and the hole is narrower than it
+first looked.** `status.md`'s gate row read "passed for LD-02 through LD-06",
 which is why this plan was first written as though LD-08, LD-09 and LD-10 had
-never been reviewed at the rendered level. Two of the three had been:
-`ld-09-visual-identity.md` records V15 on 2026-09-05 at desktop width and
-390px, and `ld-08-launch-polish.md` records the L3 rendered review on
-2026-09-12 across 44 route cases with scripting on and off. **This slice
-corrects that gate row rather than repeating it.** What is actually unreviewed
-is LD-10's storefront work, which has no rendered review at all, and every
-open-store state — L3 ran against `STORE_OPEN=false`, so the cart and checkout
-a live customer meets have never been walked. Order #1's customer-facing
-defects were of a kind a rendered walk finds, and they were in exactly that
-untested half.
+never been reviewed at the rendered level. That was wrong twice over, and
+stating what *has* been walked is what keeps part two honest:
+
+| Slice | Rendered record |
+| --- | --- |
+| LD-03 | G9, on a real gift order |
+| LD-06 | D10, 2026-09-11, 390px and desktop, open cart and checkout with a code, a mug, attached postage and payment |
+| LD-09 | V15, 2026-09-05, desktop and 390px |
+| LD-08 | L3, 2026-09-12, 44 route cases, scripting on and off, at `STORE_OPEN=false`; and F2, the public verification, which did reach the live site but while it was closed — cart, surcharge, checkout and payment all returned `store_closed` |
+| LD-10 | desktop and mobile browser checks — favicon, social links, cart and merch control spacing, Stripe disclosure, card frames — recorded in [`provider-reporting.md`](../current/provider-reporting.md), not labelled Gate E and with no payment submitted |
+
+**So the hole is not "these slices were never looked at".** It is this:
+**no rendered walk has ever reached a live open store.** LD-03, LD-06 and LD-09
+walked the test environment or a build; LD-08's F2 reached production but found
+a closed shop, so the cart and checkout it exercised were the refusing ones;
+LD-10's checks were a runtime verification that submitted no payment. The
+flows a paying customer meets on lousydeal.com have been walked by exactly one
+person — the buyer of order #1 — and they found two defects doing it.
 
 **Part one is evidence, part two is method, and part three is evidence of a
 second kind.** No row in part one or part three is a speculative usability
@@ -42,9 +50,11 @@ redecoration.
 
 **Part three exists because part one and part two both stop looking at the same
 place.** F4, F5 and G3 are all about what checkout *asks* — which fields, in
-which order, under which notice. Every defect in part three is about what
-happens at or after the card is charged, which no row here reached and no test
-covers.
+which order, under which notice. Part three is about the machinery underneath
+that: what the pay path does with an answer once it has one, and what it does
+at and after the moment money moves. Three of its defects are at or after the
+charge; H4's is the one that sets a total up wrongly before it. None was
+reached by a row here and none is covered by a test.
 
 ## Where the evidence is
 
@@ -61,7 +71,7 @@ is written down once.
 | F2 | order #1, defect 2 |
 | F3 | none — it is the fixture F1 and F2 are verified with |
 | F4 | order #1, defect 3 |
-| F5 | order #1, defect 2 (its postal half) |
+| F5 | order #1, the fifth observation — the unaided shipping address |
 | F6 | order #1, defect 4, and the reversed constraint |
 | G1–G6 | none — these *produce* findings |
 | H1 | pay path, defects 1 and 2 |
@@ -146,13 +156,19 @@ than leaving it to be discovered:**
 | 1 | G1–G6 walk their flows and append findings to `findings.md` | agent |
 | 2 | The operator selects which findings become work | operator |
 | 3 | Selected findings become numbered J-rows, appended to this plan and sized like part one's | agent |
-| 4 | G6 re-walks at 390px, after the J-rows merge | agent |
+| 4 | A final 390px sweep over whatever the J-rows changed | agent |
 
-**G6 appears in stages 1 and 4 and closes at the end of each.** Its stage-1 pass
-is an audit like any other. Its stage-4 pass is a sweep over whatever the J-rows
-changed, and it closes by recording what it found there — if that sweep finds a
-defect, the defect becomes another J-row rather than blocking G6. An audit row
-that cannot close until the thing it audits is perfect is not an audit row.
+**G6 is stage 1 only, and closes once.** It is an audit like the other five.
+The stage-4 sweep is *not* G6 run again: it is its own row, numbered with the
+J-rows it follows, because one row closes with one pull request and a row that
+closes twice is two rows. It is not written here because its scope is whatever
+stage 2 selects — **if the operator selects no J-rows, stage 4 does not exist**,
+and part two ends at stage 1 with its findings recorded.
+
+That sweep, when it is written, closes the way every audit row closes: by
+recording what it found. A defect it turns up becomes another J-row rather than
+holding it open. An audit row that cannot close until the thing it audits is
+perfect is not an audit row.
 
 ### F1 — The gift message states the certificate's amount
 
@@ -185,8 +201,16 @@ it with the reason they must not.
 
 **Repository:** `lousydeal`.
 **Files:** `backend/src/content/gift.ts`,
+`backend/src/notifications/gift-message.ts`,
+`backend/src/subscribers/order-placed.ts`,
 `backend/tests/order-placed-gift.test.ts`.
 **Runs after F3.**
+
+`GIFT_WHAT` is a static array spread unconditionally into the message, and
+`GiftMessageInput` carries no merch or country field — so the first candidate
+shape is not a copy change. It needs the input to learn what the order carries,
+which is why the subscriber and the message builder are in this row's file list
+and why this row is the larger of the two.
 
 `GIFT_WHAT`'s "there is nothing else coming" is true for a certificate-only
 gift and false for a gift with a parcel. Two candidate shapes, and the row
@@ -298,7 +322,8 @@ Say it, once, where the shipping address is asked for on a cart that is a gift.
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-03-gifting.md`, `docs/current/brand.md`,
 `backend/src/scripts/edit-inscription.ts`,
-`backend/tests/edit-inscription.test.ts`.
+`backend/tests/edit-inscription.test.ts`,
+`backend/tests/constraint-4-agreement.test.ts`.
 
 Two things this slice must not leave open. The first is answered; the row
 records it rather than asking it again.
@@ -321,9 +346,11 @@ The row builds the smallest thing that is one — most likely a
       add a `backend/src/scripts/` entry run through `medusa exec` that takes a
       serial and the two fields and writes through the deal module. Verified by
       a test asserting the script updates `display_name` and `dedication`
-      through the module and refuses a serial that does not exist, and by both
-      documents quoting constraint 4 identically — checked by a test comparing
-      the two quoted blocks, so they cannot drift apart again.
+      through the module and refuses a serial that does not exist, and by
+      `constraint-4-agreement.test.ts` reading both documents and asserting the
+      constraint-4 block is byte-identical in each — a new test, because no
+      existing one parses markdown, and the cheapest thing that stops the two
+      documents drifting apart again.
 
 ### G1 — Home, deal and goods: the browse flow
 
@@ -363,9 +390,11 @@ Order #1 is the evidence: the recipient had to be told afterwards, in writing,
 that the discount had added a dollar. The buyer knew, being the operator. No
 other buyer will be.
 
-Also walk `CART_SURCHARGE_NOTICE`'s state, which the copy itself admits is
-reachable "because the public line-item route can change the line's quantity" —
-a state whose repair instruction is three sentences long.
+Also walk `CART_SURCHARGE_NOTICE`'s state, which the comment above that notice
+in `content/checkout.ts` says is reachable "because the public line-item route
+can change the line's quantity" — a state whose repair instruction is three
+sentences long. The notice itself does not say that; the walk is what
+establishes whether a visitor can reach the state without hand-editing.
 
 - [ ] Walk the cart with and without `BALDRICK20`, and attempt
       `CART_SURCHARGE_NOTICE`'s state by ordinary use, at 390px and desktop
@@ -448,13 +477,12 @@ asks whether a person experiences it as reach or as a loop.
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-11-user-experience/findings.md`,
 `docs/working/ld-11-user-experience.md`. No source file changes in this row.
-**Runs twice:** once in stage 1 with G1–G5, and once in stage 4 after the
-J-rows merge.
+**Stage 1, with G1–G5. It closes once.**
 
 Not a flow but a sweep. **It was first written as re-walking "whatever G1
 through G5 changed", which the audit method forbids** — those rows fix nothing,
-so at stage 1 there is nothing of theirs to re-walk. What it re-walks in stage 4
-is whatever the *J-rows* changed, which is why the stage table above exists.
+so there is nothing of theirs to re-walk. The sweep over what the J-rows change
+is a separate stage-4 row, written once stage 2 has decided there are any.
 
 Every route at 390px: home, deal, goods, cart, checkout, certificate, the legal
 set, `not-found`, and the empty and error states of each. This repository has
@@ -468,7 +496,8 @@ is the argument for doing it deliberately rather than incidentally.
       unreachable, and whether any document's leader, rule or ledger breaks at
       that width, with a screenshot per route and one fix row per finding — or
       the sentence that it found nothing. **A defect found here becomes a
-      J-row; it does not hold this row open.**
+      J-row; it does not hold this row open.** A J-row may then want this sweep
+      repeated after it merges, which is stage 4 and is its own row.
 
 ### H1 — Checkout ends somewhere, and the copy above it stops promising otherwise
 
@@ -476,7 +505,9 @@ is the argument for doing it deliberately rather than incidentally.
 **Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/content/checkout.ts`,
 `storefront/src/content/legal/terms.ts`,
-`storefront/tests/checkout-order-summary.test.ts`.
+`storefront/tests/checkout-order-summary.test.ts`. Under the first option below
+the two content files are untouched and `storefront/src/lib/store-checkout.ts`
+joins the list instead, since completion has to return the deal's slug.
 
 Findings 1 and 2 of the pay-path reading, which are one row because they are
 one defect: the end state
@@ -494,22 +525,32 @@ The first is the better product and the larger change; the second is honest
 immediately. Either way a buyer who has just paid and holds no certificate must
 be told a mail is coming before they begin to worry.
 
-**A test does assert the current string, and the row has to rewrite it rather
-than discover it.** `storefront/tests/checkout-order-summary.test.ts` matches
-`/shown to you as soon as you have paid/i` against the merch variant. The same
-sentence also appears in `CERTIFICATE_ALONE` and, in its § 4 form, in
-`content/legal/terms.ts` — so whichever way the row settles it, three copies
-move together and the existing assertion is inverted, never deleted. If the row
-takes the first option and makes the promise true, the assertion stays as it is
-and the end state is what changes.
+**A test does assert the current string, and the row has to reckon with it
+rather than discover it.** `storefront/tests/checkout-order-summary.test.ts`
+matches `/shown to you as soon as you have paid/i` against the merch variant.
+The same sentence appears three times: `CERTIFICATE_ALONE` and the
+`hasPostedGoods` variant in `content/checkout.ts`, and once more in the
+**Delivery** section of `content/legal/terms.ts` — the section the file's own
+comment numbers §5, not the §4 that sentence refers to. All three move
+together or none does.
 
-- [ ] Choose between making the promise true and making the sentence honest,
-      with a rendering in front of you, then change the end state and every
-      copy of the § 54(1) line together. Verified by a test asserting the end
-      state names where the confirmation went and what it carries, and by the
-      rewritten assertion in `checkout-order-summary.test.ts` holding the
-      chosen wording across the certificate-only and merch variants and the § 4
-      term — so no copy of the sentence can drift from the other two.
+**Which way the assertion goes depends on the option chosen**, and the row
+states its choice before it writes the test:
+
+- **make the promise true** — the three copies stand unchanged, the existing
+  assertion stands unchanged, and the end state is what has to change;
+- **make the sentence honest** — all three copies change together and the
+  existing assertion is rewritten to the new wording. It is rewritten, never
+  deleted: deleting it is how the sentence survived this long.
+
+- [ ] Choose between the two options with a rendering in front of you, record
+      the choice in the row, then change the end state and — under option two —
+      all three copies of the § 54(1) line together. Verified by a test
+      asserting the end state names where the confirmation went and what it
+      carries; and by `checkout-order-summary.test.ts` asserting the chosen
+      wording across the certificate-only variant, the merch variant and the
+      Delivery section of `terms.ts`, so that no copy of the sentence can drift
+      from the other two whichever option was taken.
 
 ### H2 — A paid cart never renders the payment form again
 
@@ -534,13 +575,15 @@ decide which redirecting methods exist, so only a plain card avoids the third.
 exists only because Medusa's webhook made it, and `?redirect_status=succeeded`
 is read by nothing. That is the half with no fallback.
 
-- [ ] Make `getCheckoutCart` read `completed_at` as `store-cart.ts` and
-      `cart-actions.ts` already do, and handle the redirect return so it lands
-      on H1's end state rather than re-mounting the form. Verified by tests
-      asserting that a cart with `completed_at` set renders the end state and
-      not the payment form, that a return carrying `?redirect_status=succeeded`
-      resolves to the same end state, and that neither path calls
-      `paymentIntents.cancel` on a settled intent.
+- [ ] Make `getCheckoutCart` read `completed_at` — `store-cart.ts` declares the
+      field and `cart-actions.ts` is the one place that reads it — and handle
+      the redirect return so it lands on H1's end state rather than re-mounting
+      the form. Verified by tests asserting that a cart with `completed_at` set
+      renders the end state and not the payment form, that a return carrying
+      `?redirect_status=succeeded` resolves to the same end state, and that
+      neither path issues a payment-session request — the observable in the
+      storefront for the `paymentIntents.cancel` that a new session would
+      provoke on the backend.
 
 ### H3 — A failure on the pay path speaks in our words, not Medusa's
 
@@ -578,7 +621,7 @@ where something may have been, and that notice must not invite a retry.
 
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
-`storefront/src/lib/checkout-rules.ts`,
+`storefront/src/lib/shipping-address.ts`,
 `storefront/tests/checkout-order-summary.test.ts`.
 
 Finding 5 of the pay-path reading, which was added to `findings.md` when this
