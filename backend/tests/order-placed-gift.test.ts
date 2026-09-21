@@ -57,6 +57,42 @@ const ENVIRONMENT: Record<string, string> = {
   STRIPE_WEBHOOK_SECRET: "wh",
 };
 
+/**
+ * Live order #1, as the subscriber sees it.
+ *
+ * **The shape every other case in this file lacks.** Until F3 every gift order
+ * here was one certificate line, `total: new BigNumber(25)` against one item of
+ * `2500`, so the order total and the certificate's own amount were the same
+ * number in every test. F1's and F2's defects are both invisible under that
+ * fixture, which is how they reached a recipient on 2026-09-19.
+ *
+ * The figures are order #1's: a $5.00 certificate, `BALDRICK20`'s $1.00
+ * surcharge, a $29.00 cap and $6.40 of postage. The certificate is worth
+ * `$6.00` — tier plus surcharge, which is what LD-06 decided a coded
+ * certificate is worth — and the order totals `$41.40`. They differ by
+ * $35.40, and no assertion in this file could previously tell them apart.
+ *
+ * `variant_id: null` is what makes the surcharge line a surcharge
+ * (`isSurchargeLine`); the cap carries a non-null one so it is read as
+ * printed goods. Postage is not a line item — it is in the order total only,
+ * which is precisely why the gift message's figure cannot be the order's.
+ */
+const MERCH_GIFT_ORDER = {
+  total: new BigNumber(41.4),
+  items: [
+    { title: "Lousy Deal", product_handle: "lousy-deal", total: 500, variant_id: "variant_deal", detail: { quantity: 1 } },
+    { title: "Discount", total: 100, variant_id: null, detail: { quantity: 1 } },
+    {
+      title: "Lousy Deals Trucker Cap",
+      product_handle: "lousy-deals-trucker-cap",
+      variant_title: "One size",
+      total: 2900,
+      variant_id: "variant_cap",
+      detail: { quantity: 1 },
+    },
+  ],
+} as const;
+
 const GIFT_METADATA = {
   lousydeal_gift_recipient_email: "recipient@example.test",
   lousydeal_gift_recipient_name: "A. Recipient",
@@ -75,13 +111,21 @@ async function run({
   metadata,
   deliveries = 1,
   giftFails = false,
+  order: orderOverride,
 }: {
   metadata?: Record<string, unknown>;
   deliveries?: number;
   giftFails?: boolean;
+  /** Replaces the default single-certificate order. See `MERCH_GIFT_ORDER`. */
+  order?: { total: BigNumber; items: readonly Record<string, unknown>[] };
 }) {
   const original = { ...process.env };
-  const sent: { to: string; template: string; key: string | undefined }[] = [];
+  const sent: {
+    to: string;
+    template: string;
+    key: string | undefined;
+    content: { subject: string; text: string; html: string } | undefined;
+  }[] = [];
   const errors: string[] = [];
   const infos: string[] = [];
   /** The one rule that matters, implemented rather than stubbed. */
@@ -97,10 +141,12 @@ async function run({
       id: "order_01",
       email: "buyer@example.test",
       currency_code: "usd",
-      total: new BigNumber(25),
       created_at: "2026-09-07T10:00:00.000Z",
       metadata: metadata ?? {},
-      items: [{ title: "Lousy Deal Pro", product_handle: "lousy-deal-pro", total: 2500, detail: { quantity: 1 } }],
+      total: orderOverride?.total ?? new BigNumber(25),
+      items: orderOverride?.items ?? [
+        { title: "Lousy Deal Pro", product_handle: "lousy-deal-pro", total: 2500, detail: { quantity: 1 } },
+      ],
     };
 
     const container = {
@@ -143,6 +189,9 @@ async function run({
               to: String(notification.to),
               template: String(notification.template),
               key: idempotencyKey,
+              content: notification.content as
+                | { subject: string; text: string; html: string }
+                | undefined,
             });
             return [];
           },
@@ -198,6 +247,62 @@ describe("a gift order", () => {
     expect(errors.join(" ")).toMatch(/gift message failed/);
     // And it does not throw: Medusa retries a subscriber that rejects, and a
     // defect failing on every delivery is an event storm.
+  });
+});
+
+/**
+ * **These assertions describe defects, and they are meant to.**
+ *
+ * F3 builds the fixture; F1 and F2 invert what it proves. Asserting today's
+ * behaviour rather than tomorrow's is what makes this row closable on its own
+ * and what makes the next two rows' diffs reviewable: when F1 lands, the first
+ * test here changes from `$41.40` to `$6.00` and that one-line diff *is* the
+ * defect being fixed. A fixture that asserted the corrected behaviour would
+ * have to ship red, which would leave `main` with a failing suite between
+ * rows.
+ */
+describe("a gift order carrying merch, as it behaves today", () => {
+  it("quotes the order total in the gift message, not the certificate's amount", async () => {
+    // Order #1's defect 1. The recipient reads "somebody spent $41.40 on
+    // absolutely nothing for you" and opens a certificate saying $6.00.
+    const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
+    const gift = sent.find((n) => n.template === "gift-message");
+
+    expect(gift?.content?.text).toContain("$41.40");
+    expect(gift?.content?.text).not.toContain("$6.00");
+  });
+
+  it("gives the buyer's confirmation the same figure, which is correct there", async () => {
+    // The § 55 confirmation is owed the order total itemised, and prints it
+    // correctly. F1 must not disturb this one: the two messages diverge
+    // because they are answering different questions, not because one is
+    // wrong.
+    const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
+    const confirmation = sent.find((n) => n.template === "order-confirmation");
+
+    expect(confirmation?.content?.text).toContain("$41.40");
+    expect(confirmation?.content?.text).toContain("Lousy Deals Trucker Cap");
+  });
+
+  it("tells the recipient nothing else is coming, while a cap is in the post", async () => {
+    // Order #1's defect 2, and the only line in this repository's mail that is
+    // simply false. F2 inverts this assertion.
+    const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
+    const gift = sent.find((n) => n.template === "gift-message");
+
+    expect(gift?.content?.text).toContain("there is nothing else coming");
+    expect(gift?.content?.text).not.toMatch(/cap|post|parcel/i);
+  });
+
+  it("still sends both messages, once each, to the right two addresses", async () => {
+    // The merch-bearing shape must not disturb what the rest of this file
+    // already holds, or the fixture would be proving something else.
+    const { sent, errors } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
+
+    expect(errors).toEqual([]);
+    expect(sent.map((n) => n.template)).toEqual(["order-confirmation", "gift-message"]);
+    expect(sent[0]?.to).toBe("buyer@example.test");
+    expect(sent[1]?.to).toBe("recipient@example.test");
   });
 });
 
