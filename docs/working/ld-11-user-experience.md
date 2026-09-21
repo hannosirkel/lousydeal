@@ -272,7 +272,7 @@ The fixture is a gift order with a certificate, a merch line, a surcharge and
 postage, whose order total differs from its certificate amount.
 
 - [ ] Add a merch-bearing gift-order fixture to `order-placed-gift.test.ts`
-      whose `order.total` and `deal.amount_paid` differ, and assert against it
+      whose order total and certificate amount differ, and assert against it
       the behaviour that exists *today* — the gift message quoting the order
       total and denying the parcel. Verified by `npm run test:unit` in
       `backend/` passing with the new case green, which pins the defects F1 and
@@ -308,8 +308,11 @@ a rendering in front of it:
       reading either notice. Verified by a test asserting each group renders
       under its own labelled heading and that the bearer preview's `The bearer`
       fallback is rendered as a fallback rather than as a value, with every
-      existing copy assertion in `checkout-order-summary.test.ts` still passing
-      unweakened, plus a 390px screenshot attached to the row.
+      assertions that already guard this copy still passing unweakened —
+      `checkout-gift.test.ts`'s "distinguishes these four from §5's two" and
+      "previews what the recipient will actually read", and
+      `checkout-inscription.test.ts`'s "say all three things §5 requires" —
+      plus a 390px screenshot attached to the row.
 
 ### F5 — The gift block says where a parcel goes
 
@@ -526,7 +529,7 @@ is the argument for doing it deliberately rather than incidentally.
 `storefront/src/content/checkout.ts`,
 `storefront/src/content/legal/terms.ts`,
 `storefront/tests/checkout-order-summary.test.ts`,
-`storefront/tests/checkout-session.test.ts`.
+`storefront/tests/checkout-address.test.ts`.
 
 **The two options have different file lists, and the second option's is the one
 above.** The first option — making the promise true — is not a storefront
@@ -590,7 +593,7 @@ states its choice before it writes the test:
 **Files:** `storefront/src/lib/store-checkout.ts`,
 `storefront/src/app/checkout/page.tsx`,
 `storefront/src/app/checkout/PaymentForm.tsx`,
-`storefront/tests/checkout-session.test.ts`,
+`storefront/tests/checkout-address.test.ts`,
 `storefront/tests/store-checkout.test.ts`.
 **Runs after H1**, whose end state is where a redirect return has to land.
 
@@ -623,7 +626,7 @@ is read by nothing. That is the half with no fallback.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/content/checkout.ts`,
-`storefront/tests/checkout-session.test.ts`.
+`storefront/tests/checkout-address.test.ts`.
 
 Finding 4 of the pay-path reading. `thrown.message` goes straight into the
 rendered error, so a buyer
@@ -637,9 +640,13 @@ order exists — but that is precisely the case where the buyer is told nothing
 was placed and something was.
 
 The repository already knows the answer's shape: the quote effect hides Medusa's
-and Printful's wording behind `SHIPPING_UNAVAILABLE_NOTICE`, whose last clause is
-"Nothing has been charged." What is missing is its counterpart for the case
-where something may have been, and that notice must not invite a retry.
+and Printful's wording behind `SHIPPING_UNAVAILABLE_NOTICE`, whose middle
+sentence is "Nothing has been charged." What is missing is its counterpart for
+the case where something may have been — **and the model is only half a model**,
+because that notice ends "Try again shortly, or write to the address in the
+Imprint." A retry is the right advice when nothing was charged and the wrong
+advice when something may have been. The new notice borrows the reassurance and
+not the invitation.
 
 - [ ] Stop `thrown.message` reaching the rendered error, and add a notice for
       the charged-but-unconfirmed case — modelled on

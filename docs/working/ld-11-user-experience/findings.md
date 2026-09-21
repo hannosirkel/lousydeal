@@ -29,8 +29,9 @@ The certificate records `$6.00` — the tier plus its surcharge, which is what
 LD-06 decided a coded certificate is worth. Four things went wrong, and three
 of them reached a third party: defects 1 and 2 as false sentences in the gift
 message, and defect 3 as a certificate that renders `The bearer` and carries no
-dedication. Only defect 4 never left the shop. **Every count of this list in
-another document says three**, and the plan's introduction is written to match.
+dedication. Only defect 4 never left the shop. **Four defects, three of which
+reached a third party** — the count the plan's introduction is written to
+match.
 
 1. **The gift message quoted `$41.40`.** `order-placed.ts` formats the order
    total once and hands the same string to both messages, under a comment
