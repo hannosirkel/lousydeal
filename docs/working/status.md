@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, not started.** [`ld-11-user-experience.md`](./ld-11-user-experience.md) — twelve rows in two parts. Six repair what the first live order proved on 2026-09-19, including a gift message that quotes the order total rather than the certificate's amount and one that denies a parcel the order contains; both reached a third party. Six walk the flows Gate E has never covered — the rendered UI review passed for LD-02 through LD-06 only, and LD-08, LD-09 and LD-10 opened to the public unreviewed at that level. Not V1. |
+| **LD-11 — User experience** | **open, not started.** [`ld-11-user-experience.md`](./ld-11-user-experience.md) — sixteen rows in three parts. Six repair what the first live order proved on 2026-09-19, including a gift message that quotes the order total rather than the certificate's amount and one that denies a parcel the order contains; both reached a third party. Six walk the flows Gate E has never covered — the rendered UI review passed for LD-02 through LD-06 only, and LD-08, LD-09 and LD-10 opened to the public unreviewed at that level. Four repair the pay path a reading proved on 2026-09-21: checkout ends in a raw order id, the § 54(1) copy above the pay control promises a certificate the product never shows, a paid cart still renders the payment form, and Medusa's wording reaches the buyer after the card is charged. Not V1. |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
