@@ -75,7 +75,7 @@ services:
       retries: 30
 
   redis:
-    image: redis:7.4.11-bookworm@sha256:71da9275c5f3fcb97d0fa0c8c5b36cc995327265420f17a04bfd544f458059f7
+    image: redis:8.4.0-bookworm@sha256:c22af04bb576503bf16b3e34a1fd2fd82de0f765afd866d2e380145e0af30d78
     command:
       - redis-server
       - --requirepass
