@@ -10,7 +10,7 @@ does not — it points, it does not hold.
 | Updated | 2026-09-21 |
 | Current slice | **No active slice. LD-10 — Meeme reporting, social delivery and operating polish is complete.** |
 | In flight | Nothing. Every LD-10 code, deployment, credential, recovery and operator-cleanup row is closed. |
-| Next action | Choose the next initiative. LD-07 remains deferred out of V1. |
+| Next action | Decide whether to start LD-11 — User experience, which is planned and not started. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -45,6 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
+| **LD-11 — User experience** | **open, planned, not started.** Sixteen rows in three parts. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
@@ -57,7 +58,7 @@ question at its current state, which is recorded below.
 | B — brand/copy | passed |
 | C — visual design | passed |
 | D — per-task code review | run per row; every merged row carries its answers in its slice plan |
-| E — rendered UI review | passed for LD-02 through LD-06 |
+| E — rendered UI review | passed for LD-02 through LD-06 (LD-06 by D10 on 2026-09-11, open cart and checkout); LD-09 by V15 on 2026-09-05; LD-08 by L3 on 2026-09-12 at `STORE_OPEN=false`, and by F2 on 2026-09-13, which reached the live **open** store: one certificate, browse to checkout, as far as the disabled pay control, no charge. LD-10 had desktop and mobile browser checks, recorded in [`provider-reporting.md`](../current/provider-reporting.md), not run as Gate E and with no payment submitted. **No walk of the open store has ever covered a gift, a parcel, a discount code, or anything at or after payment.** |
 | F — integration review | **passed.** Gate F order #7 proved the $44.47 certificate, merch, surcharge, gift, Stripe test authorization and analytics-absent test flow. Its two original failed mail rows were recovered with provider identifiers present. After rotating the exposed test Stripe pair, two sequential replays of the exact original signed event left the certificate, Printful submission, notifications, capture and order transaction unchanged. Test is open for sandbox ordering and remains Access-gated. |
 
 ## What the operator closed on 2026-09-10
