@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
@@ -83,6 +85,23 @@ const ORIGINAL_ENV = { ...process.env };
 const BACKEND_DIR = join(__dirname, "..");
 
 const ORIGINAL_CWD = process.cwd();
+
+describe("Medusa's built-in draft-order plugin", () => {
+  it("is declared directly and resolvable from the project root", async () => {
+    const backendPackage = JSON.parse(
+      readFileSync(join(BACKEND_DIR, "package.json"), "utf8"),
+    ) as { dependencies?: Record<string, string> };
+    const medusaVersion = backendPackage.dependencies?.["@medusajs/medusa"];
+
+    expect(backendPackage.dependencies?.["@medusajs/draft-order"]).toBe(medusaVersion);
+
+    const requireFromBackend = createRequire(join(BACKEND_DIR, "package.json"));
+    expect(() => requireFromBackend.resolve("@medusajs/draft-order/package.json")).not.toThrow();
+
+    const config = await loadConfig(VALID_ENVIRONMENT);
+    expect(config.plugins).toEqual([{ resolve: "@medusajs/draft-order", options: {} }]);
+  });
+});
 
 afterEach(() => {
   for (const name of Object.keys(process.env)) {

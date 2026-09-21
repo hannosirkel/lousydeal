@@ -33,6 +33,7 @@
  * `src/config/notification.ts` and `readSmtpRuntimeConfig` for why mail is the
  * one optional thing here.
  */
+import draftOrderPackage from "@medusajs/draft-order/package.json";
 import { defineConfig } from "@medusajs/framework/utils";
 
 import { dealModule } from "./src/config/deal";
@@ -45,6 +46,11 @@ import { readBackendRuntimeConfig } from "./src/config/runtime";
 const runtime = readBackendRuntimeConfig(process.env);
 
 export default defineConfig({
+  // Medusa 2.21 enables this plugin by default, but its resolver still looks
+  // from the application root. Declaring the package directly makes that
+  // runtime dependency visible to npm, TypeScript and the dependency gate;
+  // `defineConfig` de-duplicates this entry against its matching default.
+  plugins: [{ resolve: draftOrderPackage.name, options: {} }],
   projectConfig: {
     databaseUrl: runtime.database.url,
     databaseDriverOptions: runtime.database.driverOptions,
