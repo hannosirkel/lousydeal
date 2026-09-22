@@ -271,8 +271,9 @@ describe("a gift order", () => {
  */
 describe("a gift order carrying merch, as it behaves today", () => {
   it("quotes the order total in the gift message, not the certificate's amount", async () => {
-    // Order #1's defect 1. The recipient reads "somebody spent $41.40 on
-    // absolutely nothing for you" and opens a certificate saying $6.00.
+    // Order #1's defect 1. `GIFT_OPENING` renders "Someone spent $41.40 on
+    // absolutely nothing for you." and the certificate it links to says
+    // $6.00.
     const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
     const gift = sent.find((n) => n.template === "gift-message");
 
@@ -298,11 +299,19 @@ describe("a gift order carrying merch, as it behaves today", () => {
     const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
     const gift = sent.find((n) => n.template === "gift-message");
 
+    // **This is the assertion F2 inverts.** The plan's criterion is that no
+    // gift message asserts the absence of something the order contains, and
+    // this sentence is that assertion.
     expect(gift?.content?.text).toContain("there is nothing else coming");
-    // Named, not pattern-matched: `/cap|post/i` also catches "escape" and
-    // "postal", so it would fail for the wrong reason the day unrelated copy
-    // changes. F2's first candidate shape names what is on its way, which is
-    // exactly this string.
+    // A weaker, secondary check, and deliberately named rather than
+    // pattern-matched: `/cap|post/i` also catches "escape" and "postal", so it
+    // would fail for the wrong reason the day unrelated copy changes.
+    //
+    // **It only inverts if F2 prints the line title.** F2 has not chosen its
+    // copy yet; a shape naming "a parcel" or "a trucker cap" leaves this
+    // green rather than flipping it. That is acceptable for a second check
+    // and would not be for the first — which is why the absence claim above,
+    // not this, is what the row rests on.
     expect(gift?.content?.text).not.toContain("Lousy Deals Trucker Cap");
   });
 
