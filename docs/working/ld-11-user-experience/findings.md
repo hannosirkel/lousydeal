@@ -363,6 +363,84 @@ the address block, and with the country still asked.
 selects should read them together: H4 was sized from the source, and findings
 1 and 4 are the same defect measured on the live site with a buyer's figures.
 
+## G4 — The certificate and its share surfaces
+
+Walked on the live open store, 2026-09-22, at 390×844 and 1280×900, against a
+real issued certificate supplied by the operator for this walk.
+
+**No screenshot is committed with this row, and that is constraint 2 rather
+than an oversight.** Every surface here renders the bearer line and every URL
+carries the slug, and LD-03's constraint 2 forbids this repository holding
+either. The findings below are stated in words, with the figures and wording
+that carry them; anything that would identify the certificate is left out. The
+same rule is why the walk used one certificate rather than enumerating any.
+
+The row asked what the certificate page tells its owner about who can see it,
+and whether the share row's notice covers the page itself or only the three
+links. **Nothing, and only the links.**
+
+1. **The PDF is one of the two URLs §5 fixes for a certificate, and nothing
+   links to it.** `certificate.pdf/route.ts` says so in its own first line:
+   "the second of the two URLs contract §5 fixes for a certificate". It
+   answers — `200 application/pdf` — and no anchor to it exists anywhere. The
+   page's own link list has none; `grep` over `storefront/src` finds no `href`
+   to it; `grep` over `backend/src` finds none either, so the § 55 confirmation
+   does not carry it. An owner reaches the PDF only by knowing to append
+   `/certificate.pdf` to a URL they were sent. **A surface this row was asked
+   to walk is one a visitor cannot find.**
+
+2. **The share notice answers a question the reader did not ask, and not the
+   one they did.** `SHARE_NOTICE` reads: "These are ordinary links. Nothing
+   reaches any of them until you press one, and this page loads nothing from
+   them either way." That is about third-party requests, and it is true and
+   worth saying. It says nothing about who can see the page. The row's
+   question is answered exactly: **the notice covers the three links and not
+   the page.**
+
+3. **Nothing on the page says the page is public.** `noindex, nofollow` is in
+   a meta tag and `cache-control: private, no-cache, no-store` is a header —
+   neither is visible to a reader. §5 makes the slug unenumerable, so the page
+   is *unlisted*; it is not private, and a reader is told neither word. The
+   row proposed this and it holds.
+
+4. **The one action the page invites is the one that ends the unlisting.**
+   Each of the three share controls prefills a post containing the full
+   certificate URL — X and Bluesky as public posts, the third as an email
+   body. Pressing one publishes the slug, which is the only thing standing
+   between the document and anyone. The notice beside them reassures about
+   tracking. **Nothing anywhere says that sharing is what makes it findable**,
+   and that is the gap between "unlisted" and "private" arriving in the one
+   place the distinction matters.
+
+5. **The OpenGraph card renders the bearer line, so a shared link previews the
+   name before anyone clicks.** Fetched directly, the card answers `200
+   image/png` to anyone holding the slug and shows the heading, the serial,
+   the bearer, the item and the amount. For a gift — where the bearer is a
+   third party who did not choose to be on it — the preview is the first thing
+   their name appears in, in whatever timeline the link was posted to.
+
+6. **The certificate says the bearer knew.** The page's closing line is "This
+   certificate confers no rights, value, or benefits of any kind, and the
+   bearer knew that." On a gift the bearer is not the buyer and knew nothing
+   about it. The sentence is the product's joke and reads as one; it is
+   recorded because the row's test is what a visitor can work out, and a
+   recipient reading it is being told they agreed to something they did not
+   see.
+
+**Candidate fix rows, for the operator to select from.** Proposals, not J-rows.
+
+| # | What it would do | Findings |
+| --- | --- | --- |
+| p | Link the PDF from the certificate, the confirmation, or both | 1 |
+| q | Say on the page who can see it — unlisted, not private — where the share row is | 2, 3 |
+| r | Say at the share controls that pressing one publishes the address | 4, 5 |
+
+**What this row did not establish.** Whether finding 6 lands as a joke or as a
+claim depends on the reader, and a walk cannot settle it; no row is proposed.
+Finding 5 is a property of link previews rather than a defect of this page —
+it is recorded because the gift case makes it consequential, not because the
+card is wrong.
+
 ## A recorded decision was reversed on 2026-09-19
 
 LD-03's global constraint 4 reads, settled by the operator on 2026-09-07:

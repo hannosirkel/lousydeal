@@ -570,6 +570,13 @@ and record where the sequence asks for something the visitor cannot yet answer.
 
 The certificate, its PDF, its OpenGraph card and `ShareRow`.
 
+**Walked 2026-09-22 on the live open store**, against a real certificate the
+operator supplied for the walk. Six findings and three candidate rows in
+[`findings.md`](./ld-11-user-experience/findings.md). **No screenshot is
+committed**: every surface renders the bearer line and every URL carries the
+slug, both of which constraint 2 keeps out of this repository, so the findings
+are stated in words.
+
 **The known question is whether an owner understands the page is public.** The
 operator did not immediately connect `Name on the certificate` with the `BEARER`
 row on their own product, which is the strongest possible evidence that a buyer
@@ -577,7 +584,7 @@ will not either. §5 makes the slug unenumerable and LD-08's L3 made the page
 `noindex` — two decisions from two slices — so the page is *unlisted* rather
 than *private*, and nothing on it says which.
 
-- [ ] Walk a real certificate, its PDF, its OpenGraph card and `ShareRow` at
+- [x] Walk a real certificate, its PDF, its OpenGraph card and `ShareRow` at
       390px and desktop width, as an owner seeing it for the first time.
       Verified by a `## G4` section appended to `findings.md` recording what the
       page tells its owner about who can see it and whether the share row's
