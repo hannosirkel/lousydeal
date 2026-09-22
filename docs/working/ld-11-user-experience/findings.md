@@ -75,8 +75,10 @@ row with no finding behind it.
 
 Walked on the live open store, 2026-09-22, at 390×844 and 1280×900, in
 Chromium, as a first-time visitor with no cookie. Screenshots at 390px are in
-[`g1/`](./g1/); desktop renders were taken for comparison and are not kept,
-because nothing below is desktop-only. Two carts were created and abandoned,
+[`g1/`](./g1/), alongside the 1280px cart that findings 3 and 4 compare
+against — **kept, because a claim about desktop should keep its desktop
+capture**, and the first version of this section discarded those renders while
+still making desktop claims. Two carts were created and abandoned,
 which is the accepted property `findings.md` already records for checkout.
 
 The row asked whether a visitor can reach a merch-only cart without intending
@@ -107,10 +109,20 @@ the browse flow is not what lets them — the absence of one is.**
    not by eye: two rects for that node at 390, one at 1280. A price split
    across lines is the one figure on the page that has to be read at a glance.
 
-4. **At 390px all four upsell names break mid-word.** `Certified Worthless`
-   renders over four lines as `Certifie` / `d Worthles` / `s`; `Lousy Deals
-   Trucker Cap` over four; the other two over three. Same measurement, same
-   contrast with desktop, which wraps nothing at all.
+4. **At 390px the upsell's item column is too narrow for any multi-word
+   name, and the one long word in it breaks mid-word.** Every name wraps:
+   `Certified Worthless` and `Lousy Deals Trucker Cap` over four lines,
+   `Original Purchase Receipt` and `This Mug Cost Extra` over three. Only
+   `Certified Worthless` breaks *within* a word — `Certifie` / `d Worthles` /
+   `s`. The other three wrap at their spaces, which is ordinary wrapping in a
+   column that is too narrow rather than a separate defect.
+
+   **An earlier version of this finding said all four broke mid-word**, which
+   was stated as measured and was not: the measurement behind it counted lines
+   per name, which four words on four lines satisfies without any word
+   breaking. Re-measured per word with `Range` over each word's own offsets.
+   The column width is the defect; the mid-word break is what it does to the
+   one name long enough to show it. At 1280 nothing wraps at all.
 
 5. **Every commerce route shares one `<title>`.** `/`, `/deal/*`, `/goods/*`
    and `/cart` all serve `LOUSYDEAL.COM`, while `/legal/*` serve real ones
@@ -121,6 +133,16 @@ the browse flow is not what lets them — the absence of one is.**
 6. **The upsell asks about a deal the cart may not contain.** `MERCH_HEADING`
    is `Would you like to make your deal worse?`, and it renders above the four
    products on a cart holding no certificate at all.
+
+7. **Nothing anywhere links to the cart.** Measured: `/`, `/deal/*` and
+   `/goods/*` contain zero `href="/cart"`, and the only anchor to it in
+   `storefront/src` is the checkout's own "return to the order summary"
+   button. The masthead links home. So a visitor who adds a sticker, reaches
+   the cart, then taps the masthead to go and read a deal has no route back
+   except adding a second item or typing the URL. **G1 walked this arrow and
+   did not record it**; it is added here rather than left for G2, because it
+   is the browse flow's own gap and G2 walks the cart a visitor has already
+   reached.
 
 **One thing this walk did not find.** The `ADD` control on a product page
 appeared not to work on the first pass, and it does: the earlier attempt
@@ -144,9 +166,10 @@ below is committed work until it is chosen.
 | a | Settle whether merch is a browse path or cart-only, then either build `/goods` and link it, or take the product pages out of `sitemap.xml` | 1 |
 | b | Say at the cart what checkout says: a merch-only cart cannot proceed, and why, before `PROCEED TO PAYMENT` rather than after | 2 |
 | c | Stop the cart breaking a money figure across lines at 390px | 3 |
-| d | Stop the upsell breaking product names mid-word at 390px | 4 |
+| d | Widen the upsell's item column at 390px so multi-word names stop wrapping three and four deep, which also ends the one mid-word break | 4 |
 | e | Give each commerce route its own `<title>` | 5 |
 | f | Make the upsell heading true on a cart with no certificate | 6 |
+| g | Give the visitor a route back to the cart | 7 |
 
 **c and d are one change if the cause is one**, and this row did not establish
 that — it recorded that both break at 390 and neither does at 1280. Whoever
