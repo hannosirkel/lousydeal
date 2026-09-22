@@ -534,9 +534,17 @@ establishes whether a visitor can reach the state without hand-editing.
 
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-11-user-experience/findings.md`,
+`docs/working/ld-11-user-experience/g3/`,
 `docs/working/ld-11-user-experience.md`. No source file changes in this row.
 **Runs after F4**, so it walks the repaired field groups rather than the ones
 F4 is already known to be changing.
+
+**Walked 2026-09-22 on the live open store**, at 390×844 and 1280×900, for a
+certificate-only cart and a gift-plus-parcel cart. Seven findings and four
+candidate rows in [`findings.md`](./ld-11-user-experience/findings.md).
+Finding 1 is H4's defect measured rather than read: a parcel cart quotes
+`$46.60` against a country the buyer never chose, and `$40.39` once they
+correct it — with the card form already mounted above that control.
 
 F4 repairs the two name fields. This row walks everything around them:
 the email hint, the country select, the address block that appears only with a
@@ -547,7 +555,7 @@ Payment Element.
 the one route where a failure has no fallback. Walk it as a document, in order,
 and record where the sequence asks for something the visitor cannot yet answer.
 
-- [ ] Walk checkout as one document, in order, at 390px and desktop width, for
+- [x] Walk checkout as one document, in order, at 390px and desktop width, for
       a certificate-only cart, a gift cart and a gift-plus-parcel cart.
       Verified by a `## G3` section appended to `findings.md` recording the
       order in which checkout asks for things and each point where the sequence

@@ -255,6 +255,85 @@ that is a comprehension question a walk cannot settle, and h is written as
 "say it before" rather than "the ledger is insufficient". Findings 4 and 5 are
 a pass and a note; neither proposes a row.
 
+## G3 — Checkout, end to end, as one document
+
+Walked on the live open store, 2026-09-22, at 390×844 and 1280×900, for a
+certificate-only cart and a gift-plus-parcel cart. Screenshots in
+[`g3/`](./g3/), including the 1280px parcel checkout. Read as a document: every
+heading, label, control and frame in DOM order, taken from the page rather than
+from a screenshot.
+
+**The order checkout asks in**, for a parcel cart: the § 54(1) copy and the
+ledger; email address; the certificate's two fields and their preview; the gift
+disclosure; `Where it goes` — name, street, city, postcode; **then** country;
+then consent; then the pay control. A certificate-only cart is the same without
+the address block, and with the country still asked.
+
+1. **A buyer is shown a total, and a live card form, computed from a country
+   they never chose — above the control that sets it.** Measured on one parcel
+   cart at 390px, in three states:
+
+   | State | Total | Card form |
+   | --- | --- | --- |
+   | Before the address is complete | `Postage is quoted once the address is complete.` | none |
+   | Address filled, country untouched | **$46.60** | appears |
+   | Country corrected to Estonia | **$40.39** | present |
+
+   The country select defaults to **Dominican Republic** and sits *below* the
+   address fieldset. So the sequence quotes postage, prints a total and mounts
+   a card form on the strength of a default, and the buyer meets the control
+   that corrects it afterwards. The difference on this cart was **$6.21**.
+   This is H4's defect, which was read out of the source; here it is the
+   figures a live buyer sees.
+
+2. **On a parcel cart the total is a sentence, not a figure.** `TOTAL` reads
+   `Postage is quoted once the address is complete.` at both widths. The
+   document continues past it to the consent statement — which the buyer is
+   asked to tick — and to `ORDER WITH OBLIGATION TO PAY`. The obligation is
+   named before the amount is.
+
+3. **No card field exists until the address is complete.** Zero payment frames
+   on a parcel checkout before the address is filled, three after. A buyer who
+   has answered everything else finds nothing to type a card into and no
+   explanation of what is missing; the only related sentence on the page says
+   Stripe provides the card form.
+
+4. **The country is asked after the postcode it governs.** Name, street, city,
+   postcode, *then* country. A buyer enters a postcode before saying which
+   country's postcode it is — and, per finding 1, that ordering is what lets a
+   quote fire against the wrong one.
+
+5. **A certificate-only cart is asked for a country too**, and it defaults the
+   same way. Nothing is posted, no address is collected, and the select has no
+   visible consequence on that cart — no postage line changes, no figure moves.
+   A visitor cannot work out what it is for. **This row did not establish
+   whether it has an invisible consequence** such as tax treatment; it records
+   only that the page offers no answer.
+
+6. **The country list's order is not one a buyer can predict.** Its first three
+   options are `Dominican Republic`, `Bahrain`, `Christmas Island` — neither
+   alphabetical by name nor by code. Recorded because the plan once described
+   this list as "sorted by alpha-2", which it is not, and a later row should
+   not reason from that.
+
+7. **Money wraps at 390px here too.** The checkout ledger's `$29.00` renders
+   over two lines; nothing wraps at 1280. Same defect as G1's cart finding, on
+   a second surface — evidence that the ledger's narrow value column is one
+   problem and not two.
+
+**Candidate fix rows, for the operator to select from.** Proposals, not J-rows.
+
+| # | What it would do | Findings |
+| --- | --- | --- |
+| k | Ask the country before the address it governs, and quote nothing until it is answered | 1, 4 |
+| l | Do not default the country to a row nobody chose — ask, or derive it, but do not assume | 1, 6 |
+| m | Say what the total will be, or say plainly that it is not yet known, before the consent and the pay control rather than after | 2, 3 |
+| n | Say why a certificate-only order is asked for a country, or stop asking | 5 |
+
+**k and l overlap H4**, which is already a written row in part three. Whoever
+selects should read them together: H4 was sized from the source, and findings
+1 and 4 are the same defect measured on the live site with a buyer's figures.
+
 ## A recorded decision was reversed on 2026-09-19
 
 LD-03's global constraint 4 reads, settled by the operator on 2026-09-07:

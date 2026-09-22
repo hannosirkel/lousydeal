@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-22 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | G2, the cart audit. Branch `deal/ld11-g2-cart-audit`, worktree `.worktrees/lousydeal/ld11-g2`. |
-| Next action | Land G2, then walk G3. G1 and G2 have produced thirteen findings and ten candidate fix rows; **the operator selects which become J-rows** before any is built. LD-07 remains deferred out of V1. |
+| In flight | G3, the checkout audit. Branch `deal/ld11-g3-checkout-audit`, worktree `.worktrees/lousydeal/ld11-g3`. |
+| Next action | Land G3, then walk G4. Twenty findings and fourteen candidate rows now sit across G1–G3; **the operator selects which become J-rows**. G3's finding 1 measures H4's defect on the live site and the two should be read together. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246; G2 in flight. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
+| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 in flight. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
