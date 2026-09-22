@@ -65,6 +65,49 @@ describe("what the operator typed", () => {
       expect(() => inscriptionEditFrom(args)).toThrow(EDIT_INSCRIPTION_USAGE);
     }
   });
+
+  it("refuses every other thing `Number()` would have accepted as a serial", () => {
+    // `Number("1e3")` is 1000, so the first draft of this command would have
+    // blanked deal #1000 for an operator who typed `1e3`. A serial is
+    // `model.autoincrement()` and is always plain digits.
+    for (const serial of ["1e3", "0x10", "0b11", "0o17", "+5", " 5 ", "5\n", "4102.0", "9007199254740993", "١٢٣"]) {
+      expect(() => inscriptionEditFrom([serial, "a", "b"]), serial).toThrow(EDIT_INSCRIPTION_USAGE);
+    }
+  });
+
+  it("survives yargs converting numeric arguments before it sees them", () => {
+    // `medusa exec` collects positionals through yargs, which hands over a
+    // `number` for anything numeric-looking. A display name of `1999` would
+    // otherwise fail `.length` on a number and be written through as one.
+    expect(inscriptionEditFrom([4102, 1999, ""])).toEqual({
+      serial: 4102,
+      displayName: "1999",
+      dedication: null,
+    });
+  });
+
+  it("holds the operator to the same lengths as the buyer", () => {
+    // A route named "sanitise" that accepts what the entry path refuses is a
+    // way in, not a repair — and nothing on the render side truncates, so an
+    // over-long name would print in full on the certificate and its card.
+    expect(() => inscriptionEditFrom(["4102", "x".repeat(61), ""])).toThrow(
+      "display name is longer than 60 characters",
+    );
+    expect(() => inscriptionEditFrom(["4102", "", "x".repeat(121)])).toThrow(
+      "dedication is longer than 120 characters",
+    );
+    expect(inscriptionEditFrom(["4102", "x".repeat(60), "y".repeat(120)])).toMatchObject({
+      serial: 4102,
+    });
+  });
+
+  it("blanks a field the shell padded with spaces", () => {
+    expect(inscriptionEditFrom(["4102", "   ", " "])).toEqual({
+      serial: 4102,
+      displayName: null,
+      dedication: null,
+    });
+  });
 });
 
 describe("the edit", () => {
