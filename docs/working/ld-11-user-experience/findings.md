@@ -71,6 +71,87 @@ block. It is recorded here because a buyer who guesses wrong sends a stranger's
 hat to themselves, and because F5 rests on it: without this line F5 would be a
 row with no finding behind it.
 
+## G1 — Home, deal and goods: the browse flow
+
+Walked on the live open store, 2026-09-22, at 390×844 and 1280×900, in
+Chromium, as a first-time visitor with no cookie. Screenshots at 390px are in
+[`g1/`](./g1/); desktop renders were taken for comparison and are not kept,
+because nothing below is desktop-only. Two carts were created and abandoned,
+which is the accepted property `findings.md` already records for checkout.
+
+The row asked whether a visitor can reach a merch-only cart without intending
+to, and what the browse flow would have to do so they cannot. **They can, and
+the browse flow is not what lets them — the absence of one is.**
+
+1. **`/goods` is a 404, and nothing on the site links to a goods page until
+   the cart already has something in it.** The four printed things are in
+   `sitemap.xml`, so a search engine can land a visitor directly on one, and
+   [`goods.png`](./g1/goods.png) is what the index itself serves: `DOCUMENT
+   NOT FOUND`. Measured: `/` and all three `/deal/*` pages contain zero
+   `href="/goods/…"`; a cart holding one item contains four. So the only
+   navigation path to a product page runs *through* a cart, and the only other
+   way in is search.
+
+2. **A merch-only cart offers to pay, and the refusal arrives a page later.**
+   `CART_NEEDS_CERTIFICATE_NOTICE` is rendered by `checkout/page.tsx`, not by
+   the cart. A visitor who adds a sticker sees a total, `APPLY CODE` and
+   `PROCEED TO PAYMENT` ([`cart-merch-only.png`](./g1/cart-merch-only.png));
+   clicking it lands on `PAYMENT AUTHORISATION`, which tells them the printed
+   things go with a certificate rather than instead of one
+   ([`checkout-merch-only.png`](./g1/checkout-merch-only.png)). The row
+   expected this notice "at the cart". It is not at the cart. A visitor is
+   told what they may buy only after committing to pay for it.
+
+3. **At 390px the cart breaks a money figure across two lines.** The line-item
+   `$6.00` renders as `$6.0` / `0`. Measured with `Range.getClientRects()`,
+   not by eye: two rects for that node at 390, one at 1280. A price split
+   across lines is the one figure on the page that has to be read at a glance.
+
+4. **At 390px all four upsell names break mid-word.** `Certified Worthless`
+   renders over four lines as `Certifie` / `d Worthles` / `s`; `Lousy Deals
+   Trucker Cap` over four; the other two over three. Same measurement, same
+   contrast with desktop, which wraps nothing at all.
+
+5. **Every commerce route shares one `<title>`.** `/`, `/deal/*`, `/goods/*`
+   and `/cart` all serve `LOUSYDEAL.COM`, while `/legal/*` serve real ones
+   (`Terms of service`). A visitor comparing two tiers in two tabs has two
+   identically-named tabs, and their history records the same line for every
+   step of the purchase.
+
+6. **The upsell asks about a deal the cart may not contain.** `MERCH_HEADING`
+   is `Would you like to make your deal worse?`, and it renders above the four
+   products on a cart holding no certificate at all.
+
+**One thing this walk did not find.** The `ADD` control on a product page
+appeared not to work on the first pass, and it does: the earlier attempt
+clicked before hydration. Recorded because a walk that reports a defect it
+caused is worse than one that reports nothing.
+
+**What the browse flow would have to do.** Findings 1 and 2 are one decision
+rather than two. Either merch is a browse path — `/goods` becomes an index,
+something links to it, and the certificate requirement is stated on the
+product page where the visitor first meets it — or merch is cart-only, in
+which case the product pages should leave `sitemap.xml`, because today search
+is a supported entrance to a page the shop will later refuse to sell from.
+Both close the gap `CART_NEEDS_CERTIFICATE_NOTICE` exists to paper over.
+
+**Candidate fix rows, for the operator to select from.** These are proposals,
+not J-rows: the plan's stage table puts numbering after selection, so nothing
+below is committed work until it is chosen.
+
+| # | What it would do | Findings |
+| --- | --- | --- |
+| a | Settle whether merch is a browse path or cart-only, then either build `/goods` and link it, or take the product pages out of `sitemap.xml` | 1 |
+| b | Say at the cart what checkout says: a merch-only cart cannot proceed, and why, before `PROCEED TO PAYMENT` rather than after | 2 |
+| c | Stop the cart breaking a money figure across lines at 390px | 3 |
+| d | Stop the upsell breaking product names mid-word at 390px | 4 |
+| e | Give each commerce route its own `<title>` | 5 |
+| f | Make the upsell heading true on a cart with no certificate | 6 |
+
+**c and d are one change if the cause is one**, and this row did not establish
+that — it recorded that both break at 390 and neither does at 1280. Whoever
+takes them should measure before assuming.
+
 ## A recorded decision was reversed on 2026-09-19
 
 LD-03's global constraint 4 reads, settled by the operator on 2026-09-07:

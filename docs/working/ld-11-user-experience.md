@@ -467,10 +467,18 @@ entry path's own lengths, because nothing on the render side truncates.
 
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-11-user-experience/findings.md`,
+`docs/working/ld-11-user-experience/g1/`,
 `docs/working/ld-11-user-experience.md`. No source file changes in this row.
 
 Does a first-time visitor understand what is for sale before they are asked to
 pay for it?
+
+**Walked 2026-09-22 on the live open store**, at 390×844 and 1280×900. Six
+findings, recorded in [`findings.md`](./ld-11-user-experience/findings.md)
+with six candidate fix rows for the operator to select from, and 390px
+screenshots in [`g1/`](./ld-11-user-experience/g1/). The row's own question
+is answered there: a visitor can reach a merch-only cart, and the browse flow
+does not let them in — the absence of one does.
 
 **It starts with a known symptom.** `CART_NEEDS_CERTIFICATE_NOTICE` exists
 because a cart can hold printed goods and no certificate — the merch upsell is
@@ -480,7 +488,7 @@ path is evidence the browse path leaks.
 
 Walk: home → a deal → goods → cart, and goods → cart without a deal.
 
-- [ ] Walk home → a deal → goods → cart, and goods → cart without a deal, at
+- [x] Walk home → a deal → goods → cart, and goods → cart without a deal, at
       390px and desktop width. Verified by a `## G1` section appended to
       `findings.md` recording whether a visitor can reach a merch-only cart
       without intending to and what the browse flow would have to do so they
