@@ -259,38 +259,52 @@ describe("a gift order", () => {
 });
 
 /**
- * **These assertions describe defects, and they are meant to.**
+ * Live order #1's shape, and what each of its two messages may say.
  *
- * F3 builds the fixture; F1 and F2 invert what it proves. Asserting today's
- * behaviour rather than tomorrow's is what makes this row closable on its own
- * and what makes the next two rows' diffs reviewable: when F1 lands, the first
- * test here inverts — `$41.40` becomes the figure the gift message must *not*
- * carry and `$6.00` the one it must — and that diff *is* the defect being
- * fixed. A fixture that asserted the corrected behaviour would have to ship
- * red, which would leave `main` with a failing suite between rows.
+ * **Half repaired, half still describing a defect.** F3 built the fixture and
+ * asserted the behaviour as it then was; F1 has inverted the figure half, so
+ * the first three tests now hold the repair. The fourth still asserts a defect
+ * on purpose — `there is nothing else coming` is false while a cap is in the
+ * post, and F2 is the row that inverts it. Leaving it stated as a live
+ * assertion rather than a comment is what stops it being forgotten.
+ *
+ * Asserting each row's behaviour as it lands, rather than all of it up front,
+ * is what keeps `main` green between rows and what makes each row's diff the
+ * defect it fixes.
  */
-describe("a gift order carrying merch, as it behaves today", () => {
-  it("quotes the order total in the gift message, not the certificate's amount", async () => {
-    // Order #1's defect 1. `GIFT_OPENING` renders "Someone spent $41.40 on
-    // absolutely nothing for you." and the certificate it links to says
-    // $6.00.
+describe("a gift order carrying merch", () => {
+  it("quotes the certificate's amount in the gift message, not the order total", async () => {
+    // Order #1's defect 1, inverted. `GIFT_OPENING` rendered "Someone spent
+    // $41.40 on absolutely nothing for you." while the certificate it links
+    // to said $6.00 — two documents contradicting each other, and the email
+    // was the wrong one.
     const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
     const gift = sent.find((n) => n.template === "gift-message");
 
-    expect(gift?.content?.text).toContain("$41.40");
-    expect(gift?.content?.text).not.toContain("$6.00");
+    expect(gift?.content?.text).toContain("$6.00");
+    expect(gift?.content?.text).not.toContain("$41.40");
   });
 
-  it("gives the buyer's confirmation the same figure, which is correct there", async () => {
-    // The § 55 confirmation is owed the order total itemised, and prints it
-    // correctly. F1 must not disturb this one: the two messages diverge
-    // because they are answering different questions, not because one is
-    // wrong.
+  it("leaves the buyer's confirmation quoting the order total, which is correct there", async () => {
+    // **The two messages must now differ, and that is the point.** The buyer
+    // paid $41.40 and is owed it itemised under § 55; the recipient holds a
+    // $6.00 certificate. They answer different questions, so one number
+    // cannot serve both — which is what the deleted comment got wrong.
     const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
     const confirmation = sent.find((n) => n.template === "order-confirmation");
 
     expect(confirmation?.content?.text).toContain("$41.40");
     expect(confirmation?.content?.text).toContain("Lousy Deals Trucker Cap");
+  });
+
+  it("keeps the certificate's amount out of the buyer's confirmation", async () => {
+    // The other half of "the two figures differ", asserted directly rather
+    // than inferred: F1 must not leak the certificate's own figure into the
+    // § 55 document, which owes the buyer what they actually paid.
+    const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
+    const confirmation = sent.find((n) => n.template === "order-confirmation");
+
+    expect(confirmation?.content?.text).not.toContain("$6.00");
   });
 
   it("tells the recipient nothing else is coming, while a cap is in the post", async () => {

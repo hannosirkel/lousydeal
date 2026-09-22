@@ -49,9 +49,16 @@ export const GIFT_LABELS = {
 /**
  * The premise line, as the operator wrote it.
  *
- * `{amount}` is filled with the formatted total — the same string the buyer's
- * confirmation prints, formatted once by the process that sends it, for the
- * reason `money.ts` gives about two runtimes carrying different ICU data.
+ * **`{amount}` is the certificate's own figure, and not the order total.** It
+ * used to be the same string the buyer's confirmation prints; LD-11 F1 stopped
+ * that, because an order can carry a parcel and live order #1's recipient read
+ * `$41.40` above a link to a certificate saying `$6.00`. This sentence sits
+ * directly above that link, so the figure in it has to be the figure on the
+ * document it introduces. The buyer's own total belongs in the buyer's
+ * confirmation, where § 55(2) itemises it.
+ *
+ * Still formatted once by the process that sends it, for the reason `money.ts`
+ * gives about two runtimes carrying different ICU data.
  */
 export const GIFT_OPENING = "Someone spent {amount} on absolutely nothing for you.";
 
