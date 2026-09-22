@@ -73,7 +73,7 @@ export const GIFT_OPENING = "Someone spent {amount} on absolutely nothing for yo
  */
 export const GIFT_WHAT = [
   "It is a numbered certificate recording that somebody paid for nothing on your behalf. That is the entire product; there is no catch and there is nothing else coming.",
-  "There is nothing to claim, no account to create and nothing to install. The link below is the certificate, and it will keep working.",
+  "There is nothing to claim, no account to create and nothing to install. The link above is the certificate, and it will keep working.",
 ] as const;
 
 /**
@@ -119,9 +119,9 @@ export const GIFT_WHAT_WITH_PARCEL = [
  */
 export const giftParcel = (items: readonly string[], country: string | null): readonly string[] => [
   country === null
-    ? `${items.join(", ")} — in the post to you.`
-    : `${items.join(", ")} — posted to you in ${country}.`,
-  "The certificate above confers nothing; this is a real thing in the post. It needs nothing from you, and we are not printing your address here.",
+    ? `${items.join(", ")} — being made and posted to you.`
+    : `${items.join(", ")} — being made and posted to you in ${country}.`,
+  "The certificate above confers nothing; this is a real thing, made after the order and sent to you. It needs nothing from you, and we are not printing your address here.",
 ];
 
 /**
@@ -151,6 +151,27 @@ export const giftParcel = (items: readonly string[], country: string | null): re
  * first sentence. Whether that is the right reading is §23's question and not
  * this file's.
  */
+/**
+ * The same two claims, for an order that also carries a parcel.
+ *
+ * **LD-11 F2's follow-up.** `GIFT_NOTICE` and `GIFT_KEEP` tell the recipient
+ * their address was used "to send you this, and for nothing else". On a parcel
+ * order that is false: the name and postal address go to the print-on-demand
+ * supplier and a carrier, which is how the parcel is addressed at all. The
+ * message now names the parcel two sections above, so denying the address was
+ * used for it contradicts the message itself — the same class of defect as the
+ * `there is nothing else coming` sentence F2 removed.
+ *
+ * Narrowed rather than rewritten: a certificate-only gift keeps the stronger
+ * promise below, because there it is true. The supplier is named by what it
+ * does rather than by brand, which is what Article 14(1)(e) wants of a
+ * category of recipient and what the linked policy expands on.
+ */
+export const GIFT_NOTICE_WITH_PARCEL = [
+  "We have your address, and your name if they gave one, because the person who bought this typed them in. We used them to send you this, and to address the parcel — which means passing them to the company that makes and posts it, and to the carrier who delivers it. Nothing else. You are not on a list and we will not write to you again.",
+  "You can ask what we hold, have it corrected or deleted, or object. Write to {merchantEmail}. What we keep and for how long is at {siteBaseUrl}/legal/privacy — §6 there is for you, not for the buyer.",
+] as const;
+
 export const GIFT_NOTICE = [
   "We have your address, and your name if they gave one, because the person who bought this typed them in. We used them to send you this, and for nothing else. You are not on a list and we will not write to you again.",
   "You can ask what we hold, have it corrected or deleted, or object. Write to {merchantEmail}. What we keep and for how long is at {siteBaseUrl}/legal/privacy — §6 there is for you, not for the buyer.",
@@ -161,6 +182,12 @@ export const GIFT_TRADER = [
   "{merchantLegalName}, {merchantAddress}",
   "Registry code {merchantRegistryCode} · VAT {merchantVatNumber}",
   "{merchantEmail} · {merchantPhoneNumber}",
+] as const;
+
+/** `GIFT_KEEP` for a parcel order. See `GIFT_NOTICE_WITH_PARCEL`. */
+export const GIFT_KEEP_WITH_PARCEL = [
+  "Nobody will ask you for anything. We have your address because the person who bought this typed it in, we used it to send you this and to get the parcel to you, and we are not going to write to you again.",
+  "If something is wrong with it, the person who bought it is the one who can sort it out with us — they made the purchase and we deal with them.",
 ] as const;
 
 export const GIFT_KEEP = [

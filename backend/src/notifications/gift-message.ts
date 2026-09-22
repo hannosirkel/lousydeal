@@ -36,6 +36,8 @@ import {
   GIFT_TRADER,
   GIFT_OPENING,
   GIFT_SUBJECT,
+  GIFT_KEEP_WITH_PARCEL,
+  GIFT_NOTICE_WITH_PARCEL,
   GIFT_WHAT,
   GIFT_WHAT_WITH_PARCEL,
   giftParcel,
@@ -152,11 +154,14 @@ export function buildGiftMessage(
   if (hasParcel(gift)) {
     sections.push([GIFT_HEADINGS.parcel, giftParcel(gift.parcel.items, gift.parcel.country)]);
   }
-  sections.push([GIFT_HEADINGS.keep, [...GIFT_KEEP]]);
+  sections.push([GIFT_HEADINGS.keep, [...(hasParcel(gift) ? GIFT_KEEP_WITH_PARCEL : GIFT_KEEP)]]);
   // Article 14(3)(b): at the latest at the first communication, which this is.
   // G4 shipped without either of these — the message took the trader identity
   // and used it only as a null-guard, so it went out unsigned.
-  sections.push([GIFT_HEADINGS.notice, GIFT_NOTICE.map(fill)]);
+  sections.push([
+    GIFT_HEADINGS.notice,
+    (hasParcel(gift) ? GIFT_NOTICE_WITH_PARCEL : GIFT_NOTICE).map(fill),
+  ]);
   sections.push([GIFT_HEADINGS.trader, GIFT_TRADER.map(fill)]);
 
   const text = sections
