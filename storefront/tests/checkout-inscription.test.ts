@@ -20,7 +20,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { NO_INSCRIPTION } from "../src/content/certificate";
-import { INSCRIPTION_LABELS, INSCRIPTION_NOTICE, INSCRIPTION_PREVIEW_LABEL } from "../src/content/checkout";
+import {
+  INSCRIPTION_HEADING,
+  INSCRIPTION_LABELS,
+  INSCRIPTION_NOTICE,
+  INSCRIPTION_PREVIEW_EMPTY,
+  INSCRIPTION_PREVIEW_LABEL,
+} from "../src/content/checkout";
 import { INSCRIPTION_LIMITS } from "../src/lib/inscription";
 import type { FetchJson, StoreFetchInit } from "../src/lib/medusa-client";
 import { GIFT_METADATA } from "../src/lib/gift";
@@ -93,12 +99,48 @@ describe("the two inscription fields", () => {
   });
 });
 
+describe("the group it sits in", () => {
+  it("is named after the document, so the public pair is not the unlabelled one", () => {
+    // **LD-11 F4.** Rendered at 390px, the gift block was the only labelled
+    // group on the page: it has a `<summary>`, and §5's two fields had nothing
+    // above them but a paragraph of fine print. The labelled group was the
+    // private one and the unlabelled group was the public one, which is the
+    // wrong way round and is the structure order #1's buyer read.
+    expect(html).toMatch(/<fieldset[^>]*class="inscription"/);
+    expect(html).toContain(`<legend>${INSCRIPTION_HEADING}</legend>`);
+  });
+
+  it("keeps both fields inside it", () => {
+    const group = /<fieldset[^>]*class="inscription"[\s\S]*?<\/fieldset>/.exec(html)?.[0] ?? "";
+    expect(group).toContain(INSCRIPTION_LABELS.displayName);
+    expect(group).toContain(INSCRIPTION_LABELS.dedication);
+  });
+});
+
 describe("the preview", () => {
   it("shows the certificate's no-inscription state before anything is typed", () => {
     // The empty pair is the ordinary case and the preview has to render it the
     // way the certificate will, not as a blank.
     expect(html).toContain(INSCRIPTION_PREVIEW_LABEL);
     expect(html).toContain(NO_INSCRIPTION);
+  });
+
+  it("shows the placeholder as an empty state rather than as a value", () => {
+    // **LD-11 F4.** `The bearer` rendered in the same ledger row, in the same
+    // style, as a name the buyer had typed -- indistinguishable from a choice.
+    // Order #1's buyer put the recipient's name in the gift block, saw this
+    // row unchanged, and had no reason to connect the two. The certificate's
+    // own placeholder is still shown, because §5's disclosure is what the row
+    // is for; what changes is that it now reads as nothing having been typed.
+    // **`not.toBe` is the assertion that has teeth.** `toContain` alone is
+    // satisfied by `INSCRIPTION_PREVIEW_EMPTY = NO_INSCRIPTION` -- the exact
+    // regression this test names -- because a string contains itself and the
+    // constant still reaches the markup. Three rows of this slice shipped an
+    // assertion that could not fail; this is the check that the empty state is
+    // something *other* than the bare placeholder.
+    expect(html).toContain(INSCRIPTION_PREVIEW_EMPTY);
+    expect(INSCRIPTION_PREVIEW_EMPTY).toContain(NO_INSCRIPTION);
+    expect(INSCRIPTION_PREVIEW_EMPTY).not.toBe(NO_INSCRIPTION);
   });
 
   it("is run through the same filter the certificate renders with", () => {

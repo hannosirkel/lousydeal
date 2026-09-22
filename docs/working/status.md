@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-22 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | Nothing. F2's review landed after merge; its text corrections are in `deal/ld11-f2-followup`. |
-| Next action | Start F4. Order #1's defects 1 and 2 are closed by #239 and #240; defect 3 is F4's and is open. F5 and F6 also remain in part one. LD-07 remains deferred out of V1. |
+| In flight | F4, the checkout's two name groups. Branch `deal/ld11-f4-checkout-name-groups`, worktree `.worktrees/lousydeal/ld11-f4`. |
+| Next action | Land F4, which closes order #1's defect 3 and its last customer-facing one. F5 and F6 then remain in part one. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; F3 closed by #238, F1 by #239, F2 by #240. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
+| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; F3 closed by #238, F1 by #239, F2 by #240 and #241; F4 in flight. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.

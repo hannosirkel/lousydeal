@@ -289,6 +289,7 @@ postage, whose order total differs from its certificate amount.
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/content/checkout.ts`,
+`storefront/src/app/globals.css`,
 `storefront/tests/checkout-gift.test.ts`,
 `storefront/tests/checkout-inscription.test.ts`.
 
@@ -309,7 +310,40 @@ a rendering in front of it:
   into the gift block sees it unchanged and has no reason to connect the two;
 - reorder, so the gift block's name field is not adjacent to the certificate's.
 
-- [ ] Choose among the candidate moves with a 390px rendering in front of you
+**Settled on 2026-09-22, with both renders in front of the operator:** the
+first two moves, and not the third. The 390px render
+([before](./ld-11-user-experience/f4-checkout-390px-before.png),
+[after](./ld-11-user-experience/f4-checkout-390px.png); `PayButton` rendered
+through `renderToStaticMarkup` with `globals.css` inlined, screenshot in
+Playwright 1.57.0's Chromium at 390×900 and DPR 2 — note that neither render
+had `--font-mono` defined, so both size a fallback face rather than `LDMono`) showed the gift block's
+`<summary>` was the only heading on the page — so the *private* four were the
+labelled group and §5's *public* two were not, which is the wrong way round and
+is the structure order #1's buyer read. The third move was already largely
+true: the two name fields are separated by the dedication, the preview and the
+disclosure summary, and reordering would cost the present order, which puts the
+public pair before a disclosure a buyer may never open.
+
+One thing the render decided that no assertion would have: a `<fieldset>` is
+the right element, but its user-agent border and side padding overflow the
+group horizontally at 320px, so it is drawn as one rule with its name on it.
+That is a `.inscription` rule in `globals.css`, added to this row's file list
+above. The page's other fieldset, `.address`, still draws as a user-agent box,
+so a merch cart now shows two groups drawn differently; styling `fieldset`
+once is recorded in `findings.md` rather than taken here.
+
+**A measurement in this paragraph was wrong and is corrected.** It read that
+`No name — “The bearer”` keeps the ledger row on one line where
+`Nobody named — “The bearer”` wraps it, "measured, 56px against 32px". That
+was measured without `--font-mono` defined, against a narrower fallback face.
+In the repository's own `LDMono` the chosen string wraps at 320, 360, 375 and
+390 and is single-line only at 412 and above. `No name` stands, for the one
+reason that survives: it parallels `GIFT_PREVIEW_EMPTY`'s `No message`
+directly below it. **The wrap is accepted** — the single-line row it replaces
+said the wrong thing, and no shorter string can both fit at 360 and keep
+`NO_INSCRIPTION`, which §5's disclosure needs.
+
+- [x] Choose among the candidate moves with a 390px rendering in front of you
       and restructure the two field groups so they are distinguishable without
       reading either notice. Verified by a test asserting each group renders
       under its own labelled heading and that the bearer preview's `The bearer`

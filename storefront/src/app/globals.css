@@ -418,6 +418,31 @@ small {
   white-space: nowrap;
 }
 
+/* LD-11 F4. §5's two fields are a named group, not a boxed one.
+
+   A `<fieldset>` is the right element — it is what tells a screen reader the
+   legend belongs to these controls — but the user-agent default draws a border
+   and pads both sides, and at 390px that padding is enough to wrap the ledger
+   label below it. The group is drawn the way every other division on this site
+   is drawn: one rule, with the name sitting on it.
+
+   Scoped to the class, not the element, so it cannot reach `.address` — which
+   is the other fieldset on this page and still draws as a user-agent box. That
+   asymmetry is real and is recorded in this slice's findings rather than
+   settled here, because F4's file list names neither the address block nor
+   LD-04's visual. */
+.inscription {
+  border: 0;
+  border-top: var(--rule-width) solid var(--ink-soft);
+  margin: 0 0 var(--space-5);
+  padding: var(--space-3) 0 0;
+  min-inline-size: 0;
+}
+
+.inscription > legend {
+  padding: 0 var(--space-2) 0 0;
+}
+
 .ledger {
   margin: 0 0 var(--space-5);
 }
