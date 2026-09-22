@@ -7,6 +7,8 @@
  * documents, not with a component.
  */
 
+import { NO_INSCRIPTION } from "./certificate";
+
 export const CART_DOCUMENT = {
   title: "Order summary",
   form: "Form LD-3",
@@ -136,7 +138,46 @@ export const INSCRIPTION_NOTICE =
   "Both are optional and both are public. Your billing name is never printed on a certificate, and leaving these blank prints “the bearer” instead. Links, domain names, email addresses, telephone numbers and markup are removed automatically, and the preview shows what will actually appear.";
 
 /** The heading over the preview of what the certificate will carry. */
+/**
+ * The heading over §5's two fields.
+ *
+ * **LD-11 F4.** Rendered at 390px, the gift block was the only labelled group
+ * on this page — it has a `<summary>` — and the certificate's two fields sat
+ * under nothing but a paragraph of fine print. So the labelled group was the
+ * private one and the unlabelled group was the public one, which is the wrong
+ * way round: a buyer scanning for "where does the recipient's name go" finds
+ * the only heading on the page and it is the wrong field group.
+ *
+ * It names the document rather than repeating the notice. The notice below it
+ * still says what is public; this says which of the two groups you are in.
+ */
+export const INSCRIPTION_HEADING = "What the certificate says";
+
 export const INSCRIPTION_PREVIEW_LABEL = "What will appear";
+
+/**
+ * The preview when the buyer has typed nothing.
+ *
+ * **LD-11 F4, and the same defect `GIFT_PREVIEW_EMPTY` was.** The row read
+ * `What will appear ···· The bearer`, in the same style as a name the buyer
+ * had chosen, so an untouched field and a deliberate one were
+ * indistinguishable. Order #1's buyer typed the recipient's name into the gift
+ * block, saw this row unchanged, and had no reason to connect the two; the
+ * certificate rendered `The bearer`.
+ *
+ * `NO_INSCRIPTION` is still shown, because §5's disclosure is the whole point
+ * of the preview and the buyer is owed what will actually print. What is added
+ * is that nothing was typed.
+ *
+ * **`No name`, and the length is not arbitrary.** It parallels
+ * `GIFT_PREVIEW_EMPTY`'s `No message` directly below it, and it is what fits:
+ * measured at 390px, `Nobody named — “The bearer”` and
+ * `Nothing typed — “The bearer”` both wrap the ledger row to two lines and
+ * collapse its dotted leader, while this and the bare placeholder it replaces
+ * are 32px rows. A preview that breaks the ledger it sits in is the class of
+ * defect this row exists to remove.
+ */
+export const INSCRIPTION_PREVIEW_EMPTY = `No name — “${NO_INSCRIPTION}”`;
 
 /**
  * §6's gift block, behind a disclosure the buyer has to open.

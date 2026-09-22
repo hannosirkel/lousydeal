@@ -67,7 +67,9 @@ import {
   EMAIL_HINT,
   EMAIL_LABEL,
   INSCRIPTION_LABELS,
+  INSCRIPTION_HEADING,
   INSCRIPTION_NOTICE,
+  INSCRIPTION_PREVIEW_EMPTY,
   GIFT_CONFIRMATION_NOTE,
   GIFT_LABELS,
   GIFT_NOTICE,
@@ -81,7 +83,6 @@ import {
   PREPARING_PAYMENT_LABEL,
   STRIPE_PAYMENT_NOTICE,
 } from "../../content/checkout";
-import { NO_INSCRIPTION } from "../../content/certificate";
 import { paySubmitBlocked, payDisabled, paymentSessionNeeded } from "../../lib/checkout-rules";
 import { GIFT_LIMITS, previewGiftText } from "../../lib/gift";
 import { INSCRIPTION_LIMITS, sanitiseInscription } from "../../lib/inscription";
@@ -841,6 +842,13 @@ export function PayButton({
           used, and that some of what is typed is removed. No `required` on
           either -- §5 says most buyers leave both blank and the certificate
           has to look deliberate when they do. */}
+      {/* F4. A `<fieldset>` with a `<legend>`, the same shape the address
+          block already uses, because at 390px the gift block's `<summary>`
+          was the only heading on the page — so the *private* four were the
+          labelled group and §5's *public* two were not. A buyer looking for
+          where the recipient's name goes found the one heading there was. */}
+      <fieldset className="inscription">
+        <legend>{INSCRIPTION_HEADING}</legend>
       <FinePrint>
         <span id="checkout-inscription-notice">{INSCRIPTION_NOTICE}</span>
       </FinePrint>
@@ -874,12 +882,17 @@ export function PayButton({
       <Ledger>
         <LedgerRow
           label={INSCRIPTION_PREVIEW_LABEL}
-          value={sanitiseInscription(displayName) ?? NO_INSCRIPTION}
+          // F4. `NO_INSCRIPTION` alone rendered exactly like a name the buyer
+          // had chosen. `INSCRIPTION_PREVIEW_EMPTY` still shows what the
+          // certificate will print -- §5's disclosure is the point of this row
+          // -- and adds that nothing was typed.
+          value={sanitiseInscription(displayName) ?? INSCRIPTION_PREVIEW_EMPTY}
         />
       </Ledger>
       <FinePrint>
         <span aria-live="polite">{sanitiseInscription(dedication) ?? ""}</span>
       </FinePrint>
+      </fieldset>
 
       {/* G3. §6's gift block, closed by default because most orders are not
           gifts and four fields before the pay button would tax every ordinary

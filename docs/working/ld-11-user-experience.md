@@ -309,7 +309,27 @@ a rendering in front of it:
   into the gift block sees it unchanged and has no reason to connect the two;
 - reorder, so the gift block's name field is not adjacent to the certificate's.
 
-- [ ] Choose among the candidate moves with a 390px rendering in front of you
+**Settled on 2026-09-22, with both renders in front of the operator:** the
+first two moves, and not the third. The 390px render
+([before](./ld-11-user-experience/f4-checkout-390px-before.png),
+[after](./ld-11-user-experience/f4-checkout-390px.png)) showed the gift block's
+`<summary>` was the only heading on the page — so the *private* four were the
+labelled group and §5's *public* two were not, which is the wrong way round and
+is the structure order #1's buyer read. The third move was already largely
+true: the two name fields are separated by the dedication, the preview and the
+disclosure summary, and reordering would cost the present order, which puts the
+public pair before a disclosure a buyer may never open.
+
+Two things the render decided that no assertion would have. A `<fieldset>` is
+the right element but its user-agent border and side padding cost enough width
+at 390px to wrap the ledger label beneath it, so the group is drawn as one rule
+with its name on it, the way every other division on this site is drawn. And
+the preview's empty state is `No name — “The bearer”` because
+`Nobody named — “The bearer”` wraps that ledger row to two lines and collapses
+its dotted leader — measured, 56px against 32px — while this parallels
+`GIFT_PREVIEW_EMPTY`'s `No message` directly below it.
+
+- [x] Choose among the candidate moves with a 390px rendering in front of you
       and restructure the two field groups so they are distinguishable without
       reading either notice. Verified by a test asserting each group renders
       under its own labelled heading and that the bearer preview's `The bearer`
