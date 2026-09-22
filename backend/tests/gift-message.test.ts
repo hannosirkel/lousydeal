@@ -37,6 +37,7 @@ const GIFT: GiftMessageInput = {
   recipientName: "A. Recipient",
   senderName: "A. Buyer",
   message: "Happy birthday",
+  parcel: null,
 };
 
 const SITE = "https://lousydeal.example";

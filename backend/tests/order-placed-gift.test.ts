@@ -99,6 +99,18 @@ const MERCH_GIFT_ORDER = {
       detail: { quantity: 1 },
     },
   ],
+  // F2 needs the destination, and only the destination. The street, city and
+  // postal code are here so the tests can assert they are *not* printed: the
+  // recipient already knows their own address and this repository must not put
+  // a third party's in an email it also keeps in a log.
+  shipping_address: {
+    first_name: "A.",
+    last_name: "Recipient",
+    address_1: "12 Example Lane",
+    city: "Tartu",
+    postal_code: "51005",
+    country_code: "ee",
+  },
 } as const;
 
 const GIFT_METADATA = {
@@ -125,7 +137,11 @@ async function run({
   deliveries?: number;
   giftFails?: boolean;
   /** Replaces the default single-certificate order. See `MERCH_GIFT_ORDER`. */
-  order?: { total: BigNumber; items: readonly Record<string, unknown>[] };
+  order?: {
+    total: BigNumber;
+    items: readonly Record<string, unknown>[];
+    shipping_address?: Record<string, unknown>;
+  };
 }) {
   const original = { ...process.env };
   const sent: {
@@ -155,6 +171,7 @@ async function run({
       items: orderOverride?.items ?? [
         { title: "Lousy Deal Pro", product_handle: "lousy-deal-pro", total: 2500, detail: { quantity: 1 } },
       ],
+      shipping_address: orderOverride?.shipping_address ?? null,
     };
 
     const container = {
@@ -307,26 +324,50 @@ describe("a gift order carrying merch", () => {
     expect(confirmation?.content?.text).not.toContain("$6.00");
   });
 
-  it("tells the recipient nothing else is coming, while a cap is in the post", async () => {
-    // Order #1's defect 2, and the only line in this repository's mail that is
-    // simply false. F2 inverts this assertion.
+  it("stops telling the recipient nothing else is coming", async () => {
+    // Order #1's defect 2, inverted. This was the only line in this
+    // repository's mail that was simply false: a trucker cap was in the post
+    // to the recipient's own address at the moment it was sent.
     const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
     const gift = sent.find((n) => n.template === "gift-message");
 
-    // **This is the assertion F2 inverts.** The plan's criterion is that no
-    // gift message asserts the absence of something the order contains, and
-    // this sentence is that assertion.
+    expect(gift?.content?.text).not.toContain("there is nothing else coming");
+  });
+
+  it("names the parcel and the country it is going to", async () => {
+    // The shape the row chose: a recipient who is getting a hat is told so.
+    // Order #1's recipient was not, had no reason to expect a parcel, and had
+    // to be told afterwards in a second message LD-03's constraint 7 does not
+    // allow.
+    const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
+    const gift = sent.find((n) => n.template === "gift-message");
+
+    expect(gift?.content?.text).toContain("Lousy Deals Trucker Cap");
+    expect(gift?.content?.text).toContain("Estonia");
+  });
+
+  it("prints no part of the recipient's address beyond the country", async () => {
+    // Constraint 2, and the row's own instruction: "never the full address,
+    // which the recipient already knows and which this repository must not
+    // print". The message is also logged and stored by the notification
+    // module, so a street here outlives the order record's retention.
+    const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
+    const gift = sent.find((n) => n.template === "gift-message");
+
+    expect(gift?.content?.text).not.toContain("12 Example Lane");
+    expect(gift?.content?.text).not.toContain("Tartu");
+    expect(gift?.content?.text).not.toContain("51005");
+  });
+
+  it("leaves a certificate-only gift saying nothing else is coming", async () => {
+    // The clause is *true* for a gift that is only a certificate, and it is
+    // load-bearing there: it is what stops a reader waiting for a second email
+    // that never arrives. F2 narrows the claim, it does not delete it.
+    const { sent } = await run({ metadata: GIFT_METADATA });
+    const gift = sent.find((n) => n.template === "gift-message");
+
     expect(gift?.content?.text).toContain("there is nothing else coming");
-    // A weaker, secondary check, and deliberately named rather than
-    // pattern-matched: `/cap|post/i` also catches "escape" and "postal", so it
-    // would fail for the wrong reason the day unrelated copy changes.
-    //
-    // **It only inverts if F2 prints the line title.** F2 has not chosen its
-    // copy yet; a shape naming "a parcel" or "a trucker cap" leaves this
-    // green rather than flipping it. That is acceptable for a second check
-    // and would not be for the first — which is why the absence claim above,
-    // not this, is what the row rests on.
-    expect(gift?.content?.text).not.toContain("Lousy Deals Trucker Cap");
+    expect(gift?.content?.text).not.toContain("ALSO ON ITS WAY");
   });
 
   it("still sends both messages, once each, to the right two addresses", async () => {

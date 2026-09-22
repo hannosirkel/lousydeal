@@ -37,6 +37,8 @@ import {
   GIFT_OPENING,
   GIFT_SUBJECT,
   GIFT_WHAT,
+  GIFT_WHAT_WITH_PARCEL,
+  giftParcel,
 } from "../content/gift";
 import type { ConfirmationMessage } from "./order-confirmation";
 
@@ -50,7 +52,31 @@ export interface GiftMessageInput {
   readonly recipientName: string | null;
   readonly senderName: string | null;
   readonly message: string | null;
+  /**
+   * The printed goods in the same order, and the country they are posted to.
+   *
+   * `null` for a certificate-only gift, which is the only shape that existed
+   * before LD-04. When it is set, the message stops saying nothing else is
+   * coming and names what is — see `GIFT_WHAT_WITH_PARCEL`.
+   *
+   * The country is a display name, resolved by the sender for the same reason
+   * the amount is formatted there. Never the street: `giftParcel` says why.
+   */
+  readonly parcel: { readonly items: readonly string[]; readonly country: string | null } | null;
 }
+
+/**
+ * Whether this gift has a parcel to name.
+ *
+ * **`== null`, not `=== null`.** The field is required by the type, but a fake
+ * in a test or a caller built from a narrower shape hands back `undefined`,
+ * and `undefined !== null` would send a recipient into `giftParcel` with
+ * nothing to read from. `sendGift` carries the same guard on the recipient
+ * address, for the same reason and after the same bug.
+ */
+const hasParcel = (gift: GiftMessageInput): gift is GiftMessageInput & {
+  readonly parcel: NonNullable<GiftMessageInput["parcel"]>;
+} => gift.parcel != null && gift.parcel.items.length > 0;
 
 const escapeHtml = (text: string): string =>
   text.replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character] ?? character);
@@ -118,9 +144,14 @@ export function buildGiftMessage(
       `${GIFT_LABELS.serial}: ${formatSerial(gift.serial)}`,
       `${GIFT_LABELS.issued}: ${gift.issuedOn}`,
       `${GIFT_LABELS.certificate}: ${gift.certificateUrl}`,
-      ...GIFT_WHAT,
+      ...(hasParcel(gift) ? GIFT_WHAT_WITH_PARCEL : GIFT_WHAT),
     ],
   ]);
+  // Directly under what the certificate is, and above "It is yours", because
+  // it answers the question the narrowed sentence above now leaves open.
+  if (hasParcel(gift)) {
+    sections.push([GIFT_HEADINGS.parcel, giftParcel(gift.parcel.items, gift.parcel.country)]);
+  }
   sections.push([GIFT_HEADINGS.keep, [...GIFT_KEEP]]);
   // Article 14(3)(b): at the latest at the first communication, which this is.
   // G4 shipped without either of these — the message took the trader identity

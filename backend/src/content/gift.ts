@@ -35,6 +35,8 @@ export const GIFT_HEADINGS = {
   opening: "Somebody bought you a lousy deal",
   message: "They said",
   what: "What it is",
+  /** Only rendered when the order carries printed goods. LD-11 F2. */
+  parcel: "Also on its way",
   keep: "It is yours",
   notice: "Why you got this, and what we hold",
   trader: "Who sent it",
@@ -73,6 +75,54 @@ export const GIFT_WHAT = [
   "It is a numbered certificate recording that somebody paid for nothing on your behalf. That is the entire product; there is no catch and there is nothing else coming.",
   "There is nothing to claim, no account to create and nothing to install. The link below is the certificate, and it will keep working.",
 ] as const;
+
+/**
+ * The same thing to say when a parcel *is* coming.
+ *
+ * **LD-11 F2.** `GIFT_WHAT`'s "there is nothing else coming" was true while a
+ * gift order could only ever be a certificate. LD-04 made an order able to
+ * carry a parcel, and on 2026-09-19 that sentence went to a recipient with a
+ * trucker cap already in the post to their own address — the only line in this
+ * repository's mail that was simply false.
+ *
+ * The claim is narrowed rather than deleted: for a certificate-only gift it is
+ * still what stops a reader waiting for a second email that never comes, so
+ * `GIFT_WHAT` keeps it and this variant is used only when there is something
+ * else to say. The second line is shared — it is about the certificate and is
+ * true either way.
+ */
+export const GIFT_WHAT_WITH_PARCEL = [
+  "It is a numbered certificate recording that somebody paid for nothing on your behalf. That is the entire product, and there is no catch.",
+  GIFT_WHAT[1],
+] as const;
+
+/**
+ * What is in the post, and where it is going — never the address itself.
+ *
+ * **The destination is named as a country and nothing finer.** The recipient
+ * knows their own address; printing it back tells them nothing and puts a
+ * third party's street into an email this deployment also logs and stores,
+ * which is what LD-03's constraint 2 and its data-minimisation constraint
+ * exist to prevent. The country is enough to make the sentence concrete and
+ * carries nothing the recipient did not already supply to the buyer.
+ *
+ * **It says the parcel needs nothing from them.** Order #1's recipient was
+ * told nothing was coming, so they had no reason to expect or collect a
+ * parcel; the failure this repairs is a person not knowing to look out for
+ * something, not a person wanting a tracking number.
+ *
+ * **The country may be absent and the section still runs.** If the address
+ * carries no readable country the parcel is still named, because the sentence
+ * this row exists to remove is the one that denies it — falling back to
+ * silence would put "there is nothing else coming" back in front of somebody
+ * with a hat in the post.
+ */
+export const giftParcel = (items: readonly string[], country: string | null): readonly string[] => [
+  country === null
+    ? `${items.join(", ")} — in the post to you.`
+    : `${items.join(", ")} — posted to you in ${country}.`,
+  "The certificate above confers nothing; this is a real thing in the post. It needs nothing from you, and we are not printing your address here.",
+];
 
 /**
  * What this message is not.

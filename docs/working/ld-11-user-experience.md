@@ -243,7 +243,13 @@ would want. **The row is required to render both at 390px before choosing**,
 which is how `GIFT_PREVIEW_EMPTY`'s defect was found and the only way this kind
 is ever found.
 
-- [ ] Render both candidate shapes at 390px, choose between them, and change
+**Settled: the first shape**, chosen by the operator on 2026-09-22 with both
+rendered. The clause is narrowed rather than deleted — a certificate-only gift
+still says nothing else is coming, because there it is true and it is what
+stops a reader waiting for a second email. The parcel section names the item
+and the destination country and no more of the address than that.
+
+- [x] Render both candidate shapes at 390px, choose between them, and change
       `GIFT_WHAT` so no gift message asserts the absence of something the order
       contains. Verified by a test in `order-placed-gift.test.ts` driving F3's
       merch-bearing fixture and asserting the rendered message contains no
