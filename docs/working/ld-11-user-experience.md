@@ -402,7 +402,7 @@ completed the address first has it inserted out of view. Recorded for G3.
 
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-03-gifting.md`, `docs/current/brand.md`,
-`backend/src/scripts/edit-inscription.ts`,
+`backend/src/scripts/edit-inscription.ts`, `backend/package.json`,
 `backend/tests/edit-inscription.test.ts`,
 `backend/tests/constraint-4-agreement.test.ts`.
 
@@ -422,7 +422,22 @@ The row builds the smallest thing that is one — most likely a
 `backend/src/scripts/` entry taking a serial and the two fields, run through
 `medusa exec`, writing through the deal module rather than the table.
 
-- [ ] Write constraint 4's settled wording into LD-03 and `brand.md` together
+**Two notes on what was built.** `brand.md` did not carry constraint 4 at all,
+so the row added it there rather than reconciling two existing copies; it sits
+in the gift-block section, which is where a copy change is written against it.
+And the agreement test compares the wording, not the bytes: in LD-03 the block
+is item 4 of a numbered list and carries its `4. ` marker and a three-space
+continuation indent, while in `brand.md` it is quoted under a paragraph. The
+numbering and the indentation are markdown, not the constraint. Every word,
+backtick and em dash still has to match exactly, and the normalisation is the
+smallest one that lets both files render correctly. The deal #1 exception is
+recorded *beside* the marked block in each, not inside it, so the canonical
+text stays identical.
+
+The script is registered as `npm run edit:inscription`, following
+`report:discounts`'s own `medusa exec` invocation.
+
+- [x] Write constraint 4's settled wording into LD-03 and `brand.md` together
       with deal #1 recorded beside it as a named, dated operator exception, and
       add a `backend/src/scripts/` entry run through `medusa exec` that takes a
       serial and the two fields and writes through the deal module. Verified by

@@ -33,6 +33,7 @@ are not restated in full; what follows is what this slice adds or sharpens.
    email reads `SITE_BASE_URL` the way LD-02's confirmation does.
 3. **One pull request closes one row**, 800 lines and 10 files, operator
    override by name. Unchanged.
+<!-- constraint-4 -->
 4. **The recipient's name and email are never public.** Settled by the operator
    on 2026-09-07. The public certificate carries what the *buyer* typed into
    §5's `display_name` and `dedication` — the fields LD-02 already publishes,
@@ -40,6 +41,16 @@ are not restated in full; what follows is what this slice adds or sharpens.
    public field. A third party's name on an indexable page, supplied by someone
    else, is a different thing from your own name on your own certificate, and
    this slice does not do it.
+<!-- /constraint-4 -->
+
+   **Re-settled on 2026-09-19, unchanged**, after the operator directed that
+   the recipient's name be written to `display_name` on live deal #1. That
+   entry is a single operator exception on the operator's own order, made
+   knowingly, and the recipient was told in writing that their name is on a
+   public page and may be removed on request. **It is not a precedent**, and
+   nothing in the product may write a gift field to a public one. The wording
+   above is repeated verbatim in `brand.md`'s gift-block section, and
+   `constraint-4-agreement.test.ts` fails if the two ever disagree.
 5. **The recipient receives a certificate, not a contract.** No § 54(1)
    information, no withdrawal form, no consent recital in the recipient's
    email. Those belong to the buyer and sending them to the recipient would
