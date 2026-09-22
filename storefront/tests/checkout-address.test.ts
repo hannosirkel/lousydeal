@@ -24,7 +24,7 @@ import {
   SHIPPING_LABEL,
   SHIPPING_PENDING_NOTICE,
 } from "../src/content/checkout";
-import { PaymentForm, PayButton } from "../src/app/checkout/PaymentForm";
+import { GiftAddressNote, PaymentForm, PayButton } from "../src/app/checkout/PaymentForm";
 import type { FetchJson } from "../src/lib/medusa-client";
 
 vi.mock("@stripe/react-stripe-js", () => ({
@@ -378,14 +378,50 @@ describe("whose address it is, on a gift with a parcel", () => {
   // has to work out unaided that this field is where it goes and that it is
   // not derived from the block above.
   //
-  // The decision is a pure function rather than a condition inlined in the
-  // component, because the storefront suite runs under `environment: "node"`
-  // with no DOM: a condition on `giftOpen` can only be reached by a source
-  // match, and this slice has already shipped three assertions that could not
-  // fail. Every combination is driven here instead.
+  // The storefront suite runs under `environment: "node"` with no DOM, so the
+  // gift-open state cannot be reached by rendering `PayButton`. `giftAddressNote`
+  // holds the decision and `GiftAddressNote` renders what it returns, so the
+  // rule, the markup and the text are bound and every combination is driven
+  // here. An earlier draft rendered the constant beside the rule instead, and
+  // the suite then passed whether the branch rendered nothing or the wrong
+  // notice.
 
   it("is said on a cart that is both a gift and carrying a parcel", () => {
     expect(giftAddressNote({ isGift: true, needsAddress: true })).toBe(GIFT_ADDRESS_NOTE);
+  });
+
+  it("reaches the markup, with that exact text", () => {
+    // **The assertion the first draft of this row did not have.** It asserted
+    // the rule, and separately asserted the constant, and never bound them:
+    // the suite passed when the branch rendered nothing at all, and passed
+    // when it rendered `ADDRESS_NOTE` instead. `GiftAddressNote` renders what
+    // the rule returns, and this renders `GiftAddressNote`.
+    const rendered = renderToStaticMarkup(
+      createElement(GiftAddressNote, { isGift: true, needsAddress: true }),
+    );
+    expect(rendered).toContain(GIFT_ADDRESS_NOTE);
+    expect(rendered).not.toContain(ADDRESS_NOTE);
+  });
+
+  it("renders nothing at all in the other three cases", () => {
+    for (const props of [
+      { isGift: true, needsAddress: false },
+      { isGift: false, needsAddress: true },
+      { isGift: false, needsAddress: false },
+    ] as const) {
+      expect(renderToStaticMarkup(createElement(GiftAddressNote, props))).toBe("");
+    }
+  });
+
+  it("survives React's HTML escaping", () => {
+    // **A canary, not a tautology.** React escapes `'`, `"`, `&`, `<` and `>`;
+    // a straight apostrophe in this copy once made every `toContain` against
+    // rendered markup silently vacuous, including the two absence checks
+    // below. If the copy regains such a character this fails here, loudly,
+    // rather than quietly disarming the rest of this block.
+    expect(renderToStaticMarkup(createElement("p", null, GIFT_ADDRESS_NOTE))).toContain(
+      GIFT_ADDRESS_NOTE,
+    );
   });
 
   it("is not said on a gift that is only a certificate", () => {
@@ -425,10 +461,10 @@ describe("the gift address note, as the checkout renders it", () => {
   it("is wired to the disclosure's own state, not to a second source of truth", () => {
     // Asserted against the source, because the gift-open case is the one a
     // `node` environment cannot render: `giftOpen` only changes under a
-    // browser's `onToggle`. This is the half that a passing suite would
-    // otherwise not cover -- the wiring was wrong once during this row and
-    // every rendered test stayed green.
+    // browser's `onToggle`. The rendered assertions above cover what the
+    // component does with each combination; this covers only that the form
+    // hands it the disclosure's own state rather than a second flag.
     const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8");
-    expect(source).toMatch(/giftAddressNote\(\{\s*isGift:\s*giftOpen,\s*needsAddress\s*\}\)/);
+    expect(source).toMatch(/<GiftAddressNote\s+isGift=\{giftOpen\}\s+needsAddress=\{needsAddress\}\s*\/>/);
   });
 });

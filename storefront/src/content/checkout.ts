@@ -449,10 +449,12 @@ export const ADDRESS_NOTE =
  * to `&#x27;` in rendered markup, so a test asserting this string against the
  * HTML would never match it — and the two `not.toContain` checks for its
  * absence would pass whether it rendered or not. The typographic apostrophe is
- * also what the rest of this repository's copy uses.
+ * also what the rest of this repository's copy uses, and
+ * `checkout-address.test.ts` now carries a canary that fails if this copy
+ * regains a character React escapes.
  */
 export const GIFT_ADDRESS_NOTE =
-  "This order is a gift, so this is the recipient\u2019s postal address — the one the parcel goes to. It is not taken from the gift block above, which only carries their email address.";
+  "This order is a gift, so this is the recipient\u2019s postal address — the one the parcel goes to. It is not taken from the gift block above, which asks for their email address and no postal one.";
 
 /**
  * Whether to say it.
