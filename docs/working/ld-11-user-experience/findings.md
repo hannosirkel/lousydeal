@@ -179,7 +179,7 @@ takes them should measure before assuming.
 
 Walked on the live open store, 2026-09-22, at 390×844 and 1280×900, in
 Chromium, as a first-time visitor with no cookie. Screenshots in
-[`g2/`](./g2/), including the 1280px cart that the width claims below rest on.
+[`g2/`](./g2/), including a 1280px cart for comparison.
 Several carts were created and abandoned.
 
 The row asked what the cart tells a visitor about a code before it is applied,
@@ -195,19 +195,26 @@ a quantity. **Nothing, and no.**
    from `$5.00` to `$6.00`. A visitor who does not notice the `+` has been
    told nothing.
 
-2. **Baldrick says it makes the deal worse, and never says the price rises.**
-   Asked *Is there a discount*, he answers: "There is a discount code. It is
+2. **Baldrick says the total goes up, and never says by how much.** Asked
+   *Is there a discount*, he answers: "There is a discount code. It is
    BALDRICK20. Type it on the order summary. It makes your deal worse." He
-   offers two follow-ups. *That is not a discount* returns "No. It is not.",
-   after which the conversation has nowhere left to go — the remaining
-   follow-up disappears. So the most explicit thing a visitor is ever told,
-   before or after applying, is "worse". Not that the total goes up, and not
-   by how much.
+   offers two follow-ups, and they end differently. *Go on* answers: "You type
+   it on the order summary and the total goes up. I was not told why. I did
+   not ask." *That is not a discount* answers "No. It is not." After either,
+   the conversation has nowhere left to go — both leave zero quick replies.
+
+   **An earlier version of this finding said he never says the price rises.**
+   That was written from one branch: the walk pressed *That is not a discount*
+   first, which removes the other button, and the conclusion was drawn from
+   the half that had been seen. It is the same error G1 made with the upsell
+   names, made again one row later. What survives is narrower and still worth
+   a row: **the amount is never named anywhere** — not by Baldrick, not by the
+   discount form, not by the confirmation that never comes.
 
    **This is order #1's evidence, explained.** The recipient had to be told
-   afterwards, in writing, that the discount had added a dollar. The buyer
-   knew because they wrote the shop. Nothing on the path a buyer walks says
-   it.
+   afterwards, in writing, that the discount had added **a dollar**. A visitor
+   who asks Baldrick twice learns the total goes up; nothing on the path tells
+   them the figure before they commit to it.
 
 3. **A wrong code speaks; a repeated code is silent.** `NOTACODE` produces
    `THAT CODE IS NOT ON FILE. NOTHING IN THE CART CHANGED.` and leaves the
@@ -220,11 +227,22 @@ a quantity. **Nothing, and no.**
 4. **`CART_SURCHARGE_NOTICE`'s state is not reachable by ordinary use.** The
    notice covers a cart carrying its discount line "more than once, or at a
    quantity above one". The cart has no quantity control at all — zero number
-   inputs, one `Remove` per line — and re-applying the code is the no-op in
-   finding 3. So the shop's own controls cannot produce the state; only the
-   public line-item route the comment names can. **The notice is correct and
-   its state is unreachable from the UI**, which is what the row asked and is
-   worth recording as a pass rather than a defect.
+   inputs — and re-applying the code is the no-op in finding 3. So the shop's
+   own controls cannot produce the state; only the public line-item route the
+   comment names can. **The notice is correct and its state is unreachable
+   from the UI**, which is what the row asked and is worth recording as a pass
+   rather than a defect.
+
+   **Not every line carries a `Remove`.** An earlier version of this finding
+   said "one `Remove` per line"; the certificate line has none, and merch and
+   discount lines do. The count does not change the conclusion — a `Remove` is
+   not a quantity control either way — but it was stated as measured and was
+   not.
+
+   **And the notice is not on the cart.** Like `CART_NEEDS_CERTIFICATE_NOTICE`
+   in G1's finding 2, it renders at checkout. Were the state ever reached, the
+   cart would show the doubled line and the explanation would arrive a page
+   later.
 
 5. **Merch quantities do rise by ordinary use, and the cart shows it plainly.**
    Pressing `ADD` on the same sticker twice gives `CERTIFIED WORTHLESS — 4″×4″
@@ -233,7 +251,17 @@ a quantity. **Nothing, and no.**
    route can change the line's quantity" that *is* reachable, and a later row
    reading finding 4 should not conclude quantities are fixed everywhere.
 
-6. **Acquiring the same deal twice is silent.** The cart still holds one
+6. **Changing tier silently re-prices the surcharge.** With `BALDRICK20`
+   applied to Standard the cart reads `DISCOUNT (BALDRICK20) … +$1.00`,
+   total `$12.00`. Pressing `Acquire` on Lousy Deal Plus replaces the
+   certificate and the same line becomes `+$2.00`, total `$18.00`. Nothing
+   says the tier was swapped, and nothing says the surcharge moved. Twenty
+   per cent of the tier is the rule and the arithmetic is right; the visitor
+   is simply never told either fact. **Missed by this row's first walk** and
+   recorded here because it is the same silence as finding 3 with a figure
+   attached.
+
+7. **Acquiring the same deal twice is silent.** The cart still holds one
    `LOUSY DEAL — STANDARD $5.00`. Capping the certificate at one is right —
    §16 gives a deal one order and one serial — but the second press says
    nothing at all, the same silence as finding 3. A visitor who presses twice
@@ -246,8 +274,9 @@ J-rows; the plan's stage table puts numbering after selection.
 | # | What it would do | Findings |
 | --- | --- | --- |
 | h | Say at the discount field what a code does here, before it is applied | 1, 2 |
-| i | Answer a repeated or already-applied code the way a wrong one is answered | 3, 6 |
-| j | Let Baldrick say the price goes up, and by how much, rather than "worse" | 2 |
+| i | Answer a repeated or already-applied code the way a wrong one is answered | 3, 7 |
+| j | Name the amount — Baldrick says the total goes up but never by how much, and neither does the cart | 1, 2 |
+| o | Say when a tier swap changes the surcharge, and when a tier was swapped at all | 6 |
 
 **What this row did not establish.** Whether the `+$1.00` line and the risen
 total are enough *on their own* for a visitor who reads the ledger carefully —
