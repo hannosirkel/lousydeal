@@ -175,6 +175,86 @@ below is committed work until it is chosen.
 that — it recorded that both break at 390 and neither does at 1280. Whoever
 takes them should measure before assuming.
 
+## G2 — Cart, and whether a discount code is comprehensible
+
+Walked on the live open store, 2026-09-22, at 390×844 and 1280×900, in
+Chromium, as a first-time visitor with no cookie. Screenshots in
+[`g2/`](./g2/), including the 1280px cart that the width claims below rest on.
+Several carts were created and abandoned.
+
+The row asked what the cart tells a visitor about a code before it is applied,
+and whether `CART_SURCHARGE_NOTICE`'s state is reachable without hand-editing
+a quantity. **Nothing, and no.**
+
+1. **The cart says nothing at all about what a code does.** The discount form
+   contains exactly two pieces of text — the label `DISCOUNT CODE` and the
+   button `APPLY CODE` — read from the form element itself, not from a
+   screenshot. There is no hint before the fact and no confirmation shaped
+   like one after it: the only signals that a code *raised* the price are a
+   ledger line reading `DISCOUNT (BALDRICK20) … +$1.00` and a total that went
+   from `$5.00` to `$6.00`. A visitor who does not notice the `+` has been
+   told nothing.
+
+2. **Baldrick says it makes the deal worse, and never says the price rises.**
+   Asked *Is there a discount*, he answers: "There is a discount code. It is
+   BALDRICK20. Type it on the order summary. It makes your deal worse." He
+   offers two follow-ups. *That is not a discount* returns "No. It is not.",
+   after which the conversation has nowhere left to go — the remaining
+   follow-up disappears. So the most explicit thing a visitor is ever told,
+   before or after applying, is "worse". Not that the total goes up, and not
+   by how much.
+
+   **This is order #1's evidence, explained.** The recipient had to be told
+   afterwards, in writing, that the discount had added a dollar. The buyer
+   knew because they wrote the shop. Nothing on the path a buyer walks says
+   it.
+
+3. **A wrong code speaks; a repeated code is silent.** `NOTACODE` produces
+   `THAT CODE IS NOT ON FILE. NOTHING IN THE CART CHANGED.` and leaves the
+   total at `$5.00` — clear, and it names the consequence. Applying
+   `BALDRICK20` a second time produces **no text whatsoever** and leaves the
+   total at `$6.00`. Measured by diffing the page's text before and after: the
+   second application adds nothing. A visitor unsure whether a code took is
+   answered when they are wrong and ignored when they are right.
+
+4. **`CART_SURCHARGE_NOTICE`'s state is not reachable by ordinary use.** The
+   notice covers a cart carrying its discount line "more than once, or at a
+   quantity above one". The cart has no quantity control at all — zero number
+   inputs, one `Remove` per line — and re-applying the code is the no-op in
+   finding 3. So the shop's own controls cannot produce the state; only the
+   public line-item route the comment names can. **The notice is correct and
+   its state is unreachable from the UI**, which is what the row asked and is
+   worth recording as a pass rather than a defect.
+
+5. **Merch quantities do rise by ordinary use, and the cart shows it plainly.**
+   Pressing `ADD` on the same sticker twice gives `CERTIFIED WORTHLESS — 4″×4″
+   … 2 × $6.00`, total `$17.00`. This is not the surcharge state and is not a
+   defect; it is recorded because it is the half of "the public line-item
+   route can change the line's quantity" that *is* reachable, and a later row
+   reading finding 4 should not conclude quantities are fixed everywhere.
+
+6. **Acquiring the same deal twice is silent.** The cart still holds one
+   `LOUSY DEAL — STANDARD $5.00`. Capping the certificate at one is right —
+   §16 gives a deal one order and one serial — but the second press says
+   nothing at all, the same silence as finding 3. A visitor who presses twice
+   because the first press seemed not to work has no way to tell what
+   happened.
+
+**Candidate fix rows, for the operator to select from.** Proposals, not
+J-rows; the plan's stage table puts numbering after selection.
+
+| # | What it would do | Findings |
+| --- | --- | --- |
+| h | Say at the discount field what a code does here, before it is applied | 1, 2 |
+| i | Answer a repeated or already-applied code the way a wrong one is answered | 3, 6 |
+| j | Let Baldrick say the price goes up, and by how much, rather than "worse" | 2 |
+
+**What this row did not establish.** Whether the `+$1.00` line and the risen
+total are enough *on their own* for a visitor who reads the ledger carefully —
+that is a comprehension question a walk cannot settle, and h is written as
+"say it before" rather than "the ledger is insufficient". Findings 4 and 5 are
+a pass and a note; neither proposes a row.
+
 ## A recorded decision was reversed on 2026-09-19
 
 LD-03's global constraint 4 reads, settled by the operator on 2026-09-07:
