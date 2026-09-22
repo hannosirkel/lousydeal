@@ -238,9 +238,17 @@ function giftParcelFrom(
  * `money.ts` gives: a shared screenshot outlives the runtime that made it and
  * two runtimes may carry different ICU data. An email is rendered once.
  *
- * A code `Intl` does not know is returned unchanged, which would print a bare
- * `ZZ` at a recipient; that case is rejected here so the copy falls back to
- * its countryless sentence instead.
+ * **The guard is narrower than it looks, and deliberately kept anyway.**
+ * `Intl` does not hand back an unknown code unchanged: `of("ZZ")` is
+ * `"Unknown Region"`, `of("EU")` is `"European Union"`. So the equality check
+ * below catches only the codes `Intl` genuinely declines, and a recipient
+ * could in principle read "posted to you in Unknown Region."
+ *
+ * That is unreachable rather than handled: Medusa's update-cart workflow
+ * refuses a `country_code` outside the region's own country list, so only a
+ * real ISO code in a configured region reaches an order. The check stays as a
+ * cheap floor for a malformed row, not as a promise that every odd code is
+ * caught.
  */
 function countryName(code: string | null): string | null {
   if (code === null) return null;

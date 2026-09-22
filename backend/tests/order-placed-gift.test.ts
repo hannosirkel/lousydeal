@@ -278,12 +278,14 @@ describe("a gift order", () => {
 /**
  * Live order #1's shape, and what each of its two messages may say.
  *
- * **Half repaired, half still describing a defect.** F3 built the fixture and
- * asserted the behaviour as it then was; F1 has inverted the figure half, so
- * the first three tests now hold the repair. The fourth still asserts a defect
- * on purpose — `there is nothing else coming` is false while a cap is in the
- * post, and F2 is the row that inverts it. Leaving it stated as a live
- * assertion rather than a comment is what stops it being forgotten.
+ * **Both of the defects this shape exposed are now repaired.** F3 built the
+ * fixture and asserted the behaviour as it then was; F1 inverted the figure
+ * half and F2 the parcel half, so every assertion here now holds a repair
+ * rather than describing a defect.
+ *
+ * What remains of order #1 is defect 3 — the buyer's name in the wrong field,
+ * leaving the certificate reading `The bearer` — which is F4's, lives in the
+ * storefront, and is not reachable from this subscriber.
  *
  * Asserting each row's behaviour as it lands, rather than all of it up front,
  * is what keeps `main` green between rows and what makes each row's diff the
@@ -344,6 +346,37 @@ describe("a gift order carrying merch", () => {
 
     expect(gift?.content?.text).toContain("Lousy Deals Trucker Cap");
     expect(gift?.content?.text).toContain("Estonia");
+  });
+
+  it("does not claim the address was used for nothing but this email", async () => {
+    // The same class as defect 2, found reviewing F2: the recipient's name and
+    // postal address go to Printful and a carrier to make and post the parcel,
+    // while two sections below this the message said they were used "to send
+    // you this, and for nothing else".
+    const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
+    const gift = sent.find((n) => n.template === "gift-message");
+
+    expect(gift?.content?.text).not.toContain("and for nothing else");
+    expect(gift?.content?.text).toContain("the company that makes and posts it");
+  });
+
+  it("still says the address was used for nothing else when there is no parcel", async () => {
+    // True for a certificate-only gift, and the stronger promise. Narrowed for
+    // the parcel shape only, exactly as `there is nothing else coming` was.
+    const { sent } = await run({ metadata: GIFT_METADATA });
+    const gift = sent.find((n) => n.template === "gift-message");
+
+    expect(gift?.content?.text).toContain("and for nothing else");
+  });
+
+  it("does not say the parcel is already in the post", async () => {
+    // It is not: the message fires on `order.placed`, before Printful has made
+    // anything. "Being made and posted" is true when sent and stays true.
+    const { sent } = await run({ metadata: GIFT_METADATA, order: MERCH_GIFT_ORDER });
+    const gift = sent.find((n) => n.template === "gift-message");
+
+    expect(gift?.content?.text).toContain("being made and posted to you in Estonia");
+    expect(gift?.content?.text).not.toContain("a real thing in the post");
   });
 
   it("prints no part of the recipient's address beyond the country", async () => {
