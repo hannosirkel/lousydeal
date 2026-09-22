@@ -137,7 +137,6 @@ export const INSCRIPTION_LABELS = {
 export const INSCRIPTION_NOTICE =
   "Both are optional and both are public. Your billing name is never printed on a certificate, and leaving these blank prints “the bearer” instead. Links, domain names, email addresses, telephone numbers and markup are removed automatically, and the preview shows what will actually appear.";
 
-/** The heading over the preview of what the certificate will carry. */
 /**
  * The heading over §5's two fields.
  *
@@ -153,6 +152,7 @@ export const INSCRIPTION_NOTICE =
  */
 export const INSCRIPTION_HEADING = "What the certificate says";
 
+/** The heading over the preview of what the certificate will carry. */
 export const INSCRIPTION_PREVIEW_LABEL = "What will appear";
 
 /**
@@ -169,13 +169,21 @@ export const INSCRIPTION_PREVIEW_LABEL = "What will appear";
  * of the preview and the buyer is owed what will actually print. What is added
  * is that nothing was typed.
  *
- * **`No name`, and the length is not arbitrary.** It parallels
- * `GIFT_PREVIEW_EMPTY`'s `No message` directly below it, and it is what fits:
- * measured at 390px, `Nobody named — “The bearer”` and
- * `Nothing typed — “The bearer”` both wrap the ledger row to two lines and
- * collapse its dotted leader, while this and the bare placeholder it replaces
- * are 32px rows. A preview that breaks the ledger it sits in is the class of
- * defect this row exists to remove.
+ * **`No name`, to parallel `GIFT_PREVIEW_EMPTY`'s `No message`** directly
+ * below it. That is the whole of the reason, and an earlier draft of this
+ * comment claimed a second one that is false: that the shorter string keeps
+ * the ledger row on one line. Measured in the repository's own `LDMono` at
+ * 320, 360, 375 and 390, it does not — this row is 56px and two lines at every
+ * common phone width, and only returns to 32px at 412 and above. The first
+ * measurement was taken without `--font-mono` defined, so it sized a narrower
+ * fallback face.
+ *
+ * **The wrap is accepted rather than designed around.** The single-line row it
+ * replaces said the wrong thing: `The bearer` rendered exactly like a name the
+ * buyer had chosen. Two legible lines that say nothing was typed beat one line
+ * that misleads, and no shorter string can both fit at 360 and keep
+ * `NO_INSCRIPTION`, which §5's disclosure needs and an existing assertion
+ * holds. G6's 390px sweep owns whether the ledger should wrap more gracefully.
  */
 export const INSCRIPTION_PREVIEW_EMPTY = `No name — “${NO_INSCRIPTION}”`;
 

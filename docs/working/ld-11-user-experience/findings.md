@@ -191,6 +191,17 @@ reverses the plan, so a tracked document is currently false. **It is operator
 visibility, not user experience**, so it belongs to whoever reopens LD-04; it
 is named here only so that it is not lost a third time.
 
+**The page's two field groups are drawn by different rules.** LD-11 F4 gave
+§5's inscription pair a `<fieldset class="inscription">` and styled it as one
+rule with its name on it, because the user-agent fieldset box overflows
+horizontally at 320px. `PaymentForm`'s other fieldset, `.address`, has no CSS
+at all and still draws as a user-agent box with a groove border and its own
+indent. A certificate-only cart shows one group and looks right; a merch cart
+shows both and they do not match. Styling `fieldset` once — an element rule or
+a shared class — would settle it, and it is a G3 or G6 finding rather than
+F4's, which named neither the address block nor this file. **Recorded so that
+the asymmetry F4 introduced is tracked rather than noticed later.**
+
 **`order.status` never leaves `pending`.** Medusa defaults it at creation and
 only an explicit `completeOrder` moves it; nothing in `backend/src` calls that,
 and no fulfilment or delivery flow does either. Live order #1 has read

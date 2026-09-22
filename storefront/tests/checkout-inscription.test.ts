@@ -132,8 +132,15 @@ describe("the preview", () => {
     // row unchanged, and had no reason to connect the two. The certificate's
     // own placeholder is still shown, because §5's disclosure is what the row
     // is for; what changes is that it now reads as nothing having been typed.
+    // **`not.toBe` is the assertion that has teeth.** `toContain` alone is
+    // satisfied by `INSCRIPTION_PREVIEW_EMPTY = NO_INSCRIPTION` -- the exact
+    // regression this test names -- because a string contains itself and the
+    // constant still reaches the markup. Three rows of this slice shipped an
+    // assertion that could not fail; this is the check that the empty state is
+    // something *other* than the bare placeholder.
     expect(html).toContain(INSCRIPTION_PREVIEW_EMPTY);
     expect(INSCRIPTION_PREVIEW_EMPTY).toContain(NO_INSCRIPTION);
+    expect(INSCRIPTION_PREVIEW_EMPTY).not.toBe(NO_INSCRIPTION);
   });
 
   it("is run through the same filter the certificate renders with", () => {
