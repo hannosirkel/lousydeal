@@ -203,7 +203,7 @@ prints it correctly with merch and surcharge broken out.
 Delete the comment claiming both messages should print one number, and replace
 it with the reason they must not.
 
-- [ ] Pass the certificate's own `amountPaid`, as `readCertificate` already
+- [x] Pass the certificate's own `amountPaid`, as `readCertificate` already
       computes it, to `sendGift` instead of the order total, and replace the
       comment claiming both messages print one
       number with the reason they must not. Verified by a test in
@@ -271,7 +271,7 @@ own row is what stops F1 and F2 each inventing a different one.
 The fixture is a gift order with a certificate, a merch line, a surcharge and
 postage, whose order total differs from its certificate amount.
 
-- [ ] Add a merch-bearing gift-order fixture to `order-placed-gift.test.ts`
+- [x] Add a merch-bearing gift-order fixture to `order-placed-gift.test.ts`
       whose order total and certificate amount differ, and assert against it
       the behaviour that exists *today* — the gift message quoting the order
       total and denying the parcel. Verified by `npm run test:unit` in

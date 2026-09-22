@@ -419,6 +419,7 @@ export default async function orderPlaced({
       deal,
       orderId,
       tier: line.tier,
+      certificateAmount: line.amountPaid,
       merchandise,
       surcharge: line.surcharge,
     });
@@ -555,6 +556,7 @@ async function sendConfirmation({
   deal,
   orderId,
   tier,
+  certificateAmount,
   merchandise,
   surcharge,
 }: {
@@ -575,6 +577,16 @@ async function sendConfirmation({
    * `items[0]` is what put a mug's name on a § 55 confirmation.
    */
   tier: string;
+  /**
+   * What the *certificate* cost: its own line plus any surcharge, as
+   * `certificateLine` computed it. In major units, formatted here.
+   *
+   * Threaded through this function rather than read off the deal, because
+   * `IssuedDeal` carries the gift fields and the slug and not this. It exists
+   * only to be handed to `sendGift` — the § 55 confirmation below still
+   * quotes `order.total`, which is what the buyer actually paid.
+   */
+  certificateAmount: number;
 }): Promise<void> {
   const runtime = readBackendRuntimeConfig(process.env);
   const address = text(order.email);
@@ -594,17 +606,32 @@ async function sendConfirmation({
     return;
   }
 
-  // Formatted once, here, and handed to both messages. `Intl` in this process
-  // and not in the certificate: `money.ts` refuses it because a shared
-  // screenshot outlives the runtime that made it and two runtimes may carry
-  // different ICU data. An email is formatted once and never re-formatted by a
-  // reader's. Both messages print the same string for the same reason a buyer
-  // and a recipient comparing them should see one number.
+  // One formatter, two figures. `Intl` in this process and not in the
+  // certificate: `money.ts` refuses it because a shared screenshot outlives
+  // the runtime that made it and two runtimes may carry different ICU data.
+  // An email is formatted once and never re-formatted by a reader's.
+  //
+  // **The two messages must print different numbers.** This comment used to
+  // argue the opposite — that "a buyer and a recipient comparing them should
+  // see one number" — and that reasoning was sound only while a gift order
+  // could be nothing but a certificate. LD-04 made an order able to carry a
+  // parcel, and on live order #1 the recipient read `$41.40` and opened a
+  // certificate saying `$6.00`. The two documents contradicted each other and
+  // the email was the wrong one.
+  //
+  // They answer different questions. The buyer paid the order total and is
+  // owed it itemised under § 55(2); the recipient holds a certificate and is
+  // owed the figure printed on the document the message links to. One number
+  // cannot be both, and a recipient must never be told what the buyer spent
+  // on anything other than their certificate.
   const formatMoney = (value: number): string => new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: (text(order.currency_code) ?? "usd").toUpperCase(),
   }).format(value);
+  /** The buyer's figure: what was actually charged, for the § 55 confirmation. */
   const total = formatMoney(amount(order.total) ?? 0);
+  /** The recipient's figure: what the certificate itself records. */
+  const certificateTotal = formatMoney(certificateAmount);
   const issuedOn = new Date(String(order.created_at)).toISOString().slice(0, 10);
   const certificateUrl = `${runtime.siteBaseUrl}/done-deals/${deal.public_slug}`;
 
@@ -669,7 +696,8 @@ async function sendConfirmation({
     logger,
     deal,
     orderId,
-    total,
+    // **The certificate's figure, not the order's.** Order #1's defect 1.
+    total: certificateTotal,
     issuedOn,
     certificateUrl,
     merchant: runtime.merchant,

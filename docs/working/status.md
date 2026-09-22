@@ -7,10 +7,10 @@ does not — it points, it does not hold.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-21 |
+| Updated | 2026-09-22 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | F3, the merch-bearing gift fixture. Branch `deal/ld11-f3-merch-gift-fixture`, worktree `.worktrees/lousydeal/ld11-f3`. |
-| Next action | Land F3, then F1 (gift message quotes the certificate's amount) stacked on it. LD-07 remains deferred out of V1. |
+| In flight | F1, the gift message's figure. Branch `deal/ld11-f1-gift-certificate-amount`, worktree `.worktrees/lousydeal/ld11-f1`. |
+| Next action | Land F1, then F2 (the gift message stops denying a parcel). LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; F3 in flight. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
+| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; F3 closed by #238, F1 in flight. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
