@@ -18,7 +18,7 @@ import { ContainerRegistrationKeys, Modules, OrderWorkflowEvents } from "@medusa
 
 import { PRODUCT_TIERS } from "../commerce/product-model";
 import { createPrintfulClient } from "../modules/printful/client";
-import { isSurchargeLine, printfulSubmissionFrom } from "../modules/printful/from-order";
+import { isSurchargeLine, printfulSubmissionFrom, type ShippingAddressForPrintful } from "../modules/printful/from-order";
 import { createPrintfulOrders } from "../modules/printful/orders";
 import { submitPrintfulOrder, type SubmissionStore } from "../modules/printful/submission";
 import type { MerchantIdentity } from "../config/merchant";
@@ -52,6 +52,16 @@ interface QueriedOrder {
   readonly created_at?: unknown;
   readonly metadata?: unknown;
   readonly items?: readonly QueriedOrderItem[] | null;
+  /**
+   * Requested by the query above since LD-04, and declared here since LD-11
+   * F2, which reads its `country_code` — and nothing else — to tell a gift
+   * recipient which country their parcel is posted to.
+   *
+   * Typed as the Printful path's shape because the same order object is
+   * handed to `printfulSubmissionFrom`, which needs the fuller read. F2 takes
+   * only `country_code` from it.
+   */
+  readonly shipping_address?: ShippingAddressForPrintful | null;
 }
 
 /** Medusa carries money as a `BigNumber`-backed value that serialises to a number here; anything else is not an amount. */
@@ -197,6 +207,50 @@ function confirmationMerchandise(
  */
 function addMajor(first: number, second: number): number {
   return (Math.round(first * 100) + Math.round(second * 100)) / 100;
+}
+
+/**
+ * The two facts the gift message may state about a parcel: what it is, and
+ * which country it is going to. `null` when the order carries none.
+ *
+ * **LD-11 F2.** Built here rather than in the message because this is the
+ * layer that already knows which lines are printed goods, and because the
+ * country has to be resolved to a display name by the process that sends —
+ * the same reason `formatMoney` lives here and not in the certificate.
+ *
+ * Titles only, never quantities or prices: the recipient is not being invoiced
+ * and the buyer's own confirmation is where the order is itemised. The street,
+ * city and postal code are deliberately not read.
+ */
+function giftParcelFrom(
+  merchandise: readonly ConfirmationMerchLine[],
+  shippingAddress: ShippingAddressForPrintful | null | undefined,
+): { readonly items: readonly string[]; readonly country: string | null } | null {
+  if (merchandise.length === 0) return null;
+  const code = shippingAddress == null ? null : text(shippingAddress.country_code);
+  return { items: merchandise.map((line) => line.title), country: countryName(code) };
+}
+
+/**
+ * `ee` to `Estonia`, or `null` if it cannot be resolved.
+ *
+ * `Intl` in this process and not in any stored document, for the reason
+ * `money.ts` gives: a shared screenshot outlives the runtime that made it and
+ * two runtimes may carry different ICU data. An email is rendered once.
+ *
+ * A code `Intl` does not know is returned unchanged, which would print a bare
+ * `ZZ` at a recipient; that case is rejected here so the copy falls back to
+ * its countryless sentence instead.
+ */
+function countryName(code: string | null): string | null {
+  if (code === null) return null;
+  const upper = code.toUpperCase();
+  try {
+    const resolved = new Intl.DisplayNames(["en"], { type: "region" }).of(upper);
+    return resolved === undefined || resolved === upper ? null : resolved;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -700,6 +754,8 @@ async function sendConfirmation({
     total: certificateTotal,
     issuedOn,
     certificateUrl,
+    // **LD-11 F2.** `null` unless the same order carries printed goods.
+    parcel: giftParcelFrom(merchandise, order.shipping_address),
     merchant: runtime.merchant,
     siteBaseUrl: runtime.siteBaseUrl,
   });
@@ -731,6 +787,7 @@ async function sendGift({
   total,
   issuedOn,
   certificateUrl,
+  parcel,
   merchant,
   siteBaseUrl,
 }: {
@@ -741,6 +798,8 @@ async function sendGift({
   total: string;
   issuedOn: string;
   certificateUrl: string;
+  /** LD-11 F2. `null` for a certificate-only gift; see `GiftMessageInput.parcel`. */
+  parcel: { readonly items: readonly string[]; readonly country: string | null } | null;
   merchant: MerchantIdentity | null;
   siteBaseUrl: string;
 }): Promise<void> {
@@ -762,6 +821,7 @@ async function sendGift({
       recipientName: deal.gift_recipient_name,
       senderName: deal.gift_sender_name,
       message: deal.gift_message,
+      parcel,
     },
     merchant,
     siteBaseUrl,
