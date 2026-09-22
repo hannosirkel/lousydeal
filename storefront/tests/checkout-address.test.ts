@@ -15,6 +15,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  GIFT_ADDRESS_NOTE,
+  giftAddressNote,
   ADDRESS_HEADING,
   ADDRESS_LABELS,
   ADDRESS_NOTE,
@@ -22,7 +24,7 @@ import {
   SHIPPING_LABEL,
   SHIPPING_PENDING_NOTICE,
 } from "../src/content/checkout";
-import { PaymentForm, PayButton } from "../src/app/checkout/PaymentForm";
+import { GiftAddressNote, PaymentForm, PayButton } from "../src/app/checkout/PaymentForm";
 import type { FetchJson } from "../src/lib/medusa-client";
 
 vi.mock("@stripe/react-stripe-js", () => ({
@@ -366,5 +368,103 @@ describe("when the payment session is created", () => {
 
   it("reads the stripping, so a broken regex cannot pass by emptying the file", () => {
     expect(source).toContain("export function PayButton");
+  });
+});
+
+describe("whose address it is, on a gift with a parcel", () => {
+  // **Order #1.** The buyer entered the *recipient's* postal address here,
+  // which was right and which nothing on the page told them to do. The gift
+  // block collects an email and no postal address, so a buyer sending a hat
+  // has to work out unaided that this field is where it goes and that it is
+  // not derived from the block above.
+  //
+  // The storefront suite runs under `environment: "node"` with no DOM, so the
+  // gift-open state cannot be reached by rendering `PayButton`. `giftAddressNote`
+  // holds the decision and `GiftAddressNote` renders what it returns, so the
+  // rule, the markup and the text are bound and every combination is driven
+  // here. An earlier draft rendered the constant beside the rule instead, and
+  // the suite then passed whether the branch rendered nothing or the wrong
+  // notice.
+
+  it("is said on a cart that is both a gift and carrying a parcel", () => {
+    expect(giftAddressNote({ isGift: true, needsAddress: true })).toBe(GIFT_ADDRESS_NOTE);
+  });
+
+  it("reaches the markup, with that exact text", () => {
+    // **The assertion the first draft of this row did not have.** It asserted
+    // the rule, and separately asserted the constant, and never bound them:
+    // the suite passed when the branch rendered nothing at all, and passed
+    // when it rendered `ADDRESS_NOTE` instead. `GiftAddressNote` renders what
+    // the rule returns, and this renders `GiftAddressNote`.
+    const rendered = renderToStaticMarkup(
+      createElement(GiftAddressNote, { isGift: true, needsAddress: true }),
+    );
+    expect(rendered).toContain(GIFT_ADDRESS_NOTE);
+    expect(rendered).not.toContain(ADDRESS_NOTE);
+  });
+
+  it("renders nothing at all in the other three cases", () => {
+    for (const props of [
+      { isGift: true, needsAddress: false },
+      { isGift: false, needsAddress: true },
+      { isGift: false, needsAddress: false },
+    ] as const) {
+      expect(renderToStaticMarkup(createElement(GiftAddressNote, props))).toBe("");
+    }
+  });
+
+  it("survives React's HTML escaping", () => {
+    // **A canary, not a tautology.** React escapes `'`, `"`, `&`, `<` and `>`;
+    // a straight apostrophe in this copy once made every `toContain` against
+    // rendered markup silently vacuous, including the two absence checks
+    // below. If the copy regains such a character this fails here, loudly,
+    // rather than quietly disarming the rest of this block.
+    expect(renderToStaticMarkup(createElement("p", null, GIFT_ADDRESS_NOTE))).toContain(
+      GIFT_ADDRESS_NOTE,
+    );
+  });
+
+  it("is not said on a gift that is only a certificate", () => {
+    expect(giftAddressNote({ isGift: true, needsAddress: false })).toBeNull();
+  });
+
+  it("is not said on a parcel that is not a gift", () => {
+    // The buyer is the recipient; `ADDRESS_NOTE` already covers it and a
+    // second sentence would be noise on the ordinary purchase.
+    expect(giftAddressNote({ isGift: false, needsAddress: true })).toBeNull();
+  });
+
+  it("is not said when there is neither", () => {
+    expect(giftAddressNote({ isGift: false, needsAddress: false })).toBeNull();
+  });
+
+  it("names the recipient rather than repeating the address note", () => {
+    // It has to add the one fact `ADDRESS_NOTE` does not carry: whose address
+    // this is. A sentence that only restated where the parcel goes would leave
+    // order #1's buyer exactly where they were.
+    expect(GIFT_ADDRESS_NOTE).not.toBe(ADDRESS_NOTE);
+    expect(GIFT_ADDRESS_NOTE.toLowerCase()).toContain("recipient");
+  });
+});
+
+describe("the gift address note, as the checkout renders it", () => {
+  it("is absent from a parcel cart while the gift block is closed", () => {
+    // The end-to-end half of the four cases above: a static render starts with
+    // the disclosure closed, which is the not-a-gift case.
+    expect(render(true)).not.toContain(GIFT_ADDRESS_NOTE);
+  });
+
+  it("is absent from a certificate-only cart", () => {
+    expect(render(false)).not.toContain(GIFT_ADDRESS_NOTE);
+  });
+
+  it("is wired to the disclosure's own state, not to a second source of truth", () => {
+    // Asserted against the source, because the gift-open case is the one a
+    // `node` environment cannot render: `giftOpen` only changes under a
+    // browser's `onToggle`. The rendered assertions above cover what the
+    // component does with each combination; this covers only that the form
+    // hands it the disclosure's own state rather than a second flag.
+    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8");
+    expect(source).toMatch(/<GiftAddressNote\s+isGift=\{giftOpen\}\s+needsAddress=\{needsAddress\}\s*\/>/);
   });
 });

@@ -359,7 +359,6 @@ said the wrong thing, and no shorter string can both fit at 360 and keep
 **Repository:** `lousydeal`.
 **Files:** `storefront/src/content/checkout.ts`,
 `storefront/src/app/checkout/PaymentForm.tsx`,
-`storefront/tests/checkout-gift.test.ts`,
 `storefront/tests/checkout-address.test.ts`.
 
 The gift block collects an email address and no postal address; the shipping
@@ -371,7 +370,29 @@ A buyer sending a gift with a parcel has to work out unaided that the shipping
 address is where the hat goes and that it is not derived from the gift block.
 Say it, once, where the shipping address is asked for on a cart that is a gift.
 
-- [ ] Add one sentence at the shipping address, shown only on a cart that is
+**The sentence is rendered by an exported `GiftAddressNote`, and that shape was
+arrived at the hard way.** The storefront runs under `environment: "node"` with
+no DOM, so the gift-open state cannot be reached by rendering `PayButton`. This
+row's first draft answered that by putting the decision in a pure function and
+rendering the constant beside it — which left the two unbound. Review proved
+the suite passed when the branch rendered nothing at all, and passed when it
+rendered a different notice entirely: a design adopted to avoid a vacuous
+assertion produced a new one. The component renders the value the rule returns,
+the four combinations are rendered directly, and both mutations now fail.
+
+Two further things this row's record got wrong and this paragraph corrects. It
+claimed the component's wiring had been wrong; it never was — a vacuous
+assertion was misread as a wiring fault. And it counted "three" source-match
+assertions shipped by this slice, which the history does not support: the three
+earlier vacuous assertions were `toContain` checks standing in for
+inequalities, in F3, F4 and this row, and none was a source match.
+
+**`aria-live` is not added and that is a gap, not a decision.** The dedication
+preview in the same file announces itself for exactly the reason this sentence
+would want to: it appears when the disclosure above it opens, and a buyer who
+completed the address first has it inserted out of view. Recorded for G3.
+
+- [x] Add one sentence at the shipping address, shown only on a cart that is
       both a gift and carrying a parcel, saying whose address is wanted.
       Verified by a test asserting the sentence renders for a gift-plus-parcel
       cart and is absent from both a certificate-only gift cart and a

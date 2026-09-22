@@ -191,6 +191,18 @@ reverses the plan, so a tracked document is currently false. **It is operator
 visibility, not user experience**, so it belongs to whoever reopens LD-04; it
 is named here only so that it is not lost a third time.
 
+**A straight apostrophe in copy asserted against rendered markup is silently
+vacuous.** React escapes `'` to `&#x27;`, `"` to `&quot;`, and `&`, `<`, `>`
+likewise; U+2019 and the em dash pass through. LD-11 F5 wrote
+`GIFT_ADDRESS_NOTE` with `'`, and every `toContain` against the rendered HTML —
+including the two checks for its *absence* — passed whether the sentence
+rendered or not. The copy now uses U+2019 and `checkout-address.test.ts`
+carries a canary. **`merch.ts`'s `GOODS_NOTICE` has the same straight
+apostrophes** (`printer's`, `certificate's`); it is not vacuous today because
+`goods-page.test.ts` slices the source rather than asserting against markup,
+but it is the one constant that would become so the day somebody does.
+Recorded for G1, which walks the goods page.
+
 **The page's two field groups are drawn by different rules.** LD-11 F4 gave
 §5's inscription pair a `<fieldset class="inscription">` and styled it as one
 rule with its name on it, because the user-agent fieldset box overflows

@@ -47,7 +47,7 @@
 
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactElement, type ReactNode } from "react";
 
 import { Button } from "../../components/document/Button";
 import { formatMoney } from "../../lib/money";
@@ -59,6 +59,7 @@ import {
   ADDRESS_HEADING,
   ADDRESS_LABELS,
   ADDRESS_NOTE,
+  giftAddressNote,
   CART_LABELS,
   COUNTRY_LABEL,
   SHIPPING_LABEL,
@@ -525,6 +526,32 @@ interface PayButtonProps {
  * `@stripe/react-stripe-js` render the real markup -- the real default, the
  * real `disabled`.
  */
+/**
+ * The sentence that says whose address this is, or nothing.
+ *
+ * **LD-11 F5, and a component rather than a condition inlined above.** The
+ * storefront suite runs under `environment: "node"` with no DOM, so the state
+ * this depends on — the gift disclosure being open — cannot be reached by
+ * rendering `PayButton`. An earlier draft of this row put the rule in
+ * `giftAddressNote` and rendered `GIFT_ADDRESS_NOTE` beside it, which left the
+ * two unbound: the suite passed when the branch rendered nothing, and passed
+ * when it rendered a different notice entirely.
+ *
+ * Exported so the four combinations can be rendered directly, which binds the
+ * rule to the markup and to the text. It renders the value the rule returns;
+ * there is no second copy of the string to drift from it.
+ */
+export function GiftAddressNote({
+  isGift,
+  needsAddress,
+}: {
+  readonly isGift: boolean;
+  readonly needsAddress: boolean;
+}): ReactElement | null {
+  const note = giftAddressNote({ isGift, needsAddress });
+  return note === null ? null : <FinePrint>{note}</FinePrint>;
+}
+
 export function PayButton({
   cartId,
   fetchJson,
@@ -1002,6 +1029,9 @@ export function PayButton({
           {/* Why it is asked for, said before it is given rather than after --
               the shape `INSCRIPTION_NOTE` and the gift note both take. */}
           <FinePrint>{ADDRESS_NOTE}</FinePrint>
+          {/* F5. Order #1's buyer worked out unaided that this field is where
+              the hat goes and that it is not taken from the gift block. */}
+          <GiftAddressNote isGift={giftOpen} needsAddress={needsAddress} />
           {(["name", "line1", "city", "postcode"] as const).map((field) => (
             <p className="field" key={field}>
               <label htmlFor={`checkout-address-${field}`}>{ADDRESS_LABELS[field]}</label>
