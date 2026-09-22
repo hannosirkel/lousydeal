@@ -190,7 +190,7 @@ perfect is not an audit row.
 `sendGift` takes `total`, which its caller computed from `order.total`. It
 should take the certificate's own amount instead, so the figure in the email is
 the figure on the document it links to. **The subscriber already holds that
-figure**: `readCertificate` computes `amountPaid` from the certificate line's
+figure**: `certificateLine` computes `amountPaid` from the certificate line's
 own total plus any surcharge, and passes it into issuance. It is not read back
 off the deal — `IssuedDeal` carries the gift fields and the slug, not
 `amount_paid` — so the row passes the value the subscriber already has,
@@ -203,7 +203,7 @@ prints it correctly with merch and surcharge broken out.
 Delete the comment claiming both messages should print one number, and replace
 it with the reason they must not.
 
-- [x] Pass the certificate's own `amountPaid`, as `readCertificate` already
+- [x] Pass the certificate's own `amountPaid`, as `certificateLine` already
       computes it, to `sendGift` instead of the order total, and replace the
       comment claiming both messages print one
       number with the reason they must not. Verified by a test in
