@@ -402,7 +402,7 @@ completed the address first has it inserted out of view. Recorded for G3.
 
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-03-gifting.md`, `docs/current/brand.md`,
-`backend/src/scripts/edit-inscription.ts`,
+`backend/src/scripts/edit-inscription.ts`, `backend/package.json`,
 `backend/tests/edit-inscription.test.ts`,
 `backend/tests/constraint-4-agreement.test.ts`.
 
@@ -422,7 +422,37 @@ The row builds the smallest thing that is one — most likely a
 `backend/src/scripts/` entry taking a serial and the two fields, run through
 `medusa exec`, writing through the deal module rather than the table.
 
-- [ ] Write constraint 4's settled wording into LD-03 and `brand.md` together
+**Three notes on what was built.** `brand.md` did not carry constraint 4 at
+all, so the row added it there rather than reconciling two existing copies; it
+sits in the gift-block section, which is where a copy change is written against
+it. The deal #1 exception is recorded *beside* the constraint in each document,
+not inside it, because it is an exception to the rule and not part of it — and
+the test asserts neither side swallows it.
+
+**The agreement test compares the wording, not the bytes, and the first
+version of this paragraph gave a false reason for that.** It said the two
+files "cannot be" byte-identical because `brand.md` quoted the constraint under
+a paragraph. They were byte-identical: the first draft pasted LD-03's list item
+into `brand.md` verbatim, marker and continuation indent and all. That draft
+also produced a stray one-item numbered list in a prose section, two
+markdownlint failures, and an HTML comment rendered as visible text inside
+LD-03's item 3 — so the reason given was invented for a problem that did not
+exist, while three real ones went unnoticed because `scripts/validate` had not
+been run. `brand.md` now carries the constraint as a quotation, which is what
+it is; its blockquote prefix and LD-03's `4.` are markdown, not the constraint; and
+every word, backtick and em dash still has to match.
+
+The two sides are located differently and deliberately. `brand.md`'s quotation
+is delimited by HTML comments, which a blockquote carries without disturbing
+anything; LD-03's cannot be, because a comment placed in that list breaks it,
+so its constraint is found the way the list defines it — item 4, first
+paragraph.
+
+The script is registered as `npm run edit:inscription`, following
+`report:discounts`'s own `medusa exec` invocation. It holds the operator to the
+entry path's own lengths, because nothing on the render side truncates.
+
+- [x] Write constraint 4's settled wording into LD-03 and `brand.md` together
       with deal #1 recorded beside it as a named, dated operator exception, and
       add a `backend/src/scripts/` entry run through `medusa exec` that takes a
       serial and the two fields and writes through the deal module. Verified by

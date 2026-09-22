@@ -554,6 +554,31 @@ public and printed; these are private and emailed. A buyer who put the
 recipient's name into `NAME ON THE CERTIFICATE` expecting privacy has been
 misled by the page, and that is the failure this copy exists to prevent.
 
+**The constraint behind that copy, quoted from LD-03 so the two cannot
+disagree.** It is reproduced here because this is the document a copy change
+is written against, and a writer who only reads this file would otherwise have
+to infer it:
+
+<!-- constraint-4 -->
+
+> **The recipient's name and email are never public.** Settled by the operator
+> on 2026-09-07. The public certificate carries what the *buyer* typed into
+> §5's `display_name` and `dedication` — the fields LD-02 already publishes,
+> already filters, and already warns are public before payment. A gift adds no
+> public field. A third party's name on an indexable page, supplied by someone
+> else, is a different thing from your own name on your own certificate, and
+> this slice does not do it.
+
+<!-- /constraint-4 -->
+
+**Re-settled on 2026-09-19, unchanged**, after the operator directed that the
+recipient's name be written to `display_name` on live deal #1. That entry is a
+single operator exception on the operator's own order, made knowingly, and the
+recipient was told in writing that their name is on a public page and may be
+removed on request. **It is not a precedent**, and nothing in the product may
+write a gift field to a public one. `constraint-4-agreement.test.ts` fails if
+this quotation and LD-03's constraint disagree.
+
 The preview beneath the message is the inscription preview's twin, headed
 `WHAT THEY WILL READ`. Its empty state is `No message` — **not** the
 certificate's `The bearer`, which names who a certificate is made out to and

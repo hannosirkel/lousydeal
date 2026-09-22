@@ -203,6 +203,16 @@ apostrophes** (`printer's`, `certificate's`); it is not vacuous today because
 but it is the one constant that would become so the day somebody does.
 Recorded for G1, which walks the goods page.
 
+**Nothing truncates an inscription at render.** `DEAL_INSCRIPTION_LIMITS`
+(60 and 120) is enforced where a buyer types, and the certificate, its PDF and
+its OpenGraph card all re-run `sanitiseInscription` — so markup, links and
+addresses cannot reach the page however the value was stored. Length is not
+re-checked anywhere: a display name longer than 60 characters would print in
+full on all three surfaces. LD-11 F6's `edit:inscription` therefore refuses
+over-length input rather than relying on the render, but the render is still
+the surface that would break, and the only writer today is that command.
+**Recorded for G4**, which walks the certificate and its share surfaces.
+
 **The page's two field groups are drawn by different rules.** LD-11 F4 gave
 §5's inscription pair a `<fieldset class="inscription">` and styled it as one
 rule with its name on it, because the user-agent fieldset box overflows

@@ -40,6 +40,15 @@ are not restated in full; what follows is what this slice adds or sharpens.
    public field. A third party's name on an indexable page, supplied by someone
    else, is a different thing from your own name on your own certificate, and
    this slice does not do it.
+
+   **Re-settled on 2026-09-19, unchanged**, after the operator directed that
+   the recipient's name be written to `display_name` on live deal #1. That
+   entry is a single operator exception on the operator's own order, made
+   knowingly, and the recipient was told in writing that their name is on a
+   public page and may be removed on request. **It is not a precedent**, and
+   nothing in the product may write a gift field to a public one. This
+   constraint is quoted in `brand.md`'s gift-block section, and
+   `constraint-4-agreement.test.ts` fails if the two ever disagree.
 5. **The recipient receives a certificate, not a contract.** No § 54(1)
    information, no withdrawal form, no consent recital in the recipient's
    email. Those belong to the buyer and sending them to the recipient would
