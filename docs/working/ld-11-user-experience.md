@@ -499,7 +499,15 @@ Walk: home → a deal → goods → cart, and goods → cart without a deal.
 
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-11-user-experience/findings.md`,
+`docs/working/ld-11-user-experience/g2/`,
 `docs/working/ld-11-user-experience.md`. No source file changes in this row.
+
+**Walked 2026-09-22 on the live open store**, at 390×844 and 1280×900. Six
+findings and three candidate rows in
+[`findings.md`](./ld-11-user-experience/findings.md). Both of the row's
+questions are answered there: the cart tells a visitor nothing about a code
+before it is applied, and `CART_SURCHARGE_NOTICE`'s state cannot be reached
+from the shop's own controls — a pass, recorded as one.
 
 `BALDRICK20` raises the price. That is the entire product and it is not up for
 review — but whether a visitor *understands it before applying it* is exactly
@@ -515,7 +523,7 @@ can change the line's quantity" — a state whose repair instruction is three
 sentences long. The notice itself does not say that; the walk is what
 establishes whether a visitor can reach the state without hand-editing.
 
-- [ ] Walk the cart with and without `BALDRICK20`, and attempt
+- [x] Walk the cart with and without `BALDRICK20`, and attempt
       `CART_SURCHARGE_NOTICE`'s state by ordinary use, at 390px and desktop
       width. Verified by a `## G2` section appended to `findings.md` recording
       what the cart tells a visitor about a code before it is applied and
