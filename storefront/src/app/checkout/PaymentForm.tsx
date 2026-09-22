@@ -59,6 +59,8 @@ import {
   ADDRESS_HEADING,
   ADDRESS_LABELS,
   ADDRESS_NOTE,
+  GIFT_ADDRESS_NOTE,
+  giftAddressNote,
   CART_LABELS,
   COUNTRY_LABEL,
   SHIPPING_LABEL,
@@ -1002,6 +1004,14 @@ export function PayButton({
           {/* Why it is asked for, said before it is given rather than after --
               the shape `INSCRIPTION_NOTE` and the gift note both take. */}
           <FinePrint>{ADDRESS_NOTE}</FinePrint>
+          {/* F5. Order #1's buyer worked out unaided that this field is where
+              the hat goes and that it is not taken from the gift block. Said
+              only when the cart is both a gift and carrying a parcel; the rule
+              is `giftAddressNote` so that every combination is driven by a
+              test rather than reached by matching this file. */}
+          {giftAddressNote({ isGift: giftOpen, needsAddress }) === null ? null : (
+            <FinePrint>{GIFT_ADDRESS_NOTE}</FinePrint>
+          )}
           {(["name", "line1", "city", "postcode"] as const).map((field) => (
             <p className="field" key={field}>
               <label htmlFor={`checkout-address-${field}`}>{ADDRESS_LABELS[field]}</label>

@@ -15,6 +15,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  GIFT_ADDRESS_NOTE,
+  giftAddressNote,
   ADDRESS_HEADING,
   ADDRESS_LABELS,
   ADDRESS_NOTE,
@@ -366,5 +368,67 @@ describe("when the payment session is created", () => {
 
   it("reads the stripping, so a broken regex cannot pass by emptying the file", () => {
     expect(source).toContain("export function PayButton");
+  });
+});
+
+describe("whose address it is, on a gift with a parcel", () => {
+  // **Order #1.** The buyer entered the *recipient's* postal address here,
+  // which was right and which nothing on the page told them to do. The gift
+  // block collects an email and no postal address, so a buyer sending a hat
+  // has to work out unaided that this field is where it goes and that it is
+  // not derived from the block above.
+  //
+  // The decision is a pure function rather than a condition inlined in the
+  // component, because the storefront suite runs under `environment: "node"`
+  // with no DOM: a condition on `giftOpen` can only be reached by a source
+  // match, and this slice has already shipped three assertions that could not
+  // fail. Every combination is driven here instead.
+
+  it("is said on a cart that is both a gift and carrying a parcel", () => {
+    expect(giftAddressNote({ isGift: true, needsAddress: true })).toBe(GIFT_ADDRESS_NOTE);
+  });
+
+  it("is not said on a gift that is only a certificate", () => {
+    expect(giftAddressNote({ isGift: true, needsAddress: false })).toBeNull();
+  });
+
+  it("is not said on a parcel that is not a gift", () => {
+    // The buyer is the recipient; `ADDRESS_NOTE` already covers it and a
+    // second sentence would be noise on the ordinary purchase.
+    expect(giftAddressNote({ isGift: false, needsAddress: true })).toBeNull();
+  });
+
+  it("is not said when there is neither", () => {
+    expect(giftAddressNote({ isGift: false, needsAddress: false })).toBeNull();
+  });
+
+  it("names the recipient rather than repeating the address note", () => {
+    // It has to add the one fact `ADDRESS_NOTE` does not carry: whose address
+    // this is. A sentence that only restated where the parcel goes would leave
+    // order #1's buyer exactly where they were.
+    expect(GIFT_ADDRESS_NOTE).not.toBe(ADDRESS_NOTE);
+    expect(GIFT_ADDRESS_NOTE.toLowerCase()).toContain("recipient");
+  });
+});
+
+describe("the gift address note, as the checkout renders it", () => {
+  it("is absent from a parcel cart while the gift block is closed", () => {
+    // The end-to-end half of the four cases above: a static render starts with
+    // the disclosure closed, which is the not-a-gift case.
+    expect(render(true)).not.toContain(GIFT_ADDRESS_NOTE);
+  });
+
+  it("is absent from a certificate-only cart", () => {
+    expect(render(false)).not.toContain(GIFT_ADDRESS_NOTE);
+  });
+
+  it("is wired to the disclosure's own state, not to a second source of truth", () => {
+    // Asserted against the source, because the gift-open case is the one a
+    // `node` environment cannot render: `giftOpen` only changes under a
+    // browser's `onToggle`. This is the half that a passing suite would
+    // otherwise not cover -- the wiring was wrong once during this row and
+    // every rendered test stayed green.
+    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8");
+    expect(source).toMatch(/giftAddressNote\(\{\s*isGift:\s*giftOpen,\s*needsAddress\s*\}\)/);
   });
 });

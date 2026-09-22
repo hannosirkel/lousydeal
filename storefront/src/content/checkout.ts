@@ -432,6 +432,46 @@ export const ADDRESS_LABELS = {
 export const ADDRESS_NOTE =
   "This is where the printed items go. It is passed to Printful, who print and post them, and to the courier who carries them. Nothing else is done with it, and none of it appears on a certificate. The Privacy Policy sets out the rest.";
 
+/**
+ * The one fact `ADDRESS_NOTE` does not carry: whose address this is.
+ *
+ * **LD-11 F5, and order #1.** The gift block collects an email address and no
+ * postal one; the shipping address is a separate field belonging to the merch
+ * upsell. The buyer entered the *recipient's* postal address here, which was
+ * the right thing to do and which nothing on the page told them to do. A buyer
+ * who guesses the other way sends a stranger's hat to themselves.
+ *
+ * Said where the address is asked for rather than in the gift block, because
+ * that is where the question arises, and only on a cart that is both — on an
+ * ordinary purchase the buyer is the recipient and this would be noise.
+ *
+ * **The apostrophe is U+2019, not `'`.** React escapes a straight apostrophe
+ * to `&#x27;` in rendered markup, so a test asserting this string against the
+ * HTML would never match it — and the two `not.toContain` checks for its
+ * absence would pass whether it rendered or not. The typographic apostrophe is
+ * also what the rest of this repository's copy uses.
+ */
+export const GIFT_ADDRESS_NOTE =
+  "This order is a gift, so this is the recipient\u2019s postal address — the one the parcel goes to. It is not taken from the gift block above, which only carries their email address.";
+
+/**
+ * Whether to say it.
+ *
+ * **A function rather than a condition inlined in the component**, because the
+ * storefront suite runs under `environment: "node"` with no DOM: a condition
+ * on `giftOpen` can be reached only by matching the component's source, and a
+ * source match is an assertion that cannot fail for the defect it names. Three
+ * rows of this slice shipped one of those. Every combination is driven in
+ * `checkout-address.test.ts` instead.
+ */
+export const giftAddressNote = ({
+  isGift,
+  needsAddress,
+}: {
+  readonly isGift: boolean;
+  readonly needsAddress: boolean;
+}): string | null => (isGift && needsAddress ? GIFT_ADDRESS_NOTE : null);
+
 /** Shown while the postage is being quoted, so the total is never silently stale. */
 export const SHIPPING_PENDING_NOTICE = "Postage is quoted once the address is complete.";
 

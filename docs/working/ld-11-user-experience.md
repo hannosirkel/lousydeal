@@ -371,7 +371,17 @@ A buyer sending a gift with a parcel has to work out unaided that the shipping
 address is where the hat goes and that it is not derived from the gift block.
 Say it, once, where the shipping address is asked for on a cart that is a gift.
 
-- [ ] Add one sentence at the shipping address, shown only on a cart that is
+**The decision is a pure function, `giftAddressNote`, and that is forced by the
+suite.** The storefront runs under `environment: "node"` with no DOM, so a
+condition on the disclosure's `giftOpen` state can only be reached by matching
+the component's source — an assertion that cannot fail for the defect it names,
+which this slice has now shipped three times. The rule is driven directly
+across all four combinations instead, the two absent cases are also asserted
+end to end, and one source assertion guards the wiring the renderer cannot
+reach. That wiring was wrong once during this row while every rendered test
+stayed green.
+
+- [x] Add one sentence at the shipping address, shown only on a cart that is
       both a gift and carrying a parcel, saying whose address is wanted.
       Verified by a test asserting the sentence renders for a gift-plus-parcel
       cart and is absent from both a certificate-only gift cart and a
