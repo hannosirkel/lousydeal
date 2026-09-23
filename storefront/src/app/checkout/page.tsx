@@ -56,8 +56,10 @@ import { cartHasCertificate, cartNeedsAddress, cartRefusedForSurcharge, isPayabl
 import { createStoreFetchJson, getDefaultRegion, listTiers } from "../../lib/medusa-client";
 import { formatMoney } from "../../lib/money";
 import { getCheckoutCart } from "../../lib/store-checkout";
+import { completeCheckoutCart } from "../../lib/store-payment";
 import { CART_ID_COOKIE, requireStoreClientConfig } from "../../lib/store-session";
 import { isSurchargeLine, surchargeLabel, surchargeValue } from "../../lib/surcharge";
+import { OrderPlaced } from "./OrderPlaced";
 import { PaymentForm } from "./PaymentForm";
 
 export const metadata: Metadata = {
@@ -75,7 +77,25 @@ function lineValue(quantity: number, unitPrice: number, currencyCode: string): s
   return quantity === 1 ? price : `${String(quantity)} × ${price}`;
 }
 
-export default async function CheckoutPage() {
+type CheckoutSearchParams = Record<string, string | string[] | undefined>;
+
+/**
+ * Whether this request is Stripe handing a buyer back after a redirecting
+ * payment method succeeded. LD-11 H2.
+ *
+ * `confirmPayment` names `/checkout` as its `return_url`, and Stripe appends
+ * `redirect_status`. The value is only ever a reason to *ask* Medusa to
+ * complete the cart, never evidence of payment: Medusa authorises the session
+ * against Stripe before it creates an order, so a visitor who types
+ * `?redirect_status=succeeded` onto an unpaid cart gets a refusal, not an order.
+ */
+function returnedPaid(parameters: CheckoutSearchParams): boolean {
+  return parameters["redirect_status"] === "succeeded";
+}
+
+export default async function CheckoutPage({
+  searchParams = Promise.resolve({}),
+}: { readonly searchParams?: Promise<CheckoutSearchParams> } = {}) {
   await connection();
   const { stripe, store } = getRuntimeConfig();
   if (!store.open) {
@@ -116,7 +136,23 @@ export default async function CheckoutPage() {
   }
 
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
-  const cart = await getCheckoutCart(fetchJson, cartId);
+  let cart = await getCheckoutCart(fetchJson, cartId);
+
+  /*
+   * LD-11 H2. **On a redirect the browser never completes the cart**, because
+   * the page that would have called `completeCheckoutCart` was navigated away
+   * from mid-payment. The order then existed only if Medusa's webhook made it,
+   * and nothing read `redirect_status`. So the page completes it here.
+   *
+   * Safe to repeat: `completeCartWorkflow` takes a lock on the cart and
+   * returns the existing order for one already completed, so this and the
+   * webhook cannot make two. A throw reaches the site's error boundary rather
+   * than a remounted payment form; H3 gives that failure its own words.
+   */
+  if (!cart.completed && returnedPaid(await searchParams)) {
+    await completeCheckoutCart(fetchJson, cart.id);
+    cart = await getCheckoutCart(fetchJson, cartId);
+  }
   /*
    * LD-04 P6a. Which handles are certificates comes from Medusa, not from a
    * constant declared here: `commerce/product-model.ts` is the one place the
@@ -126,6 +162,42 @@ export default async function CheckoutPage() {
    * makes two.
    */
   const certificateHandles = (await listTiers(fetchJson)).map((tier) => tier.handle);
+
+  /*
+   * LD-11 H2. **A paid cart never renders the payment form again.** Before the
+   * payability check, because a paid cart is usually still a payable shape,
+   * and before `PaymentForm` can mount, because mounting it asks Medusa for a
+   * payment session and a new session is what cancels the PaymentIntent the
+   * buyer has just paid. The cookie still names this cart until the next add
+   * replaces it (`cart-actions.ts`), so a reload, the back-button and Stripe's
+   * return all arrive here.
+   *
+   * No ledger and no § 62²(2) lines above it: those describe an order about to
+   * be placed, and this one has been.
+   */
+  if (cart.completed) {
+    if (cart.email === null) {
+      // Unreachable from this checkout, which sets the address before it
+      // confirms. A cart completed without one came through the public
+      // Store API directly, and the end state has no address to name.
+      throw new Error("A completed cart carries no email address");
+    }
+    return (
+      <main>
+        <DocumentFrame
+          title={CHECKOUT_DOCUMENT.title}
+          form={CHECKOUT_DOCUMENT.form}
+          revision={CHECKOUT_DOCUMENT.revision}
+        >
+          <OrderPlaced
+            email={cart.email}
+            giftRecipientEmail={cart.giftRecipientEmail}
+            hasPostedGoods={cartNeedsAddress(cart.lines, certificateHandles)}
+          />
+        </DocumentFrame>
+      </main>
+    );
+  }
 
   // C3a. A cart holding anything other than one certificate cannot be
   // certified -- C2's subscriber issues nothing for it rather than print a

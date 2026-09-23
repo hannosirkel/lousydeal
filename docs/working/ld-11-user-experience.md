@@ -831,15 +831,48 @@ decide which redirecting methods exist, so only a plain card avoids the third.
 exists only because Medusa's webhook made it, and `?redirect_status=succeeded`
 is read by nothing. That is the half with no fallback.
 
-- [ ] Make `getCheckoutCart` read `completed_at` — `store-cart.ts` declares the
+**Built 2026-09-23.** The page decides, and `PaymentForm` is unchanged. The
+row's file list named it, but the defect is that the form *mounts*, so the fix
+has to live above it. A completed cart renders `OrderPlaced` from the page,
+ahead of the payability check. It shows no ledger and no § 62²(2) lines,
+because those describe an order about to be placed.
+
+**The redirect return completes the cart itself.** `?redirect_status=succeeded`
+on a cart not yet completed calls `completeCheckoutCart` on the server, then
+reads the cart again. That is safe to repeat, because Medusa 2.21's
+`completeCartWorkflow` locks the cart and returns the existing order for one
+already completed, so the webhook and this call cannot make two. It is also
+safe to forge: Medusa authorises the session against Stripe before it creates
+an order, so the parameter is only ever a reason to ask. The operator chose on
+2026-09-23 that if completion throws, the buyer sees the site's existing error
+boundary and never the form again. H3 replaces that with its own words.
+
+**One planned assertion was dropped, because it could not fail.** "Neither
+path issues a payment-session request" would read zero under a static render
+whether or not the form mounted, because `renderToStaticMarkup` runs no
+effects. What provokes the request is `PaymentForm` being on the page, so that
+is what is asserted: its noscript notice and its email field are both absent.
+
+**Not covered.** A `processing` redirect (a delayed payment method) still
+renders the form. `purchase_completed` is not emitted on the redirect path,
+because only the in-page path emits it. A completed cart with no email throws,
+and only a cart completed through the public Store API directly can have none.
+No real payment has been taken through any of these paths. The tests render
+the page with Medusa stubbed.
+
+- [x] Make `getCheckoutCart` read `completed_at` — `store-cart.ts` declares the
       field and `cart-actions.ts` is the one place that reads it — and handle
       the redirect return so it lands on H1's end state rather than re-mounting
-      the form. Verified by tests asserting that a cart with `completed_at` set
-      renders the end state and not the payment form, that a return carrying
-      `?redirect_status=succeeded` resolves to the same end state, and that
-      neither path issues a payment-session request — the observable in the
-      storefront for the `paymentIntents.cancel` that a new session would
-      provoke on the backend.
+      the form. Verified by `checkout-paid-cart.test.ts`, which renders the
+      page. A completed cart renders the end state with the form absent. A
+      `succeeded` return completes the cart once and renders the same end
+      state. A cart the webhook already completed is not completed again. A
+      failed completion throws rather than rendering. A `failed` return keeps
+      the form. `store-checkout.test.ts` covers the three new fields.
+      Fifteen mutations were run, each restoring only its own file with the
+      count held at 113. Each failed the assertion that names its defect. One
+      first attempt referenced an unimported name, failed five tests through a
+      ReferenceError, and was redone.
 
 ### H3 — A failure on the pay path speaks in our words, not Medusa's
 
@@ -915,10 +948,10 @@ one-character postcode.
 
 ## Where this slice stands, for whoever picks it up
 
-**Fourteen of the plan's rows are closed and one J-row with them.** Part one
+**Fifteen of the plan's rows are closed and one J-row with them.** Part one
 repaired every defect live order #1 proved. Part two walked all six flows and
 produced thirty-eight findings and twenty-two candidate fix rows; its stage 1
-is closed. Part three: H1 is closed, and H2–H4 have not been started.
+is closed. Part three: H1 and H2 are closed, and H3 and H4 have not been started.
 
 **Nothing in part two is built until the operator selects it.** That is stage
 2, and it has happened once: candidate `u` became J1. The other twenty-one
