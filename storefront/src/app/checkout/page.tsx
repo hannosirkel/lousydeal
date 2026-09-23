@@ -85,9 +85,12 @@ type CheckoutSearchParams = Record<string, string | string[] | undefined>;
  *
  * `confirmPayment` names `/checkout` as its `return_url`, and Stripe appends
  * `redirect_status`. The value is only ever a reason to *ask* Medusa to
- * complete the cart, never evidence of payment: Medusa authorises the session
- * against Stripe before it creates an order, so a visitor who types
- * `?redirect_status=succeeded` onto an unpaid cart gets a refusal, not an order.
+ * complete the cart, never evidence of payment. Medusa 2.21 authorises the
+ * session against Stripe *last* (`complete-cart.js`, after `createOrdersStep`),
+ * and a refused authorisation compensates the whole workflow: the order is
+ * deleted, `completed_at` restored and the buffered `order.placed` dropped, so
+ * nothing is issued. A visitor who types `?redirect_status=succeeded` onto an
+ * unpaid cart gets a refusal and a transient order, never a kept one.
  */
 function returnedPaid(parameters: CheckoutSearchParams): boolean {
   return parameters["redirect_status"] === "succeeded";
@@ -169,8 +172,10 @@ export default async function CheckoutPage({
    * and before `PaymentForm` can mount, because mounting it asks Medusa for a
    * payment session and a new session is what cancels the PaymentIntent the
    * buyer has just paid. The cookie still names this cart until the next add
-   * replaces it (`cart-actions.ts`), so a reload, the back-button and Stripe's
-   * return all arrive here.
+   * replaces it (`cart-actions.ts`), so a reload and Stripe's return arrive
+   * here. The back-button usually does too — `no-store` keeps most browsers
+   * from restoring the page from bfcache — but where one does restore it, the
+   * restored form runs no effects and so asks for no new session.
    *
    * No ledger and no § 62²(2) lines above it: those describe an order about to
    * be placed, and this one has been.

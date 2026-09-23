@@ -842,8 +842,12 @@ on a cart not yet completed calls `completeCheckoutCart` on the server, then
 reads the cart again. That is safe to repeat, because Medusa 2.21's
 `completeCartWorkflow` locks the cart and returns the existing order for one
 already completed, so the webhook and this call cannot make two. It is also
-safe to forge: Medusa authorises the session against Stripe before it creates
-an order, so the parameter is only ever a reason to ask. The operator chose on
+safe to forge, though not for the reason first written. Medusa 2.21
+authorises the session against Stripe *last*, after the order exists. A refused
+authorisation compensates the workflow: the order is deleted, `completed_at` is
+restored and the buffered `order.placed` is dropped, so the parameter is only
+ever a reason to ask. H2's review traced this, and the first version of this
+record and of `page.tsx` said authorisation came first. The operator chose on
 2026-09-23 that if completion throws, the buyer sees the site's existing error
 boundary and never the form again. H3 replaces that with its own words.
 
@@ -859,6 +863,19 @@ because only the in-page path emits it. A completed cart with no email throws,
 and only a cart completed through the public Store API directly can have none.
 No real payment has been taken through any of these paths. The tests render
 the page with Medusa stubbed.
+
+**Paid is not the same as completed, and H2 reads only the second.** H2's
+review found two windows where money has been taken and `completed_at` is
+still null. In the first, an in-page `completeCheckoutCart` fails after
+`confirmPayment` succeeded, and the buyer reloads. In the second, a redirect
+completion throws and the buyer comes back through the cart without the query
+string. Either way the form mounts, and a new session tries to cancel a
+succeeded PaymentIntent, which is pay-path finding 3 again. Medusa's webhook
+closes both windows within seconds, so this is a race rather than a hole.
+**It belongs to H3**, which owns that failure. The default cart GET already
+carries `payment_collection.payment_sessions.status`, so an `authorized` or
+`captured` session could be treated as paid and completed without mounting the
+form.
 
 - [x] Make `getCheckoutCart` read `completed_at` — `store-cart.ts` declares the
       field and `cart-actions.ts` is the one place that reads it — and handle

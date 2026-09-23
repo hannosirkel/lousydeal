@@ -11,8 +11,9 @@
  * so a spy on the payment-session calls would read zero whether the form
  * mounted or not; an assertion on it could not fail. The observable here is
  * the one that causes the request: whether `PaymentForm` is on the page. Its
- * noscript notice and its email field are the markers, since it renders both
- * and nothing else renders either.
+ * noscript notice is the marker. Nothing else renders it, and it is the one
+ * part of the form a static render reaches: the email field is in
+ * `PayButton`, which waits for a payment collection an effect creates.
  */
 
 import { createElement } from "react";
@@ -88,7 +89,7 @@ async function renderCheckout(options: {
   return { html, completions };
 }
 
-const formIsOnThePage = (html: string) => html.includes(PAYMENT_NEEDS_SCRIPTING) || html.includes('id="checkout-email"');
+const formIsOnThePage = (html: string) => html.includes(PAYMENT_NEEDS_SCRIPTING);
 
 afterEach(() => {
   vi.resetModules();
@@ -143,7 +144,7 @@ describe("Stripe's return after a redirecting payment method", () => {
   it("fails to the error boundary, never back to the form, when completion throws", async () => {
     await expect(
       renderCheckout({ carts: [unpaid], searchParams: { redirect_status: "succeeded" }, completeFails: true }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/returned 500/);
   });
 
   it("leaves a failed redirect on the form, since nothing was paid", async () => {
