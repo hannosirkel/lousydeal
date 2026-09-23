@@ -107,6 +107,22 @@ input[type="checkbox"] {
    disclosure triangle stays the browser's -- drawing one would be the icon
    set §6 forbids. */
 select {
+  /* **LD-11 J1.** Without these two, checkout scrolled sideways on every
+     phone. A `<select>` sizes to its widest option and the country list holds
+     250 of them — `South Georgia and the South Sandwich Islands` made the
+     control 434px wide, which set the page's width: 521px against a 390px
+     viewport, 131px of overflow, 161px at 360 and 201px at 320. Desktop was
+     never affected, which is why every assertion in this repository passed.
+
+     `min-inline-size` is the one that does the work. The control is a flex
+     item, and a flex item's `min-width` defaults to `auto`, so it refuses to
+     shrink below its content however narrow the box it is given;
+     `max-inline-size` alone took the overflow from 131px to 55px and no
+     further. Measured on the live checkout with both: 0px at 320, 360 and
+     390, desktop unchanged at 434px, and the control still shows its chosen
+     country in full. */
+  max-inline-size: 100%;
+  min-inline-size: 0;
   padding: var(--space-1) var(--space-2);
   border: var(--rule-width) solid var(--ink);
   border-radius: 0;

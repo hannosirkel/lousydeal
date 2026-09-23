@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-22 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | G6, the 390px sweep. Branch `deal/ld11-g6-390-sweep`, worktree `.worktrees/lousydeal/ld11-g6`. |
-| Next action | Land G6, which closes part two's stage 1. **Then the operator selects** which of the twenty-two candidate fix rows become numbered J-rows — nothing in part two is built until they do. Part three's H1–H4 remain, and H4 should be read with G3's finding 1 and G6's findings 1 and 2. LD-07 remains deferred out of V1. |
+| In flight | J1, the country control's width. Branch `deal/ld11-j1-country-select`, worktree `.worktrees/lousydeal/ld11-j1`. |
+| Next action | Land J1, then H1. Part two's stage 1 is closed; the operator selected candidate `u` as J1 and the remaining twenty-one candidates are unselected. H4 should be read with G3's finding 1 and G6's findings 1 and 2 — J1 fixes the width, not the defaulting. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 in flight. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
+| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 by #252. Part four: J1 in flight. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
