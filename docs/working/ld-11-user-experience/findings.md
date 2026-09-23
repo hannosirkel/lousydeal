@@ -677,6 +677,47 @@ stale between the reading and the review; a symbol survives an edit above it.
 folded into part two: they are defects of state and of copy that only reading
 the path end to end exposes, and part two's method would not have reached them.
 
+## What the review of H1 found
+
+The Fable review of #255, 2026-09-23. It found two defects in H1 itself, and
+the correction PR fixes both: a vacuous assertion and an accidental lockfile
+change. The three findings below are not H1's defects, and none is a row.
+Each was checked by reading the code and was not taken on the review's word.
+
+**A gift the backend will drop can still be paid for.** The recipient field
+is `type="email"` with no `pattern` (`PaymentForm.tsx`, `checkout-gift-email`).
+The HTML e-mail grammar accepts a domain with no dot, such as `friend@example`,
+but `readGift` and `isGiftAddress` both require one. So the buyer pays and the
+backend treats the order as an ordinary purchase: no gift mail, and no gift
+line in the confirmation. H1's end state stays honest, because
+`giftRecipientSent` applies the same rule and names nobody, but it is silent.
+Nothing tells the buyer the gift did not happen. `lib/gift.ts` says
+`isGiftAddress` "is what stops the form telling a buyer their address is fine
+when the backend will drop it", but nothing in the form calls it. The comment
+above the field says an open block "cannot reach `handleSubmit` without" an
+address, and that is true only of an empty one. **A candidate for the
+operator**: a `pattern` mirroring `ADDRESS`, or a guard beside
+`paySubmitBlocked`.
+
+**After a card payment, the § 62²(2) lines stay above the end state.**
+`PaymentForm` renders its children, the price notice and the order-summary
+lines, above whatever `PayButton` renders. So a buyer reads "You are ordering
+one numbered digital certificate…" directly above "Paid. Your order is
+placed." Nothing in it is false; the present tense is simply out of date. H2 is
+planned to render a completed cart's end state from the page instead. That
+leaves this only on the in-page card path.
+
+**The end state takes focus from nobody.** The pay button had focus and its
+subtree unmounts, so focus falls to `body`. A `role="status"` region inserted
+already populated is announced inconsistently across screen readers. Moving
+focus to the heading (`tabIndex={-1}` and `focus()` in an effect) would make
+both reliable. Low, and recorded for whoever next touches the end state.
+
+The review also noted that Terms §4 says supply begins "because there is
+nothing to prepare and nothing to send", while §5 now says the link is emailed.
+"Send" there means ship, and §5's next sentence says so. It is a tension, not a
+defect, and `legal-terms.test.ts` pins §4's sentence deliberately.
+
 ## Also recorded
 
 Four things this reading settled or found, none of which is a row here.

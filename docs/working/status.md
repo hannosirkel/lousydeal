@@ -9,7 +9,7 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-23 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | **H1**, on `deal/ld11-h1-end-state`: option two chosen by the operator. The checkout end state names where the confirmation went, and the three copies of the § 54(1) line say the certificate is emailed. Awaiting review and merge. |
+| In flight | **H1's review correction**, on `deal/ld11-h1-review-fixes`: the Fable review of #255 found an assertion that could not fail and an accidental lockfile change, both now on main. **H2** follows, on `deal/ld11-h2-paid-cart`. |
 | Next action | **Pick one of two.** Either H2, which stacks on H1 (a paid cart must never render the payment form again, and a redirect return must land on H1's end state), or H3 or H4, which are independent. Or select more of part two's twenty-one unselected candidates and number them as J-rows, the way `u` became J1. Nothing in part two is built until it is selected. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 by #252. Part three: H1 in review. Part four: J1 by #253. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
+| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 by #252. Part three: H1 by #255 and its correction. Part four: J1 by #253. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.

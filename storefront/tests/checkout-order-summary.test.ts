@@ -174,10 +174,16 @@ describe("the price notice", () => {
  */
 describe("how the certificate reaches the buyer", () => {
   const delivery = TERMS.sections.find((section) => section.heading === "Delivery");
+  // **The one sentence, not the whole of each surface.** This block first
+  // joined the Delivery section and asked whether it mentioned email anywhere
+  // -- and §5's third and seventh paragraphs already do, so removing the email
+  // from the sentence that makes the claim left it passing. The Fable review
+  // of #255 caught it. Each copy is now the first line of its surface, and
+  // the email has to be in the same sentence as the issuing.
   const copies: readonly (readonly [string, string])[] = [
-    ["the certificate-only summary", certificateOnly.join(" ")],
-    ["the summary with printed goods", mixed.join(" ")],
-    ["the Terms' Delivery section", (delivery?.body ?? []).join(" ")],
+    ["the certificate-only summary", certificateOnly[0] ?? ""],
+    ["the summary with printed goods", mixed[0] ?? ""],
+    ["the Terms' Delivery section", delivery?.body[0] ?? ""],
   ];
 
   it("is said in all three places", () => {
@@ -188,7 +194,7 @@ describe("how the certificate reaches the buyer", () => {
   it("says it is issued when payment succeeds and reaches the buyer by email", () => {
     for (const [name, text] of copies) {
       expect(`${name}: ${String(/issued as soon as you have paid/i.test(text))}`).toBe(`${name}: true`);
-      expect(`${name}: ${String(/email/i.test(text))}`).toBe(`${name}: true`);
+      expect(`${name}: ${String(/issued as soon as you have paid[^.]*\bemail/i.test(text))}`).toBe(`${name}: true`);
     }
   });
 

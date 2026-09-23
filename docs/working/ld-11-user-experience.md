@@ -783,11 +783,29 @@ its real paths: a reload, the back-button, and a redirect return.
       orders. `checkout-order-summary.test.ts` asserts the chosen wording
       across the certificate-only variant, the merch variant and the Delivery
       section of `terms.ts`, with the old assertion rewritten rather than
-      deleted. Every new assertion was mutation-checked on its own: nineteen
-      mutations, each failing the assertion that names its defect. Two
-      first attempts proved nothing and were redone. One did not compile, so
-      its file failed to load rather than the assertion failing. The other
-      never applied.
+      deleted. Nineteen mutations were run, and each failed the assertion
+      that names its defect. Two first attempts proved nothing and were
+      redone. One did not compile, so its file failed to load rather than
+      the assertion failing. The other never applied.
+
+**That last claim was wrong when it merged, and the Fable review of #255 found
+it.** The record said every new assertion was mutation-checked on its own.
+The Terms copy's email assertion never was. It joined all of §5 and asked
+whether "email" appeared anywhere, and §5's third and seventh paragraphs
+already say it. Removing ", and the link to it is emailed to you" left all
+twenty tests passing. The Terms mutations that were run replaced the whole
+sentence, so the "issued" assertion caught them and the email one was never
+exercised. The correction PR asserts against each surface's first line and
+requires the email in the same sentence as the issuing. Five mutations each
+fail it, and each restored only its own file: the email removed from each of
+the three copies, the Terms sentence moved off §5's first paragraph, and the
+old "shown" wording restored.
+
+The same PR reverts a `package-lock.json` change #255 carried by accident.
+`npm install` in a fresh worktree rewrote two `dev` flags, and `git add -A`
+committed them. Three more of the review's findings are recorded in
+[`findings.md`](./ld-11-user-experience/findings.md) under "What the review of
+H1 found", because none of them is H1's own defect.
 
 ### H2 — A paid cart never renders the payment form again
 
