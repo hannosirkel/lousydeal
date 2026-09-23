@@ -864,6 +864,41 @@ one-character postcode.
       one PaymentIntent — with the count asserted, so finding 17's class cannot
       return unnoticed.
 
+## Where this slice stands, for whoever picks it up
+
+**Thirteen of the plan's rows are closed and one J-row with them.** Part one
+repaired every defect live order #1 proved. Part two walked all six flows and
+produced thirty-eight findings and twenty-two candidate fix rows; its stage 1
+is closed. Part three's H1–H4 have never been started.
+
+**Nothing in part two is built until the operator selects it.** That is stage
+2, and it has happened once: candidate `u` became J1. The other twenty-one
+candidates are listed in
+[`findings.md`](./ld-11-user-experience/findings.md) under each G-row, and
+they are proposals — not work, not numbered, not ordered.
+
+**Three groups of them are one piece of work each**, and whoever sizes them
+should read them together rather than one at a time:
+
+- **The country control.** Candidates `k`, `l` and `u`, plus H4, plus G3's
+  finding 1 and G6's findings 1 and 2. J1 fixed the width. The control still
+  defaults to a country nobody chose and still sits below the address it
+  governs, which is what makes a parcel cart quote `$46.60` where the buyer
+  owes `$40.39`.
+- **The ledger's value column.** Candidates `c` and `v`. G6 settled that the
+  money and the product names wrap because of one column at 390px, not because
+  of two surfaces.
+- **Whether merch is a browse path.** Candidates `a` and `b`. `/goods` is a
+  404, nothing links a product page, and the four products are in the sitemap —
+  so the only entrances are search and a cart that already holds something.
+  One decision answers both.
+
+**What the audits could not settle** is recorded row by row rather than left
+implicit: whether the ledger is legible enough on its own (G2), whether a
+certificate-only cart's country has an invisible consequence (G3), and
+whether the certificate's closing line reads as a joke (G4). None proposes a
+row, and none should be treated as a defect without deciding those first.
+
 ## Open questions for the operator
 
 1. **Should the buyer be told what the recipient's message will say?** The
