@@ -791,8 +791,8 @@ its real paths: a reload, the back-button, and a redirect return.
 **That last claim was wrong when it merged, and the Fable review of #255 found
 it.** The record said every new assertion was mutation-checked on its own.
 The Terms copy's email assertion never was. It joined all of §5 and asked
-whether "email" appeared anywhere, and §5's third and seventh paragraphs
-already say it. Removing ", and the link to it is emailed to you" left all
+whether "email" appeared anywhere, and §5's first, third, fourth, sixth
+and seventh paragraphs already say it. Removing ", and the link to it is emailed to you" left all
 twenty tests passing. The Terms mutations that were run replaced the whole
 sentence, so the "issued" assertion caught them and the email one was never
 exercised. The correction PR asserts against each surface's first line and
@@ -801,9 +801,15 @@ fail it, and each restored only its own file: the email removed from each of
 the three copies, the Terms sentence moved off §5's first paragraph, and the
 old "shown" wording restored.
 
-The same PR reverts a `package-lock.json` change #255 carried by accident.
-`npm install` in a fresh worktree rewrote two `dev` flags, and `git add -A`
-committed them. Three more of the review's findings are recorded in
+The same PR reverted a `package-lock.json` change #255 carried, calling it an
+accident. **That revert was the mistake, and the Fable review of #256 found
+it.** `npm install --package-lock-only` under the gate's toolchain, Node
+24.21.0 with npm 11.19.0, writes the same two `devOptional` flags from an
+unchanged `package.json`. So #255's change was what the toolchain computes, and
+the revert only put back a file the next install rewrites. A third correction
+regenerates the lockfile deliberately, and main now matches what the gate
+produces. The same review corrected the paragraph count above, which first
+said "third and seventh". Three more of the review's findings are recorded in
 [`findings.md`](./ld-11-user-experience/findings.md) under "What the review of
 H1 found", because none of them is H1's own defect.
 
