@@ -441,6 +441,76 @@ Finding 5 is a property of link previews rather than a defect of this page —
 it is recorded because the gift case makes it consequential, not because the
 card is wrong.
 
+## G5 — Baldrick's reach and his dead ends
+
+Walked on the live open store, 2026-09-22, at 390×844. All fourteen entries in
+`BALDRICK_INTENTS` were asked from the keyboard, in a visitor's words rather
+than by pattern, and every quick reply was followed to where it stopped.
+Screenshot in [`g5/`](./g5/).
+
+The row asked, for each intent, where a visitor lands and whether that
+destination answers them — the question `baldrick-reach.test.ts` cannot ask,
+because it asserts which pages mount the widget and not where a conversation
+goes.
+
+1. **Nothing lands in another response pool. Fourteen of fourteen terminate.**
+   The failure the row was written to look for does not happen: every intent
+   ends either in a complete answer — "There is no Enterprise", "There is no
+   subscription", "No. I am a short list of answers and a box to type in" — or
+   in a named destination. Where a follow-up is offered it resolves in one
+   step and leaves nothing behind it. **Recorded as a pass.**
+
+2. **He names destinations and never links them.** This is the finding.
+   *Refund* → "Refunds and Withdrawal is in the footer." *Complaint* → "The
+   address is in the Imprint. A person reads that one." *Support* → "The
+   address is in the Imprint. Nothing you type here reaches anybody. I am the
+   last stop." *Licensing* → "Terms of service is in the footer, and it is the
+   one that would know."
+
+   Measured: asking all four of those questions adds **zero** anchors to the
+   page — fourteen before, fourteen after — and the conversation region
+   contains **zero** anchors at any point. So a visitor who has just been told
+   which document answers them must scroll past the whole page to the footer
+   and pick the right one of five. At 390px that is a long way from where they
+   were told to go, and they were told by the one part of the page that knows
+   exactly which document they need.
+
+3. **The fallback understates what he covers.** Asked something outside his
+   range he answers "I did not understand that. I am not going to guess. I
+   know about the certificate, gifts, refunds and complaints. That is the
+   extent of it." He also answers enterprise, subscription, inscription,
+   discount, price, identity, licensing and support — eight intents the
+   sentence does not mention. A visitor who mistypes a licensing question,
+   reads that list and concludes he cannot help has been told something
+   untrue about the one thing on the page that could have answered them.
+
+4. **Constraint 8's named case answers well.** "my certificate never arrived"
+   reaches `support` and is answered "The address is in the Imprint. Nothing
+   you type here reaches anybody. I am the last stop." That is the sentence
+   LD-05's constraint 8 names as the one a chat box must not fumble, and it is
+   handled honestly: it says where to go and says plainly that this box is not
+   a way to reach anyone. **Recorded as a pass**, with finding 2's caveat that
+   the Imprint is named and not linked.
+
+5. **`price` sends the visitor back rather than onward.** "The price is
+   written on the page you came from. I am not going to read it out." On a
+   deal page that is true and mildly funny. The widget also mounts on the cart
+   and the goods pages, where "the page you came from" is not where the price
+   is. This row did not test the answer from each mounting point and does not
+   claim it misfires — it records that the answer assumes one.
+
+**Candidate fix rows, for the operator to select from.** Proposals, not J-rows.
+
+| # | What it would do | Findings |
+| --- | --- | --- |
+| s | Let Baldrick link the document he names, so the visitor lands rather than searches | 2, 4 |
+| t | Make the fallback's list of what he knows match what he answers | 3 |
+
+**What this row did not establish.** Whether `price`'s "the page you came
+from" is wrong from the cart or the goods pages (finding 5), which needs the
+widget walked from each mounting point rather than from a deal page. Left for
+G6's sweep, which visits every route anyway.
+
 ## A recorded decision was reversed on 2026-09-19
 
 LD-03's global constraint 4 reads, settled by the operator on 2026-09-07:

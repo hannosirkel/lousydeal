@@ -595,7 +595,15 @@ than *private*, and nothing on it says which.
 
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-11-user-experience/findings.md`,
+`docs/working/ld-11-user-experience/g5/`,
 `docs/working/ld-11-user-experience.md`. No source file changes in this row.
+
+**Walked 2026-09-22 on the live open store**: all fourteen intents asked from
+the keyboard, every quick reply followed. Five findings and two candidate rows
+in [`findings.md`](./ld-11-user-experience/findings.md). The row's worry does
+not materialise — nothing lands in another response pool — but **he names the
+document a visitor needs and never links it**, measured as zero anchors added
+by four document-pointing answers.
 
 Baldrick is deliberately lazy and that is not a defect to repair — `brand.md`
 specifies it and four guards enforce it.
@@ -609,7 +617,7 @@ which pages mount the widget and, more to its point, which must never mount it;
 `baldrick-copy.test.ts` guards what he may say. Neither follows an intent to
 where it lands, which is what this row does.
 
-- [ ] Hold a real conversation per intent in `BALDRICK_INTENTS` from the
+- [x] Hold a real conversation per intent in `BALDRICK_INTENTS` from the
       keyboard, at 390px and desktop width, following each to where it
       terminates. Verified by a `## G5` section appended to `findings.md`
       recording, for each intent, where a visitor lands and whether that
