@@ -176,8 +176,9 @@ describe("how the certificate reaches the buyer", () => {
   const delivery = TERMS.sections.find((section) => section.heading === "Delivery");
   // **The one sentence, not the whole of each surface.** This block first
   // joined the Delivery section and asked whether it mentioned email anywhere
-  // -- and five of §5's seven paragraphs already do, so removing the email
-  // from the sentence that makes the claim left it passing. The Fable review
+  // -- and four other paragraphs matched (three in prose, one through the raw
+  // `{merchantEmail}` placeholder), so removing the email from the sentence
+  // that makes the claim left it passing. The Fable review
   // of #255 caught it. Each copy is now the first line of its surface, and
   // the email has to be in the same sentence as the issuing.
   const copies: readonly (readonly [string, string])[] = [
