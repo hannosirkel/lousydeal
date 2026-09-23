@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-23 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | Nothing. J1 merged as #253. |
-| Next action | **Pick one of two.** Either walk H1 (checkout's end state is a raw order id, and the § 54(1) line above the pay control promises a certificate the product never shows) — H2 stacks on it, H3 and H4 are independent. Or select more of part two's twenty-one unselected candidates and number them as J-rows, the way `u` became J1. Nothing in part two is built until it is selected. LD-07 remains deferred out of V1. |
+| In flight | **H1**, on `deal/ld11-h1-end-state`: option two chosen by the operator. The checkout end state names where the confirmation went, and the three copies of the § 54(1) line say the certificate is emailed. Awaiting review and merge. |
+| Next action | **Pick one of two.** Either H2, which stacks on H1 (a paid cart must never render the payment form again, and a redirect return must land on H1's end state), or H3 or H4, which are independent. Or select more of part two's twenty-one unselected candidates and number them as J-rows, the way `u` became J1. Nothing in part two is built until it is selected. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 by #252. Part four: J1 by #253. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
+| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 by #252. Part three: H1 in review. Part four: J1 by #253. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.

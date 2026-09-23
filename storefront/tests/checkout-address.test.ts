@@ -21,10 +21,13 @@ import {
   ADDRESS_LABELS,
   ADDRESS_NOTE,
   CART_LABELS,
+  ORDER_PLACED_HEADING,
   SHIPPING_LABEL,
   SHIPPING_PENDING_NOTICE,
 } from "../src/content/checkout";
+import { OrderPlaced } from "../src/app/checkout/OrderPlaced";
 import { GiftAddressNote, PaymentForm, PayButton } from "../src/app/checkout/PaymentForm";
+import { giftRecipientSent } from "../src/lib/gift";
 import type { FetchJson } from "../src/lib/medusa-client";
 
 vi.mock("@stripe/react-stripe-js", () => ({
@@ -468,3 +471,79 @@ describe("the gift address note, as the checkout renders it", () => {
     expect(source).toMatch(/<GiftAddressNote\s+isGift=\{giftOpen\}\s+needsAddress=\{needsAddress\}\s*\/>/);
   });
 });
+
+/**
+ * LD-11 H1. Where the checkout ends.
+ *
+ * It ended on `Order placed: order_01…` — a Medusa id a buyer can do nothing
+ * with — under a line promising the certificate had been shown. The end state
+ * now says where the certificate's link went and what else is coming.
+ * `OrderPlaced` is rendered directly because a completed order is a state a
+ * `node` render of `PayButton` cannot reach.
+ */
+describe("the end state", () => {
+  const placed = (props: { giftRecipientEmail: string | null; hasPostedGoods: boolean }) =>
+    renderToStaticMarkup(createElement(OrderPlaced, { email: "buyer@example.com", ...props }));
+
+  it("names where the certificate went, what the mail is called and what it carries", () => {
+    const html = placed({ giftRecipientEmail: null, hasPostedGoods: false });
+    expect(html).toContain(ORDER_PLACED_HEADING);
+    expect(html).toContain("buyer@example.com");
+    expect(html).toContain("\u201cYour lousy deal\u201d");
+    expect(html).toMatch(/the link to your certificate and the receipt for what you paid/);
+    expect(html).toMatch(/write to the address in the Imprint/);
+  });
+
+  it("announces itself, since the form it replaces had focus", () => {
+    expect(placed({ giftRecipientEmail: null, hasPostedGoods: false })).toMatch(/^<section role="status">/);
+  });
+
+  it("says a second mail follows the parcel only when there is one", () => {
+    const parcel = /another email says when they are posted/;
+    expect(placed({ giftRecipientEmail: null, hasPostedGoods: true })).toMatch(parcel);
+    expect(placed({ giftRecipientEmail: null, hasPostedGoods: false })).not.toMatch(parcel);
+  });
+
+  it("names the recipient's address only on a gift", () => {
+    expect(placed({ giftRecipientEmail: "friend@example.com", hasPostedGoods: false })).toMatch(
+      /A separate email with the link to the certificate is on its way to friend@example\.com\./,
+    );
+    expect(placed({ giftRecipientEmail: null, hasPostedGoods: false })).not.toMatch(/separate email/);
+  });
+
+  it("is not shown before the order is placed", () => {
+    expect(render(false)).not.toContain(ORDER_PLACED_HEADING);
+    expect(render(true)).not.toContain(ORDER_PLACED_HEADING);
+  });
+});
+
+describe("whose gift mail the end state announces", () => {
+  // Only one the backend will send. `readGift` drops a gift whose address it
+  // cannot use, and the order becomes an ordinary purchase; announcing a mail
+  // to that address would be a promise nothing keeps.
+  it("is the address, trimmed, when the block was open and the address is usable", () => {
+    expect(giftRecipientSent({ open: true, recipientEmail: "  friend@example.com " })).toBe("friend@example.com");
+  });
+
+  it("is nobody when the block was closed, whatever it still holds", () => {
+    expect(giftRecipientSent({ open: false, recipientEmail: "friend@example.com" })).toBeNull();
+  });
+
+  it("is nobody when the address is one the backend drops", () => {
+    for (const recipientEmail of ["", "   ", "friend", "friend@example", "a b@example.com"]) {
+      expect(giftRecipientSent({ open: true, recipientEmail })).toBeNull();
+    }
+  });
+
+  it("is what the checkout hands the end state, with the buyer's address and the cart's shape", () => {
+    // A source match, for `GiftAddressNote`'s reason above: the completed
+    // state is unreachable in a `node` render. The rendered assertions cover
+    // what each input does; this covers only that the form passes these.
+    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8");
+    expect(source).toMatch(
+      /<OrderPlaced\s+email=\{email\.trim\(\)\}\s+giftRecipientEmail=\{giftRecipientSent\(\{ open: giftOpen, recipientEmail: giftRecipientEmail \}\)\}\s+hasPostedGoods=\{needsAddress\}\s*\/>/,
+    );
+    expect(source).not.toMatch(/Order placed: \{orderId\}/);
+  });
+});
+

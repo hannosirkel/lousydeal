@@ -96,7 +96,7 @@ export const TERMS: LegalDocument = {
   title: "Terms of service",
   form: "Form LD-T",
   revision: "Rev. 2026-09",
-  updated: "2026-09-11",
+  updated: "2026-09-23",
   sections: [
     {
       number: "1",
@@ -142,7 +142,7 @@ export const TERMS: LegalDocument = {
       number: "5",
       heading: "Delivery",
       body: [
-        "The certificate is digital content supplied immediately after payment: it is shown to you as soon as you have paid, at the moment §4 says the contract is concluded. There is nothing to ship and there is no delivery charge.",
+        "The certificate is digital content supplied immediately after payment: it is issued as soon as you have paid, at the moment §4 says the contract is concluded, and the link to it is emailed to you. There is nothing to ship and there is no delivery charge.",
         "You view it in a web browser. There is no account to create, no software to install, no file to download and no technical protection measure applied to it: a web browser is the whole of what you need. It is not interoperable with anything, because there is nothing for it to work with.",
         "We owe you a confirmation on a durable medium no later than the moment supply begins. § 55(1) sets that timing, and we send it: an email goes out as soon as your certificate exists, carrying what § 55(2) requires it to carry.",
         "Because supply here is the certificate existing, that email follows supply by moments rather than preceding it. §6 says what we do about that.",

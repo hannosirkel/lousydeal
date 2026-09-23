@@ -73,3 +73,22 @@ export function isGiftAddress(raw: string | null | undefined): boolean {
   if (trimmed.length === 0 || trimmed.length > GIFT_LIMITS.recipientEmail) return false;
   return ADDRESS.test(trimmed);
 }
+
+/**
+ * The address a gift message is going to, or `null` when none is. LD-11 H1.
+ *
+ * The end state names it, so it must name only a message the backend will
+ * send: `handleSubmit` sends the four fields when the block is open, and
+ * `readGift` keeps the gift only when the address is one `isGiftAddress`
+ * accepts. An open block with an address the backend drops is an ordinary
+ * purchase, and announcing a gift mail for it would be a promise nothing keeps.
+ */
+export function giftRecipientSent({
+  open,
+  recipientEmail,
+}: {
+  readonly open: boolean;
+  readonly recipientEmail: string;
+}): string | null {
+  return open && isGiftAddress(recipientEmail) ? recipientEmail.trim() : null;
+}

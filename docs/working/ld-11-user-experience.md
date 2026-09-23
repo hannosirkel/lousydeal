@@ -749,14 +749,45 @@ states its choice before it writes the test:
   existing assertion is rewritten to the new wording. It is rewritten, never
   deleted: deleting it is how the sentence survived this long.
 
-- [ ] Choose between the two options with a rendering in front of you, record
+**Chosen 2026-09-23: option two, make the sentence honest.** The operator
+chose it with both options rendered side by side, then approved the exact copy
+in a second rendering. That second pass existed because the first draft was
+wrong in two places. It said the certificate goes to "the email address above",
+and the summary renders *above* the email field. It also said a gift's recipient
+gets "the certificate only", and F2 made the gift message describe the parcel
+too.
+
+The three copies now say the certificate "is issued as soon as you have paid"
+and reaches the buyer by email. The Terms' `updated` date moves to 2026-09-23
+with them, as LD-06 D8 moved it. `home.ts`'s "supplied immediately after
+payment" stands: §5 of the Terms defines supply as the certificate existing,
+and that is still true.
+
+The end state names the address the confirmation went to, its subject, and
+that it carries the certificate's link and the receipt. It says another mail
+follows a parcel, because `parcel-shipped.ts` sends one. On a gift it names the
+recipient's address, but only when `giftRecipientSent` accepts it. That
+function uses the same test `readGift` applies, so the end state never
+announces a gift mail the backend will drop.
+
+**What this does not verify.** No real payment has reached this end state. It
+is proved by rendering `OrderPlaced` directly, since the suite has no DOM, and
+by a source match binding `PayButton` to it. H2 is where the page is reached by
+its real paths: a reload, the back-button, and a redirect return.
+
+- [x] Choose between the two options with a rendering in front of you, record
       the choice in the row, then change the end state and — under option two —
-      all three copies of the § 54(1) line together. Verified by a test
+      all three copies of the § 54(1) line together. Verified by tests
       asserting the end state names where the confirmation went and what it
-      carries; and by `checkout-order-summary.test.ts` asserting the chosen
-      wording across the certificate-only variant, the merch variant and the
-      Delivery section of `terms.ts`, so that no copy of the sentence can drift
-      from the other two whichever option was taken.
+      carries, and that the parcel and gift lines appear only on their own
+      orders. `checkout-order-summary.test.ts` asserts the chosen wording
+      across the certificate-only variant, the merch variant and the Delivery
+      section of `terms.ts`, with the old assertion rewritten rather than
+      deleted. Every new assertion was mutation-checked on its own: nineteen
+      mutations, each failing the assertion that names its defect. Two
+      first attempts proved nothing and were redone. One did not compile, so
+      its file failed to load rather than the assertion failing. The other
+      never applied.
 
 ### H2 — A paid cart never renders the payment form again
 
@@ -866,10 +897,10 @@ one-character postcode.
 
 ## Where this slice stands, for whoever picks it up
 
-**Thirteen of the plan's rows are closed and one J-row with them.** Part one
+**Fourteen of the plan's rows are closed and one J-row with them.** Part one
 repaired every defect live order #1 proved. Part two walked all six flows and
 produced thirty-eight findings and twenty-two candidate fix rows; its stage 1
-is closed. Part three's H1–H4 have never been started.
+is closed. Part three: H1 is closed, and H2–H4 have not been started.
 
 **Nothing in part two is built until the operator selects it.** That is stage
 2, and it has happened once: candidate `u` became J1. The other twenty-one
