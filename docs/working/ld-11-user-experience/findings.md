@@ -511,6 +511,84 @@ from" is wrong from the cart or the goods pages (finding 5), which needs the
 widget walked from each mounting point rather than from a deal page. Left for
 G6's sweep, which visits every route anyway.
 
+## G6 — 390px across every route
+
+Swept on the live open store, 2026-09-22, at 390×844, with 360 and 1280 used
+to scope what was found. Twenty-one route states: home, three deals, the goods
+404, two product pages, the six legal documents, `not-found`, the cart empty
+and populated and in its code-error state, checkout for a certificate-only and
+a parcel cart, and a real certificate. Screenshots in [`g6/`](./g6/) for all
+but the certificate, which is measured and not captured for the reason G4
+gives.
+
+Measured per route rather than read off the captures: horizontal overflow as
+`scrollWidth − innerWidth`, collapsed ledger leaders as a zero
+`::after` border, money figures spanning more than one client rect, product
+names spanning more than one, and any control whose box falls outside the
+viewport.
+
+1. **Checkout scrolls sideways on every phone, for every cart shape.** This is
+   the finding.
+
+   | Viewport | Page width | Overflow |
+   | --- | --- | --- |
+   | 390px | 521px | **131px** |
+   | 360px | 521px | **161px** |
+   | 1280px | 1280px | none |
+
+   The cause is one control. `#checkout-country` is **434px wide** at every
+   viewport, because a `<select>` sizes to its widest option and this one holds
+   250 of them — the widest being `South Georgia and the South Sandwich
+   Islands`. Nothing constrains it, so it sets the page's width and the
+   document scrolls under every phone. A certificate-only cart does it too:
+   the select is asked for on that shape as well (G3's finding 5).
+
+   **This is the route the plan calls "the one route on this site that
+   requires scripting, which makes it the one route where a failure has no
+   fallback".** It is also the only route in this sweep that is not clean.
+
+2. **The control that corrects the wrong total is the control that is off the
+   screen.** The select's right edge sits at 521px in a 390px viewport. G3
+   measured a parcel cart quoting `$46.60` against a defaulted country and
+   `$40.39` once corrected; the correction is made in this control, and at
+   390px a buyer must scroll the page sideways to reach the end of it.
+   **Findings 1 and 2 and G3's finding 1 are one defect seen three ways.**
+
+3. **Money wraps in the ledger's value column.** `$29.00` spans two lines on
+   the populated cart and again on checkout. G1 found it on a cart line and
+   G3 on a checkout line; the sweep confirms it is the column and not the
+   surface, which settles the question G1 recorded as open.
+
+4. **The upsell's product names wrap three and four deep in every cart
+   state** — populated, code-error, and with merch already added. Not
+   state-dependent, and the same column width G1's correction described.
+
+5. **Everything else is clean.** Home, all three deals, the goods 404, both
+   product pages, all six legal documents, `not-found`, the empty cart and a
+   real certificate: no horizontal overflow, no collapsed leader, no money or
+   name wrapping, no control outside the viewport. Fifteen route states with
+   nothing to report, which is most of the site.
+
+6. **G5's handover, answered.** `price` replies identically wherever the
+   widget is mounted: "The price is written on the page you came from." On a
+   product page that is true. On the cart it points a visitor away from a page
+   that is itself showing the price. **Not a misfire** — the answer is never
+   wrong, it is just occasionally pointless — so no row is proposed, and G5's
+   open question is closed rather than carried.
+
+**Candidate fix rows, for the operator to select from.** Proposals, not
+J-rows.
+
+| # | What it would do | Findings |
+| --- | --- | --- |
+| u | Constrain the country select so checkout stops scrolling sideways on a phone | 1, 2 |
+| v | Stop the ledger's value column wrapping money and product names at 390px | 3, 4 |
+
+**u is the one to read with G3 and H4.** The same control carries a default
+nobody chose, sits below the address it governs, and overflows the viewport;
+whoever takes any of those three should look at the other two before sizing
+the work.
+
 ## A recorded decision was reversed on 2026-09-19
 
 LD-03's global constraint 4 reads, settled by the operator on 2026-09-07:
