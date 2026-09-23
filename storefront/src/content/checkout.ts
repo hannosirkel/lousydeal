@@ -333,7 +333,7 @@ export const PAY_LABEL = "Order with obligation to pay";
  * so is shorter than making a reader infer it from silence.
  */
 const CERTIFICATE_ALONE =
-  "You are ordering one numbered digital certificate. It is shown to you as soon as you have paid, it confers nothing, and it is the whole of what you receive.";
+  "You are ordering one numbered digital certificate. It is issued as soon as you have paid and sent to the email address you give, it confers nothing, and it is the whole of what you receive.";
 
 /** True of every cart here, and § 54(1) p 10 and p 11 answered rather than omitted. */
 const SINGLE_PURCHASE =
@@ -370,7 +370,7 @@ export function orderSummaryLines({
 }): readonly string[] {
   const what = hasCertificate
     ? hasPostedGoods
-      ? "You are ordering one numbered digital certificate, which is shown to you as soon as you have paid and confers nothing, together with the printed goods in the total above. Those are made after you order them and posted to the address you give."
+      ? "You are ordering one numbered digital certificate, which is issued as soon as you have paid, sent to the email address you give and confers nothing, together with the printed goods in the total above. Those are made after you order them and posted to the address you give."
       : CERTIFICATE_ALONE
     : "You are ordering the printed goods in the total above. They are made after you order them and posted to the address you give. No certificate is issued, because you have not ordered one.";
 
@@ -379,6 +379,47 @@ export function orderSummaryLines({
 
   return hasPostedGoods ? [what, SINGLE_PURCHASE, returns] : [what, SINGLE_PURCHASE];
 }
+
+/**
+ * What the checkout says once the order is placed. LD-11 H1.
+ *
+ * **It replaced `Order placed: order_01…`**, a raw Medusa id that told a buyer
+ * who had just paid nothing they could use — and it arrives with the § 54(1)
+ * line above corrected, because that line promised the certificate "is shown
+ * to you as soon as you have paid" and nothing ever showed it. Issuance runs
+ * in `order-placed.ts` after this page has its answer, so the page cannot know
+ * the certificate's slug or serial; what it can say truthfully is where the
+ * certificate's link has gone, and that is what it says.
+ *
+ * **Every sentence here is something the backend does.** The § 55
+ * confirmation goes to the cart's email and carries the certificate link and
+ * the itemised total; its subject is `CONFIRMATION_SUBJECT`, "Your lousy deal"
+ * and the serial. The parcel line is `parcel-shipped.ts`, sent when Printful
+ * reports the shipment. The gift line is `sendGift`, which sends only when
+ * `readGift` finds a usable address — so the caller passes one only when
+ * `isGiftAddress`, the same rule, accepts it.
+ */
+export const ORDER_PLACED_HEADING = "Paid. Your order is placed.";
+
+export function orderPlacedLines({
+  email,
+  giftRecipientEmail,
+  hasPostedGoods,
+}: {
+  readonly email: string;
+  readonly giftRecipientEmail: string | null;
+  readonly hasPostedGoods: boolean;
+}): readonly string[] {
+  return [
+    `Your certificate is on its way to ${email}, in an email titled \u201cYour lousy deal\u201d and its number. It carries the link to your certificate and the receipt for what you paid.`,
+    ...(hasPostedGoods ? ["Your printed goods are made to order; another email says when they are posted."] : []),
+    ...(giftRecipientEmail === null
+      ? []
+      : [`A separate email with the link to the certificate is on its way to ${giftRecipientEmail}.`]),
+    "Nothing after a few minutes? Check spam, then write to the address in the Imprint.",
+  ];
+}
+
 export const PAYING_LABEL = "Paying";
 
 /** The one place the loading cursor belongs: a state inside a rendered page. */

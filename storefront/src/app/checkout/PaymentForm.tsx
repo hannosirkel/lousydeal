@@ -53,6 +53,7 @@ import { Button } from "../../components/document/Button";
 import { formatMoney } from "../../lib/money";
 import { FinePrint } from "../../components/document/FinePrint";
 import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
+import { OrderPlaced } from "./OrderPlaced";
 import {
   CONSENT_LABEL,
   CONSENT_REQUIRED_NOTICE,
@@ -85,7 +86,7 @@ import {
   STRIPE_PAYMENT_NOTICE,
 } from "../../content/checkout";
 import { paySubmitBlocked, payDisabled, paymentSessionNeeded } from "../../lib/checkout-rules";
-import { GIFT_LIMITS, previewGiftText } from "../../lib/gift";
+import { GIFT_LIMITS, giftRecipientSent, previewGiftText } from "../../lib/gift";
 import { INSCRIPTION_LIMITS, sanitiseInscription } from "../../lib/inscription";
 import type { FetchJson, StoreFetchInit, StoreRegionCountry } from "../../lib/medusa-client";
 import {
@@ -837,7 +838,13 @@ export function PayButton({
   }
 
   if (orderId !== null) {
-    return <p>Order placed: {orderId}</p>;
+    return (
+      <OrderPlaced
+        email={email.trim()}
+        giftRecipientEmail={giftRecipientSent({ open: giftOpen, recipientEmail: giftRecipientEmail })}
+        hasPostedGoods={needsAddress}
+      />
+    );
   }
 
   return (

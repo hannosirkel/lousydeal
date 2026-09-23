@@ -24,6 +24,7 @@ import {
   orderSummaryLines,
   priceNotice,
 } from "../src/content/checkout";
+import { TERMS } from "../src/content/legal/terms";
 
 const certificateOnly = orderSummaryLines({ hasCertificate: true, hasPostedGoods: false });
 const mixed = orderSummaryLines({ hasCertificate: true, hasPostedGoods: true });
@@ -51,7 +52,7 @@ describe("a cart holding both", () => {
   it("describes each of the two, and how they arrive", () => {
     const text = mixed.join(" ");
     expect(text).toMatch(/one numbered digital certificate/i);
-    expect(text).toMatch(/shown to you as soon as you have paid/i);
+    expect(text).toMatch(/issued as soon as you have paid, sent to the email address you give/i);
     expect(text).toMatch(/confers nothing/i);
     expect(text).toMatch(/printed goods/i);
     expect(text).toMatch(/made after you order them and posted/i);
@@ -159,3 +160,42 @@ describe("the price notice", () => {
     expect(POSTED_PRICE_NOTICE).toMatch(/shown as its own line before you pay/i);
   });
 });
+
+/**
+ * LD-11 H1. The one sentence about how the certificate reaches a buyer, in
+ * every place it is said.
+ *
+ * **It used to promise the certificate "is shown to you as soon as you have
+ * paid", and nothing ever showed it**: the checkout ended on a raw order id
+ * and the certificate's link arrived by email. The operator chose to make the
+ * sentence true rather than the promise, so the three copies say what the
+ * product does. They are asserted together because they drifted together: the
+ * assertion this replaces checked one copy, and the other two were never read.
+ */
+describe("how the certificate reaches the buyer", () => {
+  const delivery = TERMS.sections.find((section) => section.heading === "Delivery");
+  const copies: readonly (readonly [string, string])[] = [
+    ["the certificate-only summary", certificateOnly.join(" ")],
+    ["the summary with printed goods", mixed.join(" ")],
+    ["the Terms' Delivery section", (delivery?.body ?? []).join(" ")],
+  ];
+
+  it("is said in all three places", () => {
+    // Without this, a renamed section makes every assertion below vacuous.
+    for (const [name, text] of copies) expect(`${name}: ${String(text.length > 0)}`).toBe(`${name}: true`);
+  });
+
+  it("says it is issued when payment succeeds and reaches the buyer by email", () => {
+    for (const [name, text] of copies) {
+      expect(`${name}: ${String(/issued as soon as you have paid/i.test(text))}`).toBe(`${name}: true`);
+      expect(`${name}: ${String(/email/i.test(text))}`).toBe(`${name}: true`);
+    }
+  });
+
+  it("no longer promises it is shown to the buyer", () => {
+    for (const [name, text] of copies) {
+      expect(`${name}: ${String(/shown to you as soon as you have paid/i.test(text))}`).toBe(`${name}: false`);
+    }
+  });
+});
+
