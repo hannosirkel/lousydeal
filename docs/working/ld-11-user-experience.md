@@ -659,6 +659,40 @@ is the argument for doing it deliberately rather than incidentally.
       J-row; it does not hold this row open.** A J-row may then want this sweep
       repeated after it merges, which is stage 4 and is its own row.
 
+### Part four — what the audits found
+
+Stage 3. These are numbered because the operator selected them from part two's
+candidates; the rest of that list stays unnumbered until they are chosen too.
+
+### J1 — Checkout stops scrolling sideways on a phone
+
+**Repository:** `lousydeal`.
+**Files:** `storefront/src/app/globals.css`, `storefront/tests/tokens.test.ts`.
+**From G6's findings 1 and 2** (candidate `u`), selected 2026-09-23.
+
+`#checkout-country` sized itself to its widest option and set the page's width
+with it. Measured on the live checkout: 521px against a 390px viewport — 131px
+of overflow, 161px at 360, 201px at 320, and none at 1280. Every cart shape,
+including certificate-only, because that shape is asked for a country too.
+
+**It is two declarations, and the second is the one that works.** The control
+is a flex item, and a flex item's `min-width` is `auto`, so it will not shrink
+below its content however narrow the box: `max-inline-size: 100%` alone took
+the overflow from 131px to 55px. `min-inline-size: 0` takes it to nought.
+
+**The proof is a measurement, not an assertion.** The storefront suite has no
+DOM and no layout engine, so nothing in it can measure a page's width. The
+test added here fails if either declaration is removed, which is how the
+defect would return, and that is all it claims to do. The figures below are
+the verification.
+
+- [x] Constrain the country control so it cannot set the page's width.
+      Verified by measuring the live checkout at 320, 360, 390 and 1280 before
+      and after — overflow 201/161/131/0 becomes 0/0/0/0, the control still
+      renders its chosen country in full, and desktop is unchanged at 434px —
+      and guarded by a test in `tokens.test.ts` that fails if either
+      declaration is dropped, mutation-checked both ways.
+
 ### H1 — Checkout ends somewhere, and the copy above it stops promising otherwise
 
 **Repository:** `lousydeal`.

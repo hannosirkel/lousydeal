@@ -156,3 +156,20 @@ describe("contrast against the paper", () => {
     expect(round(contrast(paper, tokenValue("--ink-soft")))).toBe(5.1);
   });
 });
+
+describe("the country control", () => {
+  it("cannot size itself past the viewport", () => {
+    // **LD-11 J1, and this is a guard rather than the proof.** The storefront
+    // suite runs with no DOM and no layout engine, so nothing here can measure
+    // a page's width; the proof is the measurement recorded in the row —
+    // 131px of overflow at 390px before, 0px after, and unchanged at 1280.
+    // What this can do is fail if either declaration is removed, which is the
+    // way the defect would come back.
+    //
+    // `min-inline-size` is the load-bearing half: a flex item's `min-width` is
+    // `auto`, so `max-inline-size` alone left 55px of the overflow behind.
+    const rule = /select\s*\{[^}]*\}/.exec(css)?.[0] ?? "";
+    expect(rule).toMatch(/max-inline-size:\s*100%/);
+    expect(rule).toMatch(/min-inline-size:\s*0/);
+  });
+});
