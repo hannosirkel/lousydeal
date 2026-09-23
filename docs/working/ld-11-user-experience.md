@@ -629,8 +629,15 @@ where it lands, which is what this row does.
 
 **Repository:** `lousydeal`.
 **Files:** `docs/working/ld-11-user-experience/findings.md`,
+`docs/working/ld-11-user-experience/g6/`,
 `docs/working/ld-11-user-experience.md`. No source file changes in this row.
 **Stage 1, with G1–G5. It closes once.**
+
+**Swept 2026-09-22 on the live open store.** Twenty-one route states; fifteen
+clean. Six findings and two candidate rows in
+[`findings.md`](./ld-11-user-experience/findings.md). **Checkout scrolls
+sideways on every phone**, for every cart shape, because one unconstrained
+`<select>` is 434px wide — and it is the same control G3 and H4 are about.
 
 Not a flow but a sweep. **It was first written as re-walking "whatever G1
 through G5 changed", which the audit method forbids** — those rows fix nothing,
@@ -642,7 +649,7 @@ set, `not-found`, and the empty and error states of each. This repository has
 found two rendered defects this way that every passing assertion missed, which
 is the argument for doing it deliberately rather than incidentally.
 
-- [ ] Sweep every route at 390px — home, deal, goods, cart, checkout,
+- [x] Sweep every route at 390px — home, deal, goods, cart, checkout,
       certificate, the legal set, `not-found`, and the empty and error states of
       each. Verified by a `## G6` section appended to `findings.md` recording,
       per route, whether it scrolls horizontally, whether any control is
