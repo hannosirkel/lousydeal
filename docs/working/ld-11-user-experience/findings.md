@@ -693,7 +693,7 @@ line in the confirmation. H1's end state stays honest, because
 `giftRecipientSent` applies the same rule and names nobody, but it is silent.
 Nothing tells the buyer the gift did not happen. `lib/gift.ts` says
 `isGiftAddress` "is what stops the form telling a buyer their address is fine
-when the backend will drop it", but nothing in the form calls it. The comment
+when the backend will drop it", but the form never validates with it: `giftRecipientSent` calls it only to decide what the end state names. The comment
 above the field says an open block "cannot reach `handleSubmit` without" an
 address, and that is true only of an empty one. **A candidate for the
 operator**: a `pattern` mirroring `ADDRESS`, or a guard beside
