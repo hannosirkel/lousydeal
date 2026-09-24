@@ -84,7 +84,7 @@ describe("when Stripe's answer does not say whether the card was charged", () =>
   // H3's review: an `api_connection_error` can follow a confirmation that
   // reached Stripe, so "not charged" would be a claim the page cannot know.
   it("claims nothing about the card, and keeps the control off", async () => {
-    for (const type of ["api_connection_error", "api_error", "rate_limit_error", undefined]) {
+    for (const type of ["api_connection_error", "api_error", "some_future_type", undefined]) {
       const { steps: s, ran } = steps({ confirm: async () => ({ error: { type, message: STRIPE } }) });
       expect({ type, outcome: await runPayPath(s) }).toEqual({
         type,
@@ -109,6 +109,37 @@ describe("when Stripe's answer does not say whether the card was charged", () =>
   it("tells the buyer not to pay again", () => {
     expect(PAYMENT_UNKNOWN_NOTICE).toMatch(/Do not pay again/);
     expect(PAYMENT_UNKNOWN_NOTICE).not.toMatch(/try again|not charged/i);
+  });
+});
+
+describe("when Stripe's error carries the PaymentIntent", () => {
+  // The review of H3's fixes: confirming an intent that already succeeded
+  // answers `invalid_request_error`, and "not charged" would then be false.
+  it("believes the intent over the type", async () => {
+    for (const [status, notice, charged] of [
+      ["succeeded", PAYMENT_UNCONFIRMED_NOTICE, true],
+      ["requires_capture", PAYMENT_UNCONFIRMED_NOTICE, true],
+      ["processing", PAYMENT_UNKNOWN_NOTICE, true],
+      ["requires_payment_method", PAYMENT_DECLINED_NOTICE, false],
+    ] as const) {
+      const { steps: s, ran } = steps({
+        confirm: async () => ({ error: { type: "invalid_request_error", payment_intent: { status } } }),
+      });
+      expect({ status, outcome: await runPayPath(s) }).toEqual({ status, outcome: { placed: false, notice, charged } });
+      expect(ran).not.toContain("complete");
+    }
+  });
+});
+
+describe("when Stripe refused the request itself", () => {
+  it("says nothing was charged, which is true, and allows another try", async () => {
+    for (const type of ["rate_limit_error", "authentication_error", "idempotency_error"]) {
+      const { steps: s } = steps({ confirm: async () => ({ error: { type } }) });
+      expect({ type, outcome: await runPayPath(s) }).toEqual({
+        type,
+        outcome: { placed: false, notice: PAYMENT_NOT_STARTED_NOTICE, charged: false },
+      });
+    }
   });
 });
 

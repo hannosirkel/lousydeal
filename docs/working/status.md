@@ -7,10 +7,10 @@ does not — it points, it does not hold.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-23 |
+| Updated | 2026-09-24 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 | In flight | **H3**, on `deal/ld11-h3-pay-path-words`: a failure in the checkout form or in a redirect completion renders one of four notices chosen by position, never upstream wording, and after a charge or an unknown outcome the pay control stays off. Review fixes applied; awaiting merge. |
-| Next action | **H5 before H4.** H3's review read Medusa as re-arming the form with a fresh PaymentIntent when a paid but uncompleted cart is reloaded, which would permit a second payment. Measure that on test first, then build H5. H4 is independent. A candidate from H1's review waits for the operator: the gift field accepts a dotless address the backend drops. LD-07 remains deferred out of V1. |
+| Next action | **H5 before H4.** When a paid but uncompleted cart is reloaded, Medusa's session workflow fails, and H3's "Nothing has been charged" renders over a charged card. Measure that on test first, then build H5. The Stripe webhook that completes such carts, and that the notices' promise of an email relies on, is not a row in the held table below. H4 is independent. A candidate from H1's review waits for the operator: the gift field accepts a dotless address the backend drops. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,

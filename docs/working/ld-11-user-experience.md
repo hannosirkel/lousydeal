@@ -952,6 +952,16 @@ not the invitation.
   `invalid_request_error` read as a decline. Every other type, and a rejected
   promise, gets "We could not hear back from the card processor. Do not pay
   again yet…", and the control stays off as it does after a charge.
+- **Classified by what Stripe's answer says, after the second review.** A
+  PaymentIntent attached to the error outranks its type. `succeeded` or
+  `requires_capture` gets the "card accepted" notice, because confirming an
+  intent that already succeeded answers `invalid_request_error`. `processing`
+  is unknown. `rate_limit_error`, `authentication_error` and
+  `idempotency_error` are refusals of the request, so they get the "nothing
+  has been charged" notice, which is true there. The unknown notice's "could
+  not hear back" is therefore left to connection, API and unrecognised
+  errors, and to a rejection. The wrapper's own "not ready" rejection, which
+  only a race can reach, still renders it, and it is false there.
 - **Scope: the row, plus the page.** A redirect completion that throws now
   renders the charged notice in place of H2's error boundary. The
   paid-but-not-completed race H2's review found becomes H5.
@@ -971,9 +981,8 @@ change under money that has moved.
 - **In H5's window, two of these notices can be false.** Suppose a charged
   failure locks the control and the buyer reloads before the webhook completes
   the cart. The lock is component state and does not survive the reload. The
-  form mounts again, and then either "Nothing has been charged" renders over a
-  charged card, or a fresh PaymentIntent re-arms the form (see H5). That is
-  H5's to close, not a wording fix.
+  form mounts again, and "Nothing has been charged" renders over a charged
+  card (see H5). That is H5's to close, not a wording fix.
 - **A failure after a successful redirect completion still reaches the error
   boundary.** Both the cart re-read and `listTiers` sit outside the `try`. No
   upstream wording renders there, but the page says nothing about the charge.
@@ -1027,15 +1036,16 @@ completion fails and the buyer returns through the cart without the query
 string. In both, `PaymentForm` mounts with no client secret, so
 `paymentSessionNeeded` asks Medusa for a new session.
 
-**This is a money risk, not a wording one, and H3's review established it by
-reading the code.** Finding 3 said the re-session "throws". The installed
-Medusa does not work that way. `create-payment-session.js` runs the create in
-parallel with `deletePaymentSessionsWorkflow`, and `delete-payment-sessions.js`
-catches and logs a failed provider cancel. So cancelling a succeeded
-PaymentIntent fails quietly, a new PaymentIntent is minted, and the form
-re-arms. Until the webhook completes the cart, a second payment is possible.
-Nobody has observed this; it is what the code says. H5 should measure it on
-test before it is built.
+**What that request does, read to the end of the chain.** Medusa's session
+workflow fails, because the old intent cannot be cancelled once it has
+succeeded and `validateDeletedPaymentSessionsStep` throws. `PaymentForm`
+then renders H3's "Payment could not be prepared just now. Nothing has been
+charged. Try again shortly…" over a card that was charged. That is false, and
+the retry it invites fails the same way until the webhook completes the cart.
+A first review of H3 read the chain only as far as the step that swallows the
+error, and concluded a fresh intent would re-arm the form. The workflow's
+validation step says otherwise. No second charge is possible by this route,
+but the false sentence is. Measure it on test before building.
 
 The default cart GET already carries
 `payment_collection.payment_sessions.status`.
