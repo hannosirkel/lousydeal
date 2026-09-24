@@ -46,6 +46,7 @@ const unpaid: CheckoutCart = {
   completed: false,
   email: "buyer@example.com",
   giftRecipientEmail: null,
+  stripeClientSecret: null,
 };
 const paid: CheckoutCart = { ...unpaid, completed: true };
 

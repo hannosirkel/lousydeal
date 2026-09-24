@@ -105,7 +105,7 @@ import {
   needsProvince,
   type ShippingAddressInput,
 } from "../../lib/shipping-address";
-import { runPayPath } from "../../lib/pay-path";
+import { checkPriorPayment, runPayPath } from "../../lib/pay-path";
 import { completeCheckoutCart, createPaymentCollection, initiateStripePaymentSession } from "../../lib/store-payment";
 import { emitAnalyticsEvent } from "../../lib/analytics";
 
@@ -155,6 +155,12 @@ interface PaymentFormProps {
   readonly surcharge?: { readonly label: string; readonly value: string };
   /** Price disclosures which must remain between the total and the form. */
   readonly children?: ReactNode;
+  /**
+   * LD-11 H5. The client secret of the Stripe session the cart already holds,
+   * if any. Its intent is asked about before anything here touches the cart,
+   * because a charged one must be completed, not replaced.
+   */
+  readonly priorClientSecret?: string | null;
 }
 
 type CartPriceState =
@@ -180,6 +186,7 @@ export function PaymentForm({
   items,
   surcharge,
   children,
+  priorClientSecret = null,
 }: PaymentFormProps) {
   const stripePromise = useMemo(() => loadStripe(stripePublishableKey), [stripePublishableKey]);
   const fetchJson = useMemo(() => createProxyFetchJson(), []);
@@ -225,8 +232,37 @@ export function PaymentForm({
   const startedForCartRef = useRef<string | null>(null);
   /** The same guard for the session, keyed on what the session is *for*. */
   const startedSessionForRef = useRef<string | null>(null);
+  /**
+   * H5. `clear` once the prior session's intent is known not to be charged;
+   * nothing below creates a collection or a session until then.
+   */
+  const [priorCheck, setPriorCheck] = useState<"checking" | "clear">(priorClientSecret === null ? "clear" : "checking");
 
   useEffect(() => {
+    if (priorClientSecret === null) return;
+    let cancelled = false;
+    void checkPriorPayment({
+      retrieveStatus: async () => {
+        const stripe = await stripePromise;
+        if (stripe === null) throw new Error("Stripe did not load");
+        const { paymentIntent, error: retrieveError } = await stripe.retrievePaymentIntent(priorClientSecret);
+        if (retrieveError !== undefined || paymentIntent === undefined) throw new Error("no intent");
+        return paymentIntent.status;
+      },
+      complete: () => completeCheckoutCart(fetchJson, cartId),
+    }).then((outcome) => {
+      if (cancelled) return;
+      if (outcome.kind === "placed") window.location.reload();
+      else if (outcome.kind === "notice") setError(outcome.notice);
+      else setPriorCheck("clear");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [priorClientSecret, stripePromise, fetchJson, cartId]);
+
+  useEffect(() => {
+    if (priorCheck !== "clear") return;
     if (startedForCartRef.current === cartId) return;
     startedForCartRef.current = cartId;
     let cancelled = false;
@@ -241,7 +277,7 @@ export function PaymentForm({
     return () => {
       cancelled = true;
     };
-  }, [cartId, fetchJson]);
+  }, [cartId, fetchJson, priorCheck]);
 
   /**
    * The payment session, created only once the amount is final — and created

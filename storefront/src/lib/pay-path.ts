@@ -103,3 +103,52 @@ export async function runPayPath(steps: PayPathSteps): Promise<PayPathOutcome> {
     return { placed: false, notice: PAYMENT_UNCONFIRMED_NOTICE, charged: true };
   }
 }
+
+/**
+ * What a checkout that already holds a Stripe session must do before it makes
+ * another. LD-11 H5.
+ *
+ * **Medusa cannot say, so Stripe is asked.** H2 reads `completed_at`, but a
+ * card can be charged while the cart is not yet completed: an in-page
+ * completion that failed, or a redirect completion that threw, until Medusa's
+ * webhook catches up. Medusa's own session status stays `pending` in that
+ * window -- it changes only when Medusa authorises -- so the cart cannot tell
+ * a paid session from an unpaid one. The PaymentIntent can, and the browser
+ * may read it with the session's client secret. The storefront's server has
+ * no route to Stripe at all.
+ *
+ * Mounting the form without asking is what made the window dangerous: a new
+ * session makes Medusa cancel the old intent, which fails for a succeeded one,
+ * and H3's "Nothing has been charged" then rendered over a charged card.
+ */
+export type PriorPaymentOutcome =
+  | { readonly kind: "clear" }
+  /** The cart was completed here; reloading renders H2's end state from the server. */
+  | { readonly kind: "placed" }
+  | { readonly kind: "notice"; readonly notice: string };
+
+export interface PriorPaymentSteps {
+  /** The existing intent's status as Stripe reports it. */
+  readonly retrieveStatus: () => Promise<string>;
+  readonly complete: () => Promise<unknown>;
+}
+
+export async function checkPriorPayment(steps: PriorPaymentSteps): Promise<PriorPaymentOutcome> {
+  let status: string;
+  try {
+    status = await steps.retrieveStatus();
+  } catch {
+    // Not "nothing charged": the one thing unknown here is whether the card was.
+    return { kind: "notice", notice: PAYMENT_UNKNOWN_NOTICE };
+  }
+  if (CHARGED_INTENT_STATUSES.has(status)) {
+    try {
+      await steps.complete();
+      return { kind: "placed" };
+    } catch {
+      return { kind: "notice", notice: PAYMENT_UNCONFIRMED_NOTICE };
+    }
+  }
+  if (status === "processing") return { kind: "notice", notice: PAYMENT_UNKNOWN_NOTICE };
+  return { kind: "clear" };
+}

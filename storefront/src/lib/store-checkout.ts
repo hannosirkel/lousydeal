@@ -23,6 +23,7 @@
 
 import type { CartLine } from "./checkout-rules";
 import { GIFT_METADATA, giftRecipientSent } from "./gift";
+import { STRIPE_PROVIDER_ID } from "./store-payment";
 import type { FetchJson } from "./medusa-client";
 
 export interface CheckoutCart {
@@ -72,6 +73,12 @@ export interface CheckoutCart {
    * state names the same address the gift message goes to, and no other.
    */
   readonly giftRecipientEmail: string | null;
+  /**
+   * The client secret of the cart's Stripe session, or `null` where it has
+   * none. LD-11 H5: the one handle on whether that session's card was
+   * already charged, which the browser asks Stripe before making another.
+   */
+  readonly stripeClientSecret: string | null;
 }
 
 export interface CheckoutLine extends CartLine {
@@ -104,6 +111,7 @@ interface StoreCartTotalResponse {
     readonly completed_at?: unknown;
     readonly email?: unknown;
     readonly metadata?: unknown;
+    readonly payment_collection?: unknown;
   };
 }
 
@@ -140,6 +148,17 @@ function lineVariantTitle(item: unknown): string | null {
 function lineUnitPrice(item: unknown): number {
   const unitPrice = (item as { readonly unit_price?: unknown } | null)?.unit_price;
   return typeof unitPrice === "number" && Number.isFinite(unitPrice) ? unitPrice : Number.NaN;
+}
+
+/** The Stripe session's client secret, from the default cart read's `*payment_collection.payment_sessions`. */
+function stripeClientSecretOf(collection: unknown): string | null {
+  const sessions = (collection as { readonly payment_sessions?: unknown } | null)?.payment_sessions;
+  if (!Array.isArray(sessions)) return null;
+  const stripe = sessions.find((session) => (session as { provider_id?: unknown } | null)?.provider_id === STRIPE_PROVIDER_ID) as
+    | { readonly data?: { readonly client_secret?: unknown } }
+    | undefined;
+  const secret = stripe?.data?.client_secret;
+  return typeof secret === "string" && secret.length > 0 ? secret : null;
 }
 
 /** Reads the cart's own total and its line quantities. Refuses rather than guesses if the API answers with anything less than all three of id, currency and total. */
@@ -184,6 +203,7 @@ export async function getCheckoutCart(fetchJson: FetchJson, cartId: string): Pro
     completed: cart.completed_at !== undefined && cart.completed_at !== null,
     email: typeof cart.email === "string" && cart.email.trim().length > 0 ? cart.email.trim() : null,
     giftRecipientEmail: giftRecipientSent({ open: true, recipientEmail: typeof recipient === "string" ? recipient : "" }),
+    stripeClientSecret: stripeClientSecretOf(cart.payment_collection),
   };
 }
 

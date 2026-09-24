@@ -761,6 +761,7 @@ describe("getCheckoutCart", () => {
       completed: false,
       email: null,
       giftRecipientEmail: null,
+      stripeClientSecret: null,
     });
   });
 
@@ -775,6 +776,18 @@ describe("getCheckoutCart", () => {
   it("reads the cart's email, trimmed, and nothing for a blank one", async () => {
     expect((await getCheckoutCart(stubStoreApi({ email: " buyer@example.com " }), "cart_fixture")).email).toBe("buyer@example.com");
     expect((await getCheckoutCart(stubStoreApi({ email: "  " }), "cart_fixture")).email).toBeNull();
+  });
+
+  it("reads the Stripe session's client secret, and only the Stripe session's", async () => {
+    // LD-11 H5. The default cart read carries every session's `data`.
+    const secret = async (sessions: unknown) =>
+      (await getCheckoutCart(stubStoreApi({ payment_collection: { payment_sessions: sessions } }), "cart_fixture"))
+        .stripeClientSecret;
+    expect(await secret([{ provider_id: "pp_stripe_stripe", data: { client_secret: "pi_1_secret_2" } }])).toBe("pi_1_secret_2");
+    expect(await secret([{ provider_id: "pp_system_default", data: { client_secret: "not_stripe" } }])).toBeNull();
+    expect(await secret([{ provider_id: "pp_stripe_stripe", data: {} }])).toBeNull();
+    expect(await secret([{ provider_id: "pp_stripe_stripe", data: { client_secret: "" } }])).toBeNull();
+    expect(await secret(undefined)).toBeNull();
   });
 
   it("reads the gift recipient only where the backend would write to it", async () => {
@@ -1364,6 +1377,7 @@ describe("the cart-to-paid-order flow, against one stubbed backend", () => {
       completed: false,
       email: null,
       giftRecipientEmail: null,
+      stripeClientSecret: null,
     });
     // C3a: the state the checkout page requires before it will render a pay
     // control at all.
