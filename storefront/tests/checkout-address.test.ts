@@ -205,11 +205,11 @@ describe("a cart with a parcel in it", () => {
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
       .replace(/\/\/.*$/gm, "");
-    const effect = source.slice(source.indexOf("if (submitting || orderId !== null) return;"));
-    expect(effect).toContain("if (submitting || orderId !== null) return;");
+    const effect = source.slice(source.indexOf("if (submitting || orderId !== null || charged) return;"));
+    expect(effect).toContain("if (submitting || orderId !== null || charged) return;");
     // Before the address check, or an incomplete address still clears the
     // figure the buyer is in the middle of paying against.
-    expect(source.indexOf("if (submitting || orderId !== null) return;")).toBeLessThan(
+    expect(source.indexOf("if (submitting || orderId !== null || charged) return;")).toBeLessThan(
       source.indexOf("if (!needsAddress) return;"),
     );
     expect(source.indexOf("if (!needsAddress) return;")).toBeLessThan(
@@ -218,7 +218,7 @@ describe("a cart with a parcel in it", () => {
     // In the dependencies, or an edit made during a failed submit is never
     // quoted afterwards and the button stays dark for ever.
     expect(source).toContain(
-      "}, [needsAddress, address, countryCode, fetchJson, cartId, submitting, orderId, onPostageSettled]);",
+      "}, [needsAddress, address, countryCode, fetchJson, cartId, submitting, orderId, charged, onPostageSettled]);",
     );
   });
 
@@ -245,8 +245,8 @@ describe("a cart with a parcel in it", () => {
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
       .replace(/\/\/.*$/gm, "");
-    expect(source).toContain("if (submitting || orderId !== null) return;");
-    expect(source).toMatch(/\[needsAddress, address, countryCode, fetchJson, cartId, submitting, orderId, onPostageSettled\]/);
+    expect(source).toContain("if (submitting || orderId !== null || charged) return;");
+    expect(source).toMatch(/\[needsAddress, address, countryCode, fetchJson, cartId, submitting, orderId, charged, onPostageSettled\]/);
   });
 
   it("asks for a province only where Printful demands one", () => {

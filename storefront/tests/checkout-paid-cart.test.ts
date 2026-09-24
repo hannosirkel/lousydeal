@@ -20,7 +20,12 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ORDER_PLACED_HEADING, ORDER_SUMMARY_LINES, PAYMENT_NEEDS_SCRIPTING } from "../src/content/checkout";
+import {
+  ORDER_PLACED_HEADING,
+  ORDER_SUMMARY_LINES,
+  PAYMENT_NEEDS_SCRIPTING,
+  PAYMENT_UNCONFIRMED_NOTICE,
+} from "../src/content/checkout";
 import type { CheckoutCart } from "../src/lib/store-checkout";
 
 vi.mock("@stripe/react-stripe-js", () => ({
@@ -141,10 +146,18 @@ describe("Stripe's return after a redirecting payment method", () => {
     expect(completions).toEqual([]);
   });
 
-  it("fails to the error boundary, never back to the form, when completion throws", async () => {
-    await expect(
-      renderCheckout({ carts: [unpaid], searchParams: { redirect_status: "succeeded" }, completeFails: true }),
-    ).rejects.toThrow(/returned 500/);
+  it("says the card was accepted, never back to the form, when completion throws", async () => {
+    // LD-11 H3 replaced the error boundary H2 fell to: this failure is after
+    // the charge, and says what the form says in the same position.
+    const { html, completions } = await renderCheckout({
+      carts: [unpaid],
+      searchParams: { redirect_status: "succeeded" },
+      completeFails: true,
+    });
+    expect(completions).toEqual(["cart_1"]);
+    expect(html).toContain(PAYMENT_UNCONFIRMED_NOTICE);
+    expect(html).not.toContain("returned 500");
+    expect(formIsOnThePage(html)).toBe(false);
   });
 
   it("leaves a failed redirect on the form, since nothing was paid", async () => {

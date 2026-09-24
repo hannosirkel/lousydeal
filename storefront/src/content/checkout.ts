@@ -525,6 +525,37 @@ export const SHIPPING_LABEL = "Postage";
 export const SHIPPING_QUOTING_LABEL = "Asking Printful";
 
 /**
+ * What a failure on the pay path says, by where it happened. LD-11 H3.
+ *
+ * **The rendered error used to be `thrown.message`**, so a buyer could read
+ * the Store API proxy's status line or `Medusa did not place an order for
+ * cart cart_…`. Three notices replace it,
+ * one for each side of the moment money moves, and the operator chose each
+ * wording with it rendered on 2026-09-23.
+ *
+ * `SHIPPING_UNAVAILABLE_NOTICE` below is the model for the first: the
+ * reassurance, then the invitation to retry, which is right only because
+ * nothing was charged. The third takes the reassurance's shape and not the
+ * invitation, because a retry after a charge is a second charge. Stripe's own
+ * decline wording is not shown either: the operator chose ours alone.
+ */
+export const PAYMENT_NOT_STARTED_NOTICE =
+  "Payment could not be prepared just now. Nothing has been charged. Try again shortly, or write to the address in the Imprint.";
+
+/** `confirmPayment` refused: Stripe took nothing. */
+export const PAYMENT_DECLINED_NOTICE = "Your card was not charged. Check the details, or try another card.";
+
+/**
+ * The card succeeded and completing the order did not.
+ *
+ * Medusa's `completeCartWorkflow` either placed the order, and the
+ * confirmation follows, or reverted the payment in its compensation. The
+ * operator chose not to promise the second, so this says only what to do.
+ */
+export const PAYMENT_UNCONFIRMED_NOTICE =
+  "Your card was accepted, but the order could not be confirmed just now. Do not pay again: a confirmation email should reach you within a few minutes. If none arrives within the hour, write to the address in the Imprint.";
+
+/**
  * Shown when Printful could not be asked.
  *
  * **No number is offered with it.** §11 forbids a fabricated figure and §23
