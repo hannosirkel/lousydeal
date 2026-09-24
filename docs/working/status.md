@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-24 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | **H3**, on `deal/ld11-h3-pay-path-words`: a failure in the checkout form or in a redirect completion renders one of four notices chosen by position, never upstream wording, and after a charge or an unknown outcome the pay control stays off. Review fixes applied; awaiting merge. |
-| Next action | **H5 before H4.** When a paid but uncompleted cart is reloaded, Medusa's session workflow fails, and H3's "Nothing has been charged" renders over a charged card. Measure that on test first, then build H5. The Stripe webhook that completes such carts, and that the notices' promise of an email relies on, is not a row in the held table below. H4 is independent. A candidate from H1's review waits for the operator: the gift field accepts a dotless address the backend drops. LD-07 remains deferred out of V1. |
+| In flight | Nothing. H3 merged as #259 and is live, as are J1, H1 and H2 — for the first time on 2026-09-24; see **Two incidents** under Deployment. |
+| Next action | **H5 before H4.** When a paid but uncompleted cart is reloaded, Medusa's session workflow fails and H3's "Nothing has been charged" renders over a charged card. Measure it first. Test only ever runs a PR's own build (`deploy(test): PR #…`), so the measurement belongs to H5's own PR once its build is on test, not to main. H4 is independent. A candidate from H1's review waits for the operator: the gift field accepts a dotless address the backend drops. The Stripe webhook the notices' email promise relies on is not a row in the held table below. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -111,6 +111,36 @@ What is actually held, as against what the contract expects in §2b.
 | The two VAT counters | **a standing procedure, not an open item** | `npm run report:vat-thresholds`. Nothing schedules it, deliberately. Crossing €100,000 must reach EMTA within 15 working days |
 
 ## Deployment
+
+**Two incidents, both closed on 2026-09-24, and neither caused by this
+slice's code.**
+
+1. **Nothing merged from 2026-09-21 to 2026-09-24 reached either
+   environment.** lousydeal #226 took Medusa to 2.21, whose lockfile hoists
+   ten provider packages back to `/node_modules`. The `deploys` predeploy
+   Job's `module-migrations` mounts stayed at `/app/node_modules`, so
+   `medusa db:migrate` failed with ENOENT on `mkdir` on the read-only root.
+   Every promotion's Sync hook failed with it, and Argo held both
+   applications OutOfSync on the image built from `d3c6e44`. **J1, H1 and
+   H2 were merged and recorded as done while none of them was deployed.**
+   Fixed by `deploys` #52: the mounts follow the modules, re-measured
+   read-only against the promoted image. Both applications synced to
+   `deploys` `74a9e69`. Live runs lousydeal `0eb16ca`'s images, with H3.
+   Test runs PR #226's build, because test only ever deploys a PR's own
+   build.
+2. **The public site answered an empty Cloudflare 404 from 2026-09-23 22:09
+   UTC for about a day.** A run of `orange`'s `scripts/cloudflare-add-web`
+   declaring only the AI Portal routes replaced the whole `web` tunnel route
+   table. That dropped every lousydeal hostname and every hostname of the
+   other sites on the same tunnel. The operator restored the table on
+   2026-09-24 from the tunnel's own previous version, without touching DNS
+   or Access. All lousydeal hostnames were checked from outside afterwards.
+   `orange` #130 makes the helper refuse a run that would drop a route it
+   does not declare, dry run included.
+
+**The lesson for this file:** a merge is not a deployment. Before a row
+claims anything about the live or test store, check that Argo is Synced and
+that the pods started after the merge.
 
 The live storefront is public and runs with `STORE_OPEN=true`; the test
 storefront also runs with `STORE_OPEN=true`, uses Stripe sandbox and remains
