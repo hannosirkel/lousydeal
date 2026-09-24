@@ -906,9 +906,14 @@ form.
 ### H3 — A failure on the pay path speaks in our words, not Medusa's
 
 **Repository:** `lousydeal`.
-**Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
+**Files, as planned:** `storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/content/checkout.ts`,
 `storefront/tests/checkout-address.test.ts`.
+**As built**, with the operator's override: those three and
+`storefront/src/lib/pay-path.ts`, `storefront/src/lib/checkout-rules.ts`,
+`storefront/src/app/checkout/page.tsx`, `storefront/tests/pay-path.test.ts`,
+`storefront/tests/checkout-paid-cart.test.ts`, the three ordering tests, and
+`findings.md`, this plan and `status.md`.
 
 Finding 4 of the pay-path reading. `thrown.message` goes straight into the
 rendered error, so a buyer
@@ -940,6 +945,13 @@ not the invitation.
   `validation_error` messages as safe to show customers. The operator still
   chose "Your card was not charged. Check the details, or try another card."
   alone, which keeps this row's "no Stripe string" rule unamended.
+- **An outcome the page cannot know gets a fourth notice**, chosen on
+  2026-09-24 after H3's review. Stripe's `api_connection_error` can follow a
+  confirmation that reached Stripe, so "your card was not charged" would be a
+  claim the page cannot make. Only `card_error`, `validation_error` and
+  `invalid_request_error` read as a decline. Every other type, and a rejected
+  promise, gets "We could not hear back from the card processor. Do not pay
+  again yet…", and the control stays off as it does after a charge.
 - **Scope: the row, plus the page.** A redirect completion that throws now
   renders the charged notice in place of H2's error boundary. The
   paid-but-not-completed race H2's review found becomes H5.
@@ -953,6 +965,23 @@ the handler cannot be reached without a DOM. `PayGateInput` gains `charged`,
 which both `payDisabled` and `paySubmitBlocked` honour, so the two gates
 cannot drift. The quote effect stops on it too, because the cart must not
 change under money that has moved.
+
+**What H3's review found that this row does not fix.**
+
+- **In H5's window, two of these notices can be false.** Suppose a charged
+  failure locks the control and the buyer reloads before the webhook completes
+  the cart. The lock is component state and does not survive the reload. The
+  form mounts again, and then either "Nothing has been charged" renders over a
+  charged card, or a fresh PaymentIntent re-arms the form (see H5). That is
+  H5's to close, not a wording fix.
+- **A failure after a successful redirect completion still reaches the error
+  boundary.** Both the cart re-read and `listTiers` sit outside the `try`. No
+  upstream wording renders there, but the page says nothing about the charge.
+- **A forged `?redirect_status=succeeded` on an unpaid cart** now renders "Your
+  card was accepted…" with no way onward. It is self-inflicted, and it is false.
+- **The `confirmPayment` wrapper's own "not ready" rejection now locks the
+  control.** Both gates require `stripeReady`, which is set in the same
+  callback that registers the confirm, so it is reachable only through a race.
 
 **What the source matches cannot see.** Four assertions bind `PaymentForm` to
 this by matching its source, for `GiftAddressNote`'s reason. The one that
@@ -995,9 +1024,18 @@ H2 reads `completed_at`, and paid is not the same thing. Two windows exist in
 which money has been taken and the cart is not yet completed. In the first, an
 in-page completion fails and the buyer reloads. In the second, a redirect
 completion fails and the buyer returns through the cart without the query
-string. In both, `PaymentForm` mounts, and a new payment session tries to
-cancel a succeeded PaymentIntent. That is pay-path finding 3 again, until
-Medusa's webhook completes the cart.
+string. In both, `PaymentForm` mounts with no client secret, so
+`paymentSessionNeeded` asks Medusa for a new session.
+
+**This is a money risk, not a wording one, and H3's review established it by
+reading the code.** Finding 3 said the re-session "throws". The installed
+Medusa does not work that way. `create-payment-session.js` runs the create in
+parallel with `deletePaymentSessionsWorkflow`, and `delete-payment-sessions.js`
+catches and logs a failed provider cancel. So cancelling a succeeded
+PaymentIntent fails quietly, a new PaymentIntent is minted, and the form
+re-arms. Until the webhook completes the cart, a second payment is possible.
+Nobody has observed this; it is what the code says. H5 should measure it on
+test before it is built.
 
 The default cart GET already carries
 `payment_collection.payment_sessions.status`.

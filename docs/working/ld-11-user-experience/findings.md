@@ -653,6 +653,15 @@ stale between the reading and the review; a symbol survives an edit above it.
    checkout for an order already paid, and the session it then re-creates makes
    Medusa cancel a *succeeded* PaymentIntent, which throws. The buyer reads
    `Store API proxy returned 500` over a form for something they have bought.
+
+   **Corrected 2026-09-24, by H3's review.** "Which throws" was a reading of the
+   code, and the installed Medusa 2.21 says otherwise. The delete of the old
+   session runs in parallel with the create of the new one
+   (`create-payment-session.js`), and a failed provider cancel is caught and
+   logged (`delete-payment-sessions.js`). The likelier outcome is a fresh
+   PaymentIntent and a re-armed form, which permits a second payment. That is
+   worse than the error this finding described. Not yet observed. H2 closed the
+   completed-cart half, and H5 carries the rest.
 4. **Medusa's wording reaches the buyer at the worst moment.** `thrown.message`
    goes straight into the rendered error. After `confirmPayment` succeeds the
    money is captured (`capture: true`), and a failure in completion then shows

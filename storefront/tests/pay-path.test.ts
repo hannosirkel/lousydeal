@@ -17,6 +17,7 @@ import {
   PAYMENT_DECLINED_NOTICE,
   PAYMENT_NOT_STARTED_NOTICE,
   PAYMENT_UNCONFIRMED_NOTICE,
+  PAYMENT_UNKNOWN_NOTICE,
 } from "../src/content/checkout";
 import { payDisabled, paySubmitBlocked } from "../src/lib/checkout-rules";
 import { runPayPath, type PayPathSteps } from "../src/lib/pay-path";
@@ -68,14 +69,46 @@ describe("when Stripe refuses the card", () => {
     expect(ran).toEqual(["prepare", "confirm"]);
   });
 
-  it("reads a rejected confirmation the same way", async () => {
-    const { steps: s, ran } = steps({
-      confirm: async () => {
-        throw new Error(STRIPE);
-      },
-    });
-    expect(await runPayPath(s)).toEqual({ placed: false, notice: PAYMENT_DECLINED_NOTICE, charged: false });
-    expect(ran).toEqual(["prepare", "confirm"]);
+  it("reads every type that means the card was judged as a decline", async () => {
+    for (const type of ["card_error", "validation_error", "invalid_request_error"]) {
+      const { steps: s } = steps({ confirm: async () => ({ error: { type } }) });
+      expect({ type, outcome: await runPayPath(s) }).toEqual({
+        type,
+        outcome: { placed: false, notice: PAYMENT_DECLINED_NOTICE, charged: false },
+      });
+    }
+  });
+});
+
+describe("when Stripe's answer does not say whether the card was charged", () => {
+  // H3's review: an `api_connection_error` can follow a confirmation that
+  // reached Stripe, so "not charged" would be a claim the page cannot know.
+  it("claims nothing about the card, and keeps the control off", async () => {
+    for (const type of ["api_connection_error", "api_error", "rate_limit_error", undefined]) {
+      const { steps: s, ran } = steps({ confirm: async () => ({ error: { type, message: STRIPE } }) });
+      expect({ type, outcome: await runPayPath(s) }).toEqual({
+        type,
+        outcome: { placed: false, notice: PAYMENT_UNKNOWN_NOTICE, charged: true },
+      });
+      expect(ran).not.toContain("complete");
+    }
+  });
+
+  it("reads a rejected confirmation the same way, whatever was thrown", async () => {
+    for (const thrown of [new Error(STRIPE), null, undefined]) {
+      const { steps: s, ran } = steps({
+        confirm: async () => {
+          throw thrown;
+        },
+      });
+      expect(await runPayPath(s)).toEqual({ placed: false, notice: PAYMENT_UNKNOWN_NOTICE, charged: true });
+      expect(ran).toEqual(["prepare", "confirm"]);
+    }
+  });
+
+  it("tells the buyer not to pay again", () => {
+    expect(PAYMENT_UNKNOWN_NOTICE).toMatch(/Do not pay again/);
+    expect(PAYMENT_UNKNOWN_NOTICE).not.toMatch(/try again|not charged/i);
   });
 });
 

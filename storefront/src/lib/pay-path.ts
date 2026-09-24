@@ -9,12 +9,25 @@
  * makes any of them throw.
  *
  * The position is the whole point. Before `confirm` nothing has been charged;
- * a refusal from `confirm` means Stripe took nothing; after `confirm`
- * succeeds the money is taken (`capture: true`), and what the buyer must hear
- * is the opposite of "try again".
+ * a refusal from `confirm` whose type says the card was judged means Stripe
+ * took nothing, and any other failure there leaves it unknown; after
+ * `confirm` succeeds the money is taken (`capture: true`). After a charge, or
+ * the chance of one, what the buyer must hear is the opposite of "try again".
  */
 
-import { PAYMENT_DECLINED_NOTICE, PAYMENT_NOT_STARTED_NOTICE, PAYMENT_UNCONFIRMED_NOTICE } from "../content/checkout";
+import {
+  PAYMENT_DECLINED_NOTICE,
+  PAYMENT_NOT_STARTED_NOTICE,
+  PAYMENT_UNCONFIRMED_NOTICE,
+  PAYMENT_UNKNOWN_NOTICE,
+} from "../content/checkout";
+
+/**
+ * The `StripeError.type`s that mean the card was judged and not taken. Every
+ * other type, and a rejection, leaves the outcome unknown: an
+ * `api_connection_error` can follow a confirmation that reached Stripe.
+ */
+const DECLINED_TYPES: ReadonlySet<string> = new Set(["card_error", "validation_error", "invalid_request_error"]);
 
 export interface PayPathSteps {
   /** Everything written to the cart before the card is confirmed. */
@@ -27,7 +40,10 @@ export interface PayPathSteps {
 
 export type PayPathOutcome =
   | { readonly placed: true; readonly orderId: string }
-  /** `charged` is what keeps the pay control off: a second press would be a second charge. */
+  /**
+   * `charged` is what keeps the pay control off: the card was, or may have
+   * been, charged, and a second press could be a second charge.
+   */
   | { readonly placed: false; readonly notice: string; readonly charged: boolean };
 
 export async function runPayPath(steps: PayPathSteps): Promise<PayPathOutcome> {
@@ -37,12 +53,20 @@ export async function runPayPath(steps: PayPathSteps): Promise<PayPathOutcome> {
     return { placed: false, notice: PAYMENT_NOT_STARTED_NOTICE, charged: false };
   }
 
-  // A rejection is treated as a refusal. Stripe documents `confirmPayment` as
-  // resolving with `error` when confirmation fails, and says nothing of it
-  // rejecting, so a rejection is read as nothing having been confirmed.
-  const confirmation = await steps.confirm().catch((thrown: unknown) => ({ error: thrown }));
+  let confirmation: { readonly error?: unknown };
+  try {
+    confirmation = await steps.confirm();
+  } catch {
+    // Stripe documents `confirmPayment` as resolving with `error` when
+    // confirmation fails and says nothing of it rejecting, so a rejection
+    // says nothing about the card either.
+    return { placed: false, notice: PAYMENT_UNKNOWN_NOTICE, charged: true };
+  }
   if (confirmation.error !== undefined && confirmation.error !== null) {
-    return { placed: false, notice: PAYMENT_DECLINED_NOTICE, charged: false };
+    const type = (confirmation.error as { readonly type?: unknown }).type;
+    return typeof type === "string" && DECLINED_TYPES.has(type)
+      ? { placed: false, notice: PAYMENT_DECLINED_NOTICE, charged: false }
+      : { placed: false, notice: PAYMENT_UNKNOWN_NOTICE, charged: true };
   }
 
   try {
