@@ -82,6 +82,7 @@ import {
   PAY_LABEL,
   PAYING_LABEL,
   PAYMENT_NOT_STARTED_NOTICE,
+  PAYMENT_UNCONFIRMED_NOTICE,
   PAYMENT_NEEDS_SCRIPTING,
   PREPARING_PAYMENT_LABEL,
   STRIPE_PAYMENT_NOTICE,
@@ -174,6 +175,9 @@ export type CartPriceChange =
     }
   | { readonly status: "pending" | "unavailable" };
 
+/** H5. Marks the one reload a completed prior payment is allowed. */
+const PRIOR_COMPLETED_PARAM = "prior_completed";
+
 /** Creates the cart's Stripe session, then renders the Payment Element once a client secret exists. */
 export function PaymentForm({
   cartId,
@@ -238,9 +242,15 @@ export function PaymentForm({
    */
   const [priorCheck, setPriorCheck] = useState<"checking" | "clear">(priorClientSecret === null ? "clear" : "checking");
 
+  // One check per mount. `StrictMode` runs an effect twice in development;
+  // unlike the collection effect's `cancelled` flag, nothing here discards the
+  // first run's answer, so the ref alone keeps a charged cart from being
+  // completed twice.
+  const priorCheckStartedRef = useRef(false);
+
   useEffect(() => {
-    if (priorClientSecret === null) return;
-    let cancelled = false;
+    if (priorClientSecret === null || priorCheckStartedRef.current) return;
+    priorCheckStartedRef.current = true;
     void checkPriorPayment({
       retrieveStatus: async () => {
         const stripe = await stripePromise;
@@ -251,14 +261,21 @@ export function PaymentForm({
       },
       complete: () => completeCheckoutCart(fetchJson, cartId),
     }).then((outcome) => {
-      if (cancelled) return;
-      if (outcome.kind === "placed") window.location.reload();
-      else if (outcome.kind === "notice") setError(outcome.notice);
+      if (outcome.kind === "placed") {
+        // Once. A reload is meant to land on H2's server-rendered end state;
+        // if the cart still reads as incomplete after it, reloading again
+        // would never end, so the second answer says what H3 says instead.
+        // A query parameter rather than browser storage: nothing here is
+        // stored, and the page ignores the parameter.
+        const url = new URL(window.location.href);
+        if (url.searchParams.has(PRIOR_COMPLETED_PARAM)) setError(PAYMENT_UNCONFIRMED_NOTICE);
+        else {
+          url.searchParams.set(PRIOR_COMPLETED_PARAM, "1");
+          window.location.replace(url.toString());
+        }
+      } else if (outcome.kind === "notice") setError(outcome.notice);
       else setPriorCheck("clear");
     });
-    return () => {
-      cancelled = true;
-    };
   }, [priorClientSecret, stripePromise, fetchJson, cartId]);
 
   useEffect(() => {
@@ -365,7 +382,12 @@ export function PaymentForm({
     stripeReady && (!needsAddress || (postage !== null && sessionPostage === postage));
 
   let paymentContent: ReactNode;
-  if (error !== null) paymentContent = <p className="payment-error">{error}</p>;
+  if (error !== null)
+    paymentContent = (
+      <p className="payment-error" role="alert">
+        {error}
+      </p>
+    );
   /**
    * The cursor now waits for the *collection*, not the session.
    *

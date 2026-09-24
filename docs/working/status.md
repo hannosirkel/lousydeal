@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-24 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | **H5**, on `deal/ld11-h5-paid-uncompleted`: before a checkout replaces a Stripe session, the browser asks Stripe whether its card was charged. The measurement on test waits for the PR build (`deploy-test` label). |
-| Next action | Deploy H5's PR build to test and measure the window there: a sandbox card payment, completion blocked, a reload. Then H4, which is independent. A candidate from H1's review waits for the operator: the gift field accepts a dotless address the backend drops. The Stripe webhook the notices' email promise relies on is not a row in the held table below. LD-07 remains deferred out of V1. |
+| In flight | **H5**, on `deal/ld11-h5-paid-uncompleted` (#262): before a checkout replaces a Stripe session, the browser asks Stripe whether its card was charged. Its build is on test; the measurement was skipped by the operator. |
+| Next action | H4, which is independent. A candidate from H1's review waits for the operator: the gift field accepts a dotless address the backend drops. The Stripe webhook the notices' email promise relies on is not a row in the held table below. `orange`'s `cloudflare-add-servitium` carries the same route-table hazard #130 closed for the web tunnel, recorded on #130. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,

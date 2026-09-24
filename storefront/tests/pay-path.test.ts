@@ -282,9 +282,20 @@ describe("the checkout, as it asks before it replaces", () => {
     expect(form).toMatch(/\}, \[cartId, fetchJson, priorCheck\]\);/);
   });
 
-  it("reloads onto the server's end state once it has completed the cart", () => {
-    expect(form).toMatch(/if \(outcome\.kind === "placed"\) window\.location\.reload\(\);/);
-    expect(form).toMatch(/else if \(outcome\.kind === "notice"\) setError\(outcome\.notice\);\s*else setPriorCheck\("clear"\);/);
+  it("reloads onto the server's end state once, and only once", () => {
+    expect(form).toMatch(/if \(url\.searchParams\.has\(PRIOR_COMPLETED_PARAM\)\) setError\(PAYMENT_UNCONFIRMED_NOTICE\);/);
+    expect(form).toMatch(/url\.searchParams\.set\(PRIOR_COMPLETED_PARAM, "1"\);\s*window\.location\.replace\(url\.toString\(\)\);/);
+    expect(form).toMatch(/\} else if \(outcome\.kind === "notice"\) setError\(outcome\.notice\);\s*else setPriorCheck\("clear"\);/);
+  });
+
+  it("checks once per mount, even when an effect runs twice", () => {
+    expect(form).toMatch(/if \(priorClientSecret === null \|\| priorCheckStartedRef\.current\) return;\s*priorCheckStartedRef\.current = true;/);
+  });
+
+  it("announces a notice that replaces the form", () => {
+    // Anchored on the assignment: `PayButton` renders its own alert with the
+    // same markup, which an unanchored match would find instead.
+    expect(form).toMatch(/paymentContent = \(\s*<p className="payment-error" role="alert">\s*\{error\}/);
   });
 });
 
