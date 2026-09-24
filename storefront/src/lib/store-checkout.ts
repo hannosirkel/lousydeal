@@ -22,7 +22,7 @@
  */
 
 import type { CartLine } from "./checkout-rules";
-import { GIFT_METADATA } from "./gift";
+import { GIFT_METADATA, giftRecipientSent } from "./gift";
 import type { FetchJson } from "./medusa-client";
 
 export interface CheckoutCart {
@@ -54,6 +54,24 @@ export interface CheckoutCart {
    * the surcharge, so each line carries its title, variant title and price.
    */
   readonly lines: readonly CheckoutLine[];
+  /**
+   * Whether this cart has been paid for and turned into an order. LD-11 H2.
+   *
+   * `store-cart.ts` declares `completed_at` and `cart-actions.ts` reads it,
+   * but this function did not, and it is the one that feeds the page where
+   * money changes hands. A reload, the back-button or a Stripe redirect all
+   * brought a paid cart back to a mounted payment form, and mounting it asks
+   * for a fresh payment session.
+   */
+  readonly completed: boolean;
+  /** The address the § 55 confirmation goes to, as the cart holds it, or `null` where none was set. */
+  readonly email: string | null;
+  /**
+   * The gift recipient the backend will write to, or `null`. Read off the
+   * cart's metadata by the rule `readGift` applies, so a completed cart's end
+   * state names the same address the gift message goes to, and no other.
+   */
+  readonly giftRecipientEmail: string | null;
 }
 
 export interface CheckoutLine extends CartLine {
@@ -83,6 +101,9 @@ interface StoreCartTotalResponse {
     readonly currency_code?: unknown;
     readonly total?: unknown;
     readonly items?: unknown;
+    readonly completed_at?: unknown;
+    readonly email?: unknown;
+    readonly metadata?: unknown;
   };
 }
 
@@ -148,7 +169,22 @@ export async function getCheckoutCart(fetchJson: FetchJson, cartId: string): Pro
     unitPrice: lineUnitPrice(item),
   }));
 
-  return { id: cart.id, currencyCode: cart.currency_code, total: cart.total, quantities, lines };
+  const metadata = typeof cart.metadata === "object" && cart.metadata !== null ? (cart.metadata as Record<string, unknown>) : {};
+  const recipient = metadata[GIFT_METADATA.recipientEmail];
+
+  return {
+    id: cart.id,
+    currencyCode: cart.currency_code,
+    total: cart.total,
+    quantities,
+    lines,
+    // Any non-null value is a completion, whatever shape it arrives in: a
+    // cart read as unpaid when it was paid is the defect this exists for, and
+    // one read as paid when it was not only stops the form rendering.
+    completed: cart.completed_at !== undefined && cart.completed_at !== null,
+    email: typeof cart.email === "string" && cart.email.trim().length > 0 ? cart.email.trim() : null,
+    giftRecipientEmail: giftRecipientSent({ open: true, recipientEmail: typeof recipient === "string" ? recipient : "" }),
+  };
 }
 
 interface StoreCartEmailResponse {

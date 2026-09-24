@@ -41,6 +41,7 @@ import {
 } from "../src/app/api/store/[...path]/route";
 import { STORE_PUBLISHABLE_KEY_HEADER, type FetchJson, type StoreFetchInit } from "../src/lib/medusa-client";
 import { cartNeedsAddress, isPayableCart } from "../src/lib/checkout-rules";
+import { GIFT_METADATA } from "../src/lib/gift";
 import {
   getCheckoutCart,
   listCartShippingOptions,
@@ -751,7 +752,39 @@ function stubStoreApi(overrides: Record<string, unknown> = {}): FetchJson {
 describe("getCheckoutCart", () => {
   it("reads the cart's own total, unconverted", async () => {
     const cart = await getCheckoutCart(stubStoreApi(), "cart_fixture");
-    expect(cart).toEqual({ id: "cart_fixture", currencyCode: "usd", total: 25, quantities: [], lines: [] });
+    expect(cart).toEqual({
+      id: "cart_fixture",
+      currencyCode: "usd",
+      total: 25,
+      quantities: [],
+      lines: [],
+      completed: false,
+      email: null,
+      giftRecipientEmail: null,
+    });
+  });
+
+  // LD-11 H2. The page reads these to decide whether a cart has been paid for,
+  // and what its end state names.
+  it("reads a cart with a completion time as completed, and one without as not", async () => {
+    expect((await getCheckoutCart(stubStoreApi({ completed_at: "2026-09-23T22:00:00.000Z" }), "cart_fixture")).completed).toBe(true);
+    expect((await getCheckoutCart(stubStoreApi({ completed_at: null }), "cart_fixture")).completed).toBe(false);
+    expect((await getCheckoutCart(stubStoreApi(), "cart_fixture")).completed).toBe(false);
+  });
+
+  it("reads the cart's email, trimmed, and nothing for a blank one", async () => {
+    expect((await getCheckoutCart(stubStoreApi({ email: " buyer@example.com " }), "cart_fixture")).email).toBe("buyer@example.com");
+    expect((await getCheckoutCart(stubStoreApi({ email: "  " }), "cart_fixture")).email).toBeNull();
+  });
+
+  it("reads the gift recipient only where the backend would write to it", async () => {
+    const recipient = async (value: unknown) =>
+      (await getCheckoutCart(stubStoreApi({ metadata: { [GIFT_METADATA.recipientEmail]: value } }), "cart_fixture"))
+        .giftRecipientEmail;
+    expect(await recipient("friend@example.com")).toBe("friend@example.com");
+    // Dotless: the form's `type="email"` accepts it and `readGift` does not.
+    expect(await recipient("friend@example")).toBeNull();
+    expect(await recipient(null)).toBeNull();
   });
 
   it("refuses a cart the stub answers with no numeric total", async () => {
@@ -1327,6 +1360,10 @@ describe("the cart-to-paid-order flow, against one stubbed backend", () => {
           unitPrice: 25,
         },
       ],
+      // LD-11 H2: not yet paid for, so the page offers the form.
+      completed: false,
+      email: null,
+      giftRecipientEmail: null,
     });
     // C3a: the state the checkout page requires before it will render a pay
     // control at all.
