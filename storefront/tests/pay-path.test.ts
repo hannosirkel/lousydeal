@@ -20,7 +20,7 @@ import {
   PAYMENT_UNKNOWN_NOTICE,
 } from "../src/content/checkout";
 import { payDisabled, paySubmitBlocked } from "../src/lib/checkout-rules";
-import { runPayPath, type PayPathSteps } from "../src/lib/pay-path";
+import { checkPriorPayment, runPayPath, type PayPathSteps } from "../src/lib/pay-path";
 
 /** Strings the upstream services really produce, which must never be rendered. */
 const PROXY = "Store API proxy returned 500 for /store/carts/cart_1";
@@ -209,3 +209,93 @@ describe("the checkout, as it uses all this", () => {
     expect(source.match(/setError\(PAYMENT_NOT_STARTED_NOTICE\)/g)).toHaveLength(2);
   });
 });
+
+/**
+ * LD-11 H5: a checkout that already holds a Stripe session asks whether its
+ * card was charged before making another. Medusa's session status stays
+ * `pending` until Medusa authorises, so only Stripe can say.
+ */
+describe("the prior session's intent", () => {
+  function prior(status: string | Error, completeFails = false) {
+    const completed: string[] = [];
+    return {
+      completed,
+      run: () =>
+        checkPriorPayment({
+          retrieveStatus: async () => {
+            if (status instanceof Error) throw status;
+            return status;
+          },
+          complete: async () => {
+            completed.push("complete");
+            if (completeFails) throw new Error(MEDUSA);
+            return { orderId: "order_1" };
+          },
+        }),
+    };
+  }
+
+  it("completes a charged one instead of replacing it", async () => {
+    for (const status of ["succeeded", "requires_capture"]) {
+      const p = prior(status);
+      expect({ status, outcome: await p.run() }).toEqual({ status, outcome: { kind: "placed" } });
+      expect(p.completed).toEqual(["complete"]);
+    }
+  });
+
+  it("says the card was accepted when that completion fails, never 'nothing charged'", async () => {
+    const p = prior("succeeded", true);
+    expect(await p.run()).toEqual({ kind: "notice", notice: PAYMENT_UNCONFIRMED_NOTICE });
+  });
+
+  it("claims nothing about the card while Stripe is still processing", async () => {
+    const p = prior("processing");
+    expect(await p.run()).toEqual({ kind: "notice", notice: PAYMENT_UNKNOWN_NOTICE });
+    expect(p.completed).toEqual([]);
+  });
+
+  it("claims nothing when Stripe cannot be asked", async () => {
+    const p = prior(new Error("network"));
+    expect(await p.run()).toEqual({ kind: "notice", notice: PAYMENT_UNKNOWN_NOTICE });
+    expect(p.completed).toEqual([]);
+  });
+
+  it("lets an uncharged session be replaced as before", async () => {
+    for (const status of ["requires_payment_method", "requires_confirmation", "requires_action", "canceled"]) {
+      const p = prior(status);
+      expect({ status, outcome: await p.run() }).toEqual({ status, outcome: { kind: "clear" } });
+      expect(p.completed).toEqual([]);
+    }
+  });
+});
+
+describe("the checkout, as it asks before it replaces", () => {
+  const form = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8");
+  const page = readFileSync(new URL("../src/app/checkout/page.tsx", import.meta.url), "utf8");
+
+  it("hands the page's session secret to the form", () => {
+    expect(page).toMatch(/priorClientSecret=\{cart\.stripeClientSecret\}/);
+  });
+
+  it("creates no collection, and so no session, until the prior intent is cleared", () => {
+    expect(form).toMatch(/useEffect\(\(\) => \{\s*if \(priorCheck !== "clear"\) return;\s*if \(startedForCartRef\.current === cartId\) return;/);
+    expect(form).toMatch(/\}, \[cartId, fetchJson, priorCheck\]\);/);
+  });
+
+  it("reloads onto the server's end state once, and only once", () => {
+    expect(form).toMatch(/if \(url\.searchParams\.has\(PRIOR_COMPLETED_PARAM\)\) setError\(PAYMENT_UNCONFIRMED_NOTICE\);/);
+    expect(form).toMatch(/url\.searchParams\.set\(PRIOR_COMPLETED_PARAM, "1"\);\s*window\.location\.replace\(url\.toString\(\)\);/);
+    expect(form).toMatch(/\} else if \(outcome\.kind === "notice"\) setError\(outcome\.notice\);\s*else setPriorCheck\("clear"\);/);
+  });
+
+  it("checks once per mount, even when an effect runs twice", () => {
+    expect(form).toMatch(/if \(priorClientSecret === null \|\| priorCheckStartedRef\.current\) return;\s*priorCheckStartedRef\.current = true;/);
+  });
+
+  it("announces a notice that replaces the form", () => {
+    // Anchored on the assignment: `PayButton` renders its own alert with the
+    // same markup, which an unanchored match would find instead.
+    expect(form).toMatch(/paymentContent = \(\s*<p className="payment-error" role="alert">\s*\{error\}/);
+  });
+});
+

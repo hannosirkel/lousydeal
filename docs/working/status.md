@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-24 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | Nothing. H3 merged as #259 and is live, as are J1, H1 and H2 — for the first time on 2026-09-24; see **Two incidents** under Deployment. |
-| Next action | **H5 before H4.** When a paid but uncompleted cart is reloaded, Medusa's session workflow fails and H3's "Nothing has been charged" renders over a charged card. Measure it first. Test only ever runs a PR's own build (`deploy(test): PR #…`), so the measurement belongs to H5's own PR once its build is on test, not to main. H4 is independent. A candidate from H1's review waits for the operator: the gift field accepts a dotless address the backend drops. The Stripe webhook the notices' email promise relies on is not a row in the held table below. LD-07 remains deferred out of V1. |
+| In flight | **H5**, on `deal/ld11-h5-paid-uncompleted` (#262): before a checkout replaces a Stripe session, the browser asks Stripe whether its card was charged. Its build is on test; the measurement was skipped by the operator. |
+| Next action | H4, which is independent. A candidate from H1's review waits for the operator: the gift field accepts a dotless address the backend drops. The Stripe webhook the notices' email promise relies on is not a row in the held table below. `orange`'s `cloudflare-add-servitium` carries the same route-table hazard #130 closed for the web tunnel, recorded on #130. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,

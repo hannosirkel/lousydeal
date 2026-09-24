@@ -305,6 +305,8 @@ export default async function CheckoutPage({
              to give, so the box is not shown and the gate does not wait for
              it. Decided here for the same reason `needsAddress` is. */
           needsConsent={hasCertificate}
+          /* LD-11 H5. Asked of Stripe in the browser before any new session. */
+          priorClientSecret={cart.stripeClientSecret}
         >
           <FinePrint>{priceNotice(needsAddress)}</FinePrint>
           {/* § 62²(2): the § 54(1) p 4, 10 and 11 information, immediately

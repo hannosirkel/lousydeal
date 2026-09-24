@@ -1033,10 +1033,13 @@ on 2026-09-23 rather than splitting the change.
 ### H5 — A paid cart that is not yet completed completes rather than showing the form
 
 **Repository:** `lousydeal`.
-**Files:** `storefront/src/lib/store-checkout.ts`,
+**Files, as planned:** `storefront/src/lib/store-checkout.ts`,
 `storefront/src/app/checkout/page.tsx`,
 `storefront/tests/store-checkout.test.ts`,
 `storefront/tests/checkout-paid-cart.test.ts`.
+**As built:** those four and `storefront/src/lib/pay-path.ts`,
+`storefront/src/app/checkout/PaymentForm.tsx` and
+`storefront/tests/pay-path.test.ts`, because the design below had to change.
 **From H2's review**, split out of H3 by the operator on 2026-09-23.
 
 H2 reads `completed_at`, and paid is not the same thing. Two windows exist in
@@ -1057,14 +1060,79 @@ error, and concluded a fresh intent would re-arm the form. The workflow's
 validation step says otherwise. No second charge is possible by this route,
 but the false sentence is. Measure it on test before building.
 
-The default cart GET already carries
-`payment_collection.payment_sessions.status`.
+**The planned design could not have worked, and the operator chose its
+replacement on 2026-09-24.** The row said to treat a session whose Medusa
+status is `authorized` or `captured` as paid. But Medusa writes that status
+only when Medusa itself authorises, during completion or while processing the
+webhook, and those are exactly the steps that have not happened in this
+window. A live cart read on 2026-09-24 showed the Stripe session `pending`
+with its `data` present. Only Stripe knows the card was charged. The
+storefront's server cannot ask, because its pod has no HTTPS egress (only
+`backend`, `worker` and `backup` do, in `deploys`). The browser can.
 
-- [ ] Treat a cart whose Stripe session is `authorized` or `captured` as paid:
-      complete it on the server as H2 does for a redirect return, and render
-      the end state or H3's charged notice, never the form. Verified by a
-      page test for each session status, and by one asserting that a
-      `pending` session still renders the form.
+**Built 2026-09-24.**
+
+- `getCheckoutCart` returns the Stripe session's client secret, which the
+  default read carries in `payment_sessions.data`.
+- The page hands it to `PaymentForm`. Before the form creates a collection,
+  and so before any session, it asks Stripe with `retrievePaymentIntent`.
+  `lib/pay-path.ts`'s `checkPriorPayment` decides from the intent's status:
+  - `succeeded` or `requires_capture`: complete the cart and reload. The
+    reload renders H2's server-side end state. If completion throws, H3's
+    "card accepted" notice renders instead.
+  - `processing`, or Stripe unreachable: the unknown notice.
+  - Anything else: the flow as before.
+- No form renders while a notice stands.
+
+**What it costs, and what it does not cover.**
+
+- Every checkout load that already holds a session makes one Stripe read
+  first. That is every reload of an unpaid checkout. It also serialises the
+  Stripe.js load ahead of the collection call, which used to run in parallel.
+- **The unknown notice can reach a buyer who has paid nothing.** If Stripe.js
+  cannot load (an ad blocker, a content policy), or the publishable key no
+  longer matches the session's (a key rotation), the check cannot answer. It
+  then says "Do not pay again yet" to a buyer who never paid, with no way
+  onward. That buyer could not have paid before H5 either, because the card
+  element never mounts, but the sentence is false for them. This is recorded
+  as the conservative default, not fixed.
+- The redirect return still completes on the server (H2), because it arrives
+  with `redirect_status`.
+- The check sits on `PaymentForm`'s mount, so it works only with scripting on.
+  Without scripting, the form never loads anyway.
+- **Not measured.** No real payment has been through this path. The build was
+  deployed to test with the `deploy-test` label on 2026-09-24, but the
+  measurement could not reach it. Test sits behind Cloudflare Access; an SSH
+  forward through orange was refused ("administratively prohibited") although
+  sshd's effective configuration permits it for this user and address; and
+  orange has no browser. The operator chose to skip it. H5 rests on its tests
+  and on the reading of Medusa's and Stripe.js's source that the review
+  checked.
+
+**From H5's review, applied before merge.**
+
+- The "placed" answer used to reload unconditionally. A cart with an order
+  link but no `completed_at` would have reloaded for ever. The reload now
+  carries a `prior_completed` query parameter, and a second "placed" answer
+  renders H3's charged notice instead. A parameter was used, not browser
+  storage, so nothing is stored.
+- The check has a ref guard, so development's double effect cannot complete
+  a charged cart twice.
+- The notice that replaces the form is an alert. The first version of that
+  source match was vacuous: `PayButton` renders its own alert with the same
+  markup, and the unanchored pattern found that one. It is now anchored on
+  the assignment, and removing the role fails it.
+
+- [x] Before a checkout replaces a Stripe session, ask Stripe whether its card
+      was charged; complete a charged cart rather than replacing its session,
+      and render the end state or H3's charged notice, never the form.
+      Verified by `pay-path.test.ts` driving `checkPriorPayment` through every
+      intent status, a failed completion and an unreachable Stripe;
+      `store-checkout.test.ts` reading the secret from the Stripe session only;
+      and source matches binding the page's prop, the collection gate and the
+      reload. Ten mutations were run, each restoring only its own file after a
+      commit. Nine failed first time. The tenth, an empty client secret kept,
+      survived; a test was added, and it now fails.
 
 ### H4 — Postage is not quoted before the buyer has said where they are
 
