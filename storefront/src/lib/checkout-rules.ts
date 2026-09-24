@@ -45,6 +45,13 @@ export interface PayGateInput {
    * and no existing caller silently loosened.
    */
   readonly consentRequired?: boolean;
+  /**
+   * LD-11 H3: the card was accepted and the order could not be confirmed.
+   *
+   * The money is taken, so another press is another charge. Optional and
+   * defaulting to `false`, for the reason `shippingSettled` gives.
+   */
+  readonly charged?: boolean;
 }
 
 /**
@@ -60,8 +67,9 @@ export function payDisabled({
   consented,
   shippingSettled = true,
   consentRequired = true,
+  charged = false,
 }: PayGateInput): boolean {
-  return !stripeReady || submitting || (consentRequired && !consented) || !shippingSettled;
+  return !stripeReady || submitting || (consentRequired && !consented) || !shippingSettled || charged;
 }
 
 /**
@@ -99,8 +107,9 @@ export function paySubmitBlocked({
   consented,
   shippingSettled = true,
   consentRequired = true,
+  charged = false,
 }: PayGateInput): boolean {
-  return !stripeReady || submitting || (consentRequired && !consented) || !shippingSettled;
+  return !stripeReady || submitting || (consentRequired && !consented) || !shippingSettled || charged;
 }
 
 /** One cart line, as the checkout needs to judge it. */

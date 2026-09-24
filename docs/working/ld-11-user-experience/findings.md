@@ -653,6 +653,20 @@ stale between the reading and the review; a symbol survives an edit above it.
    checkout for an order already paid, and the session it then re-creates makes
    Medusa cancel a *succeeded* PaymentIntent, which throws. The buyer reads
    `Store API proxy returned 500` over a form for something they have bought.
+
+   **Rechecked 2026-09-24: "which throws" stands.** A first review of H3
+   read `delete-payment-sessions.js` as swallowing the failed cancel, and a
+   correction saying so was briefly written here. It was wrong. The *step*
+   catches and logs it, but the *workflow* of the same name then runs
+   `validateDeletedPaymentSessionsStep`, which throws "Could not delete all
+   payment sessions". Stripe's `cancelPayment` rethrows for a succeeded
+   PaymentIntent (`stripe-base.js`), and the provider is called before the
+   database delete (`payment-module.js`). So `createPaymentSessionsWorkflow`
+   fails, its compensation cancels the intent it had just created, and the
+   buyer is shown an error. Since H3, that error reads "Nothing has been
+   charged", over a card that was charged. H2 closed the completed-cart half,
+   and H5 carries the rest.
+
 4. **Medusa's wording reaches the buyer at the worst moment.** `thrown.message`
    goes straight into the rendered error. After `confirmPayment` succeeds the
    money is captured (`capture: true`), and a failure in completion then shows

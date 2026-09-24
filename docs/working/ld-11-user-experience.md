@@ -140,6 +140,7 @@ LD-03's and LD-04's, carried forward. What this slice adds:
 | H2 | A paid cart never renders the payment form again |
 | H3 | A failure on the pay path speaks in our words, not Medusa's |
 | H4 | Postage is not quoted before the buyer has said where they are |
+| H5 | A paid cart that is not yet completed completes rather than showing the form |
 
 Every part-two row is executed the same way, and the method is the row's
 contract rather than a suggestion:
@@ -883,7 +884,7 @@ completion throws and the buyer comes back through the cart without the query
 string. Either way the form mounts, and a new session tries to cancel a
 succeeded PaymentIntent, which is pay-path finding 3 again. Medusa's webhook
 closes both windows within seconds, so this is a race rather than a hole.
-**It belongs to H3**, which owns that failure. The default cart GET already
+**It was recorded for H3 and became H5**, by the operator's choice. The default cart GET already
 carries `payment_collection.payment_sessions.status`, so an `authorized` or
 `captured` session could be treated as paid and completed without mounting the
 form.
@@ -905,9 +906,14 @@ form.
 ### H3 — A failure on the pay path speaks in our words, not Medusa's
 
 **Repository:** `lousydeal`.
-**Files:** `storefront/src/app/checkout/PaymentForm.tsx`,
+**Files, as planned:** `storefront/src/app/checkout/PaymentForm.tsx`,
 `storefront/src/content/checkout.ts`,
 `storefront/tests/checkout-address.test.ts`.
+**As built**, with the operator's override: those three and
+`storefront/src/lib/pay-path.ts`, `storefront/src/lib/checkout-rules.ts`,
+`storefront/src/app/checkout/page.tsx`, `storefront/tests/pay-path.test.ts`,
+`storefront/tests/checkout-paid-cart.test.ts`, the three ordering tests, and
+`findings.md`, this plan and `status.md`.
 
 Finding 4 of the pay-path reading. `thrown.message` goes straight into the
 rendered error, so a buyer
@@ -929,14 +935,126 @@ Imprint." A retry is the right advice when nothing was charged and the wrong
 advice when something may have been. The new notice borrows the reassurance and
 not the invitation.
 
-- [ ] Stop `thrown.message` reaching the rendered error, and add a notice for
+**Built 2026-09-23. The operator settled three things with the notices rendered.**
+
+- **After a charge, the shorter notice.** "Your card was accepted, but the order
+  could not be confirmed just now. Do not pay again…" It makes no refund claim.
+  Medusa's `completeCartWorkflow` does compensate a captured payment when it
+  fails, but the operator chose not to promise that.
+- **A decline gets our words only.** Stripe marks `card_error` and
+  `validation_error` messages as safe to show customers. The operator still
+  chose "Your card was not charged. Check the details, or try another card."
+  alone, which keeps this row's "no Stripe string" rule unamended.
+- **An outcome the page cannot know gets a fourth notice**, chosen on
+  2026-09-24 after H3's review. Stripe's `api_connection_error` can follow a
+  confirmation that reached Stripe, so "your card was not charged" would be a
+  claim the page cannot make. Only `card_error`, `validation_error` and
+  `invalid_request_error` read as a decline. Every other type, and a rejected
+  promise, gets "We could not hear back from the card processor. Do not pay
+  again yet…", and the control stays off as it does after a charge.
+- **Classified by what Stripe's answer says, after the second review.** A
+  PaymentIntent attached to the error outranks its type. `succeeded` or
+  `requires_capture` gets the "card accepted" notice, because confirming an
+  intent that already succeeded answers `invalid_request_error`. `processing`
+  is unknown. `rate_limit_error`, `authentication_error` and
+  `idempotency_error` are refusals of the request, so they get the "nothing
+  has been charged" notice, which is true there. The unknown notice's "could
+  not hear back" is therefore left to connection, API and unrecognised
+  errors, and to a rejection. The wrapper's own "not ready" rejection, which
+  only a race can reach, still renders it, and it is false there.
+- **Scope: the row, plus the page.** A redirect completion that throws now
+  renders the charged notice in place of H2's error boundary. The
+  paid-but-not-completed race H2's review found becomes H5.
+
+**How.** The sequence moved out of `handleSubmit` into `lib/pay-path.ts`'s
+`runPayPath`, which classifies a failure by *where* it happened and never by
+what was thrown. Before `confirm`, nothing was charged. A refusal or a
+rejection from `confirm` means Stripe took nothing. After `confirm`, the money
+is taken. The extraction exists so each position can be made to fail, because
+the handler cannot be reached without a DOM. `PayGateInput` gains `charged`,
+which both `payDisabled` and `paySubmitBlocked` honour, so the two gates
+cannot drift. The quote effect stops on it too, because the cart must not
+change under money that has moved.
+
+**What H3's review found that this row does not fix.**
+
+- **In H5's window, two of these notices can be false.** Suppose a charged
+  failure locks the control and the buyer reloads before the webhook completes
+  the cart. The lock is component state and does not survive the reload. The
+  form mounts again, and "Nothing has been charged" renders over a charged
+  card (see H5). That is H5's to close, not a wording fix.
+- **A failure after a successful redirect completion still reaches the error
+  boundary.** Both the cart re-read and `listTiers` sit outside the `try`. No
+  upstream wording renders there, but the page says nothing about the charge.
+- **A forged `?redirect_status=succeeded` on an unpaid cart** now renders "Your
+  card was accepted…" with no way onward. It is self-inflicted, and it is false.
+- **The `confirmPayment` wrapper's own "not ready" rejection now locks the
+  control.** Both gates require `stripeReady`, which is set in the same
+  callback that registers the confirm, so it is reachable only through a race.
+
+**What the source matches cannot see.** Four assertions bind `PaymentForm` to
+this by matching its source, for `GiftAddressNote`'s reason. The one that
+forbids upstream wording matches `thrown.message` and `error.message` by name,
+so a message rendered through another variable would pass it. The guarantee is
+`runPayPath`'s: its result can only be one of the three notices.
+
+- [x] Stop `thrown.message` reaching the rendered error, and add a notice for
       the charged-but-unconfirmed case — modelled on
       `SHIPPING_UNAVAILABLE_NOTICE` but ending in the opposite direction, since
-      something may have been charged. Verified by a test driving a throw at
-      each position on the pay path and asserting the rendered text is one of
-      our own notices in every case, that no Medusa, proxy or Stripe string
-      appears, and that the post-`confirmPayment` failure renders the new
-      notice with the pay control left disabled rather than re-enabled.
+      something may have been charged. Verified by `pay-path.test.ts`, which
+      drives a throw at each of the three positions and a Stripe refusal, with
+      the proxy's, Medusa's and Stripe's real wording. Each outcome is exactly
+      one of our notices, and a charged failure sets `charged`, which keeps
+      both gates shut. `checkout-paid-cart.test.ts` asserts that the
+      redirect-completion failure renders the charged notice with no form and
+      no upstream text. Eighteen mutations were run, each restoring only its
+      own file after every edit was committed, and each failed the assertion
+      naming its defect. Two first attempts did not apply and were redone.
+
+**Three existing tests had to change, and the operator overrode the file limit
+for it.** `checkout-email`, `-gift` and `-inscription` asserted that their
+write comes before `await confirmPayment(` in the file. Once the sequence
+moved into `runPayPath`, the order is decided by which step a write is in, not
+by where it sits in the file. So the tests now assert the write is inside
+`prepare`. Moving each write into `complete` fails its test. That makes the row
+thirteen files against a limit of ten, and the operator approved the override
+on 2026-09-23 rather than splitting the change.
+
+### H5 — A paid cart that is not yet completed completes rather than showing the form
+
+**Repository:** `lousydeal`.
+**Files:** `storefront/src/lib/store-checkout.ts`,
+`storefront/src/app/checkout/page.tsx`,
+`storefront/tests/store-checkout.test.ts`,
+`storefront/tests/checkout-paid-cart.test.ts`.
+**From H2's review**, split out of H3 by the operator on 2026-09-23.
+
+H2 reads `completed_at`, and paid is not the same thing. Two windows exist in
+which money has been taken and the cart is not yet completed. In the first, an
+in-page completion fails and the buyer reloads. In the second, a redirect
+completion fails and the buyer returns through the cart without the query
+string. In both, `PaymentForm` mounts with no client secret, so
+`paymentSessionNeeded` asks Medusa for a new session.
+
+**What that request does, read to the end of the chain.** Medusa's session
+workflow fails, because the old intent cannot be cancelled once it has
+succeeded and `validateDeletedPaymentSessionsStep` throws. `PaymentForm`
+then renders H3's "Payment could not be prepared just now. Nothing has been
+charged. Try again shortly…" over a card that was charged. That is false, and
+the retry it invites fails the same way until the webhook completes the cart.
+A first review of H3 read the chain only as far as the step that swallows the
+error, and concluded a fresh intent would re-arm the form. The workflow's
+validation step says otherwise. No second charge is possible by this route,
+but the false sentence is. Measure it on test before building.
+
+The default cart GET already carries
+`payment_collection.payment_sessions.status`.
+
+- [ ] Treat a cart whose Stripe session is `authorized` or `captured` as paid:
+      complete it on the server as H2 does for a redirect return, and render
+      the end state or H3's charged notice, never the form. Verified by a
+      page test for each session status, and by one asserting that a
+      `pending` session still renders the form.
 
 ### H4 — Postage is not quoted before the buyer has said where they are
 
@@ -976,10 +1094,10 @@ one-character postcode.
 
 ## Where this slice stands, for whoever picks it up
 
-**Fifteen of the plan's rows are closed and one J-row with them.** Part one
+**Sixteen of the plan's rows are closed and one J-row with them.** Part one
 repaired every defect live order #1 proved. Part two walked all six flows and
 produced thirty-eight findings and twenty-two candidate fix rows; its stage 1
-is closed. Part three: H1 and H2 are closed, and H3 and H4 have not been started.
+is closed. Part three: H1, H2 and H3 are closed. H4 and H5 have not been started.
 
 **Nothing in part two is built until the operator selects it.** That is stage
 2, and it has happened once: candidate `u` became J1. The other twenty-one

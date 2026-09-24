@@ -47,6 +47,7 @@ import {
   CART_NOT_SINGLE_NOTICE,
   CART_SURCHARGE_NOTICE,
   CHECKOUT_DOCUMENT,
+  PAYMENT_UNCONFIRMED_NOTICE,
   orderSummaryLines,
   priceNotice,
   RETURN_LABEL,
@@ -149,11 +150,32 @@ export default async function CheckoutPage({
    *
    * Safe to repeat: `completeCartWorkflow` takes a lock on the cart and
    * returns the existing order for one already completed, so this and the
-   * webhook cannot make two. A throw reaches the site's error boundary rather
-   * than a remounted payment form; H3 gives that failure its own words.
+   * webhook cannot make two.
+   *
+   * **H3: a failure here is after the charge**, so it says what
+   * `PaymentForm` says in the same position: the card was accepted, do not
+   * pay again. It replaced the site's error boundary, which offered a link
+   * home and nothing about the money. No form is rendered, and a reload asks
+   * again — by which time the webhook has usually completed the cart.
    */
   if (!cart.completed && returnedPaid(await searchParams)) {
-    await completeCheckoutCart(fetchJson, cart.id);
+    try {
+      await completeCheckoutCart(fetchJson, cart.id);
+    } catch {
+      return (
+        <main>
+          <DocumentFrame
+            title={CHECKOUT_DOCUMENT.title}
+            form={CHECKOUT_DOCUMENT.form}
+            revision={CHECKOUT_DOCUMENT.revision}
+          >
+            <p className="payment-error" role="alert">
+              {PAYMENT_UNCONFIRMED_NOTICE}
+            </p>
+          </DocumentFrame>
+        </main>
+      );
+    }
     cart = await getCheckoutCart(fetchJson, cartId);
   }
   /*

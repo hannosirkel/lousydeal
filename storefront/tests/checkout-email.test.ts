@@ -107,15 +107,19 @@ describe("the email field", () => {
     // card on an order that then fails -- and no unit test in this project can
     // reach `handleSubmit` to prove otherwise.
     const setsEmail = source.indexOf("setCartEmail(fetchJson, cartId, email)");
-    // **`await confirmPayment(`, not `stripe.confirmPayment`.** Gate D
-    // finding 17 moved the Stripe call into `CardSection`, which sits *above*
-    // this handler in the file -- so the old anchor found a `confirmPayment`
-    // that is not the one this ordering is about, and passed for the wrong
-    // reason whichever order the writes were in.
-    const confirms = source.indexOf("await confirmPayment(");
+    // **Inside `prepare`, not merely earlier in the file.** LD-11 H3 moved the
+    // sequence into `runPayPath`, which runs `prepare` before `confirm`
+    // (`pay-path.test.ts` asserts the order), so what decides whether this
+    // write precedes the charge is which step it is in. Gate D finding 17's
+    // lesson still applies: `CardSection` holds another `confirmPayment`
+    // above this handler, so the anchor is the step, not the bare call.
+    const prepares = source.indexOf("prepare: async () => {");
+    const confirms = source.indexOf("confirm: () => confirmPayment(");
 
     expect(setsEmail).toBeGreaterThan(-1);
     expect(confirms).toBeGreaterThan(-1);
+    expect(prepares).toBeGreaterThan(-1);
+    expect(setsEmail).toBeGreaterThan(prepares);
     expect(setsEmail).toBeLessThan(confirms);
   });
 });

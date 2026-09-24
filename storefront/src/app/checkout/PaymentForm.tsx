@@ -81,6 +81,7 @@ import {
   INSCRIPTION_PREVIEW_LABEL,
   PAY_LABEL,
   PAYING_LABEL,
+  PAYMENT_NOT_STARTED_NOTICE,
   PAYMENT_NEEDS_SCRIPTING,
   PREPARING_PAYMENT_LABEL,
   STRIPE_PAYMENT_NOTICE,
@@ -104,6 +105,7 @@ import {
   needsProvince,
   type ShippingAddressInput,
 } from "../../lib/shipping-address";
+import { runPayPath } from "../../lib/pay-path";
 import { completeCheckoutCart, createPaymentCollection, initiateStripePaymentSession } from "../../lib/store-payment";
 import { emitAnalyticsEvent } from "../../lib/analytics";
 
@@ -232,8 +234,9 @@ export function PaymentForm({
       .then((collectionId) => {
         if (!cancelled) setPaymentCollectionId(collectionId);
       })
-      .catch((thrown: unknown) => {
-        if (!cancelled) setError(thrown instanceof Error ? thrown.message : "Could not start payment.");
+      .catch(() => {
+        // H3: the proxy's or Medusa's wording never reaches the buyer.
+        if (!cancelled) setError(PAYMENT_NOT_STARTED_NOTICE);
       });
     return () => {
       cancelled = true;
@@ -284,8 +287,9 @@ export function PaymentForm({
         setClientSecret(session.clientSecret);
         setSessionPostage(postage);
       })
-      .catch((thrown: unknown) => {
-        if (!cancelled) setError(thrown instanceof Error ? thrown.message : "Could not start payment.");
+      .catch(() => {
+        // H3: the proxy's or Medusa's wording never reaches the buyer.
+        if (!cancelled) setError(PAYMENT_NOT_STARTED_NOTICE);
       });
     return () => {
       cancelled = true;
@@ -568,6 +572,8 @@ export function PayButton({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
+  /** H3. The card was accepted and the order was not confirmed: the pay control stays off. */
+  const [charged, setCharged] = useState(false);
   /**
    * The express consent VÕS § 53(4) p 7¹ requires. Unticked by default and
    * never defaulted true: consent the trader supplies is not consent. The pay
@@ -662,7 +668,9 @@ export function PayButton({
     //
     // `submitting` is in the dependencies, so an edit made during a submit
     // that then fails is quoted the moment the submit ends.
-    if (submitting || orderId !== null) return;
+    // H3: nor after a charge the order was not confirmed for. The cart must
+    // not change under money that has already moved.
+    if (submitting || orderId !== null || charged) return;
     const quoteGeneration = ++quoteGenerationRef.current;
     if (!needsAddress) return;
     if (!addressComplete(address, countryCode)) {
@@ -735,7 +743,7 @@ export function PayButton({
     // `address` and `countryCode` are the whole of the input; `fetchJson` and
     // `cartId` are stable for the life of this component. `submitting` is a
     // gate rather than an input: it only ever stops this running.
-  }, [needsAddress, address, countryCode, fetchJson, cartId, submitting, orderId, onPostageSettled]);
+  }, [needsAddress, address, countryCode, fetchJson, cartId, submitting, orderId, charged, onPostageSettled]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -767,71 +775,78 @@ export function PayButton({
         // this handler past any `disabled`.
         shippingSettled: !needsAddress || (shippingAmount !== null && !quoting),
         consentRequired: needsConsent,
+        charged,
       })
     )
       return;
     setSubmitting(true);
     setError(null);
     try {
-      // T10b: the country Medusa needs to resolve a tax region
-      // (`store-checkout.ts`'s `setCartCountry` cites the exact read). Set
-      // after the client secret already exists and before `completeCheckoutCart`
-      // below -- decision 009 (`docs/decisions/009-merchant-absorbs-the-vat.md`)
-      // is why that ordering does not disturb the payment amount already fixed.
-      //
-      // `countryCode` is `<select>` state, not a Stripe Element value -- there
-      // is only one Element in this tree now (`PaymentElement`), so
-      // `elements.submit()` is not required before `confirmPayment` below.
-      // The prior version of this file called it anyway, citing
-      // `elements-group.d.ts:74-79` for a claim that text does not make: that
-      // typing documents validating "the Payment Element", not "every mounted
-      // Element", and says nothing about element count.
-      if (countryCode.length === 0) {
-        throw new Error("No country is available for this region.");
-      }
-      // C3b, and before `setCartCountry` only because a rejected address
-      // should cost the buyer nothing: both run before `confirmPayment`
-      // below, so neither can leave a charged card on an order Medusa then
-      // refuses. `setCartEmail` throws on an address Medusa will not take.
-      await setCartEmail(fetchJson, cartId, email);
-      // One call, not two: Medusa replaces the whole `metadata` object on
-      // each write, so a second would erase the first's keys.
-      await setCartInscriptionAndGift(fetchJson, cartId, {
-        displayName,
-        dedication,
-        gift: giftOpen
-          ? {
-              recipientName: giftRecipientName,
-              recipientEmail: giftRecipientEmail,
-              senderName: giftSenderName,
-              message: giftMessage,
-            }
-          : null,
+      // H3. The sequence is `runPayPath`'s, so each position's failure is
+      // classified by where it happened and never by what was thrown: no
+      // Medusa, proxy or Stripe wording reaches the buyer.
+      const outcome = await runPayPath({
+        prepare: async () => {
+          // T10b: the country Medusa needs to resolve a tax region
+          // (`store-checkout.ts`'s `setCartCountry` cites the exact read). Set
+          // after the client secret already exists and before `completeCheckoutCart`
+          // below -- decision 009 (`docs/decisions/009-merchant-absorbs-the-vat.md`)
+          // is why that ordering does not disturb the payment amount already fixed.
+          //
+          // `countryCode` is `<select>` state, not a Stripe Element value -- there
+          // is only one Element in this tree now (`PaymentElement`), so
+          // `elements.submit()` is not required before `confirmPayment` below.
+          // The prior version of this file called it anyway, citing
+          // `elements-group.d.ts:74-79` for a claim that text does not make: that
+          // typing documents validating "the Payment Element", not "every mounted
+          // Element", and says nothing about element count.
+          if (countryCode.length === 0) {
+            throw new Error("No country is available for this region.");
+          }
+          // C3b, and before `setCartCountry` only because a rejected address
+          // should cost the buyer nothing: both run before `confirmPayment`
+          // below, so neither can leave a charged card on an order Medusa then
+          // refuses. `setCartEmail` throws on an address Medusa will not take.
+          await setCartEmail(fetchJson, cartId, email);
+          // One call, not two: Medusa replaces the whole `metadata` object on
+          // each write, so a second would erase the first's keys.
+          await setCartInscriptionAndGift(fetchJson, cartId, {
+            displayName,
+            dedication,
+            gift: giftOpen
+              ? {
+                  recipientName: giftRecipientName,
+                  recipientEmail: giftRecipientEmail,
+                  senderName: giftSenderName,
+                  message: giftMessage,
+                }
+              : null,
+          });
+          // LD-04 P7. The country alone still stands in for an address on a
+          // certificate-only cart, where it exists to resolve a tax region and
+          // nothing is posted. With a parcel, the whole address is written --
+          // already done by the quoting effect above, and repeated here because a
+          // buyer may have edited a field after the last quote and the cart must
+          // carry what they last typed.
+          if (needsAddress) {
+            await setCartShippingAddress(fetchJson, cartId, { ...address, countryCode });
+          } else {
+            await setCartCountry(fetchJson, cartId, countryCode);
+          }
+        },
+        // `redirect: "if_required"` keeps a standard test-mode card on this
+        // page; `return_url` still has to be an absolute URL because Stripe
+        // uses it for the wallets and payment methods that redirect regardless.
+        confirm: () => confirmPayment(`${window.location.origin}/checkout`),
+        complete: () => completeCheckoutCart(fetchJson, cartId),
       });
-      // LD-04 P7. The country alone still stands in for an address on a
-      // certificate-only cart, where it exists to resolve a tax region and
-      // nothing is posted. With a parcel, the whole address is written --
-      // already done by the quoting effect above, and repeated here because a
-      // buyer may have edited a field after the last quote and the cart must
-      // carry what they last typed.
-      if (needsAddress) {
-        await setCartShippingAddress(fetchJson, cartId, { ...address, countryCode });
+      if (outcome.placed) {
+        emitAnalyticsEvent("purchase_completed", { currency: currencyCode });
+        setOrderId(outcome.orderId);
       } else {
-        await setCartCountry(fetchJson, cartId, countryCode);
+        setError(outcome.notice);
+        setCharged(outcome.charged);
       }
-
-      // `redirect: "if_required"` keeps a standard test-mode card on this
-      // page; `return_url` still has to be an absolute URL because Stripe
-      // uses it for the wallets and payment methods that redirect regardless.
-      const confirmation = await confirmPayment(`${window.location.origin}/checkout`);
-      if (confirmation.error) {
-        throw new Error(confirmation.error.message ?? "Payment could not be confirmed.");
-      }
-      const order = await completeCheckoutCart(fetchJson, cartId);
-      emitAnalyticsEvent("purchase_completed", { currency: currencyCode });
-      setOrderId(order.orderId);
-    } catch (thrown: unknown) {
-      setError(thrown instanceof Error ? thrown.message : "Payment could not be completed.");
     } finally {
       setSubmitting(false);
     }
@@ -1150,6 +1165,7 @@ export function PayButton({
           // and that one costs real money. Waiting is the whole fix.
           shippingSettled: !needsAddress || (shippingAmount !== null && !quoting),
           consentRequired: needsConsent,
+          charged,
         })}
       >
         {submitting ? PAYING_LABEL : PAY_LABEL}

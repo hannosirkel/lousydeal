@@ -7,10 +7,10 @@ does not — it points, it does not hold.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-23 |
+| Updated | 2026-09-24 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | **H2**, on `deal/ld11-h2-paid-cart`: a paid cart renders H1's end state and never the payment form, and a Stripe redirect return completes the cart on the server. Awaiting review and merge. The Fable review of #256, H1's correction, is still running; that PR is already merged. |
-| Next action | H3 or H4; both are independent. H3 replaces the error boundary a failed redirect completion now reaches. A candidate from H1's review waits for the operator: the gift field accepts a dotless address the backend drops (`findings.md`, "What the review of H1 found"). LD-07 remains deferred out of V1. |
+| In flight | **H3**, on `deal/ld11-h3-pay-path-words`: a failure in the checkout form or in a redirect completion renders one of four notices chosen by position, never upstream wording, and after a charge or an unknown outcome the pay control stays off. Review fixes applied; awaiting merge. |
+| Next action | **H5 before H4.** When a paid but uncompleted cart is reloaded, Medusa's session workflow fails, and H3's "Nothing has been charged" renders over a charged card. Measure that on test first, then build H5. The Stripe webhook that completes such carts, and that the notices' promise of an email relies on, is not a row in the held table below. H4 is independent. A candidate from H1's review waits for the operator: the gift field accepts a dotless address the backend drops. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, started.** Sixteen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 by #252. Part three: H1 by #255 and #256; H2 in review. Part four: J1 by #253. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
+| **LD-11 — User experience** | **open, started.** Seventeen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 by #252. Part three: H1 by #255, #256 and #258; H2 by #257; H3 in review; H5 added from H2's review. Part four: J1 by #253. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.

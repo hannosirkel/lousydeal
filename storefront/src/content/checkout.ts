@@ -525,6 +525,53 @@ export const SHIPPING_LABEL = "Postage";
 export const SHIPPING_QUOTING_LABEL = "Asking Printful";
 
 /**
+ * What a failure on the pay path says, by where it happened. LD-11 H3.
+ *
+ * **The rendered error used to be `thrown.message`**, so a buyer could read
+ * the Store API proxy's status line or `Medusa did not place an order for
+ * cart cart_…`. Four notices replace it: nothing charged, a decline, an
+ * outcome the page cannot know, and a charge the order was not confirmed
+ * for. The operator chose each wording with it rendered, on 2026-09-23 and
+ * 2026-09-24.
+ *
+ * `SHIPPING_UNAVAILABLE_NOTICE` below is the model for the first: the
+ * reassurance, then the invitation to retry, which is right only because
+ * nothing was charged. The last two take the reassurance's shape and not the
+ * invitation, because a retry after a charge is a second charge. Stripe's own
+ * decline wording is not shown either: the operator chose ours alone.
+ */
+export const PAYMENT_NOT_STARTED_NOTICE =
+  "Payment could not be prepared just now. Nothing has been charged. Try again shortly, or write to the address in the Imprint.";
+
+/**
+ * `confirmPayment` refused, with an error type that says the card was
+ * judged and not taken: `card_error`, `validation_error` or
+ * `invalid_request_error`.
+ */
+export const PAYMENT_DECLINED_NOTICE = "Your card was not charged. Check the details, or try another card.";
+
+/**
+ * `confirmPayment` failed in a way that does not say whether the card was
+ * charged: a connection, API or rate-limit error, or a rejected promise. The
+ * request may have reached Stripe and the answer been lost, so this claims
+ * nothing about the card and keeps the pay control off. Chosen by the operator
+ * on 2026-09-24, after H3's review found the decline notice stating a fact the
+ * page could not know.
+ */
+export const PAYMENT_UNKNOWN_NOTICE =
+  "We could not hear back from the card processor. Do not pay again yet: if the payment went through, a confirmation email reaches you within a few minutes. If none arrives within the hour, write to the address in the Imprint.";
+
+/**
+ * The card succeeded and completing the order did not.
+ *
+ * Medusa's `completeCartWorkflow` either placed the order, and the
+ * confirmation follows, or reverted the payment in its compensation. The
+ * operator chose not to promise the second, so this says only what to do.
+ */
+export const PAYMENT_UNCONFIRMED_NOTICE =
+  "Your card was accepted, but the order could not be confirmed just now. Do not pay again: a confirmation email should reach you within a few minutes. If none arrives within the hour, write to the address in the Imprint.";
+
+/**
  * Shown when Printful could not be asked.
  *
  * **No number is offered with it.** §11 forbids a fabricated figure and §23
