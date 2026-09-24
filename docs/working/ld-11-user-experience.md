@@ -694,6 +694,16 @@ the verification.
       and guarded by a test in `tokens.test.ts` that fails if either
       declaration is dropped, mutation-checked both ways.
 
+**The "after" above could not have been of deployed code, and was re-measured
+on 2026-09-24.** J1 merged on 2026-09-23, and no promotion reached live until
+2026-09-24 (status.md, **Two incidents**). Whatever produced 0/0/0/0 then, it
+was not the deployed stylesheet, and the record did not say how it was made.
+Re-measured once `0eb16ca` was live, on a live certificate cart's checkout
+with no payment: overflow is 0 at 320, 360, 390 and 1280, and the control is
+217, 257 and 287px at the three phone widths. Overriding the two declarations
+back to `none`/`auto` on the same page restores 201/161/131/0 and a 434px
+control, so the measurement is one the defect's return would fail.
+
 ### H1 — Checkout ends somewhere, and the copy above it stops promising otherwise
 
 **Repository:** `lousydeal`.
