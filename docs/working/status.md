@@ -115,8 +115,9 @@ What is actually held, as against what the contract expects in §2b.
 **Two incidents, both closed on 2026-09-24, and neither caused by this
 slice's code.**
 
-1. **Nothing merged after lousydeal #226 on 2026-09-21 reached either
-   environment until 2026-09-24.** lousydeal #226 took Medusa to 2.21, whose lockfile hoists
+1. **Nothing merged from lousydeal #226 on, 2026-09-21, reached either
+   environment until 2026-09-24.** #226 itself included: it took Medusa to
+   2.21, whose lockfile hoists
    ten provider packages back to `/node_modules`. The `deploys` predeploy
    Job's `module-migrations` mounts stayed at `/app/node_modules`, so
    `medusa db:migrate` failed with ENOENT on `mkdir` on the read-only root.
