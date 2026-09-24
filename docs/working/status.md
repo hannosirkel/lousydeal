@@ -115,14 +115,18 @@ What is actually held, as against what the contract expects in §2b.
 **Two incidents, both closed on 2026-09-24, and neither caused by this
 slice's code.**
 
-1. **Nothing merged from 2026-09-21 to 2026-09-24 reached either
-   environment.** lousydeal #226 took Medusa to 2.21, whose lockfile hoists
-   ten provider packages back to `/node_modules`. The `deploys` predeploy
+1. **Nothing merged from lousydeal #226 on, 2026-09-21, reached either
+   environment until 2026-09-24.** #226 itself included: it took Medusa to
+   2.21, whose lockfile hoists ten provider packages back to
+   `/node_modules`. The `deploys` predeploy
    Job's `module-migrations` mounts stayed at `/app/node_modules`, so
    `medusa db:migrate` failed with ENOENT on `mkdir` on the read-only root.
    Every promotion's Sync hook failed with it, and Argo held both
-   applications OutOfSync on the image built from `d3c6e44`. **J1, H1 and
-   H2 were merged and recorded as done while none of them was deployed.**
+   applications OutOfSync: live on the image built from `d3c6e44`, test on
+   PR #229's build. **J1, H1 and H2 were merged and recorded as done while
+   none of them was deployed.** Only J1's record claimed a measurement of
+   the deployed store, and that claim is the false one. H1 and H2 recorded
+   rendered tests and said no payment had reached them.
    Fixed by `deploys` #52: the mounts follow the modules, re-measured
    read-only against the promoted image. Both applications synced to
    `deploys` `74a9e69`. Live runs lousydeal `0eb16ca`'s images, with H3.
