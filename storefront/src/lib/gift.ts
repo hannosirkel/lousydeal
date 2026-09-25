@@ -60,12 +60,23 @@ export function previewGiftText(raw: string | null | undefined, limit: number): 
  * Whether an address is one the backend will accept.
  *
  * Character-for-character the backend's `ADDRESS`, and a test compares the two
- * sources. The checkout also marks the field `type="email"` and `required`,
- * which is the enforcing half — this is what stops the form telling a buyer
- * their address is fine when the backend will drop it, which would turn a
- * paid gift into an ordinary purchase with no explanation.
+ * sources.
+ *
+ * **It is enforced in the form through `GIFT_ADDRESS_PATTERN` below**, and until
+ * LD-11 J2 it was not. This comment claimed `type="email"` and `required` were
+ * the enforcing half, but the HTML e-mail grammar accepts a domain with no dot
+ * — `friend@example` — which this rule refuses. A buyer could therefore pay for
+ * a gift the backend then dropped: no gift message, and nothing to say so.
  */
 const ADDRESS = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/;
+
+/**
+ * The same rule as an HTML `pattern`, which the browser anchors itself and
+ * enforces on every submit, `requestSubmit()` included. Derived from `ADDRESS`
+ * rather than written twice, so the field and the backend cannot drift apart.
+ * Browsers compile `pattern` with the `v` flag; the test does the same.
+ */
+export const GIFT_ADDRESS_PATTERN = ADDRESS.source.slice(1, -1);
 
 export function isGiftAddress(raw: string | null | undefined): boolean {
   if (typeof raw !== "string") return false;

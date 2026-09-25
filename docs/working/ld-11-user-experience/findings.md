@@ -711,7 +711,7 @@ when the backend will drop it", but the form never validates with it: `giftRecip
 above the field says an open block "cannot reach `handleSubmit` without" an
 address, and that is true only of an empty one. **A candidate for the
 operator**: a `pattern` mirroring `ADDRESS`, or a guard beside
-`paySubmitBlocked`.
+`paySubmitBlocked`. **Selected 2026-09-25 and built as J2.**
 
 **After a card payment, the § 62²(2) lines stay above the end state.**
 `PaymentForm` renders its children, the price notice and the order-summary

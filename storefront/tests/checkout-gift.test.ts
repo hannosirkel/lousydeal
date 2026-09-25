@@ -23,7 +23,7 @@ import {
   INSCRIPTION_NOTICE,
 } from "../src/content/checkout";
 import { NO_INSCRIPTION } from "../src/content/certificate";
-import { GIFT_LIMITS, GIFT_METADATA } from "../src/lib/gift";
+import { GIFT_ADDRESS_PATTERN, GIFT_LIMITS, GIFT_METADATA, isGiftAddress } from "../src/lib/gift";
 import type { FetchJson, StoreFetchInit } from "../src/lib/medusa-client";
 import { INSCRIPTION_METADATA, setCartInscriptionAndGift } from "../src/lib/store-checkout";
 
@@ -149,6 +149,36 @@ describe("the four fields §6 names", () => {
     for (const id of ["checkout-gift-email", "checkout-gift-recipient", "checkout-gift-sender", "checkout-gift-message"]) {
       const around = html.slice(html.indexOf(`id="${id}"`), html.indexOf(`id="${id}"`) + 240);
       expect(around, id).toContain('autoComplete="off"');
+    }
+  });
+});
+
+describe("the recipient's address, as the form enforces it", () => {
+  // LD-11 J2. `type="email"` alone admits a domain with no dot, which the
+  // backend's `readGift` drops: the buyer paid for a gift and no message went.
+  // The field now carries the backend's own rule as its `pattern`.
+  const decode = (value: string) =>
+    value.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&amp;/g, "&");
+  const tag = /<input[^>]*id="checkout-gift-email"[^>]*>/.exec(html)?.[0] ?? "";
+  const rendered = decode(/ pattern="([^"]*)"/.exec(tag)?.[1] ?? "");
+  // How a browser applies `pattern`: anchored, compiled with the `v` flag.
+  const browser = new RegExp(`^(?:${rendered})$`, "v");
+
+  it("renders the pattern on the recipient's field", () => {
+    expect(tag).not.toBe("");
+    expect(rendered).toBe(GIFT_ADDRESS_PATTERN);
+  });
+
+  it("refuses what the backend would drop, as the browser would apply it", () => {
+    for (const address of ["friend@example", "friend", "a b@example.com", "<friend@example.com>", "friend@example.com;x@y.z"]) {
+      expect(`${address}: ${String(browser.test(address))}`).toBe(`${address}: false`);
+    }
+  });
+
+  it("accepts what the backend keeps", () => {
+    for (const address of ["friend@example.com", "first.last+gift@mail.example.co.uk"]) {
+      expect(`${address}: ${String(browser.test(address))}`).toBe(`${address}: true`);
+      expect(isGiftAddress(address)).toBe(true);
     }
   });
 });
