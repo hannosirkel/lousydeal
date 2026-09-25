@@ -830,6 +830,16 @@ the cart changed." at 0.27. The tier choice is narrow. The chosen text was
 re-measured in Chromium: 0px overflow at 320, 360 and 390, wrapping to three
 lines at 320 and 360 and two at 390.
 
+**What it does not repair, from its review.** The repeated-tier short-circuit
+checks the cart's shape, not its prices. So a stale discount line, or a
+certificate still at an old catalogue price, stays as it is when the same tier
+is chosen again. For the fixed-fee code `FREE`, a stale line reads identically,
+so "already applied" would be said of it too. None of these states can be
+reached through the site's own controls. They need the public line-item route,
+or an operator changing a tier's price while a cart holds it. `tier_selected`
+still counts a repeated press, because it fires on submit, before the server
+answers.
+
 - [x] Build candidate `i` as its finding describes. Verified by
       `cart-actions.test.ts`: a repeat is answered, including from the
       enhanced form, and it is not claimed for five carts that did change or
