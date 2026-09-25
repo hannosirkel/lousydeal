@@ -780,6 +780,11 @@ sentences already existed. A cart with a certificate is unchanged.
 The cart page now also lists the tiers, beside the merch it already listed, so
 each cart view costs the Store API two more reads.
 
+**The pay link on a merch-only cart is replaced, not kept, by Jev's choice.**
+It offered three options: replace "Proceed to payment" with "Return to the
+purchase order", keep the pay link and let checkout refuse, or show both.
+Jev chose the replacement at 0.99.
+
 - [x] Say at the cart what checkout says, before the pay control rather than
       after it. Verified by `cart-without-certificate.test.ts`, which renders
       the real cart page for a merch-only cart and for a certificate cart with
