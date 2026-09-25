@@ -445,6 +445,16 @@ export const PAYMENT_NEEDS_SCRIPTING =
 export const COUNTRY_LABEL = "Country";
 
 /**
+ * The country control's empty choice. LD-11 H4.
+ *
+ * The control used to start on `countries[0]` -- the first row of whatever
+ * order Medusa returned, which nothing chose -- so a parcel cart was quoted,
+ * and a PaymentIntent minted, for a country the buyer never picked. It now
+ * starts here. The select is `required`, so this choice cannot be submitted.
+ */
+export const COUNTRY_PLACEHOLDER = "Choose a country";
+
+/**
  * The address block, shown only when the cart holds something that is posted.
  *
  * **LD-04 P7.** A certificate goes nowhere, and a form that asked everyone for
