@@ -156,19 +156,23 @@ export async function addToCart(formData: FormData): Promise<void> {
 type SurchargeOutcome = "none" | "unchanged" | "repriced" | "removed";
 
 /**
- * Whether the re-priced surcharge line's price differs from the one the
- * cart held.
+ * Whether the re-priced surcharge line is a share of the certificate's price
+ * whose price differs from the one the cart held.
  *
- * **The price, and not the quantity.** The notice this chooses says the line
- * is a share of the certificate's price and so changed. A doubled `FREE`
- * line put back to one changed quantity without being a share of anything,
- * so a quantity change alone is not reported as one.
+ * The notice this chooses says exactly that, so both halves are read from
+ * the cart the apply answers with, which is the one the buyer will read.
  *
- * **Measured, not predicted.** A percentage code moves with the tier and a
- * fee does not, and `BLACKFRIDAY`'s nought stays nought -- but the cart
- * the apply answers with is the one the buyer will read, so that is what is
- * compared. A response with no surcharge line in it is not a line the
- * buyer can see move, and is reported as unchanged rather than guessed at.
+ * **A share, read from the line.** The route writes `percentage` into the
+ * metadata of a percentage line and `fee_amount_major` into a fee line's.
+ * A fee whose amount was changed between the apply and the swap moved in
+ * price and is still no share of anything, so it is not reported as one.
+ *
+ * **The price, and not the quantity.** A doubled line put back to one
+ * changed quantity, not price.
+ *
+ * **Unseen is unchanged.** A response with no surcharge line, or a line
+ * without a numeric price on either side, is not a line the buyer can see
+ * move, and is reported as unchanged rather than guessed at.
  */
 function surchargeMoved(
   before: NonNullable<CartLines>[number] | undefined,
@@ -176,6 +180,8 @@ function surchargeMoved(
 ): boolean {
   const line = (after ?? []).find((item) => item.variant_id === null);
   if (before === undefined || line === undefined) return false;
+  if (typeof before.unit_price !== "number" || typeof line.unit_price !== "number") return false;
+  if (typeof line.metadata?.["percentage"] !== "number") return false;
   return line.unit_price !== before.unit_price;
 }
 

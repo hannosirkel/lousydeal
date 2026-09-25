@@ -596,7 +596,7 @@ describe("what the cart is told after Acquire", () => {
     variant_id: null,
     quantity,
     unit_price: unitPrice,
-    metadata: { code: "BALDRICK20" },
+    metadata: { code: "BALDRICK20", percentage: 20 },
   });
   const chosen = { id: "line_chosen", variant_id: "var_chosen", quantity: 1, unit_price: 10 };
 
@@ -627,6 +627,36 @@ describe("what the cart is told after Acquire", () => {
       cookieCartId: "cart_1",
       existingCart: { id: "cart_1", completed_at: null, items: [standard, discount(1, 2)] },
       repricedItems: [chosen, discount(1)],
+    });
+    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped");
+  });
+
+  it("does not call a fee whose price moved a share that changed", async () => {
+    // FREE's amount changed between the apply and the swap: the price moved,
+    // and the line is still a fee, not a share of the certificate's price.
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [standard, { ...discount(1), metadata: { code: "FREE", fee_amount_major: 1 } }] },
+      repricedItems: [chosen, { ...discount(2), metadata: { code: "FREE", fee_amount_major: 2 } }],
+    });
+    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped");
+  });
+
+  it("does not call a moved line a share when its metadata does not say it is one", async () => {
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [standard, discount(1)] },
+      repricedItems: [chosen, { ...discount(2), metadata: { code: "BALDRICK20" } }],
+    });
+    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped");
+  });
+
+  it("does not call a line with no price in the answer moved", async () => {
+    const unpriced: CartLineFixture = { id: "line_discount_unpriced", variant_id: null, quantity: 1, metadata: { code: "BALDRICK20", percentage: 20 } };
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [standard, discount(1)] },
+      repricedItems: [chosen, unpriced],
     });
     expect(run.redirectedTo).toBe("/cart?swap_reason=swapped");
   });

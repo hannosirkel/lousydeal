@@ -877,12 +877,17 @@ is not an error.
   cart. The discount line could not be re-priced for it and was removed."
 
 **The second sentence is measured, not predicted.** The action compares the
-surcharge line it held with the one in the cart the re-price answers with. So
-`FREE`'s fee and `BLACKFRIDAY`'s nought, which do not move with the tier, are
-not said to have moved. Only a change of price counts: a doubled line put back
-to one at the same price is not called a share that changed, which for `FREE`
-it is not. `swapped_removed` covers the two paths that already
-removed the line: a failed re-price, and a line held twice. No notice carries
+surcharge line it held with the one in the cart the re-price answers with.
+`swapped_repriced` is chosen only when that line carries `percentage` in its
+metadata, which the route writes on percentage lines and never on fee lines,
+and when its price moved. So `FREE`'s fee and `BLACKFRIDAY`'s nought are not
+said to have moved. Neither is a fee whose amount changed between the apply
+and the swap, a doubled line put back to one at the same price, or a line
+with no price on either side. `swapped_removed` covers the two paths that
+already removed the line: a failed re-price, and a line held twice. With two
+lines the action removes them rather than re-price, which is its own choice,
+so "could not be re-priced" slightly overstates that path. This is recorded,
+not changed. No notice carries
 a figure (constraint 5), because the ledger beneath prints the new line and
 total. There is no notice for an empty cart, a merch-only cart, a new cart, or
 the tier the cart already held; that last one is J6's.

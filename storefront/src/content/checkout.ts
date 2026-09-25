@@ -60,8 +60,8 @@ export const CART_CODE_NOTICES = {
  * a fee, or nought per cent, does not move with the tier, and is not said to.
  *
  * `swapped_repriced` says the line is a share of the certificate's price. That
- * is true because it is only sent when the line's price moved, and only a
- * percentage code's price moves with the tier. The apostrophe is U+2019:
+ * is measured: it is only sent when the re-priced line carries a `percentage`
+ * in its metadata and its price moved. The apostrophe is U+2019:
  * React escapes a straight one in markup. The wording of all three is Jev's
  * choice among drafted options (LD-11 J8).
  */
