@@ -821,8 +821,50 @@ Selected by Jev on 2026-09-25.
 **Candidate `j`**, from G2's findings 1 and 2 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
-- [ ] Build candidate `j` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+**Built.** The cart says the amount in words beneath its total when a code
+line is applied: "Your discount code added $1.00. The total above includes
+it." The figure is that line's own unit price, which the backend priced from its table
+against the certificate in the cart; nothing on the page computes it. It is
+said only for one code line of one, because any other shape is the state
+checkout refuses, and one line's price beside a total that rose by more would
+be false. It is not said for a code that adds nothing (BLACKFRIDAY): the
+ledger's own plus-zero line already shows that. Baldrick's `discount` step now says the code "makes your deal worse
+by a fifth of the certificate's price", and "Go on" adds "The summary says how
+much, on its own line above the total.", matching J5's note.
+
+**The wording is Jev's choice.** Cart line 0.60, against 0.32 for "Discount
+code: $1.00 added to the total above, and nothing taken off." and 0.08 for the
+first draft ("The discount code adds $1.00 to the total above."). `discount`
+as built, 0.67; stating the rate at all, 0.75 against 0.25 for no rate.
+`discount_detail` first went to "…next to the total." (0.44, against 0.34 for
+the first draft and 0.22 for "The amount is on the summary. I have not
+looked."); after Fable's review Jev chose "…on its own line above the total."
+over it, 0.99. Hiding the cart sentence for a zero code: 0.82 against 0.18
+for printing "added $0.00".
+
+**Baldrick cannot state the dollar amount truthfully**, and does not. He sees
+no cart, and the figure depends on which certificate is in it. The rate is a
+fact of the backend's table, not of a cart, so he names that in words; a test
+reads the table and fails if BALDRICK20's percentage stops being a fifth. The
+digit, currency and percentage guards are unchanged and still pass.
+
+**Verified.** Five new tests in `cart-code.test.ts` and `baldrick-copy.test.ts`
+(the cart sentence from a non-default line price and its position; no sentence
+with no code, a quantity of two or two code lines; none for a zero code; the
+rate held to the
+backend table; the follow-up naming where the amount is printed). Each
+mutation run alone against the committed files is listed in the PR. Rendered
+in Chromium with the real `globals.css` at 320, 360 and 390: document scroll
+width equals the viewport at all three.
+
+**Not verified.** Not walked on a deployed store, and not driven through
+Baldrick's widget in a browser; the lines are asserted from the script.
+At 320 the ledger's `+$1.00` wraps after `+$1.0`, in the site's own `LDMono`
+as well as in a fallback face (Fable's review reproduced it). That wrap is
+older than this row and belongs to candidates `c`/`v`, which were not
+selected.
+
+- [x] Candidate `j` built as its finding describes.
 
 ### J8 — A tier swap says when it changes the surcharge, and that it happened
 
