@@ -21,6 +21,7 @@ import {
   ADDRESS_LABELS,
   ADDRESS_NOTE,
   CART_LABELS,
+  COUNTRY_HINT,
   COUNTRY_PLACEHOLDER,
   ORDER_PLACED_HEADING,
   SHIPPING_LABEL,
@@ -104,6 +105,41 @@ describe("a cart with nothing to post", () => {
     // A certificate ships nowhere, and the country stands in for an address
     // without being one. That is unchanged by this slice.
     expect(render(false)).toContain("checkout-country");
+  });
+});
+
+describe("why a cart with nothing to post is asked for a country", () => {
+  // LD-11 J9, from G3's finding 5: on this cart the control moves no figure,
+  // and the page offered no answer to what it was for.
+  // The copy has nothing React escapes, so the raw string is what renders; a
+  // later edit that adds an apostrophe fails here loudly rather than passing.
+  const hint = `<span id="checkout-country-hint">${COUNTRY_HINT}</span>`;
+
+  it("says why, with that exact text", () => {
+    expect(render(false)).toContain(hint);
+  });
+
+  it("ties the reason to the control, so a screen reader hears it there", () => {
+    expect(render(false)).toMatch(/<select id="checkout-country"[^>]* aria-describedby="checkout-country-hint"[^>]*>/);
+  });
+
+  it("says it after the control rather than before the label", () => {
+    const html = render(false);
+    expect(html.indexOf(hint)).toBeGreaterThan(html.indexOf("</select>"));
+  });
+
+  it("is not said with a parcel, where the address note already says why", () => {
+    const html = render(true);
+    expect(html).not.toContain("checkout-country-hint");
+    expect(html).toContain(ADDRESS_NOTE);
+  });
+
+  it("names the tax, allows for none, and says the price does not move", () => {
+    // The three claims the reason rests on, each one a claim the Terms make
+    // in "Price and tax" and `legal-consistency.test.ts` holds them to.
+    expect(COUNTRY_HINT).toMatch(/\bVAT\b/);
+    expect(COUNTRY_HINT).toMatch(/\bif any\b/);
+    expect(COUNTRY_HINT).toMatch(/\bsame whichever country\b/);
   });
 });
 
@@ -279,7 +315,8 @@ describe("the country, and when postage is quoted", () => {
     for (const needsAddress of [true, false]) {
       const html = render(needsAddress, countries);
       expect(html).toContain(`<option value="" selected="">${COUNTRY_PLACEHOLDER}</option>`);
-      expect(html).toMatch(/<select id="checkout-country" required="">/);
+      // J9 added `aria-describedby` after `required` on a certificate cart.
+      expect(html).toMatch(/<select id="checkout-country" required=""[ >]/);
       expect(html).not.toMatch(/<option value="ee" selected="">/);
     }
   });

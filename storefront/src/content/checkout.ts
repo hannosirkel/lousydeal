@@ -468,6 +468,27 @@ export const COUNTRY_LABEL = "Country";
 export const COUNTRY_PLACEHOLDER = "Choose a country";
 
 /**
+ * Why a cart with nothing to post is asked for a country. LD-11 J9.
+ *
+ * **G3's finding 5**: on a certificate-only cart the control changes no figure
+ * on the page, and a visitor could not work out what it was for. It is not
+ * decorative, so the fix is to say why rather than to stop asking. The country
+ * resolves the cart's tax region (`setCartCountry`): decision `013` puts the
+ * certificate under destination VAT through the Union OSS, `tax-model.ts`
+ * carries 27 destination rates, and `vat-thresholds.ts` counts the order into
+ * Union turnover, or leaves it out, by this same `country_code`.
+ *
+ * **It says "if any" because a buyer outside the Union owes none**, and it
+ * says the price does not move because decision `009` makes the VAT come out
+ * of the price rather than on top of it. Both are the Terms' own position
+ * ("Price and tax"), and the Privacy Policy's "the country you are in" and
+ * "the country you selected" are what it asks and keeps. Shown only where the
+ * country stands alone: with a parcel, the address note already says why.
+ */
+export const COUNTRY_HINT =
+  "Nothing is posted. The country decides which VAT, if any, is due on the certificate. That VAT is inside the price and we pay it, so what you pay is the same whichever country you choose.";
+
+/**
  * The address block, shown only when the cart holds something that is posted.
  *
  * **LD-04 P7.** A certificate goes nowhere, and a form that asked everyone for
