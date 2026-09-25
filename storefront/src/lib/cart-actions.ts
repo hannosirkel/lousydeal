@@ -29,6 +29,8 @@ import { addLineToCart, applySurcharge, createCart, getCart, removeLineFromCart 
 import { CART_COOKIE_OPTIONS, CART_ID_COOKIE, requireStoreClientConfig } from "./store-session";
 import { assertStoreOpen } from "./store-availability";
 
+type CartLines = Awaited<ReturnType<typeof getCart>>["items"];
+
 /**
  * The cart this add goes into: the one the cookie names, or a new one.
  *
@@ -51,7 +53,7 @@ async function cartToAddTo(
   fetchJson: FetchJson,
   existingCartId: string | undefined,
   clear: (variantId: string | null) => boolean,
-): Promise<{ readonly id: string; readonly items: Awaited<ReturnType<typeof getCart>>["items"] }> {
+): Promise<{ readonly id: string; readonly items: CartLines }> {
   if (existingCartId !== undefined) {
     try {
       const cart = await getCart(fetchJson, existingCartId);
@@ -108,6 +110,12 @@ async function cartToAddTo(
  * So only the certificates go. Which variants those are comes from
  * `listTiers`, which is the same list `checkout/page.tsx` derives its rules
  * from and, since P9a, the one that actually excludes merch.
+ *
+ * **A swap says it was one.** LD-11 J8 (G2's finding 6): pressing `Acquire`
+ * on Plus with Standard and `BALDRICK20` in the cart replaced the certificate
+ * and re-priced the discount line from one dollar to two, and nothing said
+ * either had happened. `swapReason` decides what the cart says, from what
+ * this action measured rather than from what a code is expected to do.
  */
 export async function addToCart(formData: FormData): Promise<void> {
   assertStoreOpen();
@@ -119,29 +127,57 @@ export async function addToCart(formData: FormData): Promise<void> {
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
   const cookieStore = await cookies();
   const certificates = new Set((await listTiers(fetchJson)).map((tier) => tier.variantId));
-  const cart = await cartToAddTo(
-    fetchJson,
-    cookieStore.get(CART_ID_COOKIE)?.value,
-    (id) => id !== null && certificates.has(id),
-  );
+  const isCertificate = (id: string | null) => id !== null && certificates.has(id);
+  const cart = await cartToAddTo(fetchJson, cookieStore.get(CART_ID_COOKIE)?.value, isCertificate);
   const surcharges = (cart.items ?? []).filter((line) => line.variant_id === null);
   const code = surcharges.length === 1 && typeof surcharges[0]?.metadata?.["code"] === "string"
     ? surcharges[0].metadata["code"]
     : null;
   await addLineToCart(fetchJson, cart.id, variantId, 1);
 
+  let surcharge: SurchargeOutcome = surcharges.length === 0 ? "none" : "removed";
   if (code !== null) {
-    try {
-      await applySurcharge(fetchJson, cart.id, code);
-    } catch {
-      for (const surcharge of surcharges) await removeLineFromCart(fetchJson, cart.id, surcharge.id);
+    const repriced = await applySurcharge(fetchJson, cart.id, code).catch(() => null);
+    if (repriced === null) {
+      for (const line of surcharges) await removeLineFromCart(fetchJson, cart.id, line.id);
+    } else {
+      surcharge = surchargeMoved(surcharges[0], repriced.items) ? "repriced" : "unchanged";
     }
   } else {
-    for (const surcharge of surcharges) await removeLineFromCart(fetchJson, cart.id, surcharge.id);
+    for (const line of surcharges) await removeLineFromCart(fetchJson, cart.id, line.id);
   }
 
   cookieStore.set(CART_ID_COOKIE, cart.id, CART_COOKIE_OPTIONS);
-  redirect("/cart");
+  const swapped = (cart.items ?? []).some((line) => isCertificate(line.variant_id) && line.variant_id !== variantId);
+  const reason = swapped ? swapReason(surcharge) : null;
+  redirect(reason === null ? "/cart" : `/cart?swap_reason=${reason}`);
+}
+
+type SurchargeOutcome = "none" | "unchanged" | "repriced" | "removed";
+
+/**
+ * Whether the re-priced surcharge line reads differently from the one the
+ * cart held: another price, or the doubled line put back to one.
+ *
+ * **Measured, not predicted.** A percentage code moves with the tier and a
+ * fee does not, and `BLACKFRIDAY`'s nought stays nought -- but the cart
+ * the apply answers with is the one the buyer will read, so that is what is
+ * compared. A response with no surcharge line in it is not a line the
+ * buyer can see move, and is reported as unchanged rather than guessed at.
+ */
+function surchargeMoved(
+  before: NonNullable<CartLines>[number] | undefined,
+  after: CartLines,
+): boolean {
+  const line = (after ?? []).find((item) => item.variant_id === null);
+  if (before === undefined || line === undefined) return false;
+  return line.unit_price !== before.unit_price || line.quantity !== before.quantity;
+}
+
+function swapReason(surcharge: SurchargeOutcome): "swapped" | "swapped_repriced" | "swapped_removed" {
+  if (surcharge === "repriced") return "swapped_repriced";
+  if (surcharge === "removed") return "swapped_removed";
+  return "swapped";
 }
 
 /**

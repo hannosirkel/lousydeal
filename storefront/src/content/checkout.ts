@@ -49,6 +49,24 @@ export const CART_CODE_NOTICES = {
   completed: "This order is already complete. Start a new purchase to use a code.",
 } as const;
 
+/**
+ * What the cart says after `Acquire` replaced a different certificate.
+ * LD-11 J8, G2's finding 6.
+ *
+ * Chosen by a stable reason, never reflected. No figure: the ledger beneath
+ * already prints the new line and total, and a figure here would have to name
+ * what it is the total of (constraint 5) while saying no more than the ledger.
+ * The second sentence of each is only used when the action measured it --
+ * a fee, or nought per cent, does not move with the tier, and is not said to.
+ */
+export const CART_SWAP_NOTICES = {
+  swapped: "The certificate you chose replaced the one in the cart. An order carries one certificate.",
+  swapped_repriced:
+    "The certificate you chose replaced the one in the cart. The discount line was re-priced for the new certificate.",
+  swapped_removed:
+    "The certificate you chose replaced the one in the cart. The discount line could not be re-priced for it and was removed.",
+} as const;
+
 /** `brand.md` §4: the empty cart is a document too. Set in label style. */
 export const CART_EMPTY_NOTICE = "No items of record";
 

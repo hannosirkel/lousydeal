@@ -34,6 +34,7 @@ import {
   CART_DOCUMENT,
   CART_EMPTY_NOTICE,
   CART_LABELS,
+  CART_SWAP_NOTICES,
   CHECKOUT_LABEL,
   CODE_APPLY_LABEL,
   CODE_LABEL,
@@ -134,6 +135,14 @@ function codeNotice(parameters: CartSearchParams): string | undefined {
     : undefined;
 }
 
+/** LD-11 J8: what `Acquire` replaced, by a stable reason and never the query's own text. */
+function swapNotice(parameters: CartSearchParams): string | undefined {
+  const reason = parameters["swap_reason"];
+  return typeof reason === "string" && Object.hasOwn(CART_SWAP_NOTICES, reason)
+    ? CART_SWAP_NOTICES[reason as keyof typeof CART_SWAP_NOTICES]
+    : undefined;
+}
+
 export default async function CartPage({
   searchParams = Promise.resolve({}),
 }: { readonly searchParams?: Promise<CartSearchParams> } = {}) {
@@ -149,7 +158,9 @@ export default async function CartPage({
       </main>
     );
   }
-  const notice = codeNotice(await searchParams);
+  const parameters = await searchParams;
+  const notice = codeNotice(parameters);
+  const swap = swapNotice(parameters);
   const cookieStore = await cookies();
   const cartId = cookieStore.get(CART_ID_COOKIE)?.value;
 
@@ -251,6 +262,7 @@ export default async function CartPage({
           })}
           <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currency_code)} />
         </Ledger>
+        {swap === undefined ? null : <p className="notice">{swap}</p>}
         {notice === undefined ? null : <p className="notice payment-error">{notice}</p>}
         <div className="cart-code-controls">
           <CodeForm action={applyCode} />

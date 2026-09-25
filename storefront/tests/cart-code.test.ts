@@ -15,6 +15,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined, r
 import {
   CART_CODE_NOTICES,
   CART_LABELS,
+  CART_SWAP_NOTICES,
   CODE_APPLY_LABEL,
   CODE_LABEL,
   CODE_NOTE,
@@ -67,6 +68,8 @@ describe("a Store API refusal", () => {
 
 interface CartPageOptions {
   readonly reason?: string;
+  /** The query as a whole, where a test needs a parameter other than `code_reason`. */
+  readonly params?: Record<string, string>;
   readonly items?: readonly Record<string, unknown>[];
   readonly total?: number;
 }
@@ -114,7 +117,7 @@ async function renderCart(options: CartPageOptions = {}): Promise<string> {
 
   const { default: CartPage } = await import("../src/app/cart/page");
   return renderToStaticMarkup(await CartPage({
-    searchParams: Promise.resolve(options.reason === undefined ? {} : { code_reason: options.reason }),
+    searchParams: Promise.resolve(options.params ?? (options.reason === undefined ? {} : { code_reason: options.reason })),
   }));
 }
 
@@ -167,5 +170,34 @@ describe("the rendered cart", () => {
   it("ignores an unknown query value rather than reflecting it", async () => {
     const html = await renderCart({ reason: "<script>made-up</script>" });
     expect(html).not.toContain("made-up");
+  });
+
+  it.each(Object.entries(CART_SWAP_NOTICES))("renders the fixed %s swap notice beneath the ledger", async (reason, notice) => {
+    // LD-11 J8. Beneath the ledger, because the ledger is what changed.
+    const html = await renderCart({ params: { swap_reason: reason } });
+    const at = html.indexOf(`<p class="notice">${notice}</p>`);
+    expect(at).toBeGreaterThan(html.indexOf('class="ledger"'));
+    expect(at).toBeLessThan(html.indexOf('class="code-form field'));
+  });
+
+  it("ignores an unknown swap reason rather than reflecting it", async () => {
+    const html = await renderCart({ params: { swap_reason: "made-up" } });
+    expect(html).not.toContain("made-up");
+    expect(html).not.toContain('<p class="notice"></p>');
+  });
+
+  it("says a swap happened in every swap notice, and names no figure", () => {
+    // Constraint 5: a figure must name what it is the total of. The ledger
+    // beneath prints the new line and total, so the notice carries none.
+    for (const notice of Object.values(CART_SWAP_NOTICES)) {
+      expect(notice.startsWith("The certificate you chose replaced the one in the cart.")).toBe(true);
+      expect(notice).not.toMatch(/\d/);
+    }
+  });
+
+  it("says the discount line moved only in the notice for a line that moved", () => {
+    expect(CART_SWAP_NOTICES.swapped).not.toContain("discount");
+    expect(CART_SWAP_NOTICES.swapped_repriced).toContain("re-priced");
+    expect(CART_SWAP_NOTICES.swapped_removed).toContain("removed");
   });
 });

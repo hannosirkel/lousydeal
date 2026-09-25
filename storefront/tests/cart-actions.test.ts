@@ -321,6 +321,15 @@ interface AddToCartRun {
   readonly events: string[];
   readonly createdCarts: number;
   readonly cookieWrittenAs: string | undefined;
+  readonly redirectedTo: string | undefined;
+}
+
+interface CartLineFixture {
+  id: string;
+  variant_id: string | null;
+  quantity?: number;
+  unit_price?: number;
+  metadata?: Record<string, unknown>;
 }
 
 /** Drives `addToCart` against a stubbed `store-cart`, and reports what it did. */
@@ -333,9 +342,11 @@ async function runAddToCart(options: {
   existingCart?: {
     id: string;
     completed_at?: string | null;
-    items?: { id: string; variant_id: string | null; metadata?: Record<string, unknown> }[];
+    items?: CartLineFixture[];
   } | "unresolvable";
   reapplyFails?: boolean;
+  /** The lines of the cart the surcharge re-price answers with. */
+  repricedItems?: CartLineFixture[];
 }): Promise<AddToCartRun> {
   vi.resetModules();
   const removed: [string, string][] = [];
@@ -344,6 +355,7 @@ async function runAddToCart(options: {
   const events: string[] = [];
   let createdCarts = 0;
   let cookieWrittenAs: string | undefined;
+  let redirectedTo: string | undefined;
 
   vi.doMock("../src/lib/store-cart", () => ({
     createCart: async () => {
@@ -369,6 +381,7 @@ async function runAddToCart(options: {
       applied.push([cartId, code]);
       events.push(`apply:${code}`);
       if (options.reapplyFails === true) throw new Error("re-price failed");
+      return { id: cartId, currency_code: "usd", items: options.repricedItems ?? [] };
     },
   }));
   vi.doMock("../src/lib/medusa-client", () => ({
@@ -387,7 +400,8 @@ async function runAddToCart(options: {
     }),
   }));
   vi.doMock("next/navigation", () => ({
-    redirect: () => {
+    redirect: (path: string) => {
+      redirectedTo = path;
       throw new Error("REDIRECTED");
     },
   }));
@@ -416,7 +430,7 @@ async function runAddToCart(options: {
     vi.doUnmock(mocked);
   }
 
-  return { removed, added, applied, events, createdCarts, cookieWrittenAs };
+  return { removed, added, applied, events, createdCarts, cookieWrittenAs, redirectedTo };
 }
 
 describe("addToCart keeps the cart to one certificate", () => {
@@ -567,6 +581,102 @@ describe("addToCart keeps the cart to one certificate", () => {
       "apply:BALDRICK20",
       "remove:line_surcharge",
     ]);
+  });
+});
+
+/**
+ * LD-11 J8, G2's finding 6: with Standard and BALDRICK20 in the cart,
+ * pressing Acquire on Plus replaced the certificate and moved the discount
+ * line from one dollar to two, and nothing said either had happened.
+ */
+describe("what the cart is told after Acquire", () => {
+  const standard = { id: "line_standard", variant_id: "var_tier_a", quantity: 1, unit_price: 5 };
+  const discount = (unitPrice: number, quantity = 1) => ({
+    id: `line_discount_${String(unitPrice)}`,
+    variant_id: null,
+    quantity,
+    unit_price: unitPrice,
+    metadata: { code: "BALDRICK20" },
+  });
+  const chosen = { id: "line_chosen", variant_id: "var_chosen", quantity: 1, unit_price: 10 };
+
+  it("says a swap happened, and that the discount line moved, when it did", async () => {
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [standard, discount(1)] },
+      repricedItems: [chosen, discount(2)],
+    });
+    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped_repriced");
+  });
+
+  it("says only that a swap happened when the discount line reads the same", async () => {
+    // FREE's fee and BLACKFRIDAY's nought do not move with the tier.
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [standard, discount(1)] },
+      repricedItems: [chosen, discount(1)],
+    });
+    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped");
+  });
+
+  it("counts a doubled discount line put back to one as moved", async () => {
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [standard, discount(1, 2)] },
+      repricedItems: [chosen, discount(1)],
+    });
+    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped_repriced");
+  });
+
+  it("does not claim a move it cannot see in the re-priced cart", async () => {
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [standard, discount(1)] },
+      repricedItems: [chosen],
+    });
+    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped");
+  });
+
+  it("says a swap happened with no discount at all", async () => {
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [standard] },
+    });
+    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped");
+  });
+
+  it("says the discount line was removed when re-pricing it failed", async () => {
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      reapplyFails: true,
+      existingCart: { id: "cart_1", completed_at: null, items: [standard, discount(1)] },
+    });
+    expect(run.removed).toContainEqual(["cart_1", "line_discount_1"]);
+    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped_removed");
+  });
+
+  it("says the discount line was removed when it could not be re-priced at all", async () => {
+    // Two surcharge lines carry no single code to re-apply, so both go.
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [standard, discount(1), discount(2)] },
+    });
+    expect(run.applied).toEqual([]);
+    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped_removed");
+  });
+
+  it.each([
+    { case: "an empty cart", items: [] },
+    { case: "a cart of merch only", items: [{ id: "line_mug", variant_id: "var_mug", quantity: 1, unit_price: 12 }] },
+    { case: "the tier already chosen", items: [{ ...chosen }] },
+  ])("says nothing about a swap for $case, where none happened", async ({ items }) => {
+    const run = await runAddToCart({ cookieCartId: "cart_1", existingCart: { id: "cart_1", completed_at: null, items } });
+    expect(run.redirectedTo).toBe("/cart");
+  });
+
+  it("says nothing about a swap for a new cart", async () => {
+    const run = await runAddToCart({});
+    expect(run.redirectedTo).toBe("/cart");
   });
 });
 
