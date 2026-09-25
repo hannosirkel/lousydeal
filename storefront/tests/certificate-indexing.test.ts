@@ -82,6 +82,7 @@ afterEach(() => {
   vi.doUnmock("../src/lib/store-session");
   vi.doUnmock("../src/lib/medusa-client");
   vi.doUnmock("../src/lib/store-deal");
+  vi.doUnmock("next/og");
   vi.resetModules();
 });
 
@@ -101,6 +102,31 @@ describe("the certificate share card", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe(route.contentType);
     expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+  }, 30_000);
+});
+
+describe("what a shared link previews", () => {
+  it("draws the bearer's name into the card, which is why the share row says so", async () => {
+    // LD-11 J11's notice says a posted link's preview shows the name on the
+    // certificate. The PNG cannot be read back as text, so the element tree
+    // handed to `ImageResponse` is captured and rendered instead.
+    let drawn: unknown = null;
+    vi.doMock("next/og", () => ({
+      ImageResponse: class {
+        constructor(element: unknown) {
+          drawn = element;
+        }
+      },
+    }));
+    const route = await loadRoute<{
+      default: (input: { params: Promise<{ slug: string }> }) => Promise<unknown>;
+    }>("../src/app/done-deals/[slug]/opengraph-image");
+    await route.default({ params });
+
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const markup = renderToStaticMarkup(drawn as Parameters<typeof renderToStaticMarkup>[0]);
+    expect(markup).toContain(CERTIFICATE.displayName ?? "");
+    expect(CERTIFICATE.displayName).toBe("Jane Example");
   }, 30_000);
 });
 

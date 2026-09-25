@@ -19,6 +19,7 @@ import {
   SHARE_EMAIL_SUBJECT,
   SHARE_LABEL,
   SHARE_NOTICE,
+  SHARE_PUBLISHES,
   SHARE_TARGETS,
   SHARE_TEXT,
   WHO_CAN_SEE,
@@ -183,5 +184,28 @@ describe("what the share row says about who can see the page", () => {
 
     expect(files.length).toBeGreaterThan(50);
     expect(offending.map((file) => relative(root, file))).toEqual([]);
+  });
+});
+
+/**
+ * LD-11 J11: at the controls, that sending one gives the address away. The
+ * address reaching every destination is asserted above ("carries the
+ * certificate's own address"); the preview's name is asserted where the card
+ * is rendered, in `certificate-indexing.test.ts`.
+ */
+describe("what the share row says pressing one does", () => {
+  it("says it directly under the links, before the note about tracking", () => {
+    expect(html).toContain(`</ul><p class="fine-print">${SHARE_PUBLISHES}</p>`);
+    expect(html.indexOf(SHARE_PUBLISHES)).toBeLessThan(html.indexOf(SHARE_NOTICE));
+  });
+
+  it("says the address goes with it, and who can then open the page", () => {
+    expect(SHARE_PUBLISHES).toMatch(/^Pressing one starts a post or an email with this page’s address in it\./);
+    expect(SHARE_PUBLISHES).toMatch(/whoever reads it can open the certificate/);
+    expect(SHARE_PUBLISHES).toMatch(/a post on X or Bluesky can be read by anybody/);
+  });
+
+  it("says the preview shows the name before anybody opens it", () => {
+    expect(SHARE_PUBLISHES).toMatch(/its preview shows the name on the certificate\.$/);
   });
 });

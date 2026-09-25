@@ -881,8 +881,40 @@ named.
 **Candidate `r`**, from G4's findings 4 and 5 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
-- [ ] Build candidate `r` as its finding describes. The row records what
+- [x] Build candidate `r` as its finding describes. The row records what
       was built, what verifies it, and each mutation run.
+
+**Built on J10's branch**, because both rows edit the same few lines of
+`ShareRow` and `content/certificate.ts`. `SHARE_PUBLISHES`, rendered directly
+under the three links and above the existing tracking notice: "Pressing one
+starts a post or an email with this page’s address in it. Once it is sent,
+whoever reads it can open the certificate: a post on X or Bluesky can be read
+by anybody, and its preview shows the name on the certificate." It says
+"starts", not "publishes", because each link opens a composer the person
+still sends from. Finding 5 is answered by the last clause; the card itself
+is unchanged.
+
+**Each claim is held to code.** Every destination carries the address — the
+existing "carries the certificate's own address" test. The preview shows the
+name — a new test in `certificate-indexing.test.ts` captures the element
+tree the share card hands `ImageResponse`, renders it, and finds the
+fixture's bearer in it.
+
+**Verified**, each mutation alone after committing, file counts unchanged:
+the notice dropped from the row (fails "directly under the links", 1 of 16);
+moved above the links (same test); the tracking notice moved above the links
+with this one left under them (same test, on its ordering assertion); the
+address clause, the "whoever reads it" clause and the X-or-Bluesky clause
+each removed in turn (each fails "says the address goes with it", 1 of 16);
+the preview clause removed (fails "says the preview shows the name", 1 of
+16); the card drawing `NO_INSCRIPTION` instead of the bearer (fails "draws
+the bearer's name into the card", 1 of 3). Rendered with the real
+`globals.css` and Plex Mono in Chromium: horizontal overflow `0` at 320, 360
+and 390 with both J10's and this notice, as without either.
+
+**Not verified.** That X and Bluesky actually unfurl the card from
+`og:image`, which needs a live post of a live address this row may not make
+or record. Whether an email client previews a link depends on the client.
 
 ### J12 — Baldrick links the document he names
 
