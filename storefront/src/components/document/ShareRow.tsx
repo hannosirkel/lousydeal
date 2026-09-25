@@ -29,6 +29,7 @@ import {
   SHARE_NOTICE,
   SHARE_TARGETS,
   SHARE_TEXT,
+  WHO_CAN_SEE,
 } from "../../content/certificate";
 import { FinePrint } from "./FinePrint";
 
@@ -67,6 +68,11 @@ export function ShareRow({ url }: ShareRowProps) {
       <h2 id="share-row-label" className="share-row-label">
         {SHARE_LABEL}
       </h2>
+      {/*
+        J10: who can read the page, said before the links rather than after
+        them, because pressing one is what changes the answer.
+      */}
+      <FinePrint>{WHO_CAN_SEE}</FinePrint>
       <ul className="share-row-links">
         {destinations(url).map(([target, href]) => (
           <li key={target}>
