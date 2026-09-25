@@ -40,7 +40,7 @@ export const MERCH_HEADING = "Would you like to make your deal worse?";
  * something the cart does not contain, which constraint 4 forbids in its
  * general form. This keeps the question and makes it true of that cart.
  */
-export const MERCH_HEADING_NO_CERTIFICATE = "Would you like to make your deal worse, once you have one?";
+export const MERCH_HEADING_NO_CERTIFICATE = "Would you like to make a deal worse? Start with the deal.";
 
 /**
  * `Sizes` where the tier table says `Description`, because that is the one

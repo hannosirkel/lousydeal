@@ -783,9 +783,10 @@ the upsell on a cart holding no certificate, which has no deal to make worse.
 The cart now asks the checkout's own question, `cartHasCertificate` over the
 tier handles, of the line handles it already receives. It keeps §7's line
 where the cart holds a certificate. Where it does not, it asks
-`MERCH_HEADING_NO_CERTIFICATE`: `Would you like to make your deal worse, once
-you have one?` That is new copy, drafted here and for choosing under the
-selection's instruction. It joins the upsell's must-not-say guards and the
+`MERCH_HEADING_NO_CERTIFICATE`: `Would you like to make a deal worse? Start
+with the deal.` Jev chose it from three drafts, with the other two at 0.40
+and 0.14 against its 0.46. That is a narrow and low-confidence choice,
+recorded as such. It joins the upsell's must-not-say guards and the
 legal-consistency surface for the upsell.
 
 The cart page now also lists the tiers, beside the merch it already listed, so

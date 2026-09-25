@@ -366,6 +366,6 @@ describe("the heading on the cart", () => {
 
   it("is a different sentence, and one that admits there is no deal yet", () => {
     expect(MERCH_HEADING_NO_CERTIFICATE).not.toBe(MERCH_HEADING);
-    expect(MERCH_HEADING_NO_CERTIFICATE).toMatch(/once you have one/i);
+    expect(MERCH_HEADING_NO_CERTIFICATE).toMatch(/Start with the deal/);
   });
 });
