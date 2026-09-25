@@ -744,6 +744,111 @@ closed and disabled, it goes through; open, `friend@example` is refused.
       attribute removed, a pattern that admits a dotless domain, and one that
       refuses a real address. Each fails its test.
 
+**Selected on 2026-09-25 by Jev, at the operator's instruction.** The
+operator handed stage 2 to TypeSafe's Jev model. Jev was given a neutral brief
+of the shop, this slice's objective and limits, and each remaining candidate
+in its finding's own words. It was asked, for each, whether implementing it
+would succeed: a real, verifiable comprehension or truthfulness improvement,
+within the limits, deliverable as one small change. The operator set the bar:
+build every candidate above 0.80.
+
+Ten cleared it: `h` 0.91, `b` 0.90, `j` 0.89, `q` 0.87, `f` 0.86, `i` 0.86,
+`n` 0.84, `o` 0.84, `r` 0.82 and `s` 0.82. Not selected: `m` at 0.80 (not
+above the bar), `t` 0.74, `a` 0.73, `p` 0.72, `c`+`v` 0.70, `g` 0.68, `d` 0.58,
+`c` 0.52 and `e` 0.42. `k`, `l` and `u` were already built, by H4 and J1. New
+buyer-facing copy in these rows goes to Jev too, as a choice between drafted
+options, under the same instruction.
+
+### J3 — The cart says a merch-only cart cannot be paid for, before the pay step
+
+**Repository:** `lousydeal`.
+**Candidate `b`**, from G1's finding 2 in [`findings.md`](./ld-11-user-experience/findings.md).
+Selected by Jev on 2026-09-25.
+
+- [ ] Build candidate `b` as its finding describes. The row records what
+      was built, what verifies it, and each mutation run.
+
+### J4 — The cart's upsell heading is true on a cart with no certificate
+
+**Repository:** `lousydeal`.
+**Candidate `f`**, from G1's finding 6 in [`findings.md`](./ld-11-user-experience/findings.md).
+Selected by Jev on 2026-09-25.
+
+- [ ] Build candidate `f` as its finding describes. The row records what
+      was built, what verifies it, and each mutation run.
+
+### J5 — The discount field says what a code does here, before it is applied
+
+**Repository:** `lousydeal`.
+**Candidate `h`**, from G2's findings 1 and 2 in [`findings.md`](./ld-11-user-experience/findings.md).
+Selected by Jev on 2026-09-25.
+
+- [ ] Build candidate `h` as its finding describes. The row records what
+      was built, what verifies it, and each mutation run.
+
+### J6 — A repeated or already-applied code is answered like a wrong one
+
+**Repository:** `lousydeal`.
+**Candidate `i`**, from G2's findings 3 and 7 in [`findings.md`](./ld-11-user-experience/findings.md).
+Selected by Jev on 2026-09-25.
+
+- [ ] Build candidate `i` as its finding describes. The row records what
+      was built, what verifies it, and each mutation run.
+
+### J7 — The cart and Baldrick name how much a code adds
+
+**Repository:** `lousydeal`.
+**Candidate `j`**, from G2's findings 1 and 2 in [`findings.md`](./ld-11-user-experience/findings.md).
+Selected by Jev on 2026-09-25.
+
+- [ ] Build candidate `j` as its finding describes. The row records what
+      was built, what verifies it, and each mutation run.
+
+### J8 — A tier swap says when it changes the surcharge, and that it happened
+
+**Repository:** `lousydeal`.
+**Candidate `o`**, from G2's finding 6 in [`findings.md`](./ld-11-user-experience/findings.md).
+Selected by Jev on 2026-09-25.
+
+- [ ] Build candidate `o` as its finding describes. The row records what
+      was built, what verifies it, and each mutation run.
+
+### J9 — A certificate-only checkout says why it asks for a country
+
+**Repository:** `lousydeal`.
+**Candidate `n`**, from G3's finding 5 in [`findings.md`](./ld-11-user-experience/findings.md).
+Selected by Jev on 2026-09-25.
+
+- [ ] Build candidate `n` as its finding describes. The row records what
+      was built, what verifies it, and each mutation run.
+
+### J10 — The certificate page says who can see it
+
+**Repository:** `lousydeal`.
+**Candidate `q`**, from G4's findings 2 and 3 in [`findings.md`](./ld-11-user-experience/findings.md).
+Selected by Jev on 2026-09-25.
+
+- [ ] Build candidate `q` as its finding describes. The row records what
+      was built, what verifies it, and each mutation run.
+
+### J11 — The share controls say that pressing one publishes the address
+
+**Repository:** `lousydeal`.
+**Candidate `r`**, from G4's findings 4 and 5 in [`findings.md`](./ld-11-user-experience/findings.md).
+Selected by Jev on 2026-09-25.
+
+- [ ] Build candidate `r` as its finding describes. The row records what
+      was built, what verifies it, and each mutation run.
+
+### J12 — Baldrick links the document he names
+
+**Repository:** `lousydeal`.
+**Candidate `s`**, from G5's findings 2 and 4 in [`findings.md`](./ld-11-user-experience/findings.md).
+Selected by Jev on 2026-09-25.
+
+- [ ] Build candidate `s` as its finding describes. The row records what
+      was built, what verifies it, and each mutation run.
+
 ### H1 — Checkout ends somewhere, and the copy above it stops promising otherwise
 
 **Repository:** `lousydeal`.
