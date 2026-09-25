@@ -175,6 +175,14 @@ describe("the recipient's address, as the form enforces it", () => {
     }
   });
 
+  it("takes no part in validation while the block is closed", () => {
+    // A closed block sends nothing, but `type` and `pattern` still validate:
+    // a leftover `friend@example` blocked payment with no message. The static
+    // render is the closed state; the source binds it to the disclosure.
+    expect(tag).toMatch(/ disabled=""/);
+    expect(source).toMatch(/pattern=\{GIFT_ADDRESS_PATTERN\}\s*disabled=\{!giftOpen\}/);
+  });
+
   it("accepts what the backend keeps", () => {
     for (const address of ["friend@example.com", "first.last+gift@mail.example.co.uk"]) {
       expect(`${address}: ${String(browser.test(address))}`).toBe(`${address}: true`);

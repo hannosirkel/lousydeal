@@ -663,8 +663,8 @@ is the argument for doing it deliberately rather than incidentally.
 ### Part four — what the audits found
 
 Stage 3. These are numbered because the operator selected them from part two's
-candidates; the rest of that list stays unnumbered until they are chosen too. J2 is the first chosen from a review's findings rather than
-from part two.
+candidates; the rest of that list stays unnumbered until they are chosen too. J2 is the first in part four chosen from a review's findings
+rather than from part two; H5, in part three, came from one too.
 
 ### J1 — Checkout stops scrolling sideways on a phone
 
@@ -726,6 +726,15 @@ time, and a test already holds `ADDRESS` equal to the backend's copy.
 `requestSubmit()` runs constraint validation, so no submit reaches
 `handleSubmit` with an address the backend would drop. The operator chose the
 browser's own message ("Please match the requested format") over custom copy.
+
+**Its review found a regression, fixed before merge.** `type` and `pattern`
+are not conditional the way `required` is. So a buyer who typed
+`friend@example` and then closed the block could not pay, and was told
+nothing: Chromium blocks the submit, and the only output is a console error
+about a control it cannot focus. `type="email"` already did the same to
+`abc`. The field is now `disabled` while the block is closed. Measured in
+Chromium with the real pattern: closed and enabled, the submit is blocked;
+closed and disabled, it goes through; open, `friend@example` is refused.
 
 - [x] Refuse, in the form, a gift address the backend would drop. Verified by
       `checkout-gift.test.ts` reading the rendered `pattern` attribute. It
@@ -1206,7 +1215,7 @@ one-character postcode.
 **Sixteen of the plan's rows are closed and one J-row with them.** Part one
 repaired every defect live order #1 proved. Part two walked all six flows and
 produced thirty-eight findings and twenty-two candidate fix rows; its stage 1
-is closed. Part three: H1, H2 and H3 are closed. H4 and H5 have not been started.
+is closed. Part three: H1, H2, H3 and H5 are closed. H4 has not been started.
 
 **Nothing in part two is built until the operator selects it.** That is stage
 2, and it has happened once: candidate `u` became J1. The other twenty-one

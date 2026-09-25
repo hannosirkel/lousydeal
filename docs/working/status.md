@@ -7,7 +7,7 @@ does not — it points, it does not hold.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-24 |
+| Updated | 2026-09-25 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 | In flight | **J2**, on `deal/ld11-j2-gift-address`: the gift recipient field carries the backend's address rule as its `pattern`, so a gift the backend would drop cannot be paid for. |
 | Next action | H4, which is independent. The Stripe webhook the notices' email promise relies on is not a row in the held table below. `orange` #132 is the Servitium tunnel's equivalent of #130. LD-07 remains deferred out of V1. |

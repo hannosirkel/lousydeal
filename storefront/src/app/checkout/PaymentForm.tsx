@@ -1038,7 +1038,12 @@ export function PayButton({
             `type="email"` and `pattern`. **`pattern` is LD-11 J2**: the e-mail
             grammar alone admits `friend@example`, which the backend drops,
             and a paid gift then became an ordinary purchase with no word.
-            The browser's own message is shown, by the operator's choice. */}
+            The browser's own message is shown, by the operator's choice.
+            **`disabled` while the block is closed**, because `type` and
+            `pattern`, unlike `required`, are not conditional: a closed block
+            holding `friend@example` blocked the whole submit with no message
+            (measured in Chromium). A disabled control is barred from
+            validation, and `handleSubmit` reads state, not the form. */}
         <p className="field">
           <label htmlFor="checkout-gift-email">{GIFT_LABELS.recipientEmail}</label>
           <input
@@ -1047,6 +1052,7 @@ export function PayButton({
             value={giftRecipientEmail}
             maxLength={GIFT_LIMITS.recipientEmail}
             pattern={GIFT_ADDRESS_PATTERN}
+            disabled={!giftOpen}
             autoComplete="off"
             required={giftOpen}
             aria-describedby="checkout-gift-notice"
