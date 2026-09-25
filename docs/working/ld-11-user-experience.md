@@ -797,8 +797,8 @@ Selected by Jev on 2026-09-25.
 
 `NOTACODE` was told `That code is not on file. Nothing in the cart changed.`
 Applying `BALDRICK20` again got no text, and neither did pressing the tier the
-cart already held. Both now get an answer in that form, in the same element
-that shows a wrong code's.
+cart already held. Both now get an answer that says nothing changed, in the
+same element that shows a wrong code's.
 
 **A repeated code.** What the backend does with a code is unchanged: it still
 replaces the line. `applyCode` reads the cart's one surcharge line before
@@ -814,11 +814,21 @@ does, so the repeat is not counted as a second `bad_discount_accepted`.
 
 **A repeated tier.** If the cart holds exactly the chosen certificate at a
 quantity of one, and at most one surcharge at one, `addToCart` writes nothing.
-It redirects with `acquire_reason=already_in_cart`: "That certificate is
-already in the cart. Nothing in the cart changed." Before this, the second
+It redirects with `acquire_reason=already_in_cart`: "That deal is already in
+the cart. An order carries one, so nothing changed." Before this, the second
 press cleared the certificate, added it back and re-priced the surcharge to
 the same figure. Any other cart shape still takes the ordinary path, because
 that path is what repairs it.
+
+**The copy is Jev's choice**, made on 2026-09-25 among three drafts per
+notice. Repeated code: "That code is already applied. Nothing in the cart
+changed." at 0.48, the draft as built. Repeated tier: "That deal is already
+in the cart. An order carries one, so nothing changed." at 0.42, over the
+built draft "That certificate is already in the cart. Nothing in the cart
+changed." at 0.31 and "The cart already holds that certificate. Nothing in
+the cart changed." at 0.27. The tier choice is narrow. The chosen text was
+re-measured in Chromium: 0px overflow at 320, 360 and 390, wrapping to three
+lines at 320 and 360 and two at 390.
 
 - [x] Build candidate `i` as its finding describes. Verified by
       `cart-actions.test.ts`: a repeat is answered, including from the

@@ -160,6 +160,12 @@ describe("the rendered cart", () => {
     expect(CART_CODE_NOTICES.unknown_code.endsWith(" Nothing in the cart changed.")).toBe(true);
   });
 
+  it("says a repeated tier changed nothing, and why", () => {
+    // LD-11 J6: the consequence a wrong code is told, and the rule behind it.
+    expect(CART_ACQUIRE_NOTICES.already_in_cart).toMatch(/already in the cart\./);
+    expect(CART_ACQUIRE_NOTICES.already_in_cart).toMatch(/nothing changed\.$/);
+  });
+
   it.each(Object.entries(CART_ACQUIRE_NOTICES))("renders the fixed %s acquire notice where a code refusal goes", async (reason, notice) => {
     const html = await renderCart({ params: { acquire_reason: reason } });
     expect(html).toContain(`<p class="notice payment-error">${notice}</p>`);
