@@ -7,10 +7,10 @@ does not — it points, it does not hold.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-24 |
+| Updated | 2026-09-25 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | **H5**, on `deal/ld11-h5-paid-uncompleted` (#262): before a checkout replaces a Stripe session, the browser asks Stripe whether its card was charged. Its build is on test; the measurement was skipped by the operator. |
-| Next action | H4, which is independent. A candidate from H1's review waits for the operator: the gift field accepts a dotless address the backend drops. The Stripe webhook the notices' email promise relies on is not a row in the held table below. `orange`'s `cloudflare-add-servitium` carries the same route-table hazard #130 closed for the web tunnel, recorded on #130. LD-07 remains deferred out of V1. |
+| In flight | **J2**, on `deal/ld11-j2-gift-address`: the gift recipient field carries the backend's address rule as its `pattern`, so a gift the backend would drop cannot be paid for. |
+| Next action | H4, which is independent. The Stripe webhook the notices' email promise relies on is not a row in the held table below. `orange` #132 is the Servitium tunnel's equivalent of #130. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, started.** Seventeen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 by #252. Part three: H1 by #255, #256 and #258; H2 by #257; H3 in review; H5 added from H2's review. Part four: J1 by #253. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
+| **LD-11 — User experience** | **open, started.** Seventeen rows in three parts; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 by #252. Part three: H1 by #255, #256 and #258; H2 by #257; H3 by #259; H5 by #262; H4 open. Part four: J1 by #253; J2 in review. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.

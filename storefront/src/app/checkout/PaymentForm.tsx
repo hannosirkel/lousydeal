@@ -88,7 +88,7 @@ import {
   STRIPE_PAYMENT_NOTICE,
 } from "../../content/checkout";
 import { paySubmitBlocked, payDisabled, paymentSessionNeeded } from "../../lib/checkout-rules";
-import { GIFT_LIMITS, giftRecipientSent, previewGiftText } from "../../lib/gift";
+import { GIFT_ADDRESS_PATTERN, GIFT_LIMITS, giftRecipientSent, previewGiftText } from "../../lib/gift";
 import { INSCRIPTION_LIMITS, sanitiseInscription } from "../../lib/inscription";
 import type { FetchJson, StoreFetchInit, StoreRegionCountry } from "../../lib/medusa-client";
 import {
@@ -1032,10 +1032,18 @@ export function PayButton({
           <span id="checkout-gift-notice">{GIFT_NOTICE}</span>
         </FinePrint>
         {/* `required` only inside an open block: the constraint applies when
-            the element is open, and a closed one submits nothing. `type="email"`
-            is the enforcing half, the way it is on the buyer's own address --
+            the element is open, and a closed one submits nothing.
             `requestSubmit()` runs constraint validation, so an open block
-            cannot reach `handleSubmit` without one. */}
+            cannot reach `handleSubmit` without an address that passes both
+            `type="email"` and `pattern`. **`pattern` is LD-11 J2**: the e-mail
+            grammar alone admits `friend@example`, which the backend drops,
+            and a paid gift then became an ordinary purchase with no word.
+            The browser's own message is shown, by the operator's choice.
+            **`disabled` while the block is closed**, because `type` and
+            `pattern`, unlike `required`, are not conditional: a closed block
+            holding `friend@example` blocked the whole submit with no message
+            (measured in Chromium). A disabled control is barred from
+            validation, and `handleSubmit` reads state, not the form. */}
         <p className="field">
           <label htmlFor="checkout-gift-email">{GIFT_LABELS.recipientEmail}</label>
           <input
@@ -1043,6 +1051,8 @@ export function PayButton({
             type="email"
             value={giftRecipientEmail}
             maxLength={GIFT_LIMITS.recipientEmail}
+            pattern={GIFT_ADDRESS_PATTERN}
+            disabled={!giftOpen}
             autoComplete="off"
             required={giftOpen}
             aria-describedby="checkout-gift-notice"
