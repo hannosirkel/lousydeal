@@ -34,6 +34,18 @@ export const CART_CODE_NOTICES = {
   unknown_code: "That code is not on file. Nothing in the cart changed.",
   no_certificate: "A discount code needs exactly one certificate in the cart. Choose the one you want, then try again.",
   completed: "This order is already complete. Start a new purchase to use a code.",
+  already_applied: "That code is already applied. Nothing in the cart changed.",
+} as const;
+
+/**
+ * What the cart says when a tier was pressed that it already holds. LD-11 J6.
+ *
+ * In `unknown_code`'s words, because it is the same answer: the press was
+ * heard, and nothing in the cart changed. Without it a second press looked
+ * exactly like a first one that had not worked.
+ */
+export const CART_ACQUIRE_NOTICES = {
+  already_in_cart: "That certificate is already in the cart. Nothing in the cart changed.",
 } as const;
 
 /** `brand.md` §4: the empty cart is a document too. Set in label style. */

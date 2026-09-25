@@ -196,16 +196,25 @@ async function runApplyCode(options: {
   readonly cartId?: string;
   readonly refusal?: string;
   readonly refusalStatus?: number;
+  /** The cart's lines before the code is applied, and in the cart the apply answers with. */
+  readonly before?: readonly Record<string, unknown>[];
+  readonly after?: readonly Record<string, unknown>[];
+  /** Where the action is expected to send the buyer, where the default reckoning does not say. */
+  readonly expected?: string;
 }): Promise<{ readonly applied: readonly unknown[] }> {
   vi.resetModules();
   const applied: unknown[] = [];
   vi.doMock("../src/lib/store-cart", () => ({
+    getCart: async () => {
+      if (options.before === undefined) throw new Error("no cart read was set up");
+      return { id: "cart_1", items: options.before };
+    },
     applySurcharge: async (...args: unknown[]) => {
       applied.push(args);
       if (options.refusal !== undefined) {
         throw new TestStoreApiError(options.refusalStatus ?? 422, { reason: options.refusal });
       }
-      return { id: "cart_1", total: 6 };
+      return { id: "cart_1", total: 6, ...(options.after === undefined ? {} : { items: options.after }) };
     },
   }));
   vi.doMock("../src/lib/medusa-client", () => ({
@@ -236,16 +245,21 @@ async function runApplyCode(options: {
   if (options.code !== undefined) form.set("code", options.code);
   const acceptedRefusal = (options.refusalStatus ?? 422) === 422
     && (options.refusal === "unknown_code" || options.refusal === "no_certificate" || options.refusal === "completed");
-  const expected = options.cartId === undefined
+  const expected = options.expected ?? (options.cartId === undefined
     ? "REDIRECT:/cart?code_reason=no_certificate"
     : options.refusal === undefined
       ? "REDIRECT:/cart"
       : acceptedRefusal
         ? `REDIRECT:/cart?code_reason=${options.refusal}`
-        : `Store API ${String(options.refusalStatus ?? 422)}`;
+        : `Store API ${String(options.refusalStatus ?? 422)}`);
   const result = applyCode(form, options.redirectAfter);
-  if (options.redirectAfter === false && options.cartId !== undefined && options.refusal === undefined) {
+  if (options.redirectAfter === false && options.cartId !== undefined && options.refusal === undefined
+    && options.expected === undefined) {
     await expect(result).resolves.toBeUndefined();
+  } else if (options.expected !== undefined) {
+    // Whole, not `toThrow(string)`: that is a substring match, and
+    // `REDIRECT:/cart` is a prefix of every notice the cart can be sent.
+    await expect(result).rejects.toMatchObject({ message: options.expected });
   } else await expect(result).rejects.toThrow(expected);
 
   vi.resetModules();
@@ -304,6 +318,73 @@ describe("applying a code", () => {
 });
 
 /**
+ * LD-11 J6, G2's finding 3: a wrong code was answered and a repeated one was
+ * not. The answer is decided by comparing the one surcharge line before the
+ * apply with the one in the cart the apply answers with, so each case below
+ * is a pair of ledgers and where the buyer is sent.
+ */
+describe("applying a code that is already applied", () => {
+  const certificate = { id: "line_certificate", variant_id: "var_tier_a", quantity: 1, unit_price: 5, title: "Lousy Deal" };
+  const surcharge = (unitPrice: number, title = "Discount (BALDRICK20)", quantity = 1) => ({
+    id: `line_${title}_${String(unitPrice)}`,
+    variant_id: null,
+    quantity,
+    unit_price: unitPrice,
+    title,
+  });
+
+  it("is answered, as a wrong code is, rather than refreshed in silence", async () => {
+    const run = await runApplyCode({
+      code: "baldrick20",
+      cartId: "cart_1",
+      before: [certificate, surcharge(1)],
+      after: [certificate, surcharge(1)],
+      expected: "REDIRECT:/cart?code_reason=already_applied",
+    });
+    // The code still went to the backend: this row changes what the buyer is
+    // told, not what a code does.
+    expect(run.applied).toHaveLength(1);
+  });
+
+  it("is answered for an enhanced submission too, which would otherwise count it as accepted again", async () => {
+    await runApplyCode({
+      code: "BALDRICK20",
+      cartId: "cart_1",
+      redirectAfter: false,
+      before: [certificate, surcharge(1)],
+      after: [certificate, surcharge(1)],
+      expected: "REDIRECT:/cart?code_reason=already_applied",
+    });
+  });
+
+  it.each([
+    { case: "a cart with no code yet", before: [certificate], after: [certificate, surcharge(1)] },
+    // FREE adds the same dollar to Standard that BALDRICK20 does.
+    { case: "a different code at the same price", before: [certificate, surcharge(1)], after: [certificate, surcharge(1, "Discount (FREE)")] },
+    { case: "the same title at a new price", before: [certificate, surcharge(1)], after: [certificate, surcharge(2)] },
+    { case: "a line held twice, now once", before: [certificate, surcharge(1, "Discount (BALDRICK20)", 2)], after: [certificate, surcharge(1)] },
+  ])("is not claimed for $case, where the cart did change", async ({ before, after }) => {
+    await runApplyCode({ code: "BALDRICK20", cartId: "cart_1", before, after, expected: "REDIRECT:/cart" });
+  });
+
+  it("is not claimed for two untitled lines at one price, which cannot be told apart", async () => {
+    // FREE and BALDRICK20 both add a dollar to Standard; only the title tells
+    // them apart, so a line without one is never called the same line.
+    await runApplyCode({
+      code: "BALDRICK20",
+      cartId: "cart_1",
+      before: [certificate, surcharge(1, "")],
+      after: [certificate, surcharge(1, "")],
+      expected: "REDIRECT:/cart",
+    });
+  });
+
+  it("is not claimed when the cart could not be read first", async () => {
+    await runApplyCode({ code: "BALDRICK20", cartId: "cart_1", after: [certificate, surcharge(1)], expected: "REDIRECT:/cart" });
+  });
+});
+
+/**
  * C3a: one certificate per order, made true where the cart is filled.
  *
  * §16 gives a deal one `order_id` and no line reference, so an order for two
@@ -321,6 +402,7 @@ interface AddToCartRun {
   readonly events: string[];
   readonly createdCarts: number;
   readonly cookieWrittenAs: string | undefined;
+  readonly redirectedTo: string | undefined;
 }
 
 /** Drives `addToCart` against a stubbed `store-cart`, and reports what it did. */
@@ -333,7 +415,7 @@ async function runAddToCart(options: {
   existingCart?: {
     id: string;
     completed_at?: string | null;
-    items?: { id: string; variant_id: string | null; metadata?: Record<string, unknown> }[];
+    items?: { id: string; variant_id: string | null; quantity?: number; metadata?: Record<string, unknown> }[];
   } | "unresolvable";
   reapplyFails?: boolean;
 }): Promise<AddToCartRun> {
@@ -344,6 +426,7 @@ async function runAddToCart(options: {
   const events: string[] = [];
   let createdCarts = 0;
   let cookieWrittenAs: string | undefined;
+  let redirectedTo: string | undefined;
 
   vi.doMock("../src/lib/store-cart", () => ({
     createCart: async () => {
@@ -387,7 +470,8 @@ async function runAddToCart(options: {
     }),
   }));
   vi.doMock("next/navigation", () => ({
-    redirect: () => {
+    redirect: (path: string) => {
+      redirectedTo = path;
       throw new Error("REDIRECTED");
     },
   }));
@@ -416,7 +500,7 @@ async function runAddToCart(options: {
     vi.doUnmock(mocked);
   }
 
-  return { removed, added, applied, events, createdCarts, cookieWrittenAs };
+  return { removed, added, applied, events, createdCarts, cookieWrittenAs, redirectedTo };
 }
 
 describe("addToCart keeps the cart to one certificate", () => {
@@ -567,6 +651,46 @@ describe("addToCart keeps the cart to one certificate", () => {
       "apply:BALDRICK20",
       "remove:line_surcharge",
     ]);
+  });
+});
+
+/**
+ * LD-11 J6, G2's finding 7: pressing the tier the cart already holds used to
+ * clear it, add it back, re-price the surcharge to the same figure and land
+ * on an identical cart with nothing said.
+ */
+describe("pressing the tier the cart already holds", () => {
+  const held = { id: "line_chosen", variant_id: "var_chosen", quantity: 1 };
+  const surcharge = { id: "line_surcharge", variant_id: null, quantity: 1, metadata: { code: "BALDRICK20" } };
+
+  it("writes nothing to the cart and says so", async () => {
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [held, surcharge, { id: "line_mug", variant_id: "var_mug", quantity: 2 }] },
+    });
+
+    expect(run.events).toEqual([]);
+    expect(run.cookieWrittenAs).toBe("cart_1");
+    expect(run.redirectedTo).toBe("/cart?acquire_reason=already_in_cart");
+  });
+
+  it("sends a buyer who chose a different tier to the plain cart", async () => {
+    const run = await runAddToCart({
+      cookieCartId: "cart_1",
+      existingCart: { id: "cart_1", completed_at: null, items: [{ id: "line_a", variant_id: "var_tier_a", quantity: 1 }] },
+    });
+    expect(run.redirectedTo).toBe("/cart");
+  });
+
+  it.each([
+    { case: "beside a second certificate", items: [held, { id: "line_a", variant_id: "var_tier_a", quantity: 1 }] },
+    { case: "at a quantity of two", items: [{ ...held, quantity: 2 }] },
+    { case: "with its surcharge at a quantity of two", items: [held, { ...surcharge, quantity: 2 }] },
+    { case: "with its surcharge held twice", items: [held, surcharge, { ...surcharge, id: "line_surcharge_2" }] },
+  ])("takes the ordinary path when the tier is held $case, because that path repairs it", async ({ items }) => {
+    const run = await runAddToCart({ cookieCartId: "cart_1", existingCart: { id: "cart_1", completed_at: null, items } });
+    expect(run.added).toEqual([["cart_1", "var_chosen", 1]]);
+    expect(run.redirectedTo).toBe("/cart");
   });
 });
 
