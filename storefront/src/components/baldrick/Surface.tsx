@@ -13,16 +13,19 @@
  * rows and the tier table. The one piece of decoration is the block cursor
  * already in `globals.css`, reused rather than reinvented.
  *
- * **He names documents and does not link them.** That is a decision this row
- * takes and not an omission: the conversation lives in React state, so
- * navigating away ends it, and a visitor who followed a link Baldrick gave them
- * would lose the exchange that produced it. Telling them where a document is
- * and leaving them to go when they are finished costs nothing, is in character
- * for somebody who cannot be bothered to fetch it, and is asserted below.
+ * **He links the documents he names.** B5b decided the opposite -- the
+ * conversation lives in React state, so following a link ends it -- and LD-11
+ * J12 reversed it on G5's evidence: a visitor told which document answers them
+ * had to scroll the whole page to find it. The cost B5b named does not arise.
+ * Every step that names a document ends its flow, with no quick reply after
+ * it, so no flow is in progress when the link appears;
+ * `baldrick-widget.test.ts` holds that, so a step that names a document and
+ * then offers a button fails there rather than stranding somebody.
  */
 
 import { BALDRICK_DISCLAIMER, BALDRICK_PAUSE_LABEL } from "../../content/baldrick";
 import type { Message, QuickReply } from "../../lib/baldrick/conversation";
+import { lineSegments } from "../../lib/baldrick/documents";
 
 /** How much a visitor may type at him. In the shape `DEAL_GIFT_LIMITS` uses. */
 export const BALDRICK_LIMITS = {
@@ -94,7 +97,17 @@ export function Surface({
             )}
             {message.lines.map((line, line_index) => (
               <span className="baldrick-line" key={line_index}>
-                {line}
+                {message.speaker === "baldrick"
+                  ? lineSegments(line).map((segment, segment_index) =>
+                      segment.href === undefined ? (
+                        segment.text
+                      ) : (
+                        <a href={segment.href} key={segment_index}>
+                          {segment.text}
+                        </a>
+                      ),
+                    )
+                  : line}
               </span>
             ))}
           </li>

@@ -846,8 +846,41 @@ Selected by Jev on 2026-09-25.
 **Candidate `s`**, from G5's findings 2 and 4 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
-- [ ] Build candidate `s` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+**Built.** Where Baldrick names a document, the name is now a link to it:
+*Refunds and withdrawal* to `/legal/refunds`, *Imprint* to `/legal/imprint`,
+*Terms of service* to `/legal/terms`. `Surface.tsx` cuts his lines, and never
+the visitor's, at the titles in `lib/baldrick/documents.ts`, as whole words
+only, and the hrefs are looked up from `LEGAL_ROUTES`. His one change of
+wording is a lower-case *w*: the name is now the link text, so it is spelled
+as the page and the footer spell it. This reverses B5b's recorded decision not
+to link, whose reason was that leaving the page ends the conversation. Every
+step that names a document ends its flow with no quick reply, so no flow is in
+progress when the link appears, and a test holds that. The link stays in the
+transcript, so it can still be on screen during a later flow.
+
+**The standing disclaimer's "Imprint" stays plain text, by choice.** Jev chose
+plain text over a link, 0.91 to 0.09: the footer already links the Imprint,
+and a link under the input could end a chat mid-flow.
+
+**Verified.** Seven new tests in `baldrick-widget.test.ts` render the real
+`Surface` with each of the four steps G5 named (refund, complaint, support,
+licensing) and assert the anchor and its route. They also assert that every
+line reads exactly as written, that a title links only as a whole word
+("Imprinted" does not), that each linked title is spelled as `LEGAL_ROUTES`
+spells it, that no line sends a visitor "in the footer"
+or "in the Imprint" without a link, that a linking step offers no button, and
+that the visitor's own words are never linked. The old "links nowhere" test
+is replaced. Each mutation is listed in the PR. Rendered in Chromium with the
+real `globals.css` at 320, 360 and 390 with all four answers in the
+transcript: document scroll width equals the viewport at all three.
+
+**Not verified.** Not walked on a deployed store or driven through the widget
+in a browser; the markup is `Surface`'s, rendered statically. Checkout copy
+still writes "Refunds and Withdrawal" with a capital W in two places; that is
+not Baldrick's and is left alone. `baldrick-copy.test.ts`'s title list is now
+read off `lineSegments`, so it covers "Terms of service" too.
+
+- [x] Candidate `s` built as its finding describes.
 
 ### H1 — Checkout ends somewhere, and the copy above it stops promising otherwise
 

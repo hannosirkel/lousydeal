@@ -31,6 +31,7 @@ import {
   baldrickProse,
 } from "../src/content/baldrick";
 import { unknownStep } from "../src/lib/baldrick/conversation";
+import { lineSegments } from "../src/lib/baldrick/documents";
 import { BALDRICK_INTENTS, matchIntent } from "../src/lib/baldrick/intents";
 
 const PROSE = baldrickProse();
@@ -57,14 +58,27 @@ function surchargeCodesTable(source: string): string {
 }
 
 /**
- * The two document titles, which he is allowed to say verbatim.
+ * The document titles, which he is allowed to say verbatim.
  *
  * Naming a document is the opposite of the risk the legal guard addresses: it
  * sends the reader to the authoritative text instead of paraphrasing it. But
- * "Refunds and Withdrawal" contains "withdraw", so the titles are removed
+ * "Refunds and withdrawal" contains "withdraw", so the titles are removed
  * before the legal guard runs rather than carved out of every pattern in it.
+ *
+ * **Read off `lineSegments`, not written out again** (LD-11 J12): the titles
+ * are the runs of his lines it links, so this list and the link table cannot
+ * drift apart -- the hand-written one had already missed "Terms of service".
  */
-const TITLES = /Refunds and Withdrawal|Imprint/g;
+const TITLES = new RegExp(
+  [
+    ...new Set(
+      LINES.flatMap(([, line]) => lineSegments(line))
+        .filter((segment) => segment.href !== undefined)
+        .map((segment) => segment.text),
+    ),
+  ].join("|"),
+  "g",
+);
 
 describe("no figure, ever", () => {
   it("states no digit anywhere", () => {
@@ -178,7 +192,7 @@ describe("no legal claim", () => {
   it("sends the refund question to the document instead", () => {
     // Again the inverse: silence would pass the guard above and fail the
     // visitor. The refund step must name where the answer is.
-    expect(BALDRICK_SCRIPT.refund?.say.flat().join(" ")).toContain("Refunds and Withdrawal");
+    expect(BALDRICK_SCRIPT.refund?.say.flat().join(" ")).toContain("Refunds and withdrawal");
   });
 
   it("answers plainly when asked whether he is a person", () => {
