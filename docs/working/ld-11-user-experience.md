@@ -783,8 +783,28 @@ Selected by Jev on 2026-09-25.
 **Candidate `h`**, from G2's findings 1 and 2 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
-- [ ] Build candidate `h` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+**Built.** The cart's code form gains a note beneath it, in fine print, and
+the field names it with `aria-describedby`: "Codes here raise the total or
+leave it where it is; none lowers it. The amount appears as its own line above
+the total, removable before you pay." It says what the Terms say, and "or
+leave it where it is" because `BLACKFRIDAY` adds nothing; the second sentence
+is what the ledger already does with a code. **The wording is Jev's choice**
+of three drafts: 0.75 against 0.18 for the first draft ("A code here can raise
+the price and never lowers it…") and 0.07 for the other alternative. It states no figure: the cart
+cannot know which code will be typed, and the amount is J7's.
+
+**Verified.** `cart-code.test.ts` renders the real cart and asserts the note,
+its wording, the input's `aria-describedby`, and that it
+sits after the field and before the pay link. Five mutations, each run alone
+against the committed file, each failing that test with the count unchanged —
+listed in the PR. Rendered in Chromium with the real `globals.css` at 320, 360
+and 390: document scroll width equals the viewport at all three, the note
+wraps inside the controls column (265, 325, 338 wide).
+
+**Not verified.** Not walked on a deployed store. Whether a first-time visitor
+reads the note before typing is a comprehension question no test settles.
+
+- [x] Candidate `h` built as its finding describes.
 
 ### J6 — A repeated or already-applied code is answered like a wrong one
 
