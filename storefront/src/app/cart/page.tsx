@@ -34,6 +34,7 @@ import {
   CART_DOCUMENT,
   CART_EMPTY_NOTICE,
   CART_LABELS,
+  CART_NEEDS_CERTIFICATE_NOTICE,
   CHECKOUT_LABEL,
   CODE_APPLY_LABEL,
   CODE_LABEL,
@@ -194,10 +195,12 @@ export default async function CartPage({
   const [merchItems, tiers] = await Promise.all([listMerch(fetchJson), listTiers(fetchJson)]);
   const merch = merchRowData(merchItems);
 
-  // **LD-11 J4: the upsell's question has to be true of this cart.** §7's
-  // heading asks about "your deal", and a cart of printed things alone has
-  // none. Asked by the checkout's own rule, over the same handles, so the cart
-  // and the checkout cannot disagree about which carts hold a certificate.
+  // **LD-11 J4 and J3: both ask whether this cart holds a certificate.** J4:
+  // §7's upsell heading asks about "your deal", and a cart of printed things
+  // alone has none. J3: the checkout refuses such a cart with
+  // `CART_NEEDS_CERTIFICATE_NOTICE`, and the cart used to offer
+  // `PROCEED TO PAYMENT` to reach that refusal. Asked by the checkout's own
+  // rule, over the same handles, so the pages cannot disagree.
   const hasCertificate = cartHasCertificate(
     items.map((item) => ({ quantity: item.quantity, handle: item.product_handle ?? null, variantId: item.variant_id })),
     tiers.map((tier) => tier.handle),
@@ -252,6 +255,10 @@ export default async function CartPage({
           <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currency_code)} />
         </Ledger>
         {notice === undefined ? null : <p className="notice payment-error">{notice}</p>}
+        {/* Before the controls, and in place of the pay control: a button
+            that leads only to the same refusal would be a control that does
+            nothing. The way on is to the certificates, on the purchase order. */}
+        {hasCertificate ? null : <p className="notice">{CART_NEEDS_CERTIFICATE_NOTICE}</p>}
         <div className="cart-code-controls">
           <CodeForm action={applyCode} />
           {/* J5. Beneath the form rather than inside it: the form is one flex
@@ -259,8 +266,12 @@ export default async function CartPage({
           <FinePrint>
             <span id="cart-code-note">{CODE_NOTE}</span>
           </FinePrint>
-          {/* The only route to `/checkout` a shopper reaches by clicking. */}
-          <Button href="/checkout">{CHECKOUT_LABEL}</Button>
+          {hasCertificate ? (
+            // The only route to `/checkout` a shopper reaches by clicking.
+            <Button href="/checkout">{CHECKOUT_LABEL}</Button>
+          ) : (
+            <Button variant="secondary" href="/">{RETURN_LABEL}</Button>
+          )}
         </div>
         {merch.length === 0 ? null : (
           <>
