@@ -23,6 +23,7 @@ import { Baldrick } from "../../components/baldrick/Baldrick";
 import { FunnelForm } from "../../components/analytics/FunnelForm";
 import { Button } from "../../components/document/Button";
 import { DocumentFrame } from "../../components/document/DocumentFrame";
+import { FinePrint } from "../../components/document/FinePrint";
 import { Ledger, LedgerRow } from "../../components/document/LedgerRow";
 import { MerchForm } from "../../components/document/MerchForm";
 import { RemoveLine } from "../../components/document/RemoveLine";
@@ -36,6 +37,7 @@ import {
   CHECKOUT_LABEL,
   CODE_APPLY_LABEL,
   CODE_LABEL,
+  CODE_NOTE,
   CODE_REMOVE_LABEL,
   RETURN_LABEL,
   STORE_CLOSED_NOTICE,
@@ -86,7 +88,16 @@ function CodeForm({ action }: { readonly action: (formData: FormData) => Promise
   return (
     <FunnelForm action={action} className="code-form field baldrick-ask" event="bad_discount_accepted">
       <label htmlFor="cart-code">{CODE_LABEL}</label>
-      <input id="cart-code" name="code" type="text" maxLength={64} required autoComplete="off" spellCheck={false} />
+      <input
+        id="cart-code"
+        name="code"
+        type="text"
+        maxLength={64}
+        required
+        autoComplete="off"
+        spellCheck={false}
+        aria-describedby="cart-code-note"
+      />
       <Button type="submit">{CODE_APPLY_LABEL}</Button>
     </FunnelForm>
   );
@@ -232,6 +243,11 @@ export default async function CartPage({
         {notice === undefined ? null : <p className="notice payment-error">{notice}</p>}
         <div className="cart-code-controls">
           <CodeForm action={applyCode} />
+          {/* J5. Beneath the form rather than inside it: the form is one flex
+              row, and the note is the field's description, not a control. */}
+          <FinePrint>
+            <span id="cart-code-note">{CODE_NOTE}</span>
+          </FinePrint>
           {/* The only route to `/checkout` a shopper reaches by clicking. */}
           <Button href="/checkout">{CHECKOUT_LABEL}</Button>
         </div>

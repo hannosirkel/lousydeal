@@ -17,6 +17,7 @@ import {
   CART_LABELS,
   CODE_APPLY_LABEL,
   CODE_LABEL,
+  CODE_NOTE,
   CODE_REMOVE_LABEL,
 } from "../src/content/checkout";
 import { createStoreFetchJson, type FetchJson, type StoreFetchInit } from "../src/lib/medusa-client";
@@ -139,6 +140,21 @@ describe("the rendered cart", () => {
     expect(html).toContain('maxLength="64"');
     expect(html).toContain('required=""');
     expect(html).toContain(`>${CODE_APPLY_LABEL}</button>`);
+  });
+
+  it("says at the field, before a code is applied, that a code raises the price and never lowers it", async () => {
+    // LD-11 J5. G2's finding 1: the form was a label and a button, and the
+    // only sign a code raised the price was a plus in the ledger afterwards.
+    const html = await renderCart({ items: [
+      { id: "line_certificate", variant_id: "variant_certificate", quantity: 1, unit_price: 5, title: "Lousy Deal" },
+    ], total: 5 });
+    expect(CODE_NOTE).toMatch(/raise the total or leave it where it is; none lowers it/);
+    expect(html).toContain(`<span id="cart-code-note">${CODE_NOTE}</span>`);
+    expect(html).toMatch(/<input id="cart-code"[^>]*aria-describedby="cart-code-note"/);
+    // Where the reader meets it: after the field it describes, before the
+    // control that leaves the page.
+    expect(html.indexOf('id="cart-code"')).toBeLessThan(html.indexOf('id="cart-code-note"'));
+    expect(html.indexOf('id="cart-code-note"')).toBeLessThan(html.indexOf('href="/checkout"'));
   });
 
   it.each(Object.entries(CART_CODE_NOTICES))("renders the fixed %s refusal without reflecting input", async (reason, notice) => {

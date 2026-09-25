@@ -29,6 +29,19 @@ export const CODE_LABEL = "Discount code";
 export const CODE_APPLY_LABEL = "Apply code";
 export const CODE_REMOVE_LABEL = "Remove";
 
+/**
+ * What a code does here, said at the field before one is typed. LD-11 J5.
+ *
+ * The cart's form was a label and a button and nothing else, so the only sign
+ * a code had raised the price was a `+` in the ledger afterwards. It says what
+ * the Terms say (a code can raise the price and never lowers it) in the
+ * cart's words, and "or leave it where it is" because `BLACKFRIDAY` adds
+ * nothing; the second sentence is what the ledger already does with a code,
+ * said before rather than discovered after. Wording chosen by Jev.
+ */
+export const CODE_NOTE =
+  "Codes here raise the total or leave it where it is; none lowers it. The amount appears as its own line above the total, removable before you pay.";
+
 /** Stable D4 refusal reasons mapped to copy rather than reflected from the URL. */
 export const CART_CODE_NOTICES = {
   unknown_code: "That code is not on file. Nothing in the cart changed.",
