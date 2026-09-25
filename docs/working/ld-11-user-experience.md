@@ -890,8 +890,8 @@ Selected by Jev on 2026-09-25.
 `ShareRow` and `content/certificate.ts`. `SHARE_PUBLISHES`, rendered directly
 under the three links and above the existing tracking notice: "Pressing one
 starts a post or an email with this page’s address in it. Once it is sent,
-whoever reads it can open the certificate: a post on X or Bluesky can be read
-by anybody, and its preview shows the name on the certificate." It says
+whoever reads it can open the certificate: a public post on X or Bluesky can
+be read by anybody, and its preview shows the name on the certificate." It says
 "starts", not "publishes", because each link opens a composer the person
 still sends from. Finding 5 is answered by the last clause; the card itself
 is unchanged.
@@ -917,6 +917,23 @@ and 390 with both J10's and this notice, as without either.
 **Not verified.** That X and Bluesky actually unfurl the card from
 `og:image`, which needs a live post of a live address this row may not make
 or record. Whether an email client previews a link depends on the client.
+
+**Fable's review changed "a post" to "a public post"**, because a post from a
+protected X account is not readable by anybody. Jev chose the wording from
+three: "a public post on X or Bluesky can be read by anybody" at 0.79, "is
+normally public" at 0.20, and the text as first built at 0.01. The review also
+replaced the placement test's pinned `</ul><p class="fine-print">` with an
+index chain — `</ul>`, then this notice, then the tracking notice — so moving
+the notice above the links still fails it (1 of 16) and an attribute added to
+`FinePrint`'s `<p>` now passes (16 of 16, where the pinned markup failed).
+The rewritten X-or-Bluesky assertion fails, 1 of 16, when "public " is
+dropped from the copy.
+
+**The name reaches a preview only through the `og:image` card**: the
+`og:title` is "Certificate of lousy judgment" and the serial, and the
+description is the site's own line. There is no `twitter:card` meta, so X's
+unfurl rests on its Open Graph fallback, which is unverified. A certificate
+with no inscription previews "The bearer", as the page does.
 
 ### J12 — Baldrick links the document he names
 

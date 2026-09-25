@@ -103,8 +103,9 @@ export const WHO_CAN_SEE =
  * found every control prefilling the full address — X and Bluesky as public
  * posts, the third as an email body — while the notice beside them talked
  * only about tracking. So this sits directly under the links and says it
- * plainly: sending one hands the address to whoever reads it, which on X or
- * Bluesky is anybody.
+ * plainly: sending one hands the address to whoever reads it, which for a
+ * public post on X or Bluesky is anybody. "Public", because a post from a
+ * protected account is not.
  *
  * **And the name travels ahead of the click.** A posted link unfurls into the
  * card `opengraph-image.tsx` draws, and that card prints the bearer line
@@ -115,7 +116,7 @@ export const WHO_CAN_SEE =
  * to send from, and saying otherwise would be untrue in the other direction.
  */
 export const SHARE_PUBLISHES =
-  "Pressing one starts a post or an email with this page’s address in it. Once it is sent, whoever reads it can open the certificate: a post on X or Bluesky can be read by anybody, and its preview shows the name on the certificate.";
+  "Pressing one starts a post or an email with this page’s address in it. Once it is sent, whoever reads it can open the certificate: a public post on X or Bluesky can be read by anybody, and its preview shows the name on the certificate.";
 
 /** Said under the row, because a page that claims no third parties owes the reader this. */
 export const SHARE_NOTICE =
