@@ -785,6 +785,17 @@ It offered three options: replace "Proceed to payment" with "Return to the
 purchase order", keep the pay link and let checkout refuse, or show both.
 Jev chose the replacement at 0.99.
 
+**Rebased on J4 and J5, 2026-09-25.** J3 and J4 asked the same question in
+the same place, and they now share one `hasCertificate`. J5's note stays
+between the code form and the control, and the control is now either the pay
+link or the return link. One J5 test fixture had a certificate line with no
+`product_handle`. Under J3 such a line is not a certificate, so the fixture now
+carries the handle a real cart line has. The cart page still asks for the
+product list twice, once each through `listMerch` and `listTiers`, both on
+`listProducts`, as J3's and J4's reviews noted. Collapsing that means changing
+the page's mocks in `cart-code.test.ts`, which three open rows also edit, so it
+is left for later rather than done here.
+
 - [x] Say at the cart what checkout says, before the pay control rather than
       after it. Verified by `cart-without-certificate.test.ts`, which renders
       the real cart page for a merch-only cart and for a certificate cart with
