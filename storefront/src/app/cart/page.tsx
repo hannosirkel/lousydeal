@@ -43,11 +43,12 @@ import {
   STORE_CLOSED_NOTICE,
 } from "../../content/checkout";
 import { getRuntimeConfig } from "../../config/runtime-config";
-import { MERCH_APOLOGY, MERCH_HEADING, MERCH_TABLE_HEADINGS,
+import { MERCH_APOLOGY, MERCH_HEADING, MERCH_HEADING_NO_CERTIFICATE, MERCH_TABLE_HEADINGS,
   MERCH_REMOVE_LABEL,
 } from "../../content/merch";
 import { addMerchToCart, applyCode, removeFromCart } from "../../lib/cart-actions";
-import { createStoreFetchJson, listMerch, StoreApiError } from "../../lib/medusa-client";
+import { cartHasCertificate } from "../../lib/checkout-rules";
+import { createStoreFetchJson, listMerch, listTiers, StoreApiError } from "../../lib/medusa-client";
 import { goodsImagePath, goodsPath, merchRowData } from "../../lib/merch-rows";
 import { formatMoney } from "../../lib/money";
 import { getCart } from "../../lib/store-cart";
@@ -190,7 +191,17 @@ export default async function CartPage({
   // decision it offers belongs to this page. A store with no merch renders
   // nothing at all -- not a heading over an empty table, which would be a
   // question with no answers under it.
-  const merch = merchRowData(await listMerch(fetchJson));
+  const [merchItems, tiers] = await Promise.all([listMerch(fetchJson), listTiers(fetchJson)]);
+  const merch = merchRowData(merchItems);
+
+  // **LD-11 J4: the upsell's question has to be true of this cart.** §7's
+  // heading asks about "your deal", and a cart of printed things alone has
+  // none. Asked by the checkout's own rule, over the same handles, so the cart
+  // and the checkout cannot disagree about which carts hold a certificate.
+  const hasCertificate = cartHasCertificate(
+    items.map((item) => ({ quantity: item.quantity, handle: item.product_handle ?? null, variantId: item.variant_id })),
+    tiers.map((tier) => tier.handle),
+  );
 
   // **Which lines a buyer may take out.** The upsell is already on this page,
   // so its variant ids are already known -- no second question to Medusa, and
@@ -254,7 +265,7 @@ export default async function CartPage({
         {merch.length === 0 ? null : (
           <>
             <Rule />
-            <h2 className="upsell-heading">{MERCH_HEADING}</h2>
+            <h2 className="upsell-heading">{hasCertificate ? MERCH_HEADING : MERCH_HEADING_NO_CERTIFICATE}</h2>
             <TierTable
               headings={MERCH_TABLE_HEADINGS}
               rows={merch.map((row) => ({

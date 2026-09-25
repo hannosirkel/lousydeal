@@ -22,6 +22,7 @@ import {
   MERCH_ADD_LABEL,
   MERCH_APOLOGY,
   MERCH_HEADING,
+  MERCH_HEADING_NO_CERTIFICATE,
   MERCH_TABLE_HEADINGS,
   MERCH_VALUE_PREFIX,
 } from "../src/content/merch";
@@ -108,7 +109,7 @@ describe("the rows", () => {
 });
 
 describe("what the upsell must not say", () => {
-  const everything = [MERCH_HEADING, MERCH_APOLOGY, MERCH_ADD_LABEL, ...Object.values(MERCH_TABLE_HEADINGS)].join(" ");
+  const everything = [MERCH_HEADING, MERCH_HEADING_NO_CERTIFICATE, MERCH_APOLOGY, MERCH_ADD_LABEL, ...Object.values(MERCH_TABLE_HEADINGS)].join(" ");
 
   it("promises no delivery date, because nobody knows one", () => {
     // Constraint 7. Printful's own estimate is not repeated either: P13 has
@@ -300,5 +301,71 @@ describe("the subtitle's route from Medusa to the row", () => {
 
   it("trims what it does carry, so the row is not indented by the seed", async () => {
     expect((await listMerch(stub("  Mug  ")))[0]?.kind).toBe("Mug");
+  });
+});
+
+/**
+ * LD-11 J4, G1's finding 6: the heading asked about "your deal" on a cart
+ * holding no certificate. The real cart page is rendered at the Store API
+ * boundary for both shapes, with the upsell present.
+ */
+describe("the heading on the cart", () => {
+  const CERTIFICATE_LINE = {
+    id: "line_certificate",
+    variant_id: "variant_certificate",
+    product_handle: "lousy-deal",
+    quantity: 1,
+    unit_price: 5,
+    title: "Lousy Deal",
+  };
+  const MUG_LINE = {
+    id: "line_mug",
+    variant_id: "var_mug",
+    product_handle: "this-mug-cost-extra",
+    quantity: 1,
+    unit_price: 15,
+    title: "This Mug Cost Extra",
+  };
+
+  async function renderCart(items: readonly Record<string, unknown>[]): Promise<string> {
+    vi.resetModules();
+    vi.doMock("next/server", () => ({ connection: async () => undefined }));
+    vi.doMock("next/headers", () => ({ cookies: async () => ({ get: () => ({ value: "cart_1" }) }) }));
+    vi.doMock("../src/lib/store-session", () => ({
+      CART_ID_COOKIE: "lousydeal_cart_id",
+      CART_COOKIE_OPTIONS: { httpOnly: true, sameSite: "lax", path: "/", secure: true },
+      requireStoreClientConfig: () => ({ backendUrl: "http://backend.example", publishableKey: "pk" }),
+    }));
+    vi.doMock("../src/lib/medusa-client", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("../src/lib/medusa-client")>()),
+      createStoreFetchJson: () => async () => ({}),
+      listMerch: async () => [MUG],
+      listTiers: async () => [
+        { id: "prod_deal", handle: "lousy-deal", title: "Lousy Deal", variantId: "variant_certificate", amount: 5, currencyCode: "usd" },
+      ],
+    }));
+    vi.doMock("../src/lib/store-cart", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("../src/lib/store-cart")>()),
+      getCart: async () => ({ id: "cart_1", currency_code: "usd", total: 20, items }),
+    }));
+
+    const { default: CartPage } = await import("../src/app/cart/page");
+    return renderToStaticMarkup(await CartPage({ searchParams: Promise.resolve({}) }));
+  }
+
+  it("asks the question §7 asked where the cart holds a certificate", async () => {
+    const html = await renderCart([CERTIFICATE_LINE, MUG_LINE]);
+    expect(html).toContain(`<h2 class="upsell-heading">${MERCH_HEADING}</h2>`);
+  });
+
+  it("does not ask about a deal the cart does not contain", async () => {
+    const html = await renderCart([MUG_LINE]);
+    expect(html).toContain(`<h2 class="upsell-heading">${MERCH_HEADING_NO_CERTIFICATE}</h2>`);
+    expect(html).not.toContain(`<h2 class="upsell-heading">${MERCH_HEADING}</h2>`);
+  });
+
+  it("is a different sentence, and one that admits there is no deal yet", () => {
+    expect(MERCH_HEADING_NO_CERTIFICATE).not.toBe(MERCH_HEADING);
+    expect(MERCH_HEADING_NO_CERTIFICATE).toMatch(/Start with the deal/);
   });
 });

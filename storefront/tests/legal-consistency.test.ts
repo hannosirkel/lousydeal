@@ -29,7 +29,7 @@ import {
   POSTED_PRICE_NOTICE,
   orderSummaryLines,
 } from "../src/content/checkout";
-import { MERCH_APOLOGY, MERCH_HEADING, MERCH_TABLE_HEADINGS } from "../src/content/merch";
+import { MERCH_APOLOGY, MERCH_HEADING, MERCH_HEADING_NO_CERTIFICATE, MERCH_TABLE_HEADINGS } from "../src/content/merch";
 import { WITHDRAWAL_NOTICE } from "../src/content/deal";
 import { TERMS_OF_OFFER } from "../src/content/home";
 import { IMPRINT } from "../src/content/legal/imprint";
@@ -79,7 +79,7 @@ const SURFACES: ReadonlyArray<readonly [string, string]> = [
   ["the gift confirmation note", GIFT_CONFIRMATION_NOTE],
   ["the address note", ADDRESS_NOTE],
   ["the posted price notice", POSTED_PRICE_NOTICE],
-  ["the merch upsell", [MERCH_HEADING, MERCH_APOLOGY, ...Object.values(MERCH_TABLE_HEADINGS)].join("\n")],
+  ["the merch upsell", [MERCH_HEADING, MERCH_HEADING_NO_CERTIFICATE, MERCH_APOLOGY, ...Object.values(MERCH_TABLE_HEADINGS)].join("\n")],
   // Every cart shape the checkout can render, because the § 62²(2) lines
   // differ by shape and only one of them was ever read here.
   [

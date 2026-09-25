@@ -774,8 +774,35 @@ Selected by Jev on 2026-09-25.
 **Candidate `f`**, from G1's finding 6 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
-- [ ] Build candidate `f` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+**Files:** `storefront/src/app/cart/page.tsx`, `storefront/src/content/merch.ts`,
+`storefront/src/lib/store-cart.ts`, `storefront/tests/merch-upsell.test.ts`,
+`storefront/tests/cart-code.test.ts`, `storefront/tests/legal-consistency.test.ts`.
+
+`MERCH_HEADING`, `Would you like to make your deal worse?`, rendered above
+the upsell on a cart holding no certificate, which has no deal to make worse.
+The cart now asks the checkout's own question, `cartHasCertificate` over the
+tier handles, of the line handles it already receives. It keeps §7's line
+where the cart holds a certificate. Where it does not, it asks
+`MERCH_HEADING_NO_CERTIFICATE`: `Would you like to make a deal worse? Start
+with the deal.` Jev chose it from three drafts, with the other two at 0.40
+and 0.14 against its 0.46. That is a narrow and low-confidence choice,
+recorded as such. It joins the upsell's must-not-say guards and the
+legal-consistency surface for the upsell.
+
+The cart page now also lists the tiers, beside the merch it already listed, so
+each cart view costs the Store API two more reads. J3 makes the same
+determination in the same place, and whichever of the two merges second
+needs its block reconciled with the other's.
+
+- [x] Make the upsell heading true on a cart with no certificate. Verified
+      by `merch-upsell.test.ts`, which renders the real cart page with the
+      upsell present for a certificate-and-merch cart and a merch-only cart,
+      and asserts which heading each carries, and that the merch-only cart
+      does not carry §7's. Each assertion was mutation-checked (see the PR).
+      **Not verified:** that the live Store API's cart carries
+      `product_handle`. The checkout already reads it from the same
+      endpoint, which is the evidence, but no live cart was walked for this
+      row.
 
 ### J5 — The discount field says what a code does here, before it is applied
 
