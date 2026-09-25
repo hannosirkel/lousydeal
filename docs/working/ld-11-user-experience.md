@@ -881,6 +881,8 @@ named.
 **Candidate `r`**, from G4's findings 4 and 5 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
+**The copy is Jev's choice** of three drafts: the one built here, at 0.96.
+
 - [x] Build candidate `r` as its finding describes. The row records what
       was built, what verifies it, and each mutation run.
 
