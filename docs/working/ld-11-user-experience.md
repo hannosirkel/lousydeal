@@ -770,7 +770,7 @@ Selected by Jev on 2026-09-25.
 
 A cart holding printed things and no certificate showed a total, `APPLY CODE`
 and `PROCEED TO PAYMENT`, and the checkout refused it a page later with
-`CART_NEEDS_CERTIFICATE_NOTICE`. The cart now asks the checkout's own question,
+`CART_NEEDS_CERTIFICATE_NOTICE`. The cart now applies the checkout's rule for a cart with no certificate,
 `cartHasCertificate` over the tier handles, of the line handles it already
 receives, and on a cart with no certificate renders that same notice beneath
 the ledger. In place of `PROCEED TO PAYMENT` it offers `Return to the purchase
@@ -791,7 +791,9 @@ Jev chose the replacement at 0.99.
       and without merch: the notice sits between the ledger and the controls,
       the merch-only cart has no link to `/checkout` and has the one to `/`,
       and the certificate cart keeps the pay link and has neither the notice
-      nor the return link. Each assertion was mutation-checked (see the PR).
+      nor the return link. Ten mutations were run, each alone on
+      the committed tree and restored with `git checkout --` on the page
+      only; each failed the test naming its defect (the PR lists them).
       **Not verified:** that the live Store API's cart carries
       `product_handle`. The checkout already reads it from the same
       endpoint, which is the evidence, but no live cart was walked for this
