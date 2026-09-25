@@ -111,6 +111,22 @@ describe("the share row", () => {
 });
 
 /**
+ * A line with its `//` comment removed: the first `//` at the start of the
+ * line or after whitespace, with an even count of each quote character before
+ * it. Deliberately simple -- a quote inside a template expression or a
+ * regular expression can fool it -- and good enough for a guard that reads
+ * this repository's own sources.
+ */
+function withoutLineComment(line: string): string {
+  for (const match of line.matchAll(/(^|\s)\/\//g)) {
+    const before = line.slice(0, match.index);
+    const balanced = ['"', "'", "`"].every((quote) => before.split(quote).length % 2 === 1);
+    if (balanced) return before;
+  }
+  return line;
+}
+
+/**
  * LD-11 J10: the page says who can read it, and each reason it gives is held
  * to the code that makes it true.
  */
@@ -137,9 +153,16 @@ describe("what the share row says about who can see the page", () => {
 
   it("is true that nothing on this site links to a certificate", () => {
     // The notice says so. `seo.test.ts` keeps `/done-deals/` out of the
-    // sitemap; this keeps it out of every other source file, so a link from a
-    // receipt page or a gallery makes the sentence false here first. The
-    // route's own segment builds the address to share, and is exempt.
+    // sitemap; this fails if any source outside the route's own segment
+    // spells the path `/done-deals/` in code, so a link from a receipt page
+    // or a gallery makes the sentence false here first. The route's own
+    // segment builds the address to share, and is exempt.
+    //
+    // **Its limit:** it reads spellings, not values. A path assembled from
+    // pieces (`"done-deals" + "/"`) passes it. Comments are stripped first --
+    // block comments, and a `//` at the start of a line or after whitespace
+    // outside any quote -- so prose that mentions the route does not count,
+    // and `https://` inside a string is never mistaken for one.
     const root = fileURLToPath(new URL("../src", import.meta.url));
     const own = join(root, "app", "done-deals");
     const files = (function walk(dir: string): string[] {
@@ -152,7 +175,9 @@ describe("what the share row says about who can see the page", () => {
     const offending = files.filter((file) =>
       readFileSync(file, "utf8")
         .replace(/\/\*[\s\S]*?\*\//g, " ")
-        .replace(/^\s*\/\/.*$/gm, " ")
+        .split("\n")
+        .map(withoutLineComment)
+        .join("\n")
         .includes("/done-deals/"),
     );
 

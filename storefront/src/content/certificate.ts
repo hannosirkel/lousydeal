@@ -81,7 +81,7 @@ export const SHARE_EMAIL_SUBJECT = "A certificate of lousy judgment";
  *
  * - *nothing on this site links to it*: `sitemap.ts` lists no `/done-deals/`
  *   path, and `tests/share-links.test.ts` fails if any source outside the
- *   route's own segment builds one;
+ *   route's segment spells the path `/done-deals/` in code;
  * - *search engines are asked to leave it out*: the page's `generateMetadata`
  *   answers `robots: { index: false, follow: false }`, and the PDF and the
  *   share card send `x-robots-tag: noindex, nofollow`;

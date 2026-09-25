@@ -843,7 +843,9 @@ certificate anybody with its address can read" — on the page it describes.
 
 **Each reason was checked in code before it was written.** Nothing links to
 it: `sitemap.ts` lists no `/done-deals/` path (`seo.test.ts`), and no source
-file outside the route's own segment names one. Search engines are *asked*:
+file outside the route's own segment spells it in code — a test fails if one
+does, reading spellings rather than values, so a path assembled from pieces
+would pass it. Search engines are *asked*:
 `robots: { index: false, follow: false }` on the page, `x-robots-tag` on the
 PDF and the card — a request, which is why the sentence says "asked". Cannot
 be guessed: `backend/src/modules/deal/slug.ts`, sixteen characters from
@@ -859,7 +861,10 @@ the page test only); "unlisted, not private" rewritten as "private" (fails
 the Privacy consistency test, 2 of 13); the Privacy Policy's phrase reworded
 (fails the consistency test only); a `/done-deals/` path added to
 `content/home.ts` (fails "nothing on this site links"); the source walk
-emptied (fails the same test on its `> 50 files` floor). The share area was
+emptied (fails the same test on its `> 50 files` floor). Per Fable's
+review, the walk now also strips a trailing `//` comment outside quotes: a
+trailing-comment mention of the path in `content/home.ts` passes, and a
+literal `href="/done-deals/x"` in the same file still fails. The share area was
 rendered with the real `globals.css` and Plex Mono in Chromium: horizontal
 overflow `0` at 320, 360 and 390, the notice 288, 328 and 358 pixels wide.
 
