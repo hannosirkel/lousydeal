@@ -651,7 +651,9 @@ export function PayButton({
   // then quoted, and a PaymentIntent minted, for a country the buyer never
   // picked, and cancelled when the real one arrived. The select is `required`,
   // so the empty choice cannot be submitted, and `quoteReady` waits for a
-  // real one. Every value it can hold is still one of `countries`' own rows.
+  // real one. It holds either `""` or one of `countries`' own rows, never a
+  // value this file invented; `prepare` refuses the first if validation is
+  // ever bypassed.
   const [countryCode, setCountryCode] = useState<string>("");
   /**
    * LD-04 P7. The postal address, and the postage quoted for it.
@@ -869,7 +871,7 @@ export function PayButton({
           // typing documents validating "the Payment Element", not "every mounted
           // Element", and says nothing about element count.
           if (countryCode.length === 0) {
-            throw new Error("No country is available for this region.");
+            throw new Error("No country has been chosen.");
           }
           // C3b, and before `setCartCountry` only because a rejected address
           // should cost the buyer nothing: both run before `confirmPayment`

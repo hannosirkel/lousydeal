@@ -455,6 +455,16 @@ small {
   min-inline-size: 0;
 }
 
+/* LD-11 H4 moved the country select into this fieldset. A user-agent
+   fieldset's `min-inline-size` is `min-content`, so it would not shrink below
+   the select's widest option and set the page's width -- J1's sideways scroll
+   again, for every parcel cart, which J1's rule on `select` cannot stop. Only
+   the one property `.inscription` also sets; the box is otherwise left as it
+   was, for the reason above. */
+.address {
+  min-inline-size: 0;
+}
+
 .inscription > legend {
   padding: 0 var(--space-2) 0 0;
 }

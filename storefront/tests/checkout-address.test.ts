@@ -312,7 +312,10 @@ describe("the country, and when postage is quoted", () => {
     // The debounce itself is timer behaviour in an effect this suite cannot
     // run; the rule it waits on is tested above, and this binds the effect
     // to it. The end-to-end count of PaymentIntents is not asserted here.
-    expect(QUOTE_DEBOUNCE_MS).toBeGreaterThan(0);
+    // Long enough to outlast a keystroke, short enough not to feel stuck. A
+    // bound on zero let `1` through, which is no debounce at all.
+    expect(QUOTE_DEBOUNCE_MS).toBeGreaterThanOrEqual(300);
+    expect(QUOTE_DEBOUNCE_MS).toBeLessThanOrEqual(1500);
     const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8");
     expect(source).toMatch(/const timer = window\.setTimeout\(\(\) => \{\s*quoteChainRef\.current = quoteChainRef\.current/);
     expect(source).toMatch(/\}, QUOTE_DEBOUNCE_MS\);\s*return \(\) => \{\s*cancelled = true;\s*window\.clearTimeout\(timer\);/);

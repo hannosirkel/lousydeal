@@ -172,4 +172,12 @@ describe("the country control", () => {
     expect(rule).toMatch(/max-inline-size:\s*100%/);
     expect(rule).toMatch(/min-inline-size:\s*0/);
   });
+
+  it("cannot widen the address fieldset it now sits in either", () => {
+    // LD-11 H4 put the select inside `fieldset.address`, whose user-agent
+    // `min-inline-size` is `min-content`: measured in Chromium, 551px of page
+    // at 390 without this, 390 with it. Guard, not proof, as above.
+    const rule = /\.address\s*\{[^}]*\}/.exec(css)?.[0] ?? "";
+    expect(rule).toMatch(/min-inline-size:\s*0/);
+  });
 });

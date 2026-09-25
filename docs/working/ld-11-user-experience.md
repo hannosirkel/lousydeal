@@ -1230,6 +1230,25 @@ have, and the operator declined adding one. What is asserted:
 Whether a real parcel checkout now mints one intent has not been measured,
 because no browser route to test exists from here.
 
+**Its review found that H4 brought J1's sideways scroll back, and it was
+fixed before merge.** Moving the select into `fieldset.address` put it inside
+a user-agent fieldset, whose `min-inline-size` is `min-content`. The fieldset
+then refused to shrink below the select's widest option and set the page's
+width, and J1's rule on `select` cannot reach that. The fix is the one
+property `.inscription` already sets, `min-inline-size: 0`, and nothing else
+about the box changes. It was measured in Chromium on the rendered `PayButton`
+with the real stylesheet and the longest country name selected:
+
+| Width | Overflow with the rule | Overflow without it |
+| --- | --- | --- |
+| 320 | 1px (font rounding, also on main) | 231px |
+| 360 | 0px | 191px |
+| 390 | 0px | 161px |
+
+`tokens.test.ts` now guards the property the way it guards J1's. My nine
+mutations had all been to the source and the markup, and none rendered a
+page, which is how a layout regression passed all of them.
+
 - [x] Move the country control above the address fieldset it governs, stop
       seeding `countryCode` to a country the buyer has not chosen, and debounce
       the quote effect. Verified by `checkout-address.test.ts`, as above. Three
@@ -1243,7 +1262,7 @@ because no browser route to test exists from here.
 
 ## Where this slice stands, for whoever picks it up
 
-**Eighteen of the plan's rows are closed, with H4 in review, and two J-rows with them.** Part one
+**Seventeen of the plan's rows are closed with H4, and two J-rows with them.** Part one
 repaired every defect live order #1 proved. Part two walked all six flows and
 produced thirty-eight findings and twenty-two candidate fix rows; its stage 1
 is closed. Part three is closed: H1 to H5.
