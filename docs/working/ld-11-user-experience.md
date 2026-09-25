@@ -828,6 +828,8 @@ Selected by Jev on 2026-09-25.
 **Candidate `q`**, from G4's findings 2 and 3 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
+**The copy is Jev's choice** of three drafts: the one built here, at 0.51 against 0.46 and 0.03. That is a narrow margin, recorded as such.
+
 - [x] Build candidate `q` as its finding describes. The row records what
       was built, what verifies it, and each mutation run.
 
