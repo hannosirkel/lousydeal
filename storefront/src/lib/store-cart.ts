@@ -36,6 +36,13 @@ interface StoreCartLineItemResponse {
    * tell which size they bought until the parcel arrives.
    */
   readonly variant_title?: string | null;
+  /**
+   * The product's handle, which is how the checkout tells a certificate from a
+   * printed thing (`checkout-rules.ts`). Read from the same cart response
+   * `getCheckoutCart` reads it from, so the cart and the checkout judge a line
+   * the same way.
+   */
+  readonly product_handle?: string | null;
 }
 
 export interface StoreCartResponse {

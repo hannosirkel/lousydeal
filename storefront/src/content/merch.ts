@@ -33,6 +33,16 @@
 export const MERCH_HEADING = "Would you like to make your deal worse?";
 
 /**
+ * The same question, on a cart that holds no certificate.
+ *
+ * LD-11 J4. §7's line assumes a deal, and the upsell renders on a cart of
+ * printed things alone, where there is none: the question asked about
+ * something the cart does not contain, which constraint 4 forbids in its
+ * general form. This keeps the question and makes it true of that cart.
+ */
+export const MERCH_HEADING_NO_CERTIFICATE = "Would you like to make your deal worse, once you have one?";
+
+/**
  * `Sizes` where the tier table says `Description`, because that is the one
  * thing a printed item has that a certificate does not — and the column has to
  * earn its width with something true rather than with copy.
