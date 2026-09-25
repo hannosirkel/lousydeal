@@ -197,7 +197,7 @@ describe("the rendered cart", () => {
 
   it("says the discount line moved only in the notice for a line that moved", () => {
     expect(CART_SWAP_NOTICES.swapped).not.toContain("discount");
-    expect(CART_SWAP_NOTICES.swapped_repriced).toContain("re-priced");
+    expect(CART_SWAP_NOTICES.swapped_repriced).toContain("The discount line is a share of the certificate’s price, so it changed too.");
     expect(CART_SWAP_NOTICES.swapped_removed).toContain("removed");
   });
 });

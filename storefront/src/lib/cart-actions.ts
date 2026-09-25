@@ -156,8 +156,13 @@ export async function addToCart(formData: FormData): Promise<void> {
 type SurchargeOutcome = "none" | "unchanged" | "repriced" | "removed";
 
 /**
- * Whether the re-priced surcharge line reads differently from the one the
- * cart held: another price, or the doubled line put back to one.
+ * Whether the re-priced surcharge line's price differs from the one the
+ * cart held.
+ *
+ * **The price, and not the quantity.** The notice this chooses says the line
+ * is a share of the certificate's price and so changed. A doubled `FREE`
+ * line put back to one changed quantity without being a share of anything,
+ * so a quantity change alone is not reported as one.
  *
  * **Measured, not predicted.** A percentage code moves with the tier and a
  * fee does not, and `BLACKFRIDAY`'s nought stays nought -- but the cart
@@ -171,7 +176,7 @@ function surchargeMoved(
 ): boolean {
   const line = (after ?? []).find((item) => item.variant_id === null);
   if (before === undefined || line === undefined) return false;
-  return line.unit_price !== before.unit_price || line.quantity !== before.quantity;
+  return line.unit_price !== before.unit_price;
 }
 
 function swapReason(surcharge: SurchargeOutcome): "swapped" | "swapped_repriced" | "swapped_removed" {

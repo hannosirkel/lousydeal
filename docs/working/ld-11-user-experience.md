@@ -871,18 +871,29 @@ is not an error.
 - `swapped`: "The certificate you chose replaced the one in the cart. An
   order carries one certificate."
 - `swapped_repriced`: "The certificate you chose replaced the one in the
-  cart. The discount line was re-priced for the new certificate."
+  cart. The discount line is a share of the certificate’s price, so it
+  changed too."
 - `swapped_removed`: "The certificate you chose replaced the one in the
   cart. The discount line could not be re-priced for it and was removed."
 
 **The second sentence is measured, not predicted.** The action compares the
 surcharge line it held with the one in the cart the re-price answers with. So
 `FREE`'s fee and `BLACKFRIDAY`'s nought, which do not move with the tier, are
-not said to have moved. `swapped_removed` covers the two paths that already
+not said to have moved. Only a change of price counts: a doubled line put back
+to one at the same price is not called a share that changed, which for `FREE`
+it is not. `swapped_removed` covers the two paths that already
 removed the line: a failed re-price, and a line held twice. No notice carries
 a figure (constraint 5), because the ledger beneath prints the new line and
 total. There is no notice for an empty cart, a merch-only cart, a new cart, or
 the tier the cart already held; that last one is J6's.
+
+**The copy is Jev's choice**, made on 2026-09-25 among drafted options.
+`swapped` as built, at 0.58. `swapped_repriced` is Jev's pick, the second
+alternative, at 0.70, replacing the built "The discount line was re-priced for
+the new certificate." `swapped_removed` as built, at 0.64. The apostrophe in
+"certificate’s" is U+2019, because React escapes a straight one in markup.
+The chosen text was re-measured in Chromium: 0px overflow at 320, 360 and
+390, wrapping to five, four and four lines.
 
 - [x] Build candidate `o` as its finding describes. Verified by
       `cart-actions.test.ts`, which covers each reason chosen from what the

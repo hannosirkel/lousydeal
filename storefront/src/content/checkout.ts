@@ -58,11 +58,17 @@ export const CART_CODE_NOTICES = {
  * what it is the total of (constraint 5) while saying no more than the ledger.
  * The second sentence of each is only used when the action measured it --
  * a fee, or nought per cent, does not move with the tier, and is not said to.
+ *
+ * `swapped_repriced` says the line is a share of the certificate's price. That
+ * is true because it is only sent when the line's price moved, and only a
+ * percentage code's price moves with the tier. The apostrophe is U+2019:
+ * React escapes a straight one in markup. The wording of all three is Jev's
+ * choice among drafted options (LD-11 J8).
  */
 export const CART_SWAP_NOTICES = {
   swapped: "The certificate you chose replaced the one in the cart. An order carries one certificate.",
   swapped_repriced:
-    "The certificate you chose replaced the one in the cart. The discount line was re-priced for the new certificate.",
+    "The certificate you chose replaced the one in the cart. The discount line is a share of the certificate’s price, so it changed too.",
   swapped_removed:
     "The certificate you chose replaced the one in the cart. The discount line could not be re-priced for it and was removed.",
 } as const;

@@ -619,13 +619,16 @@ describe("what the cart is told after Acquire", () => {
     expect(run.redirectedTo).toBe("/cart?swap_reason=swapped");
   });
 
-  it("counts a doubled discount line put back to one as moved", async () => {
+  it("does not call a doubled discount line put back to one at the same price a share that changed", async () => {
+    // The notice for a moved line says it is a share of the certificate's
+    // price. A doubled FREE fee put back to one is not, so only a price
+    // change counts.
     const run = await runAddToCart({
       cookieCartId: "cart_1",
       existingCart: { id: "cart_1", completed_at: null, items: [standard, discount(1, 2)] },
       repricedItems: [chosen, discount(1)],
     });
-    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped_repriced");
+    expect(run.redirectedTo).toBe("/cart?swap_reason=swapped");
   });
 
   it("does not claim a move it cannot see in the re-priced cart", async () => {
