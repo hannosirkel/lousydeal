@@ -63,6 +63,7 @@ import {
   giftAddressNote,
   CART_LABELS,
   COUNTRY_LABEL,
+  COUNTRY_PLACEHOLDER,
   SHIPPING_LABEL,
   SHIPPING_PENDING_NOTICE,
   SHIPPING_UNAVAILABLE_NOTICE,
@@ -102,8 +103,9 @@ import {
 import {
   ADDRESS_LIMITS,
   EMPTY_SHIPPING_ADDRESS,
-  addressComplete,
+  QUOTE_DEBOUNCE_MS,
   needsProvince,
+  quoteReady,
   type ShippingAddressInput,
 } from "../../lib/shipping-address";
 import { checkPriorPayment, runPayPath } from "../../lib/pay-path";
@@ -643,13 +645,16 @@ export function PayButton({
    * which is LD-02 -- so nothing here tells a buyer the right is already gone.
    */
   const [consented, setConsented] = useState(false);
-  // Defaults to the region's first country rather than an empty selection --
-  // `backend/src/scripts/configure-commerce.ts:90-92`'s `WORLDWIDE_COUNTRY_CODES`
-  // is every `defaultCountries` alpha-2 code, so this list is never empty on
-  // this deployment's one region -- and a non-empty default means the value
-  // `handleSubmit` reads below is always one of `countries`' own rows, never
-  // a placeholder string this file invented.
-  const [countryCode, setCountryCode] = useState<string>(countries[0]?.iso_2 ?? "");
+  // **Empty until the buyer chooses, since LD-11 H4.** It used to default to
+  // `countries[0]`, the first row of whatever order Medusa returned the
+  // region's countries in, which nothing sorts or chooses. A parcel cart was
+  // then quoted, and a PaymentIntent minted, for a country the buyer never
+  // picked, and cancelled when the real one arrived. The select is `required`,
+  // so the empty choice cannot be submitted, and `quoteReady` waits for a
+  // real one. It holds either `""` or one of `countries`' own rows, never a
+  // value this file invented; `prepare` refuses the first if validation is
+  // ever bypassed.
+  const [countryCode, setCountryCode] = useState<string>("");
   /**
    * LD-04 P7. The postal address, and the postage quoted for it.
    *
@@ -731,7 +736,7 @@ export function PayButton({
     if (submitting || orderId !== null || charged) return;
     const quoteGeneration = ++quoteGenerationRef.current;
     if (!needsAddress) return;
-    if (!addressComplete(address, countryCode)) {
+    if (!quoteReady(address, countryCode)) {
       setShippingAmount(null);
       setQuoting(false);
       onPostageSettled({ status: "pending" });
@@ -748,55 +753,62 @@ export function PayButton({
     // A quote already in flight is allowed to finish, then the newest complete
     // address runs. Superseded queued addresses are skipped, so writes cannot
     // land out of order and stale the total shown above.
-    quoteChainRef.current = quoteChainRef.current
-      .catch(() => undefined)
-      .then(async () => {
-        if (quoteGeneration !== quoteGenerationRef.current) return;
-        try {
-          await setCartShippingAddress(fetchJson, cartId, {
-            ...address,
-            countryCode,
-          });
-          const options = await listCartShippingOptions(fetchJson, cartId);
-          // **`?? Infinity`, because a calculated option has no price yet.**
-          // Medusa's store route does not price one, so sorting on a bare
-          // `amount` compared `undefined` and put an unpriced option nowhere in
-          // particular. A priced option still sorts cheapest-first; unpriced
-          // ones keep the order Medusa returned them in, which is the only
-          // information available about them. This shop offers exactly one, so
-          // the sort decides nothing today and is kept honest for the day it
-          // does.
-          const cheapest = [...options].sort(
-            (first, second) => (first.amount ?? Infinity) - (second.amount ?? Infinity),
-          )[0];
-          if (cheapest === undefined) throw new Error(SHIPPING_UNAVAILABLE_NOTICE);
-          const applied = await setCartShippingMethod(fetchJson, cartId, cheapest.id);
-          if (!cancelled && quoteGeneration === quoteGenerationRef.current) {
-            setShippingAmount(applied.shippingAmount);
-            // **After the attach, never before.** This is what lets the parent
-            // create the payment session, and the whole of finding 17 was that
-            // one existed before the shipping method did.
-            onPostageSettled({
-              status: "settled",
-              total: applied.total,
-              shippingAmount: applied.shippingAmount,
+    //
+    // H4: and only once the address has stood still for `QUOTE_DEBOUNCE_MS`.
+    // Each keystroke re-runs this effect, whose cleanup cancels the timer, so
+    // only the address the buyer stopped on is ever written to the cart.
+    const timer = window.setTimeout(() => {
+      quoteChainRef.current = quoteChainRef.current
+        .catch(() => undefined)
+        .then(async () => {
+          if (quoteGeneration !== quoteGenerationRef.current) return;
+          try {
+            await setCartShippingAddress(fetchJson, cartId, {
+              ...address,
+              countryCode,
             });
+            const options = await listCartShippingOptions(fetchJson, cartId);
+            // **`?? Infinity`, because a calculated option has no price yet.**
+            // Medusa's store route does not price one, so sorting on a bare
+            // `amount` compared `undefined` and put an unpriced option nowhere in
+            // particular. A priced option still sorts cheapest-first; unpriced
+            // ones keep the order Medusa returned them in, which is the only
+            // information available about them. This shop offers exactly one, so
+            // the sort decides nothing today and is kept honest for the day it
+            // does.
+            const cheapest = [...options].sort(
+              (first, second) => (first.amount ?? Infinity) - (second.amount ?? Infinity),
+            )[0];
+            if (cheapest === undefined) throw new Error(SHIPPING_UNAVAILABLE_NOTICE);
+            const applied = await setCartShippingMethod(fetchJson, cartId, cheapest.id);
+            if (!cancelled && quoteGeneration === quoteGenerationRef.current) {
+              setShippingAmount(applied.shippingAmount);
+              // **After the attach, never before.** This is what lets the parent
+              // create the payment session, and the whole of finding 17 was that
+              // one existed before the shipping method did.
+              onPostageSettled({
+                status: "settled",
+                total: applied.total,
+                shippingAmount: applied.shippingAmount,
+              });
+            }
+          } catch {
+            // The thrown message is not shown. It is Medusa's or Printful's, and
+            // a buyer reading "Printful quoted no usable shipping option to XX"
+            // learns nothing they can act on.
+            if (!cancelled && quoteGeneration === quoteGenerationRef.current) {
+              setShippingAmount(null);
+              setShippingError(SHIPPING_UNAVAILABLE_NOTICE);
+              onPostageSettled({ status: "unavailable" });
+            }
+          } finally {
+            if (!cancelled && quoteGeneration === quoteGenerationRef.current) setQuoting(false);
           }
-        } catch {
-          // The thrown message is not shown. It is Medusa's or Printful's, and
-          // a buyer reading "Printful quoted no usable shipping option to XX"
-          // learns nothing they can act on.
-          if (!cancelled && quoteGeneration === quoteGenerationRef.current) {
-            setShippingAmount(null);
-            setShippingError(SHIPPING_UNAVAILABLE_NOTICE);
-            onPostageSettled({ status: "unavailable" });
-          }
-        } finally {
-          if (!cancelled && quoteGeneration === quoteGenerationRef.current) setQuoting(false);
-        }
-      });
+        });
+    }, QUOTE_DEBOUNCE_MS);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
     // `address` and `countryCode` are the whole of the input; `fetchJson` and
     // `cartId` are stable for the life of this component. `submitting` is a
@@ -859,7 +871,7 @@ export function PayButton({
           // typing documents validating "the Payment Element", not "every mounted
           // Element", and says nothing about element count.
           if (countryCode.length === 0) {
-            throw new Error("No country is available for this region.");
+            throw new Error("No country has been chosen.");
           }
           // C3b, and before `setCartCountry` only because a rejected address
           // should cost the buyer nothing: both run before `confirmPayment`
@@ -919,6 +931,21 @@ export function PayButton({
       />
     );
   }
+
+  /** H4. One control, rendered first in the address for a parcel and alone otherwise. */
+  const countryField = (
+    <p className="field">
+      <label htmlFor="checkout-country">{COUNTRY_LABEL}</label>
+      <select id="checkout-country" value={countryCode} onChange={(event) => setCountryCode(event.target.value)} required>
+        <option value="">{COUNTRY_PLACEHOLDER}</option>
+        {countries.map((country) => (
+          <option key={country.iso_2} value={country.iso_2}>
+            {country.display_name}
+          </option>
+        ))}
+      </select>
+    </p>
+  );
 
   return (
     <form onSubmit={(event) => void handleSubmit(event)} data-analytics-event="checkout_started" data-analytics-currency={currencyCode}>
@@ -1122,6 +1149,9 @@ export function PayButton({
           {/* F5. Order #1's buyer worked out unaided that this field is where
               the hat goes and that it is not taken from the gift block. */}
           <GiftAddressNote isGift={giftOpen} needsAddress={needsAddress} />
+          {/* H4. First, because it governs the rest: the province field and
+              the postage both depend on it, and it used to sit below them. */}
+          {countryField}
           {(["name", "line1", "city", "postcode"] as const).map((field) => (
             <p className="field" key={field}>
               <label htmlFor={`checkout-address-${field}`}>{ADDRESS_LABELS[field]}</label>
@@ -1156,22 +1186,9 @@ export function PayButton({
       {/* Collects the one field the row asks for, sourced from `countries` --
           the region's own list, not free text -- and read by `setCartCountry`
           on submit. A certificate ships nowhere, so this stands in for a
-          shipping address without being one (T10). */}
-      <p className="field">
-        <label htmlFor="checkout-country">{COUNTRY_LABEL}</label>
-        <select
-          id="checkout-country"
-          value={countryCode}
-          onChange={(event) => setCountryCode(event.target.value)}
-          required
-        >
-          {countries.map((country) => (
-            <option key={country.iso_2} value={country.iso_2}>
-              {country.display_name}
-            </option>
-          ))}
-        </select>
-      </p>
+          shipping address without being one (T10). With a parcel it is the
+          address's first field instead (H4), rendered there. */}
+      {needsAddress ? null : countryField}
 
       {shippingError === null ? null : <p className="notice payment-error">{shippingError}</p>}
 

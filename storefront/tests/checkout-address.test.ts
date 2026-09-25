@@ -21,6 +21,7 @@ import {
   ADDRESS_LABELS,
   ADDRESS_NOTE,
   CART_LABELS,
+  COUNTRY_PLACEHOLDER,
   ORDER_PLACED_HEADING,
   SHIPPING_LABEL,
   SHIPPING_PENDING_NOTICE,
@@ -28,6 +29,7 @@ import {
 import { OrderPlaced } from "../src/app/checkout/OrderPlaced";
 import { GiftAddressNote, PaymentForm, PayButton } from "../src/app/checkout/PaymentForm";
 import { giftRecipientSent } from "../src/lib/gift";
+import { QUOTE_DEBOUNCE_MS, needsProvince, quoteReady } from "../src/lib/shipping-address";
 import type { FetchJson } from "../src/lib/medusa-client";
 
 vi.mock("@stripe/react-stripe-js", () => ({
@@ -213,7 +215,7 @@ describe("a cart with a parcel in it", () => {
       source.indexOf("if (!needsAddress) return;"),
     );
     expect(source.indexOf("if (!needsAddress) return;")).toBeLessThan(
-      source.indexOf("if (!addressComplete(address, countryCode))"),
+      source.indexOf("if (!quoteReady(address, countryCode))"),
     );
     // In the dependencies, or an edit made during a failed submit is never
     // quoted afterwards and the button stays dark for ever.
@@ -234,8 +236,8 @@ describe("a cart with a parcel in it", () => {
     );
     expect(source).toContain("if (quoteGeneration !== quoteGenerationRef.current) return;");
     const incomplete = source.slice(
-      source.indexOf("if (!addressComplete(address, countryCode))"),
-      source.indexOf("let cancelled = false;", source.indexOf("if (!addressComplete(address, countryCode))")),
+      source.indexOf("if (!quoteReady(address, countryCode))"),
+      source.indexOf("let cancelled = false;", source.indexOf("if (!quoteReady(address, countryCode))")),
     );
     expect(incomplete).toContain("setQuoting(false);");
   });
@@ -251,11 +253,73 @@ describe("a cart with a parcel in it", () => {
 
   it("asks for a province only where Printful demands one", () => {
     // Measured: the United States and Australia answer "State code is missing"
-    // without one. Estonia is quoted without.
-    expect(render(true)).not.toContain("checkout-address-province");
-    const us = render(true, [{ iso_2: "US", display_name: "United States" }]);
-    expect(us).toContain("checkout-address-province");
-    expect(us).toContain(ADDRESS_LABELS.province);
+    // without one. Estonia is quoted without. **Since LD-11 H4 no country is
+    // chosen on render**, so the field appears only once the buyer picks one
+    // that needs it; the rule and its binding are what can be asserted here.
+    expect(needsProvince("US")).toBe(true);
+    expect(needsProvince("EE")).toBe(false);
+    expect(needsProvince("")).toBe(false);
+    expect(render(true, [{ iso_2: "US", display_name: "United States" }])).not.toContain("checkout-address-province");
+    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8");
+    expect(source).toMatch(/\{needsProvince\(countryCode\) \? \(\s*<p className="field">\s*<label htmlFor="checkout-address-province">/);
+  });
+});
+
+/**
+ * LD-11 H4. The country is the buyer's choice, it comes first, and nothing is
+ * quoted before it is chosen or while the address is still being typed.
+ */
+describe("the country, and when postage is quoted", () => {
+  const countries = [
+    { iso_2: "ee", display_name: "Estonia" },
+    { iso_2: "us", display_name: "United States" },
+  ];
+
+  it("starts on the empty choice, which cannot be submitted", () => {
+    for (const needsAddress of [true, false]) {
+      const html = render(needsAddress, countries);
+      expect(html).toContain(`<option value="" selected="">${COUNTRY_PLACEHOLDER}</option>`);
+      expect(html).toMatch(/<select id="checkout-country" required="">/);
+      expect(html).not.toMatch(/<option value="ee" selected="">/);
+    }
+  });
+
+  it("comes first in the address it governs, and stands alone without one", () => {
+    const parcel = render(true, countries);
+    const fieldset = parcel.indexOf('<fieldset class="address">');
+    const country = parcel.indexOf('id="checkout-country"');
+    expect(fieldset).toBeGreaterThan(-1);
+    expect(country).toBeGreaterThan(fieldset);
+    expect(country).toBeLessThan(parcel.indexOf('id="checkout-address-name"'));
+    expect(parcel.match(/id="checkout-country"/g)).toHaveLength(1);
+
+    const certificate = render(false, countries);
+    expect(certificate).not.toContain('<fieldset class="address">');
+    expect(certificate.match(/id="checkout-country"/g)).toHaveLength(1);
+  });
+
+  it("is not quoted until a country is chosen and the address is complete", () => {
+    const complete = { name: "A Buyer", line1: "1 Street", city: "Town", postcode: "10111", province: "" };
+    expect(quoteReady(complete, "")).toBe(false);
+    expect(quoteReady(complete, "  ")).toBe(false);
+    expect(quoteReady(complete, "ee")).toBe(true);
+    expect(quoteReady({ ...complete, postcode: "" }, "ee")).toBe(false);
+    expect(quoteReady(complete, "us")).toBe(false);
+    expect(quoteReady({ ...complete, province: "NY" }, "us")).toBe(true);
+  });
+
+  it("waits for the address to stand still before it writes it", () => {
+    // The debounce itself is timer behaviour in an effect this suite cannot
+    // run; the rule it waits on is tested above, and this binds the effect
+    // to it. The end-to-end count of PaymentIntents is not asserted here.
+    // Long enough to outlast a keystroke, short enough not to feel stuck. A
+    // bound on zero let `1` through, which is no debounce at all.
+    expect(QUOTE_DEBOUNCE_MS).toBeGreaterThanOrEqual(300);
+    expect(QUOTE_DEBOUNCE_MS).toBeLessThanOrEqual(1500);
+    const source = readFileSync(new URL("../src/app/checkout/PaymentForm.tsx", import.meta.url), "utf8");
+    expect(source).toMatch(/const timer = window\.setTimeout\(\(\) => \{\s*quoteChainRef\.current = quoteChainRef\.current/);
+    expect(source).toMatch(/\}, QUOTE_DEBOUNCE_MS\);\s*return \(\) => \{\s*cancelled = true;\s*window\.clearTimeout\(timer\);/);
+    expect(source).toMatch(/if \(!quoteReady\(address, countryCode\)\) \{/);
   });
 });
 

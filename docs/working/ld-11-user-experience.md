@@ -1201,21 +1201,71 @@ behaviour rather than as a bug.
 The same effect has no debounce, so the first quote goes out against a
 one-character postcode.
 
-- [ ] Move the country control above the address fieldset it governs, stop
-      seeding `countryCode` to a country the buyer has not chosen, tighten
-      `addressComplete` past accepting any non-blank string, and debounce the
-      quote effect. Verified by a test asserting that no quote is requested
-      until a country has been chosen and the address satisfies the tightened
-      check, and that a parcel order from first keystroke to pay mints exactly
-      one PaymentIntent — with the count asserted, so finding 17's class cannot
-      return unnoticed.
+**Built 2026-09-25. The operator settled three things with them rendered.**
+
+- **The country starts empty.** Its first option is "Choose a country", and
+  the select is `required`, so that option cannot be submitted.
+- **It comes first in the address.** For a parcel it is the address
+  fieldset's first field. A certificate-only cart has no address, so there
+  it stays where it was.
+- **`addressComplete` is not tightened; the quote is debounced instead.**
+  The operator chose that over minimum lengths. A new rule, `quoteReady`,
+  asks for a chosen country and a complete address. The quote effect then
+  waits 600ms (`QUOTE_DEBOUNCE_MS`) after the last change, and each keystroke
+  cancels the pending one. So only the address the buyer stopped on is
+  written to the cart.
+
+**The PaymentIntent count is not asserted, by the operator's choice.** The
+row wanted a test that a parcel order, from first keystroke to pay, mints
+exactly one PaymentIntent. That needs a DOM environment the suite does not
+have, and the operator declined adding one. What is asserted:
+
+- `quoteReady` refuses without a country, without a complete address, and
+  without a province where one is needed.
+- The effect is bound to `quoteReady`, to the debounce, and to the cleanup
+  that cancels it.
+- The rendered checkout starts on the empty choice, which is `required`, and
+  renders the country once, first in the fieldset or alone.
+
+Whether a real parcel checkout now mints one intent has not been measured,
+because no browser route to test exists from here.
+
+**Its review found that H4 brought J1's sideways scroll back, and it was
+fixed before merge.** Moving the select into `fieldset.address` put it inside
+a user-agent fieldset, whose `min-inline-size` is `min-content`. The fieldset
+then refused to shrink below the select's widest option and set the page's
+width, and J1's rule on `select` cannot reach that. The fix is the one
+property `.inscription` already sets, `min-inline-size: 0`, and nothing else
+about the box changes. It was measured in Chromium on the rendered `PayButton`
+with the real stylesheet and the longest country name selected:
+
+| Width | Overflow with the rule | Overflow without it |
+| --- | --- | --- |
+| 320 | 1px (font rounding, also on main) | 231px |
+| 360 | 0px | 191px |
+| 390 | 0px | 161px |
+
+`tokens.test.ts` now guards the property the way it guards J1's. My nine
+mutations had all been to the source and the markup, and none rendered a
+page, which is how a layout regression passed all of them.
+
+- [x] Move the country control above the address fieldset it governs, stop
+      seeding `countryCode` to a country the buyer has not chosen, and debounce
+      the quote effect. Verified by `checkout-address.test.ts`, as above. Three
+      existing tests are updated: two source matches, and one that assumed the
+      first country was preselected, which is the behaviour H4 removes. Nine
+      mutations were run, each restoring only its own file after a commit, and
+      each failed the test naming its defect: the seeded country, the missing
+      placeholder, the select not `required`, the country after the address,
+      the country rendered twice, a quote without a country, no debounce, no
+      cancel, and a gate that ignores `quoteReady`.
 
 ## Where this slice stands, for whoever picks it up
 
-**Sixteen of the plan's rows are closed and one J-row with them.** Part one
+**Seventeen of the plan's rows are closed with H4, and two J-rows with them.** Part one
 repaired every defect live order #1 proved. Part two walked all six flows and
 produced thirty-eight findings and twenty-two candidate fix rows; its stage 1
-is closed. Part three: H1, H2, H3 and H5 are closed. H4 has not been started.
+is closed. Part three is closed: H1 to H5.
 
 **Nothing in part two is built until the operator selects it.** That is stage
 2, and it has happened once: candidate `u` became J1. The other twenty-one

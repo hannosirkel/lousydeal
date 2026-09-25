@@ -75,3 +75,23 @@ export function missingAddressFields(
 export function addressComplete(address: ShippingAddressInput, countryCode: string): boolean {
   return missingAddressFields(address, countryCode).length === 0;
 }
+
+/**
+ * Whether the postage may be quoted. LD-11 H4.
+ *
+ * `addressComplete` looks only at the typed fields, and the country used to
+ * be seeded, so it never needed to. It no longer is: a quote waits for the
+ * buyer's own choice of country, because a quote against any other attaches
+ * a shipping method and mints a PaymentIntent that the real country then
+ * cancels -- Gate D's finding 17, once per parcel order.
+ */
+export function quoteReady(address: ShippingAddressInput, countryCode: string): boolean {
+  return countryCode.trim().length > 0 && addressComplete(address, countryCode);
+}
+
+/**
+ * How long the address must stand still before it is quoted. LD-11 H4: the
+ * first quote used to go out on a one-character postcode, and every keystroke
+ * after it queued another address write.
+ */
+export const QUOTE_DEBOUNCE_MS = 600;
