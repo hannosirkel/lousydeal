@@ -898,12 +898,15 @@ reads it for a certificate.
 **Built: one sentence under the control, only where it stands alone.**
 `COUNTRY_HINT` is `FinePrint` after the select, and the select points to it
 with `aria-describedby`, as the email field does. With a parcel, the address
-note already says why, so neither renders. The draft chosen, for Jev to pick
-from with two alternatives:
+note already says why, so neither renders. The text, chosen by Jev:
 
-> Nothing is posted. The country decides which VAT, if any, is due on the
-> certificate. That VAT is inside the price and we pay it, so what you pay is
-> the same whichever country you choose.
+> Nothing is posted. The country tells us which country's VAT, if any, we
+> owe on the certificate; we pay it out of the price, and what you pay does
+> not change.
+
+Jev chose it from three drafts (0.70, against 0.17 and 0.13). Its apostrophe
+is U+2019, not `'`: React escapes a straight one to `&#x27;`, and the
+exact-text test failed on it, the trap F5 recorded.
 
 "If any" is there because a buyer outside the Union owes none. The hint joins
 `legal-consistency.test.ts`'s surface list, now 15, and two new tests there

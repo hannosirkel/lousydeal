@@ -486,7 +486,7 @@ export const COUNTRY_PLACEHOLDER = "Choose a country";
  * country stands alone: with a parcel, the address note already says why.
  */
 export const COUNTRY_HINT =
-  "Nothing is posted. The country decides which VAT, if any, is due on the certificate. That VAT is inside the price and we pay it, so what you pay is the same whichever country you choose.";
+  "Nothing is posted. The country tells us which country\u2019s VAT, if any, we owe on the certificate; we pay it out of the price, and what you pay does not change.";
 
 /**
  * The address block, shown only when the cart holds something that is posted.

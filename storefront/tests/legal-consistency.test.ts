@@ -194,12 +194,12 @@ describe("what the checkout says the country is for", () => {
 
   it("agrees with the Terms that the certificate's VAT follows the buyer", () => {
     expect(priceAndTax).toMatch(/Value added tax follows where you are rather than where we are, for the certificate/);
-    expect(COUNTRY_HINT).toMatch(/country decides which VAT, if any, is due on the certificate/);
+    expect(COUNTRY_HINT).toMatch(/which country\u2019s VAT, if any, we owe on the certificate/);
   });
 
   it("agrees with the Terms that the price does not change with it", () => {
     expect(priceAndTax).toMatch(/The price you are shown does not/);
-    expect(COUNTRY_HINT).toMatch(/what you pay is the same whichever country you choose/);
+    expect(COUNTRY_HINT).toMatch(/we pay it out of the price, and what you pay does not change/);
   });
 });
 

@@ -139,7 +139,7 @@ describe("why a cart with nothing to post is asked for a country", () => {
     // in "Price and tax" and `legal-consistency.test.ts` holds them to.
     expect(COUNTRY_HINT).toMatch(/\bVAT\b/);
     expect(COUNTRY_HINT).toMatch(/\bif any\b/);
-    expect(COUNTRY_HINT).toMatch(/\bsame whichever country\b/);
+    expect(COUNTRY_HINT).toMatch(/\bwhat you pay does not change\b/);
   });
 });
 
