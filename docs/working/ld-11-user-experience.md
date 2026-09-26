@@ -875,6 +875,16 @@ reads the note before typing is a comprehension question no test settles.
 
 - [x] Candidate `h` built as its finding describes.
 
+**Its review, which landed after the merge, found the test held only half the
+note.** The markup was checked against the constant itself, so deleting the
+second sentence, or turning "above the total" into "below", passed. The fix is
+its own PR, with a new `cart-code-note.test.ts`. It holds the note to its
+literal text, as fine print, and absent from an empty cart, and ties its three
+claims to the Terms' own sentence about codes. Five mutations each fail it:
+the second sentence deleted, "above" made "below", the fine print made a
+`div`, the note shown on the empty cart, and the Terms' removal sentence
+changed.
+
 ### J6 — A repeated or already-applied code is answered like a wrong one
 
 **Repository:** `lousydeal`.
