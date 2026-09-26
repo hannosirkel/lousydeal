@@ -105,10 +105,10 @@ describe("the live discount", () => {
 
     expect(lines).toEqual([
       "There is a discount code.",
-      "It is BALDRICK20. Type it on the order summary. It makes your deal worse.",
+      "It is BALDRICK20. Type it on the order summary. It makes your deal worse by a fifth of the certificate's price.",
     ]);
     expect(detail).toEqual([
-      "You type it on the order summary and the total goes up.",
+      "You type it on the order summary and the total goes up. The summary says how much, on its own line above the total.",
       "I was not told why. I did not ask.",
     ]);
     expect(discount).not.toMatch(/[$€£]|\bpercent\b|\bper cent\b|%/i);
@@ -131,6 +131,33 @@ describe("the live discount", () => {
     const codes = [...surchargeCodesTable(source).matchAll(/\bcode:\s*"([^"]+)"/g)].map((match) => match[1]);
 
     expect(codes).toContain("BALDRICK20");
+  });
+
+  it("names how much the code adds as the backend table prices it, in words", () => {
+    // LD-11 J7. G2's finding 2: he said the total goes up and never by how
+    // much. He cannot see a cart, so the figure is not his; the rate is a fact
+    // of the backend's table, and this holds his words to it. A table that
+    // moves BALDRICK20 to another rate, or a line that names another
+    // fraction, fails here rather than in front of a buyer.
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../backend/src/commerce/surcharge.ts"),
+      "utf8",
+    );
+    const entry = /\{\s*code:\s*"BALDRICK20",\s*kind:\s*"percentage",\s*percentage:\s*(\d+)\s*\}/.exec(
+      surchargeCodesTable(source),
+    );
+    const words: Readonly<Record<string, string>> = { "10": "a tenth", "20": "a fifth", "25": "a quarter", "50": "half" };
+    const fraction = words[entry?.[1] ?? ""];
+
+    expect(fraction).toBeDefined();
+    expect(BALDRICK_SCRIPT.discount?.say.flat().join(" ")).toContain(`${fraction ?? "?"} of the certificate's price`);
+  });
+
+  it("sends the visitor to the line that prints the amount", () => {
+    // The other half of J7: the rate is his, the dollar figure is the cart's,
+    // and the follow-up says where it is printed rather than leaving it found
+    // by accident.
+    expect(BALDRICK_SCRIPT.discount_detail?.say.flat().join(" ")).toMatch(/says how much, on its own line above the total/);
   });
 
   it("does not treat a commented-out backend code as declared", () => {

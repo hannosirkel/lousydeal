@@ -40,7 +40,11 @@
  * **The current boundary, recorded so LD-06 keeps it.** The `discount` steps
  * name one code and point to the order summary, but state no figure and claim
  * no cart change. Baldrick cannot see a cart or apply its code; the cart owns
- * the figure. LD-05's constraint 9 — a row that falsifies a tracked document
+ * the figure. **LD-11 J7 moved the line by one step and no further:** he names
+ * the code's rate, in words -- a fifth of the certificate's price -- because
+ * that is a fact of the backend's table, not of any cart, and
+ * `baldrick-copy.test.ts` holds the words to the table's percentage. The
+ * dollar amount stays the cart's, and he says so. LD-05's constraint 9 — a row that falsifies a tracked document
  * carries it — means D7 carries this file when the code becomes live.
  */
 
@@ -97,7 +101,7 @@ export const BALDRICK_SCRIPT: Script = {
   discount: {
     say: [
       ["There is a discount code."],
-      ["It is BALDRICK20. Type it on the order summary. It makes your deal worse."],
+      ["It is BALDRICK20. Type it on the order summary. It makes your deal worse by a fifth of the certificate's price."],
     ],
     quickReplies: [
       { id: "discount-go-on", label: "Go on", goes: "discount_detail" },
@@ -106,7 +110,7 @@ export const BALDRICK_SCRIPT: Script = {
   },
   discount_detail: {
     say: [
-      ["You type it on the order summary and the total goes up."],
+      ["You type it on the order summary and the total goes up. The summary says how much, on its own line above the total."],
       ["I was not told why. I did not ask."],
     ],
   },

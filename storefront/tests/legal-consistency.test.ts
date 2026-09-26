@@ -24,6 +24,7 @@ import { baldrickProse } from "../src/content/baldrick";
 import {
   ADDRESS_NOTE,
   CONSENT_LABEL,
+  COUNTRY_HINT,
   EMAIL_HINT,
   GIFT_CONFIRMATION_NOTE,
   POSTED_PRICE_NOTICE,
@@ -79,6 +80,10 @@ const SURFACES: ReadonlyArray<readonly [string, string]> = [
   ["the gift confirmation note", GIFT_CONFIRMATION_NOTE],
   ["the address note", ADDRESS_NOTE],
   ["the posted price notice", POSTED_PRICE_NOTICE],
+  // LD-11 J9: the certificate-only checkout says why it asks for a country,
+  // beside a field the buyer fills in before paying. A guard is only as wide
+  // as its list.
+  ["the checkout country hint", COUNTRY_HINT],
   ["the merch upsell", [MERCH_HEADING, MERCH_HEADING_NO_CERTIFICATE, MERCH_APOLOGY, ...Object.values(MERCH_TABLE_HEADINGS)].join("\n")],
   // Every cart shape the checkout can render, because the § 62²(2) lines
   // differ by shape and only one of them was ever read here.
@@ -98,7 +103,7 @@ describe("the surfaces this applies to", () => {
   it("includes every legal document and every pre-contractual surface", () => {
     // A cross-document guard that silently stops covering a document is the
     // failure it was written to prevent.
-    expect(SURFACES).toHaveLength(14);
+    expect(SURFACES).toHaveLength(15);
     for (const [name, text] of SURFACES) expect(`${name}: ${String(text.length > 0)}`).toBe(`${name}: true`);
   });
 
@@ -179,6 +184,22 @@ describe("what every surface says about the right", () => {
       expect(documentProse(document)).toContain("§ 56(1⁶)");
       expect(documentProse(document)).toMatch(/12 months/i);
     }
+  });
+});
+
+describe("what the checkout says the country is for", () => {
+  // LD-11 J9. The hint makes two claims a buyer relies on while choosing, and
+  // the Terms make both first. If either document moves, the other has to.
+  const priceAndTax = TERMS.sections.find((section) => section.heading === "Price and tax")?.body.join(" ") ?? "";
+
+  it("agrees with the Terms that the certificate's VAT follows the buyer", () => {
+    expect(priceAndTax).toMatch(/Value added tax follows where you are rather than where we are, for the certificate/);
+    expect(COUNTRY_HINT).toMatch(/which country\u2019s VAT, if any, we owe on the certificate/);
+  });
+
+  it("agrees with the Terms that the price does not change with it", () => {
+    expect(priceAndTax).toMatch(/The price you are shown does not/);
+    expect(COUNTRY_HINT).toMatch(/we pay it out of the price, and what you pay does not change/);
   });
 });
 

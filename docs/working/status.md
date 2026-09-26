@@ -7,10 +7,10 @@ does not — it points, it does not hold.
 
 | | |
 | --- | --- |
-| Updated | 2026-09-25 |
+| Updated | 2026-09-26 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | Nothing merged is undeployed that this file knows of; H4 merged as #264. Part four gains J3–J12, selected by Jev at the operator's instruction (see the plan), being built in parallel, one PR each. |
-| Next action | Build and review J3–J12, one PR per row. Unselected part-two candidates stay unnumbered. The Stripe webhook the notices' email promise relies on is not a row in the held table below. LD-07 remains deferred out of V1. |
+| In flight | Nothing merged is undeployed that this file knows of; H4 merged as #264. Part four gains J3–J12, selected by Jev at the operator's instruction (see the plan), being built in parallel, one PR each. J8 has now been merged forward with J6 on `main`; its branch still needs publish/validation. |
+| Next action | Publish and validate the open J3–J12 rows after their merge-forward conflict resolution, one PR per row. Unselected part-two candidates stay unnumbered. The Stripe webhook the notices' email promise relies on is not a row in the held table below. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,

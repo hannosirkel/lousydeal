@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined, refresh: () => undefined }) }));
 
 import {
+  CART_ACQUIRE_NOTICES,
   CART_CODE_NOTICES,
   CART_LABELS,
   CART_SWAP_NOTICES,
@@ -20,6 +21,7 @@ import {
   CODE_LABEL,
   CODE_NOTE,
   CODE_REMOVE_LABEL,
+  cartCodeAmountNotice,
 } from "../src/content/checkout";
 import { createStoreFetchJson, type FetchJson, type StoreFetchInit } from "../src/lib/medusa-client";
 import { applySurcharge } from "../src/lib/store-cart";
@@ -135,6 +137,47 @@ describe("the rendered cart", () => {
     expect(html).toContain(`aria-label="${CODE_REMOVE_LABEL} Discount (BALDRICK20)"`);
   });
 
+  it("says in words how much the applied code adds, from the line's own price", async () => {
+    // LD-11 J7. G2's finding 2: the ledger printed +$1.00 and nothing said it.
+    // A price other than the fixture default proves the figure is the line's.
+    const html = await renderCart({
+      total: 12,
+      items: [
+        { id: "line_certificate", variant_id: "variant_certificate", quantity: 1, unit_price: 10, title: "Lousy Deal" },
+        { id: "line_surcharge", variant_id: null, quantity: 1, unit_price: 2, title: "Discount (BALDRICK20)" },
+      ],
+    });
+    expect(cartCodeAmountNotice("$2.00")).toBe("Your discount code added $2.00. The total above includes it.");
+    expect(html).toContain(`<p class="notice" id="cart-code-amount">${cartCodeAmountNotice("$2.00")}</p>`);
+    // Under the total it adds to, and above the form.
+    expect(html.indexOf(`>${CART_LABELS.total}<`)).toBeLessThan(html.indexOf('id="cart-code-amount"'));
+    expect(html.indexOf('id="cart-code-amount"')).toBeLessThan(html.indexOf('class="code-form field'));
+  });
+
+  it("says nothing about an amount when there is no code, or the line is not one of one", async () => {
+    const certificate = { id: "line_certificate", variant_id: "variant_certificate", quantity: 1, unit_price: 5, title: "Lousy Deal" };
+    const surcharge = { id: "line_surcharge", variant_id: null, unit_price: 1, title: "Discount (BALDRICK20)" };
+    expect(await renderCart({ total: 5, items: [certificate] })).not.toContain('id="cart-code-amount"');
+    // The state checkout refuses: one dollar's sentence beside a total that rose by two would be false.
+    expect(await renderCart({ total: 7, items: [certificate, { ...surcharge, quantity: 2 }] })).not.toContain('id="cart-code-amount"');
+    expect(await renderCart({ total: 7, items: [certificate, { ...surcharge, quantity: 1 }, { ...surcharge, id: "line_two", quantity: 1 }] }))
+      .not.toContain('id="cart-code-amount"');
+  });
+
+  it("says nothing about an amount for a code that adds nothing", async () => {
+    // Jev's choice, 0.82: a zero-rate code (BLACKFRIDAY) already shows its
+    // plus-zero line in the ledger, and "added $0.00" beside it is noise.
+    const html = await renderCart({
+      total: 5,
+      items: [
+        { id: "line_certificate", variant_id: "variant_certificate", quantity: 1, unit_price: 5, title: "Lousy Deal" },
+        { id: "line_surcharge", variant_id: null, quantity: 1, unit_price: 0, title: "Discount (BLACKFRIDAY)" },
+      ],
+    });
+    expect(ledgerLabels(html)).toContain("Discount (BLACKFRIDAY)");
+    expect(html).not.toContain('id="cart-code-amount"');
+  });
+
   it("puts the code form beneath the ledger and before the payment link", async () => {
     const html = await renderCart();
     expect(html.indexOf('class="ledger"')).toBeLessThan(html.indexOf('class="code-form field'));
@@ -151,7 +194,7 @@ describe("the rendered cart", () => {
     // LD-11 J5. G2's finding 1: the form was a label and a button, and the
     // only sign a code raised the price was a plus in the ledger afterwards.
     const html = await renderCart({ items: [
-      { id: "line_certificate", variant_id: "variant_certificate", quantity: 1, unit_price: 5, title: "Lousy Deal" },
+      { id: "line_certificate", variant_id: "variant_certificate", product_handle: "lousy-deal", quantity: 1, unit_price: 5, title: "Lousy Deal" },
     ], total: 5 });
     expect(CODE_NOTE).toMatch(/raise the total or leave it where it is; none lowers it/);
     expect(html).toContain(`<span id="cart-code-note">${CODE_NOTE}</span>`);
@@ -199,5 +242,28 @@ describe("the rendered cart", () => {
     expect(CART_SWAP_NOTICES.swapped).not.toContain("discount");
     expect(CART_SWAP_NOTICES.swapped_repriced).toContain("The discount line is a share of the certificate’s price, so it changed too.");
     expect(CART_SWAP_NOTICES.swapped_removed).toContain("removed");
+  });
+
+  it("answers a code that is already applied in the words a wrong one gets", () => {
+    // LD-11 J6: the same consequence, stated the same way.
+    expect(CART_CODE_NOTICES.already_applied).toBe("That code is already applied. Nothing in the cart changed.");
+    expect(CART_CODE_NOTICES.unknown_code.endsWith(" Nothing in the cart changed.")).toBe(true);
+  });
+
+  it("says a repeated tier changed nothing, and why", () => {
+    // LD-11 J6: the consequence a wrong code is told, and the rule behind it.
+    expect(CART_ACQUIRE_NOTICES.already_in_cart).toMatch(/already in the cart\./);
+    expect(CART_ACQUIRE_NOTICES.already_in_cart).toMatch(/nothing changed\.$/);
+  });
+
+  it.each(Object.entries(CART_ACQUIRE_NOTICES))("renders the fixed %s acquire notice where a code refusal goes", async (reason, notice) => {
+    const html = await renderCart({ params: { acquire_reason: reason } });
+    expect(html).toContain(`<p class="notice payment-error">${notice}</p>`);
+  });
+
+  it("ignores an unknown acquire reason rather than reflecting it", async () => {
+    const html = await renderCart({ params: { acquire_reason: "made-up" } });
+    expect(html).not.toContain("made-up");
+    expect(html).not.toContain("payment-error");
   });
 });

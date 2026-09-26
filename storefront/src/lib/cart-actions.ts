@@ -53,17 +53,19 @@ async function cartToAddTo(
   fetchJson: FetchJson,
   existingCartId: string | undefined,
   clear: (variantId: string | null) => boolean,
-): Promise<{ readonly id: string; readonly items: CartLines }> {
+  alreadyHolds: (items: NonNullable<CartLines>) => boolean = () => false,
+): Promise<{ readonly id: string; readonly items: CartLines; readonly unchanged: boolean }> {
   if (existingCartId !== undefined) {
     try {
       const cart = await getCart(fetchJson, existingCartId);
       if (cart.completed_at == null) {
+        if (alreadyHolds(cart.items ?? [])) return { id: cart.id, items: cart.items, unchanged: true };
         for (const line of (cart.items ?? []).filter((item) => clear(item.variant_id))) {
           // Sequential, not `Promise.all`: these are writes to one cart and
           // Medusa refetches and recomputes it on each.
           await removeLineFromCart(fetchJson, cart.id, line.id);
         }
-        return { id: cart.id, items: cart.items };
+        return { id: cart.id, items: cart.items, unchanged: false };
       }
     } catch {
       // Not rethrown, and not logged with the id -- a cart id is a bearer
@@ -71,7 +73,7 @@ async function cartToAddTo(
       // cause, so telling the causes apart earns nothing.
     }
   }
-  return { id: (await createCart(fetchJson, (await getDefaultRegion(fetchJson)).id)).id, items: [] };
+  return { id: (await createCart(fetchJson, (await getDefaultRegion(fetchJson)).id)).id, items: [], unchanged: false };
 }
 
 /**
@@ -111,6 +113,17 @@ async function cartToAddTo(
  * `listTiers`, which is the same list `checkout/page.tsx` derives its rules
  * from and, since P9a, the one that actually excludes merch.
  *
+ * **Pressing the tier the cart already holds changes nothing, and says so.**
+ * LD-11 J6 (G2's finding 7): the second press used to clear the certificate,
+ * add it back and re-price the surcharge to the figure it already had, then
+ * land on a cart that looked exactly as before with no word about why. A
+ * buyer who pressed twice because the first press seemed not to work could
+ * not tell what happened. Now a cart holding exactly that one certificate,
+ * and a surcharge no more than once at a quantity of one, is not written to
+ * at all, and the cart says so in the words a wrong code gets. Any other
+ * shape takes the ordinary path, because clearing and re-adding is what
+ * repairs it.
+ *
  * **A swap says it was one.** LD-11 J8 (G2's finding 6): pressing `Acquire`
  * on Plus with Standard and `BALDRICK20` in the cart replaced the certificate
  * and re-priced the discount line from one dollar to two, and nothing said
@@ -128,7 +141,21 @@ export async function addToCart(formData: FormData): Promise<void> {
   const cookieStore = await cookies();
   const certificates = new Set((await listTiers(fetchJson)).map((tier) => tier.variantId));
   const isCertificate = (id: string | null) => id !== null && certificates.has(id);
-  const cart = await cartToAddTo(fetchJson, cookieStore.get(CART_ID_COOKIE)?.value, isCertificate);
+  const cart = await cartToAddTo(
+    fetchJson,
+    cookieStore.get(CART_ID_COOKIE)?.value,
+    isCertificate,
+    (items) => {
+      const held = items.filter((line) => isCertificate(line.variant_id));
+      const surcharge = items.filter((line) => line.variant_id === null);
+      return held.length === 1 && held[0]?.variant_id === variantId && held[0].quantity === 1
+        && surcharge.length <= 1 && surcharge.every((line) => line.quantity === 1);
+    },
+  );
+  if (cart.unchanged) {
+    cookieStore.set(CART_ID_COOKIE, cart.id, CART_COOKIE_OPTIONS);
+    redirect("/cart?acquire_reason=already_in_cart");
+  }
   const surcharges = (cart.items ?? []).filter((line) => line.variant_id === null);
   const code = surcharges.length === 1 && typeof surcharges[0]?.metadata?.["code"] === "string"
     ? surcharges[0].metadata["code"]
@@ -229,6 +256,29 @@ export async function addMerchToCart(formData: FormData, redirectAfter = true): 
 
 type SurchargeRefusalReason = "unknown_code" | "no_certificate" | "completed";
 
+type SurchargeLineShape = { readonly title: string; readonly unitPrice: number };
+
+/**
+ * The cart's one surcharge line, as the buyer sees it, or `null` for none,
+ * more than one, one at a quantity above one, or one with no title.
+ *
+ * A line with no title is not compared, because two codes can land on the
+ * same price -- `FREE` and `BALDRICK20` add the same dollar to Standard -- and
+ * the title is the only thing that tells them apart.
+ *
+ * The title and the price are what the ledger prints for it, so two readings
+ * that agree on both are, to the buyer, the same line. The title is written
+ * server-side from the normalised code (`surcharge.ts`), so a code typed
+ * again in another case or with spaces reads as the same line, which it is.
+ */
+function onlySurcharge(items: CartLines): SurchargeLineShape | null {
+  const surcharges = (items ?? []).filter((line) => line.variant_id === null);
+  const [line] = surcharges;
+  if (surcharges.length !== 1 || line === undefined || line.quantity !== 1) return null;
+  if (typeof line.title !== "string" || line.title.length === 0) return null;
+  return { title: line.title, unitPrice: line.unit_price };
+}
+
 function surchargeRefusalReason(error: unknown): SurchargeRefusalReason | null {
   if (!(error instanceof StoreApiError) || error.status !== 422) return null;
   const body = error.body;
@@ -237,7 +287,23 @@ function surchargeRefusalReason(error: unknown): SurchargeRefusalReason | null {
   return reason === "unknown_code" || reason === "no_certificate" || reason === "completed" ? reason : null;
 }
 
-/** Apply one code to the cart named by the caller's private cart cookie. */
+/**
+ * Apply one code to the cart named by the caller's private cart cookie.
+ *
+ * **A code already applied is answered, like a wrong one.** LD-11 J6 (G2's
+ * finding 3): applying `BALDRICK20` a second time produced no text at all,
+ * while `NOTACODE` was told it was not on file. The backend still does what
+ * it always did with a repeat -- replaces the line with an identical one --
+ * and this compares what the ledger showed before with what it shows after.
+ * Where the one surcharge line reads the same, the buyer is told the code is
+ * already applied, and nothing in the cart changed. That is measured, not
+ * inferred from the code's spelling, so it cannot say "nothing changed" of a
+ * cart whose line was re-priced or de-duplicated by the call.
+ *
+ * It redirects even for an enhanced submission, as a refusal does, so the
+ * answer is shown rather than a silent refresh, and a code that was already
+ * applied is not counted as accepted a second time.
+ */
 export async function applyCode(formData: FormData, redirectAfter = true): Promise<void> {
   assertStoreOpen();
   const code = formData.get("code");
@@ -250,12 +316,24 @@ export async function applyCode(formData: FormData, redirectAfter = true): Promi
   if (cartId === undefined) redirect("/cart?code_reason=no_certificate");
 
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
+  let before: SurchargeLineShape | null = null;
   try {
-    await applySurcharge(fetchJson, cartId, code);
+    before = onlySurcharge((await getCart(fetchJson, cartId)).items);
+  } catch {
+    // Not knowing what was there only costs the notice, never the code: the
+    // apply below still answers for the cart. Not logged, for `cartToAddTo`'s
+    // reason.
+  }
+  let after: SurchargeLineShape | null;
+  try {
+    after = onlySurcharge((await applySurcharge(fetchJson, cartId, code)).items);
   } catch (error) {
     const reason = surchargeRefusalReason(error);
     if (reason === null) throw error;
     redirect(`/cart?code_reason=${reason}`);
+  }
+  if (before !== null && after !== null && before.title === after.title && before.unitPrice === after.unitPrice) {
+    redirect("/cart?code_reason=already_applied");
   }
   if (redirectAfter !== false) redirect("/cart");
 }

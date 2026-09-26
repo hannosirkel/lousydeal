@@ -42,11 +42,36 @@ export const CODE_REMOVE_LABEL = "Remove";
 export const CODE_NOTE =
   "Codes here raise the total or leave it where it is; none lowers it. The amount appears as its own line above the total, removable before you pay.";
 
+/**
+ * What an applied code added, in words, under the total it added to. LD-11 J7.
+ *
+ * The ledger printed a plus and a figure and nothing said it; order #1's recipient had to
+ * be told afterwards, in writing, that the discount had added a dollar. The
+ * figure is the surcharge line's own unit price, priced by the backend's
+ * table against the certificate in this cart -- passed in, never computed
+ * here -- and the sentence names what it is added to (constraint 5). Wording
+ * chosen by Jev.
+ */
+export const cartCodeAmountNotice = (amount: string): string =>
+  `Your discount code added ${amount}. The total above includes it.`;
+
 /** Stable D4 refusal reasons mapped to copy rather than reflected from the URL. */
 export const CART_CODE_NOTICES = {
   unknown_code: "That code is not on file. Nothing in the cart changed.",
   no_certificate: "A discount code needs exactly one certificate in the cart. Choose the one you want, then try again.",
   completed: "This order is already complete. Start a new purchase to use a code.",
+  already_applied: "That code is already applied. Nothing in the cart changed.",
+} as const;
+
+/**
+ * What the cart says when a tier was pressed that it already holds. LD-11 J6.
+ *
+ * The same answer `unknown_code` gives: the press was heard, and nothing
+ * changed. Without it a second press looked exactly like a first one that had
+ * not worked. The wording is Jev's choice among three drafts (LD-11 J6).
+ */
+export const CART_ACQUIRE_NOTICES = {
+  already_in_cart: "That deal is already in the cart. An order carries one, so nothing changed.",
 } as const;
 
 /**
@@ -490,6 +515,27 @@ export const COUNTRY_LABEL = "Country";
  * starts here. The select is `required`, so this choice cannot be submitted.
  */
 export const COUNTRY_PLACEHOLDER = "Choose a country";
+
+/**
+ * Why a cart with nothing to post is asked for a country. LD-11 J9.
+ *
+ * **G3's finding 5**: on a certificate-only cart the control changes no figure
+ * on the page, and a visitor could not work out what it was for. It is not
+ * decorative, so the fix is to say why rather than to stop asking. The country
+ * resolves the cart's tax region (`setCartCountry`): decision `013` puts the
+ * certificate under destination VAT through the Union OSS, `tax-model.ts`
+ * carries 27 destination rates, and `vat-thresholds.ts` counts the order into
+ * Union turnover, or leaves it out, by this same `country_code`.
+ *
+ * **It says "if any" because a buyer outside the Union owes none**, and it
+ * says the price does not move because decision `009` makes the VAT come out
+ * of the price rather than on top of it. Both are the Terms' own position
+ * ("Price and tax"), and the Privacy Policy's "the country you are in" and
+ * "the country you selected" are what it asks and keeps. Shown only where the
+ * country stands alone: with a parcel, the address note already says why.
+ */
+export const COUNTRY_HINT =
+  "Nothing is posted. The country tells us which country\u2019s VAT, if any, we owe on the certificate; we pay it out of the price, and what you pay does not change.";
 
 /**
  * The address block, shown only when the cart holds something that is posted.

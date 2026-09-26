@@ -30,17 +30,20 @@ import { RemoveLine } from "../../components/document/RemoveLine";
 import { Rule } from "../../components/document/Rule";
 import { TierTable } from "../../components/document/TierTable";
 import {
+  CART_ACQUIRE_NOTICES,
   CART_CODE_NOTICES,
   CART_DOCUMENT,
   CART_EMPTY_NOTICE,
   CART_LABELS,
   CART_SWAP_NOTICES,
+  CART_NEEDS_CERTIFICATE_NOTICE,
   CHECKOUT_LABEL,
   CODE_APPLY_LABEL,
   CODE_LABEL,
   CODE_NOTE,
   CODE_REMOVE_LABEL,
   RETURN_LABEL,
+  cartCodeAmountNotice,
   STORE_CLOSED_NOTICE,
 } from "../../content/checkout";
 import { getRuntimeConfig } from "../../config/runtime-config";
@@ -128,11 +131,14 @@ function EmptyCart({ codeNotice }: { readonly codeNotice?: string }) {
 
 type CartSearchParams = Record<string, string | string[] | undefined>;
 
+function fixedNotice<T extends Record<string, string>>(notices: T, reason: unknown): string | undefined {
+  return typeof reason === "string" && Object.hasOwn(notices, reason) ? notices[reason as keyof T] : undefined;
+}
+
+/** A fixed notice chosen by a stable reason in the query, never the query's own text. */
 function codeNotice(parameters: CartSearchParams): string | undefined {
-  const reason = parameters["code_reason"];
-  return typeof reason === "string" && Object.hasOwn(CART_CODE_NOTICES, reason)
-    ? CART_CODE_NOTICES[reason as keyof typeof CART_CODE_NOTICES]
-    : undefined;
+  return fixedNotice(CART_CODE_NOTICES, parameters["code_reason"])
+    ?? fixedNotice(CART_ACQUIRE_NOTICES, parameters["acquire_reason"]);
 }
 
 /** LD-11 J8: what `Acquire` replaced, by a stable reason and never the query's own text. */
@@ -205,10 +211,12 @@ export default async function CartPage({
   const [merchItems, tiers] = await Promise.all([listMerch(fetchJson), listTiers(fetchJson)]);
   const merch = merchRowData(merchItems);
 
-  // **LD-11 J4: the upsell's question has to be true of this cart.** §7's
-  // heading asks about "your deal", and a cart of printed things alone has
-  // none. Asked by the checkout's own rule, over the same handles, so the cart
-  // and the checkout cannot disagree about which carts hold a certificate.
+  // **LD-11 J4 and J3: both ask whether this cart holds a certificate.** J4:
+  // §7's upsell heading asks about "your deal", and a cart of printed things
+  // alone has none. J3: the checkout refuses such a cart with
+  // `CART_NEEDS_CERTIFICATE_NOTICE`, and the cart used to offer
+  // `PROCEED TO PAYMENT` to reach that refusal. Asked by the checkout's own
+  // rule, over the same handles, so the pages cannot disagree.
   const hasCertificate = cartHasCertificate(
     items.map((item) => ({ quantity: item.quantity, handle: item.product_handle ?? null, variantId: item.variant_id })),
     tiers.map((tier) => tier.handle),
@@ -222,6 +230,15 @@ export default async function CartPage({
   const removable = new Set(merch.flatMap((row) => row.variants.map((variant) => variant.variantId)));
   const merchandise = items.filter((item) => item.variant_id !== null);
   const surcharges = items.filter((item) => item.variant_id === null);
+  // J7. Only the ordinary state: one code line of one. Any other shape is the
+  // one checkout refuses with `CART_SURCHARGE_NOTICE`, and a sentence here
+  // naming one line's price beside a total that rose by two would be false.
+  // And not for a code that adds nothing: the ledger's own zero line says so,
+  // and a sentence saying a zero was added is noise beside it (Jev, 0.82).
+  const codeLine =
+    surcharges.length === 1 && surcharges[0]?.quantity === 1 && (surcharges[0]?.unit_price ?? 0) > 0
+      ? surcharges[0]
+      : undefined;
 
   return (
     <main>
@@ -263,7 +280,16 @@ export default async function CartPage({
           <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currency_code)} />
         </Ledger>
         {swap === undefined ? null : <p className="notice">{swap}</p>}
+        {codeLine === undefined ? null : (
+          <p className="notice" id="cart-code-amount">
+            {cartCodeAmountNotice(formatMoney(codeLine.unit_price, cart.currency_code))}
+          </p>
+        )}
         {notice === undefined ? null : <p className="notice payment-error">{notice}</p>}
+        {/* Before the controls, and in place of the pay control: a button
+            that leads only to the same refusal would be a control that does
+            nothing. The way on is to the certificates, on the purchase order. */}
+        {hasCertificate ? null : <p className="notice">{CART_NEEDS_CERTIFICATE_NOTICE}</p>}
         <div className="cart-code-controls">
           <CodeForm action={applyCode} />
           {/* J5. Beneath the form rather than inside it: the form is one flex
@@ -271,8 +297,12 @@ export default async function CartPage({
           <FinePrint>
             <span id="cart-code-note">{CODE_NOTE}</span>
           </FinePrint>
-          {/* The only route to `/checkout` a shopper reaches by clicking. */}
-          <Button href="/checkout">{CHECKOUT_LABEL}</Button>
+          {hasCertificate ? (
+            // The only route to `/checkout` a shopper reaches by clicking.
+            <Button href="/checkout">{CHECKOUT_LABEL}</Button>
+          ) : (
+            <Button variant="secondary" href="/">{RETURN_LABEL}</Button>
+          )}
         </div>
         {merch.length === 0 ? null : (
           <>

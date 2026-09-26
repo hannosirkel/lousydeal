@@ -7,7 +7,9 @@
  * anybody, or what a reader of the Privacy Policy would find true.
  */
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -19,7 +21,9 @@ import {
   SHARE_NOTICE,
   SHARE_TARGETS,
   SHARE_TEXT,
+  WHO_CAN_SEE,
 } from "../src/content/certificate";
+import { PRIVACY } from "../src/content/legal/privacy";
 
 const URL_UNDER_TEST = "https://lousydeal.example/done-deals/xbts2k3mmv3trv3n";
 const html = renderToStaticMarkup(createElement(ShareRow, { url: URL_UNDER_TEST }));
@@ -103,5 +107,81 @@ describe("the share row", () => {
     const hosts = [...source.matchAll(/https?:\/\/([a-z0-9.-]+)/gi)].map(([, host]) => host);
 
     expect([...new Set(hosts)].sort()).toEqual(["bsky.app", "x.com"]);
+  });
+});
+
+/**
+ * A line with its `//` comment removed: the first `//` at the start of the
+ * line or after whitespace, with an even count of each quote character before
+ * it. Deliberately simple -- a quote inside a template expression or a
+ * regular expression can fool it -- and good enough for a guard that reads
+ * this repository's own sources.
+ */
+function withoutLineComment(line: string): string {
+  for (const match of line.matchAll(/(^|\s)\/\//g)) {
+    const before = line.slice(0, match.index);
+    const balanced = ['"', "'", "`"].every((quote) => before.split(quote).length % 2 === 1);
+    if (balanced) return before;
+  }
+  return line;
+}
+
+/**
+ * LD-11 J10: the page says who can read it, and each reason it gives is held
+ * to the code that makes it true.
+ */
+describe("what the share row says about who can see the page", () => {
+  it("says it before the links, where pressing one is still a choice", () => {
+    const notice = html.indexOf(WHO_CAN_SEE);
+    expect(notice).toBeGreaterThan(-1);
+    expect(notice).toBeLessThan(html.indexOf("<a "));
+  });
+
+  it("names the page unlisted and not private, and says who can read it", () => {
+    expect(WHO_CAN_SEE).toMatch(/^Anybody with this page’s address can read it\./);
+    expect(WHO_CAN_SEE).toMatch(/\bunlisted, not private\b/);
+  });
+
+  it("says what the Privacy Policy already told the buyer about the same page", () => {
+    // §3 tells a buyer, before they type an inscription, that it is printed on
+    // "a certificate anybody with its address can read". The page now says it
+    // too; if either is reworded, the two are reconciled rather than drifting.
+    const privacy = PRIVACY.sections.flatMap((section) => section.body).join("\n");
+    expect(privacy).toContain("a certificate anybody with its address can read");
+    expect(WHO_CAN_SEE).toContain("Anybody with this page’s address can read it");
+  });
+
+  it("is true that nothing on this site links to a certificate", () => {
+    // The notice says so. `seo.test.ts` keeps `/done-deals/` out of the
+    // sitemap; this fails if any source outside the route's own segment
+    // spells the path `/done-deals/` in code, so a link from a receipt page
+    // or a gallery makes the sentence false here first. The route's own
+    // segment builds the address to share, and is exempt.
+    //
+    // **Its limit:** it reads spellings, not values. A path assembled from
+    // pieces (`"done-deals" + "/"`) passes it. Comments are stripped first --
+    // block comments, and a `//` at the start of a line or after whitespace
+    // outside any quote -- so prose that mentions the route does not count,
+    // and `https://` inside a string is never mistaken for one.
+    const root = fileURLToPath(new URL("../src", import.meta.url));
+    const own = join(root, "app", "done-deals");
+    const files = (function walk(dir: string): string[] {
+      return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) return path === own ? [] : walk(path);
+        return /\.(ts|tsx)$/.test(entry.name) ? [path] : [];
+      });
+    })(root);
+    const offending = files.filter((file) =>
+      readFileSync(file, "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, " ")
+        .split("\n")
+        .map(withoutLineComment)
+        .join("\n")
+        .includes("/done-deals/"),
+    );
+
+    expect(files.length).toBeGreaterThan(50);
+    expect(offending.map((file) => relative(root, file))).toEqual([]);
   });
 });

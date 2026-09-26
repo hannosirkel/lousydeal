@@ -765,8 +765,50 @@ options, under the same instruction.
 **Candidate `b`**, from G1's finding 2 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
-- [ ] Build candidate `b` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+**Files:** `storefront/src/app/cart/page.tsx`, `storefront/src/lib/store-cart.ts`,
+`storefront/tests/cart-without-certificate.test.ts`, `storefront/tests/cart-code.test.ts`.
+
+A cart holding printed things and no certificate showed a total, `APPLY CODE`
+and `PROCEED TO PAYMENT`, and the checkout refused it a page later with
+`CART_NEEDS_CERTIFICATE_NOTICE`. The cart now applies the checkout's rule for a cart with no certificate,
+`cartHasCertificate` over the tier handles, of the line handles it already
+receives, and on a cart with no certificate renders that same notice beneath
+the ledger. In place of `PROCEED TO PAYMENT` it offers `Return to the purchase
+order`, which goes to the page the certificates are chosen on. No new copy: both
+sentences already existed. A cart with a certificate is unchanged.
+
+The cart page now also lists the tiers, beside the merch it already listed, so
+each cart view costs the Store API two more reads.
+
+**The pay link on a merch-only cart is replaced, not kept, by Jev's choice.**
+It offered three options: replace "Proceed to payment" with "Return to the
+purchase order", keep the pay link and let checkout refuse, or show both.
+Jev chose the replacement at 0.99.
+
+**Rebased on J4 and J5, 2026-09-25.** J3 and J4 asked the same question in
+the same place, and they now share one `hasCertificate`. J5's note stays
+between the code form and the control, and the control is now either the pay
+link or the return link. One J5 test fixture had a certificate line with no
+`product_handle`. Under J3 such a line is not a certificate, so the fixture now
+carries the handle a real cart line has. The cart page still asks for the
+product list twice, once each through `listMerch` and `listTiers`, both on
+`listProducts`, as J3's and J4's reviews noted. Collapsing that means changing
+the page's mocks in `cart-code.test.ts`, which three open rows also edit, so it
+is left for later rather than done here.
+
+- [x] Say at the cart what checkout says, before the pay control rather than
+      after it. Verified by `cart-without-certificate.test.ts`, which renders
+      the real cart page for a merch-only cart and for a certificate cart with
+      and without merch: the notice sits between the ledger and the controls,
+      the merch-only cart has no link to `/checkout` and has the one to `/`,
+      and the certificate cart keeps the pay link and has neither the notice
+      nor the return link. Ten mutations were run, each alone on
+      the committed tree and restored with `git checkout --` on the page
+      only; each failed the test naming its defect (the PR lists them).
+      **Not verified:** that the live Store API's cart carries
+      `product_handle`. The checkout already reads it from the same
+      endpoint, which is the evidence, but no live cart was walked for this
+      row.
 
 ### J4 — The cart's upsell heading is true on a cart with no certificate
 
@@ -833,14 +875,84 @@ reads the note before typing is a comprehension question no test settles.
 
 - [x] Candidate `h` built as its finding describes.
 
+**Its review, which landed after the merge, found the test held only half the
+note.** The markup was checked against the constant itself, so deleting the
+second sentence, or turning "above the total" into "below", passed. The fix is
+its own PR, with a new `cart-code-note.test.ts`. It holds the note to its
+literal text, as fine print, and absent from an empty cart, and ties its three
+claims to the Terms' own sentence about codes. Five mutations each fail it:
+the second sentence deleted, "above" made "below", the fine print made a
+`div`, the note shown on the empty cart, and the Terms' removal sentence
+changed.
+
 ### J6 — A repeated or already-applied code is answered like a wrong one
 
 **Repository:** `lousydeal`.
 **Candidate `i`**, from G2's findings 3 and 7 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
+**Files:** `storefront/src/lib/cart-actions.ts`, `storefront/src/content/checkout.ts`,
+`storefront/src/app/cart/page.tsx`, `storefront/tests/cart-actions.test.ts`,
+`storefront/tests/cart-code.test.ts`.
 
-- [ ] Build candidate `i` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+`NOTACODE` was told `That code is not on file. Nothing in the cart changed.`
+Applying `BALDRICK20` again got no text, and neither did pressing the tier the
+cart already held. Both now get an answer that says nothing changed, in the
+same element that shows a wrong code's.
+
+**A repeated code.** What the backend does with a code is unchanged: it still
+replaces the line. `applyCode` reads the cart's one surcharge line before
+the apply, then reads it again from the cart the apply returns. If both
+readings have the same title and price, it redirects with
+`code_reason=already_applied`: "That code is already applied. Nothing in the
+cart changed." The check compares the ledger before and after. It does not
+guess from how the code is spelled. So a changed price, a different code, or
+a doubled line put back to one is never told "nothing changed". A line with
+no title is never compared, because `FREE` and `BALDRICK20` both add $1.00
+to Standard. The redirect also fires for the enhanced form, as a refusal's
+does, so the repeat is not counted as a second `bad_discount_accepted`.
+
+**A repeated tier.** If the cart holds exactly the chosen certificate at a
+quantity of one, and at most one surcharge at one, `addToCart` writes nothing.
+It redirects with `acquire_reason=already_in_cart`: "That deal is already in
+the cart. An order carries one, so nothing changed." Before this, the second
+press cleared the certificate, added it back and re-priced the surcharge to
+the same figure. Any other cart shape still takes the ordinary path, because
+that path is what repairs it.
+
+**The copy is Jev's choice**, made on 2026-09-25 among three drafts per
+notice. Repeated code: "That code is already applied. Nothing in the cart
+changed." at 0.48, the draft as built. Repeated tier: "That deal is already
+in the cart. An order carries one, so nothing changed." at 0.42, over the
+built draft "That certificate is already in the cart. Nothing in the cart
+changed." at 0.31 and "The cart already holds that certificate. Nothing in
+the cart changed." at 0.27. The tier choice is narrow. The chosen text was
+re-measured in Chromium: 0px overflow at 320, 360 and 390, wrapping to three
+lines at 320 and 360 and two at 390.
+
+**What it does not repair, from its review.** The repeated-tier short-circuit
+checks the cart's shape, not its prices. So a stale discount line, or a
+certificate still at an old catalogue price, stays as it is when the same tier
+is chosen again. For the fixed-fee code `FREE`, a stale line reads identically,
+so "already applied" would be said of it too. None of these states can be
+reached through the site's own controls. They need the public line-item route,
+or an operator changing a tier's price while a cart holds it. `tier_selected`
+still counts a repeated press, because it fires on submit, before the server
+answers.
+
+- [x] Build candidate `i` as its finding describes. Verified by
+      `cart-actions.test.ts`: a repeat is answered, including from the
+      enhanced form, and it is not claimed for five carts that did change or
+      when the first read fails. A held tier writes nothing and says so. A
+      different tier, and four malformed carts, take the ordinary path.
+      `cart-code.test.ts` checks that the new notices render in the refusal's
+      element and that an unknown `acquire_reason` is not reflected. Each new
+      assertion was mutation-checked on its own; the PR lists them.
+      **Not verified:** no walk on the live store, since this is not deployed.
+      Markup is unchanged and the notice sits where a code refusal already
+      did. In Chromium with the real `globals.css`, both notices give 0px of
+      horizontal overflow at 320, 360 and 390. A control with an unbreakable
+      notice overflowed by 352, 312 and 282px, so the measurement can fail.
+      The web font was not loaded; the fallback monospace was used.
 
 ### J7 — The cart and Baldrick name how much a code adds
 
@@ -848,8 +960,50 @@ Selected by Jev on 2026-09-25.
 **Candidate `j`**, from G2's findings 1 and 2 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
-- [ ] Build candidate `j` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+**Built.** The cart says the amount in words beneath its total when a code
+line is applied: "Your discount code added $1.00. The total above includes
+it." The figure is that line's own unit price, which the backend priced from its table
+against the certificate in the cart; nothing on the page computes it. It is
+said only for one code line of one, because any other shape is the state
+checkout refuses, and one line's price beside a total that rose by more would
+be false. It is not said for a code that adds nothing (BLACKFRIDAY): the
+ledger's own plus-zero line already shows that. Baldrick's `discount` step now says the code "makes your deal worse
+by a fifth of the certificate's price", and "Go on" adds "The summary says how
+much, on its own line above the total.", matching J5's note.
+
+**The wording is Jev's choice.** Cart line 0.60, against 0.32 for "Discount
+code: $1.00 added to the total above, and nothing taken off." and 0.08 for the
+first draft ("The discount code adds $1.00 to the total above."). `discount`
+as built, 0.67; stating the rate at all, 0.75 against 0.25 for no rate.
+`discount_detail` first went to "…next to the total." (0.44, against 0.34 for
+the first draft and 0.22 for "The amount is on the summary. I have not
+looked."); after Fable's review Jev chose "…on its own line above the total."
+over it, 0.99. Hiding the cart sentence for a zero code: 0.82 against 0.18
+for printing "added $0.00".
+
+**Baldrick cannot state the dollar amount truthfully**, and does not. He sees
+no cart, and the figure depends on which certificate is in it. The rate is a
+fact of the backend's table, not of a cart, so he names that in words; a test
+reads the table and fails if BALDRICK20's percentage stops being a fifth. The
+digit, currency and percentage guards are unchanged and still pass.
+
+**Verified.** Five new tests in `cart-code.test.ts` and `baldrick-copy.test.ts`
+(the cart sentence from a non-default line price and its position; no sentence
+with no code, a quantity of two or two code lines; none for a zero code; the
+rate held to the
+backend table; the follow-up naming where the amount is printed). Each
+mutation run alone against the committed files is listed in the PR. Rendered
+in Chromium with the real `globals.css` at 320, 360 and 390: document scroll
+width equals the viewport at all three.
+
+**Not verified.** Not walked on a deployed store, and not driven through
+Baldrick's widget in a browser; the lines are asserted from the script.
+At 320 the ledger's `+$1.00` wraps after `+$1.0`, in the site's own `LDMono`
+as well as in a fallback face (Fable's review reproduced it). That wrap is
+older than this row and belongs to candidates `c`/`v`, which were not
+selected.
+
+- [x] Candidate `j` built as its finding describes.
 
 ### J8 — A tier swap says when it changes the surcharge, and that it happened
 
@@ -918,9 +1072,87 @@ The chosen text was re-measured in Chromium: 0px overflow at 320, 360 and
 **Repository:** `lousydeal`.
 **Candidate `n`**, from G3's finding 5 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
+**Files:** `storefront/src/content/checkout.ts`,
+`storefront/src/app/checkout/PaymentForm.tsx`,
+`storefront/tests/checkout-address.test.ts`,
+`storefront/tests/legal-consistency.test.ts`.
 
-- [ ] Build candidate `n` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+G3 found that a certificate-only cart is asked for a country that moves no
+figure on the page, and did not establish whether it had an invisible
+consequence. It has several, so the row says why rather than stopping asking.
+
+**Stopping would have broken three things:**
+
+- **Tax.** `setCartCountry` writes the country to the cart's shipping and
+  billing addresses, and Medusa resolves a tax region from it. Decision `013`
+  puts the certificate under destination VAT through the Union OSS, and
+  `tax-model.ts` carries the 27 destination rates it resolves to. Decision
+  `009` makes that VAT come out of the price, so the figure does not move, but
+  the VAT on the order does.
+- **The threshold count.** `report-vat-thresholds.ts` reads
+  `shipping_address.country_code` off every order, certificates included.
+  `vat-thresholds.ts` then leaves a non-EU order out of Union turnover. With
+  no country, it counts the order as Estonian. Stopping would over-count
+  every non-EU certificate toward the €100,000 ceiling.
+- **Documents already say it is asked.** Privacy §3 lists "the country you are
+  in" among the four things the checkout asks, and §4 says it is kept on the
+  order. Terms "Price and tax" says a certificate's VAT follows where the buyer
+  is.
+
+The § 55 confirmation does not read the country; nothing else in `backend/src`
+reads it for a certificate.
+
+**Built: one sentence under the control, only where it stands alone.**
+`COUNTRY_HINT` is `FinePrint` after the select, and the select points to it
+with `aria-describedby`, as the email field does. With a parcel, the address
+note already says why, so neither renders. The text, chosen by Jev:
+
+> Nothing is posted. The country tells us which country's VAT, if any, we
+> owe on the certificate; we pay it out of the price, and what you pay does
+> not change.
+
+Jev chose it from three drafts (0.70, against 0.17 and 0.13). Its apostrophe
+is U+2019, not `'`: React escapes a straight one to `&#x27;`, and the
+exact-text test failed on it, the trap F5 recorded.
+
+"If any" is there because a buyer outside the Union owes none. The hint joins
+`legal-consistency.test.ts`'s surface list, now 15, and two new tests there
+hold its two claims to the Terms' own sentences. H4's test matched
+`required=""` as the select's last attribute; it now allows one after it.
+
+**Measured in Chromium** on the rendered `PayButton` with the real
+stylesheet, the real LDMono fonts loaded, and "South Georgia and the South
+Sandwich Islands" selected:
+
+| Width | Certificate cart | Parcel cart | Control |
+| --- | --- | --- | --- |
+| 320 | 0px | 0px | 218px |
+| 360 | 0px | 0px | 258px |
+| 390 | 0px | 0px | 288px |
+
+Reverting J1's two declarations on the same page gives 201, 161 and 131px,
+J1's live figures, so this harness would catch the regression J1 and H4 hit.
+
+- [x] Say why a certificate-only order is asked for a country. Verified by
+      five tests in `checkout-address.test.ts` and two in
+      `legal-consistency.test.ts`, and by the measurement above. Eleven
+      mutations were run, each after a commit and restoring only its own
+      file, and each failed the test naming it with the file's count
+      unchanged, except where noted:
+      the hint not rendered (fails "says why" and "after the control");
+      `aria-describedby` dropped; the hint on a parcel cart too; the hint
+      moved before the control; "if any" dropped (fails the claims test and
+      the Terms agreement); the price said to depend on the country (same
+      two); "VAT" replaced by "tax"; the hint taken off the surface list
+      (fails the list-length test; the count drops from 119 to 113 because
+      six parameterised cases go with it); the Terms no longer naming the
+      certificate; the Terms saying the price varies; and the select no
+      longer `required`, which checks H4's loosened match still fails.
+
+**Not verified.** No live or test checkout was walked; nothing here has been
+deployed. Whether a screen reader announces the hint was not tested. At
+320px the select still truncates the country's name, which is J1's accepted
+state, not this row's.
 
 ### J10 — The certificate page says who can see it
 
@@ -928,8 +1160,52 @@ Selected by Jev on 2026-09-25.
 **Candidate `q`**, from G4's findings 2 and 3 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
-- [ ] Build candidate `q` as its finding describes. The row records what
+**The copy is Jev's choice** of three drafts: the one built here, at 0.51 against 0.46 and 0.03. That is a narrow margin, recorded as such.
+
+- [x] Build candidate `q` as its finding describes. The row records what
       was built, what verifies it, and each mutation run.
+
+**Built.** `WHO_CAN_SEE` in `content/certificate.ts`, rendered by `ShareRow`
+under its heading and above the three links: "Anybody with this page’s
+address can read it. It is unlisted, not private: nothing on this site links
+to it, search engines are asked to leave it out, and the address cannot be
+guessed." Fine print, the row's existing style; the certificate itself is
+untouched. It says what the Privacy Policy §3 already told the buyer — "a
+certificate anybody with its address can read" — on the page it describes.
+
+**Each reason was checked in code before it was written.** Nothing links to
+it: `sitemap.ts` lists no `/done-deals/` path (`seo.test.ts`), and no source
+file outside the route's own segment spells it in code — a test fails if one
+does, reading spellings rather than values, so a path assembled from pieces
+would pass it. Search engines are *asked*:
+`robots: { index: false, follow: false }` on the page, `x-robots-tag` on the
+PDF and the card — a request, which is why the sentence says "asked". Cannot
+be guessed: `backend/src/modules/deal/slug.ts`, sixteen characters from
+thirty, about 78 bits.
+
+**Verified** by four tests in `share-links.test.ts` and one in
+`done-deals-page.test.ts`, each mutated on its own with the file's count
+unchanged: dropping the notice from the row (fails "says it before the
+links", 1 of 13, and the page test, 1 of 18); moving it below the links
+(fails "before the links" only); dropping the share row from the page (fails
+the page test only); "unlisted, not private" rewritten as "private" (fails
+"names the page unlisted"); the opening sentence rewritten (fails that and
+the Privacy consistency test, 2 of 13); the Privacy Policy's phrase reworded
+(fails the consistency test only); a `/done-deals/` path added to
+`content/home.ts` (fails "nothing on this site links"); the source walk
+emptied (fails the same test on its `> 50 files` floor). Per Fable's
+review, the walk now also strips a trailing `//` comment outside quotes: a
+trailing-comment mention of the path in `content/home.ts` passes, and a
+literal `href="/done-deals/x"` in the same file still fails. The share area was
+rendered with the real `globals.css` and Plex Mono in Chromium: horizontal
+overflow `0` at 320, 360 and 390, the notice 288, 328 and 358 pixels wide.
+
+**Not verified.** No live walk: the notice is not yet deployed, and a live
+certificate's slug is not something this row may record. Whether a crawler
+honours `noindex` is outside this site's control, which is what "asked"
+concedes. The confirmation and gift emails also carry the address; the
+notice does not claim otherwise, since those reach only the people the buyer
+named.
 
 ### J11 — The share controls say that pressing one publishes the address
 
