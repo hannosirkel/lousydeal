@@ -1107,8 +1107,52 @@ state, not this row's.
 **Candidate `q`**, from G4's findings 2 and 3 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
-- [ ] Build candidate `q` as its finding describes. The row records what
+**The copy is Jev's choice** of three drafts: the one built here, at 0.51 against 0.46 and 0.03. That is a narrow margin, recorded as such.
+
+- [x] Build candidate `q` as its finding describes. The row records what
       was built, what verifies it, and each mutation run.
+
+**Built.** `WHO_CAN_SEE` in `content/certificate.ts`, rendered by `ShareRow`
+under its heading and above the three links: "Anybody with this page’s
+address can read it. It is unlisted, not private: nothing on this site links
+to it, search engines are asked to leave it out, and the address cannot be
+guessed." Fine print, the row's existing style; the certificate itself is
+untouched. It says what the Privacy Policy §3 already told the buyer — "a
+certificate anybody with its address can read" — on the page it describes.
+
+**Each reason was checked in code before it was written.** Nothing links to
+it: `sitemap.ts` lists no `/done-deals/` path (`seo.test.ts`), and no source
+file outside the route's own segment spells it in code — a test fails if one
+does, reading spellings rather than values, so a path assembled from pieces
+would pass it. Search engines are *asked*:
+`robots: { index: false, follow: false }` on the page, `x-robots-tag` on the
+PDF and the card — a request, which is why the sentence says "asked". Cannot
+be guessed: `backend/src/modules/deal/slug.ts`, sixteen characters from
+thirty, about 78 bits.
+
+**Verified** by four tests in `share-links.test.ts` and one in
+`done-deals-page.test.ts`, each mutated on its own with the file's count
+unchanged: dropping the notice from the row (fails "says it before the
+links", 1 of 13, and the page test, 1 of 18); moving it below the links
+(fails "before the links" only); dropping the share row from the page (fails
+the page test only); "unlisted, not private" rewritten as "private" (fails
+"names the page unlisted"); the opening sentence rewritten (fails that and
+the Privacy consistency test, 2 of 13); the Privacy Policy's phrase reworded
+(fails the consistency test only); a `/done-deals/` path added to
+`content/home.ts` (fails "nothing on this site links"); the source walk
+emptied (fails the same test on its `> 50 files` floor). Per Fable's
+review, the walk now also strips a trailing `//` comment outside quotes: a
+trailing-comment mention of the path in `content/home.ts` passes, and a
+literal `href="/done-deals/x"` in the same file still fails. The share area was
+rendered with the real `globals.css` and Plex Mono in Chromium: horizontal
+overflow `0` at 320, 360 and 390, the notice 288, 328 and 358 pixels wide.
+
+**Not verified.** No live walk: the notice is not yet deployed, and a live
+certificate's slug is not something this row may record. Whether a crawler
+honours `noindex` is outside this site's control, which is what "asked"
+concedes. The confirmation and gift emails also carry the address; the
+notice does not claim otherwise, since those reach only the people the buyer
+named.
 
 ### J11 — The share controls say that pressing one publishes the address
 

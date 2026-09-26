@@ -11,7 +11,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { NO_INSCRIPTION } from "../src/content/certificate";
+import { NO_INSCRIPTION, WHO_CAN_SEE } from "../src/content/certificate";
 import { CERTIFICATE_LAYOUTS, certificateLayout } from "../src/lib/certificate-layouts";
 import { CERTIFICATE_LAYOUT_V1 } from "../src/lib/certificate-model";
 import { Certificate } from "../src/components/document/Certificate";
@@ -118,6 +118,17 @@ describe("the certificate page", () => {
     expect(html).toContain(NO_INSCRIPTION);
     expect(html).not.toContain("certificate-dedication");
     expect(html).toContain("#4,102");
+  });
+
+  it("says on the page who can read it, beside the share row", async () => {
+    // LD-11 J10. The notice is the share row's, and this is the page that
+    // carries the row -- asserted on the page, so dropping the row, or the
+    // notice from it, fails here.
+    const html = await renderPage(RECORD);
+    const row = html.slice(html.indexOf('class="share-row"'));
+
+    expect(html.indexOf('class="share-row"')).toBeGreaterThan(-1);
+    expect(row).toContain(WHO_CAN_SEE);
   });
 
   it("is a 404 when there is no certificate to show", async () => {
