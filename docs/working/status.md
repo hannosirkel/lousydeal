@@ -9,8 +9,8 @@ does not — it points, it does not hold.
 | --- | --- |
 | Updated | 2026-09-26 |
 | Current slice | **LD-11 — User experience**, open. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
-| In flight | Nothing merged is undeployed that this file knows of; H4 merged as #264. Part four gains J3–J12, selected by Jev at the operator's instruction (see the plan), being built in parallel, one PR each. J8 has now been merged forward with J6 on `main`; its branch still needs publish/validation. |
-| Next action | Publish and validate the open J3–J12 rows after their merge-forward conflict resolution, one PR per row. Unselected part-two candidates stay unnumbered. The Stripe webhook the notices' email promise relies on is not a row in the held table below. LD-07 remains deferred out of V1. |
+| In flight | Nothing. J3–J12 merged (#266–#276) and are live: on 2026-09-26 the live storefront ran the image promoted for lousydeal `3456b9a`, digest-matched, Argo Synced, the public site answering 200. |
+| Next action | **LD-11's selected work is all built.** Whether the slice closes is the operator's call. Every planned row (F1–F6, G1–G6, H1–H5) and every selected J-row (J1–J12) is closed and deployed. Nine part-two candidates were not selected (`m`, `t`, `a`, `p`, `c`+`v`, `g`, `d`, `c`, `e`), and they stay unnumbered. Recorded and not built: the cart page reads the product list twice (J3's and J4's reviews), the Stripe webhook the notices' email promise relies on is not a row in the held table, and no real payment has been through H1–H5's paths. LD-07 remains deferred out of V1. |
 | Blocked | Nothing. |
 
 Nothing in this file is a secret. No credential value, no live private hostname,
@@ -45,7 +45,7 @@ kept the surcharge out of its Printful order.
 | Slice | State |
 | --- | --- |
 | **LD-07 — Enterprise** | **deferred out of V1** by operator decision. A numbered slot, not work. §10, §26 |
-| **LD-11 — User experience** | **open, started.** Seventeen rows in three parts, and twelve J-rows; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 by #252. Part three: H1 by #255, #256 and #258; H2 by #257; H3 by #259; H5 by #262; H4 by #264; part three is closed. Part four: J1 by #253; J2 by #263; J3–J12 selected 2026-09-25. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
+| **LD-11 — User experience** | **open, started.** Seventeen rows in three parts, and twelve J-rows; Part one closed: F3 by #238, F1 by #239, F2 by #240 and #241, F4 by #242, F5 by #243, F6 by #244. Part two: G1 by #245 and #246, G2 by #247; G3 by #248; G4 by #250; G5 by #251; G6 by #252. Part three: H1 by #255, #256 and #258; H2 by #257; H3 by #259; H5 by #262; H4 by #264; part three is closed. Part four: J1 by #253; J2 by #263; J3–J12 by #266–#276, selected by Jev 2026-09-25. Not V1. [`ld-11-user-experience.md`](./ld-11-user-experience.md) |
 
 **No other V1 work is open.** On 2026-09-10 the operator closed every remaining
 question at its current state, which is recorded below.
