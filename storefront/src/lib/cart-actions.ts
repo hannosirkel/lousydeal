@@ -123,6 +123,12 @@ async function cartToAddTo(
  * at all, and the cart says so in the words a wrong code gets. Any other
  * shape takes the ordinary path, because clearing and re-adding is what
  * repairs it.
+ *
+ * **A swap says it was one.** LD-11 J8 (G2's finding 6): pressing `Acquire`
+ * on Plus with Standard and `BALDRICK20` in the cart replaced the certificate
+ * and re-priced the discount line from one dollar to two, and nothing said
+ * either had happened. `swapReason` decides what the cart says, from what
+ * this action measured rather than from what a code is expected to do.
  */
 export async function addToCart(formData: FormData): Promise<void> {
   assertStoreOpen();
@@ -156,18 +162,60 @@ export async function addToCart(formData: FormData): Promise<void> {
     : null;
   await addLineToCart(fetchJson, cart.id, variantId, 1);
 
+  let surcharge: SurchargeOutcome = surcharges.length === 0 ? "none" : "removed";
   if (code !== null) {
-    try {
-      await applySurcharge(fetchJson, cart.id, code);
-    } catch {
-      for (const surcharge of surcharges) await removeLineFromCart(fetchJson, cart.id, surcharge.id);
+    const repriced = await applySurcharge(fetchJson, cart.id, code).catch(() => null);
+    if (repriced === null) {
+      for (const line of surcharges) await removeLineFromCart(fetchJson, cart.id, line.id);
+    } else {
+      surcharge = surchargeMoved(surcharges[0], repriced.items) ? "repriced" : "unchanged";
     }
   } else {
-    for (const surcharge of surcharges) await removeLineFromCart(fetchJson, cart.id, surcharge.id);
+    for (const line of surcharges) await removeLineFromCart(fetchJson, cart.id, line.id);
   }
 
   cookieStore.set(CART_ID_COOKIE, cart.id, CART_COOKIE_OPTIONS);
-  redirect("/cart");
+  const swapped = (cart.items ?? []).some((line) => isCertificate(line.variant_id) && line.variant_id !== variantId);
+  const reason = swapped ? swapReason(surcharge) : null;
+  redirect(reason === null ? "/cart" : `/cart?swap_reason=${reason}`);
+}
+
+type SurchargeOutcome = "none" | "unchanged" | "repriced" | "removed";
+
+/**
+ * Whether the re-priced surcharge line is a share of the certificate's price
+ * whose price differs from the one the cart held.
+ *
+ * The notice this chooses says exactly that, so both halves are read from
+ * the cart the apply answers with, which is the one the buyer will read.
+ *
+ * **A share, read from the line.** The route writes `percentage` into the
+ * metadata of a percentage line and `fee_amount_major` into a fee line's.
+ * A fee whose amount was changed between the apply and the swap moved in
+ * price and is still no share of anything, so it is not reported as one.
+ *
+ * **The price, and not the quantity.** A doubled line put back to one
+ * changed quantity, not price.
+ *
+ * **Unseen is unchanged.** A response with no surcharge line, or a line
+ * without a numeric price on either side, is not a line the buyer can see
+ * move, and is reported as unchanged rather than guessed at.
+ */
+function surchargeMoved(
+  before: NonNullable<CartLines>[number] | undefined,
+  after: CartLines,
+): boolean {
+  const line = (after ?? []).find((item) => item.variant_id === null);
+  if (before === undefined || line === undefined) return false;
+  if (typeof before.unit_price !== "number" || typeof line.unit_price !== "number") return false;
+  if (typeof line.metadata?.["percentage"] !== "number") return false;
+  return line.unit_price !== before.unit_price;
+}
+
+function swapReason(surcharge: SurchargeOutcome): "swapped" | "swapped_repriced" | "swapped_removed" {
+  if (surcharge === "repriced") return "swapped_repriced";
+  if (surcharge === "removed") return "swapped_removed";
+  return "swapped";
 }
 
 /**

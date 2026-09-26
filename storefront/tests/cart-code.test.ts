@@ -16,6 +16,7 @@ import {
   CART_ACQUIRE_NOTICES,
   CART_CODE_NOTICES,
   CART_LABELS,
+  CART_SWAP_NOTICES,
   CODE_APPLY_LABEL,
   CODE_LABEL,
   CODE_NOTE,
@@ -212,6 +213,35 @@ describe("the rendered cart", () => {
   it("ignores an unknown query value rather than reflecting it", async () => {
     const html = await renderCart({ reason: "<script>made-up</script>" });
     expect(html).not.toContain("made-up");
+  });
+
+  it.each(Object.entries(CART_SWAP_NOTICES))("renders the fixed %s swap notice beneath the ledger", async (reason, notice) => {
+    // LD-11 J8. Beneath the ledger, because the ledger is what changed.
+    const html = await renderCart({ params: { swap_reason: reason } });
+    const at = html.indexOf(`<p class="notice">${notice}</p>`);
+    expect(at).toBeGreaterThan(html.indexOf('class="ledger"'));
+    expect(at).toBeLessThan(html.indexOf('class="code-form field'));
+  });
+
+  it("ignores an unknown swap reason rather than reflecting it", async () => {
+    const html = await renderCart({ params: { swap_reason: "made-up" } });
+    expect(html).not.toContain("made-up");
+    expect(html).not.toContain('<p class="notice"></p>');
+  });
+
+  it("says a swap happened in every swap notice, and names no figure", () => {
+    // Constraint 5: a figure must name what it is the total of. The ledger
+    // beneath prints the new line and total, so the notice carries none.
+    for (const notice of Object.values(CART_SWAP_NOTICES)) {
+      expect(notice.startsWith("The certificate you chose replaced the one in the cart.")).toBe(true);
+      expect(notice).not.toMatch(/\d/);
+    }
+  });
+
+  it("says the discount line moved only in the notice for a line that moved", () => {
+    expect(CART_SWAP_NOTICES.swapped).not.toContain("discount");
+    expect(CART_SWAP_NOTICES.swapped_repriced).toContain("The discount line is a share of the certificate’s price, so it changed too.");
+    expect(CART_SWAP_NOTICES.swapped_removed).toContain("removed");
   });
 
   it("answers a code that is already applied in the words a wrong one gets", () => {

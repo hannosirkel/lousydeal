@@ -1010,9 +1010,62 @@ selected.
 **Repository:** `lousydeal`.
 **Candidate `o`**, from G2's finding 6 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
+**Files:** `storefront/src/lib/cart-actions.ts`, `storefront/src/content/checkout.ts`,
+`storefront/src/app/cart/page.tsx`, `storefront/tests/cart-actions.test.ts`,
+`storefront/tests/cart-code.test.ts`.
 
-- [ ] Build candidate `o` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+With Standard and `BALDRICK20` in the cart, pressing `Acquire` on Plus
+replaced the certificate and moved the discount line from +$1.00 to +$2.00.
+Nothing said either had happened. What `addToCart` does is unchanged. It now
+also says what it did: after replacing a *different* certificate, it
+redirects with a `swap_reason`. The cart shows that reason's fixed notice
+between the ledger and the code field, in the plain `notice` style, since it
+is not an error.
+
+- `swapped`: "The certificate you chose replaced the one in the cart. An
+  order carries one certificate."
+- `swapped_repriced`: "The certificate you chose replaced the one in the
+  cart. The discount line is a share of the certificate’s price, so it
+  changed too."
+- `swapped_removed`: "The certificate you chose replaced the one in the
+  cart. The discount line could not be re-priced for it and was removed."
+
+**The second sentence is measured, not predicted.** The action compares the
+surcharge line it held with the one in the cart the re-price answers with.
+`swapped_repriced` is chosen only when that line carries `percentage` in its
+metadata, which the route writes on percentage lines and never on fee lines,
+and when its price moved. So `FREE`'s fee and `BLACKFRIDAY`'s nought are not
+said to have moved. Neither is a fee whose amount changed between the apply
+and the swap, a doubled line put back to one at the same price, or a line
+with no price on either side. `swapped_removed` covers the two paths that
+already removed the line: a failed re-price, and a line held twice. With two
+lines the action removes them rather than re-price, which is its own choice,
+so "could not be re-priced" slightly overstates that path. This is recorded,
+not changed. No notice carries
+a figure (constraint 5), because the ledger beneath prints the new line and
+total. There is no notice for an empty cart, a merch-only cart, a new cart, or
+the tier the cart already held; that last one is J6's.
+
+**The copy is Jev's choice**, made on 2026-09-25 among drafted options.
+`swapped` as built, at 0.58. `swapped_repriced` is Jev's pick, the second
+alternative, at 0.70, replacing the built "The discount line was re-priced for
+the new certificate." `swapped_removed` as built, at 0.64. The apostrophe in
+"certificate’s" is U+2019, because React escapes a straight one in markup.
+The chosen text was re-measured in Chromium: 0px overflow at 320, 360 and
+390, wrapping to five, four and four lines.
+
+- [x] Build candidate `o` as its finding describes. Verified by
+      `cart-actions.test.ts`, which covers each reason chosen from what the
+      re-price answered and the four carts where no swap happened. Also by
+      `cart-code.test.ts`: each notice renders between the ledger and the code
+      field, an unknown reason is neither reflected nor rendered empty, and the
+      copy names no figure and mentions the discount only where it moved. Each
+      new assertion was mutation-checked on its own; the PR lists them. The
+      added paragraph was rendered in Chromium with the real `globals.css`:
+      0px of horizontal overflow at 320, 360 and 390 for all three notices,
+      which wrap to between three and five lines. The web font was not
+      loaded; the fallback monospace was used.
+      **Not verified:** no walk on the live store, since this is not deployed.
 
 ### J9 — A certificate-only checkout says why it asks for a country
 

@@ -74,6 +74,30 @@ export const CART_ACQUIRE_NOTICES = {
   already_in_cart: "That deal is already in the cart. An order carries one, so nothing changed.",
 } as const;
 
+/**
+ * What the cart says after `Acquire` replaced a different certificate.
+ * LD-11 J8, G2's finding 6.
+ *
+ * Chosen by a stable reason, never reflected. No figure: the ledger beneath
+ * already prints the new line and total, and a figure here would have to name
+ * what it is the total of (constraint 5) while saying no more than the ledger.
+ * The second sentence of each is only used when the action measured it --
+ * a fee, or nought per cent, does not move with the tier, and is not said to.
+ *
+ * `swapped_repriced` says the line is a share of the certificate's price. That
+ * is measured: it is only sent when the re-priced line carries a `percentage`
+ * in its metadata and its price moved. The apostrophe is U+2019:
+ * React escapes a straight one in markup. The wording of all three is Jev's
+ * choice among drafted options (LD-11 J8).
+ */
+export const CART_SWAP_NOTICES = {
+  swapped: "The certificate you chose replaced the one in the cart. An order carries one certificate.",
+  swapped_repriced:
+    "The certificate you chose replaced the one in the cart. The discount line is a share of the certificate’s price, so it changed too.",
+  swapped_removed:
+    "The certificate you chose replaced the one in the cart. The discount line could not be re-priced for it and was removed.",
+} as const;
+
 /** `brand.md` §4: the empty cart is a document too. Set in label style. */
 export const CART_EMPTY_NOTICE = "No items of record";
 
