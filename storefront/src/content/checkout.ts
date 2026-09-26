@@ -42,6 +42,19 @@ export const CODE_REMOVE_LABEL = "Remove";
 export const CODE_NOTE =
   "Codes here raise the total or leave it where it is; none lowers it. The amount appears as its own line above the total, removable before you pay.";
 
+/**
+ * What an applied code added, in words, under the total it added to. LD-11 J7.
+ *
+ * The ledger printed a plus and a figure and nothing said it; order #1's recipient had to
+ * be told afterwards, in writing, that the discount had added a dollar. The
+ * figure is the surcharge line's own unit price, priced by the backend's
+ * table against the certificate in this cart -- passed in, never computed
+ * here -- and the sentence names what it is added to (constraint 5). Wording
+ * chosen by Jev.
+ */
+export const cartCodeAmountNotice = (amount: string): string =>
+  `Your discount code added ${amount}. The total above includes it.`;
+
 /** Stable D4 refusal reasons mapped to copy rather than reflected from the URL. */
 export const CART_CODE_NOTICES = {
   unknown_code: "That code is not on file. Nothing in the cart changed.",

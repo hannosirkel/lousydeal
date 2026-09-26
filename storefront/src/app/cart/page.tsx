@@ -41,6 +41,7 @@ import {
   CODE_NOTE,
   CODE_REMOVE_LABEL,
   RETURN_LABEL,
+  cartCodeAmountNotice,
   STORE_CLOSED_NOTICE,
 } from "../../content/checkout";
 import { getRuntimeConfig } from "../../config/runtime-config";
@@ -214,6 +215,15 @@ export default async function CartPage({
   const removable = new Set(merch.flatMap((row) => row.variants.map((variant) => variant.variantId)));
   const merchandise = items.filter((item) => item.variant_id !== null);
   const surcharges = items.filter((item) => item.variant_id === null);
+  // J7. Only the ordinary state: one code line of one. Any other shape is the
+  // one checkout refuses with `CART_SURCHARGE_NOTICE`, and a sentence here
+  // naming one line's price beside a total that rose by two would be false.
+  // And not for a code that adds nothing: the ledger's own zero line says so,
+  // and a sentence saying a zero was added is noise beside it (Jev, 0.82).
+  const codeLine =
+    surcharges.length === 1 && surcharges[0]?.quantity === 1 && (surcharges[0]?.unit_price ?? 0) > 0
+      ? surcharges[0]
+      : undefined;
 
   return (
     <main>
@@ -254,6 +264,11 @@ export default async function CartPage({
           })}
           <LedgerRow label={CART_LABELS.total} value={formatMoney(cart.total, cart.currency_code)} />
         </Ledger>
+        {codeLine === undefined ? null : (
+          <p className="notice" id="cart-code-amount">
+            {cartCodeAmountNotice(formatMoney(codeLine.unit_price, cart.currency_code))}
+          </p>
+        )}
         {notice === undefined ? null : <p className="notice payment-error">{notice}</p>}
         {/* Before the controls, and in place of the pay control: a button
             that leads only to the same refusal would be a control that does
