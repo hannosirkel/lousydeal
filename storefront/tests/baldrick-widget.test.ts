@@ -26,7 +26,9 @@ import {
   type SurfaceProps,
 } from "../src/components/baldrick/Surface";
 import { BALDRICK_DISCLAIMER, BALDRICK_GREETING, BALDRICK_PAUSE_LABEL, BALDRICK_SCRIPT } from "../src/content/baldrick";
+import { LEGAL_ROUTES } from "../src/content/legal-routes";
 import { initialConversation, offered, respond, type Message } from "../src/lib/baldrick/conversation";
+import { lineSegments } from "../src/lib/baldrick/documents";
 
 const shell = readFileSync(new URL("../src/components/baldrick/Baldrick.tsx", import.meta.url), "utf8");
 const surface = readFileSync(new URL("../src/components/baldrick/Surface.tsx", import.meta.url), "utf8");
@@ -345,13 +347,73 @@ describe("nothing is persisted, and nothing leaves the page", () => {
     expect(both).not.toMatch(/localStorage|sessionStorage|document\.cookie|fetch\(|XMLHttpRequest/);
   });
 
-  it("links nowhere, so following his advice does not end the conversation", () => {
-    // **The navigation decision, taken rather than left implied.** The
-    // conversation is React state; leaving the page ends it. Rather than
-    // warning about that, he names documents and does not link them -- which is
-    // in character for somebody who cannot be bothered to fetch one, and means
-    // there is nothing in the transcript to click away on.
-    expect(render()).not.toContain("<a ");
-    expect(code(surface)).not.toMatch(/<a\b|<Link\b|href=/);
+});
+
+describe("the documents he names", () => {
+  // LD-11 J12. G5's finding 2: four answers named a document and the
+  // conversation held zero anchors, so the visitor searched for what he had
+  // just told them.
+  const said = (id: string): Message => ({ speaker: "baldrick", lines: BALDRICK_SCRIPT[id]?.say.flat() ?? [] });
+
+  it.each([
+    ["refund", "/legal/refunds", "Refunds and withdrawal"],
+    ["complaint", "/legal/imprint", "Imprint"],
+    ["support", "/legal/imprint", "Imprint"],
+    ["licensing", "/legal/terms", "Terms of service"],
+  ])("links %s's document from the name he gives it", (id, href, title) => {
+    const html = render({ messages: [said(id)], replies: [] });
+    expect(html).toContain(`<a href="${href}">${title}</a>`);
+    expect(LEGAL_ROUTES.map((route) => route.href)).toContain(href);
+  });
+
+  it("leaves every line reading exactly as written", () => {
+    for (const line of Object.values(BALDRICK_SCRIPT).flatMap((step) => step.say.flat())) {
+      expect(lineSegments(line).map((segment) => segment.text).join("")).toBe(line);
+    }
+  });
+
+  it("names no document anywhere he does not link it", () => {
+    // Where he sends somebody to a document, the name is the link: no line
+    // says "in the footer" or "in the Imprint" without a linked title in it.
+    const pointing = Object.values(BALDRICK_SCRIPT)
+      .flatMap((step) => step.say.flat())
+      .filter((line) => /\bin the (?:footer|Imprint)\b/.test(line));
+    expect(pointing.length).toBeGreaterThan(0);
+    for (const line of pointing) expect(`${line}: ${String(lineSegments(line).some((s) => s.href !== undefined))}`).toBe(`${line}: true`);
+  });
+
+  it("links only at the end of a flow, so following one loses no turn", () => {
+    // B5b's reason for not linking: the conversation is React state and
+    // leaving ends it. Every step that names a document offers no button
+    // after it, so no flow is in progress when the link appears.
+    for (const [id, step] of Object.entries(BALDRICK_SCRIPT)) {
+      const links = step.say.flat().some((line) => lineSegments(line).some((segment) => segment.href !== undefined));
+      if (links) expect(`${id}: ${String(step.quickReplies?.length ?? 0)}`).toBe(`${id}: 0`);
+    }
+  });
+
+  it("links a title only as a whole word", () => {
+    // "Imprinted" is not the Imprint, at either end of the word.
+    for (const line of ["Imprinted on it.", "It Imprints nothing.", "The ReImprint shop."]) {
+      expect(lineSegments(line)).toEqual([{ text: line }]);
+    }
+    expect(lineSegments("In the Imprint.").map((segment) => segment.href)).toEqual([undefined, "/legal/imprint", undefined]);
+  });
+
+  it("spells each title as the document's own page and link do", () => {
+    // The name is now the link text, so it must be the name the footer and
+    // the page use: "Refunds and withdrawal", not his old capital W.
+    const labels = LEGAL_ROUTES.map((route) => route.label);
+    const linked = Object.values(BALDRICK_SCRIPT)
+      .flatMap((step) => step.say.flat())
+      .flatMap((line) => lineSegments(line).filter((segment) => segment.href !== undefined).map((segment) => segment.text));
+    expect(linked.length).toBeGreaterThan(0);
+    for (const title of linked) expect(labels).toContain(title);
+  });
+
+  it("does not link what the visitor typed", () => {
+    const html = render({ messages: [{ speaker: "visitor", lines: ["where is the Imprint"] }], replies: [] });
+    expect(html).toContain("where is the Imprint");
+    expect(html).not.toContain("<a ");
   });
 });

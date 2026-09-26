@@ -178,7 +178,7 @@ export const BALDRICK_SCRIPT: Script = {
   refund: {
     say: [
       ["That is a matter for a document."],
-      ["Refunds and Withdrawal is in the footer. I have not read it, and I am not going to summarise it."],
+      ["Refunds and withdrawal is in the footer. I have not read it, and I am not going to summarise it."],
     ],
   },
 
