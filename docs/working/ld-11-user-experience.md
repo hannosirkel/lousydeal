@@ -890,9 +890,69 @@ changed.
 **Repository:** `lousydeal`.
 **Candidate `i`**, from G2's findings 3 and 7 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
+**Files:** `storefront/src/lib/cart-actions.ts`, `storefront/src/content/checkout.ts`,
+`storefront/src/app/cart/page.tsx`, `storefront/tests/cart-actions.test.ts`,
+`storefront/tests/cart-code.test.ts`.
 
-- [ ] Build candidate `i` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+`NOTACODE` was told `That code is not on file. Nothing in the cart changed.`
+Applying `BALDRICK20` again got no text, and neither did pressing the tier the
+cart already held. Both now get an answer that says nothing changed, in the
+same element that shows a wrong code's.
+
+**A repeated code.** What the backend does with a code is unchanged: it still
+replaces the line. `applyCode` reads the cart's one surcharge line before
+the apply, then reads it again from the cart the apply returns. If both
+readings have the same title and price, it redirects with
+`code_reason=already_applied`: "That code is already applied. Nothing in the
+cart changed." The check compares the ledger before and after. It does not
+guess from how the code is spelled. So a changed price, a different code, or
+a doubled line put back to one is never told "nothing changed". A line with
+no title is never compared, because `FREE` and `BALDRICK20` both add $1.00
+to Standard. The redirect also fires for the enhanced form, as a refusal's
+does, so the repeat is not counted as a second `bad_discount_accepted`.
+
+**A repeated tier.** If the cart holds exactly the chosen certificate at a
+quantity of one, and at most one surcharge at one, `addToCart` writes nothing.
+It redirects with `acquire_reason=already_in_cart`: "That deal is already in
+the cart. An order carries one, so nothing changed." Before this, the second
+press cleared the certificate, added it back and re-priced the surcharge to
+the same figure. Any other cart shape still takes the ordinary path, because
+that path is what repairs it.
+
+**The copy is Jev's choice**, made on 2026-09-25 among three drafts per
+notice. Repeated code: "That code is already applied. Nothing in the cart
+changed." at 0.48, the draft as built. Repeated tier: "That deal is already
+in the cart. An order carries one, so nothing changed." at 0.42, over the
+built draft "That certificate is already in the cart. Nothing in the cart
+changed." at 0.31 and "The cart already holds that certificate. Nothing in
+the cart changed." at 0.27. The tier choice is narrow. The chosen text was
+re-measured in Chromium: 0px overflow at 320, 360 and 390, wrapping to three
+lines at 320 and 360 and two at 390.
+
+**What it does not repair, from its review.** The repeated-tier short-circuit
+checks the cart's shape, not its prices. So a stale discount line, or a
+certificate still at an old catalogue price, stays as it is when the same tier
+is chosen again. For the fixed-fee code `FREE`, a stale line reads identically,
+so "already applied" would be said of it too. None of these states can be
+reached through the site's own controls. They need the public line-item route,
+or an operator changing a tier's price while a cart holds it. `tier_selected`
+still counts a repeated press, because it fires on submit, before the server
+answers.
+
+- [x] Build candidate `i` as its finding describes. Verified by
+      `cart-actions.test.ts`: a repeat is answered, including from the
+      enhanced form, and it is not claimed for five carts that did change or
+      when the first read fails. A held tier writes nothing and says so. A
+      different tier, and four malformed carts, take the ordinary path.
+      `cart-code.test.ts` checks that the new notices render in the refusal's
+      element and that an unknown `acquire_reason` is not reflected. Each new
+      assertion was mutation-checked on its own; the PR lists them.
+      **Not verified:** no walk on the live store, since this is not deployed.
+      Markup is unchanged and the notice sits where a code refusal already
+      did. In Chromium with the real `globals.css`, both notices give 0px of
+      horizontal overflow at 320, 360 and 390. A control with an unbreakable
+      notice overflowed by 352, 312 and 282px, so the measurement can fail.
+      The web font was not loaded; the fallback monospace was used.
 
 ### J7 — The cart and Baldrick name how much a code adds
 

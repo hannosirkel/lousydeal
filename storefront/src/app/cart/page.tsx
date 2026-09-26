@@ -30,6 +30,7 @@ import { RemoveLine } from "../../components/document/RemoveLine";
 import { Rule } from "../../components/document/Rule";
 import { TierTable } from "../../components/document/TierTable";
 import {
+  CART_ACQUIRE_NOTICES,
   CART_CODE_NOTICES,
   CART_DOCUMENT,
   CART_EMPTY_NOTICE,
@@ -129,11 +130,14 @@ function EmptyCart({ codeNotice }: { readonly codeNotice?: string }) {
 
 type CartSearchParams = Record<string, string | string[] | undefined>;
 
+function fixedNotice<T extends Record<string, string>>(notices: T, reason: unknown): string | undefined {
+  return typeof reason === "string" && Object.hasOwn(notices, reason) ? notices[reason as keyof T] : undefined;
+}
+
+/** A fixed notice chosen by a stable reason in the query, never the query's own text. */
 function codeNotice(parameters: CartSearchParams): string | undefined {
-  const reason = parameters["code_reason"];
-  return typeof reason === "string" && Object.hasOwn(CART_CODE_NOTICES, reason)
-    ? CART_CODE_NOTICES[reason as keyof typeof CART_CODE_NOTICES]
-    : undefined;
+  return fixedNotice(CART_CODE_NOTICES, parameters["code_reason"])
+    ?? fixedNotice(CART_ACQUIRE_NOTICES, parameters["acquire_reason"]);
 }
 
 export default async function CartPage({

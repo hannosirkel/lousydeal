@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined, refresh: () => undefined }) }));
 
 import {
+  CART_ACQUIRE_NOTICES,
   CART_CODE_NOTICES,
   CART_LABELS,
   CODE_APPLY_LABEL,
@@ -68,6 +69,8 @@ describe("a Store API refusal", () => {
 
 interface CartPageOptions {
   readonly reason?: string;
+  /** The query as a whole, where a test needs a parameter other than `code_reason`. */
+  readonly params?: Record<string, string>;
   readonly items?: readonly Record<string, unknown>[];
   readonly total?: number;
 }
@@ -115,7 +118,7 @@ async function renderCart(options: CartPageOptions = {}): Promise<string> {
 
   const { default: CartPage } = await import("../src/app/cart/page");
   return renderToStaticMarkup(await CartPage({
-    searchParams: Promise.resolve(options.reason === undefined ? {} : { code_reason: options.reason }),
+    searchParams: Promise.resolve(options.params ?? (options.reason === undefined ? {} : { code_reason: options.reason })),
   }));
 }
 
@@ -209,5 +212,28 @@ describe("the rendered cart", () => {
   it("ignores an unknown query value rather than reflecting it", async () => {
     const html = await renderCart({ reason: "<script>made-up</script>" });
     expect(html).not.toContain("made-up");
+  });
+
+  it("answers a code that is already applied in the words a wrong one gets", () => {
+    // LD-11 J6: the same consequence, stated the same way.
+    expect(CART_CODE_NOTICES.already_applied).toBe("That code is already applied. Nothing in the cart changed.");
+    expect(CART_CODE_NOTICES.unknown_code.endsWith(" Nothing in the cart changed.")).toBe(true);
+  });
+
+  it("says a repeated tier changed nothing, and why", () => {
+    // LD-11 J6: the consequence a wrong code is told, and the rule behind it.
+    expect(CART_ACQUIRE_NOTICES.already_in_cart).toMatch(/already in the cart\./);
+    expect(CART_ACQUIRE_NOTICES.already_in_cart).toMatch(/nothing changed\.$/);
+  });
+
+  it.each(Object.entries(CART_ACQUIRE_NOTICES))("renders the fixed %s acquire notice where a code refusal goes", async (reason, notice) => {
+    const html = await renderCart({ params: { acquire_reason: reason } });
+    expect(html).toContain(`<p class="notice payment-error">${notice}</p>`);
+  });
+
+  it("ignores an unknown acquire reason rather than reflecting it", async () => {
+    const html = await renderCart({ params: { acquire_reason: "made-up" } });
+    expect(html).not.toContain("made-up");
+    expect(html).not.toContain("payment-error");
   });
 });
