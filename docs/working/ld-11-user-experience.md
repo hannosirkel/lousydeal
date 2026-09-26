@@ -1705,14 +1705,30 @@ storefront's server cannot ask, because its pod has no HTTPS egress (only
   with `redirect_status`.
 - The check sits on `PaymentForm`'s mount, so it works only with scripting on.
   Without scripting, the form never loads anyway.
-- **Not measured.** No real payment has been through this path. The build was
-  deployed to test with the `deploy-test` label on 2026-09-24, but the
-  measurement could not reach it. Test sits behind Cloudflare Access; an SSH
-  forward through orange was refused ("administratively prohibited") although
-  sshd's effective configuration permits it for this user and address; and
-  orange has no browser. The operator chose to skip it. H5 rests on its tests
-  and on the reading of Medusa's and Stripe.js's source that the review
-  checked.
+- **Measured on test on 2026-09-26, after the fact.** It could not be
+  measured when H5 was built: test sits behind Cloudflare Access, an SSH
+  forward through orange was refused, and the operator chose to skip it.
+  Orange's decision 025 later gave the development VM an Access service token
+  bound to orange's address. A headless walk used it against PR #277's build
+  (`45690a0`, `main` with H5). The walk bought the $5 certificate with
+  Stripe's sandbox card. After `confirmPayment` succeeded, it aborted the
+  storefront's first `POST …/complete`, as a dropped connection would.
+  - The page then showed H3's charged notice, which was true: "Your card was
+    accepted, but the order could not be confirmed just now. Do not pay
+    again…".
+  - The walk reloaded half a second later. H5 retrieved the intent and
+    completed the cart (200). It reloaded once with `prior_completed=1`, and
+    H2's end state rendered: "Paid. Your order is placed." Nothing after the
+    reload created a payment collection or a session, and the walk confirmed
+    with Stripe once. The test worker logged `order.placed` at 20:09:01 and
+    the Stripe webhook three seconds later, so H5's completion came first.
+  - A first walk reloaded after nine seconds instead. By then the Stripe
+    webhook had completed the cart (`payment.webhook_received` at 20:08:07,
+    `order.placed` at 20:08:10), and the server rendered the end state without
+    H5 running. On test, the window H5 covers is a few seconds wide.
+  - Still not measured: a live payment, and the unknown notice's paths
+    (Stripe unreachable, an intent still `processing`). The walker is not in
+    this repository.
 
 **From H5's review, applied before merge.**
 
