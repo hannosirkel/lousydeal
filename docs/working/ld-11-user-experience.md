@@ -1827,7 +1827,7 @@ page, which is how a layout regression passed all of them.
 
 ## Where this slice stands, for whoever picks it up
 
-**Seventeen of the plan's rows are closed with H4, and two J-rows with them.** Part one
+**All seventeen of the plan's rows are closed, and all twelve J-rows with them.** J3–J12 were selected by Jev and built in parallel, one PR each, each reviewed, and deployed together on 2026-09-26. Part one
 repaired every defect live order #1 proved. Part two walked all six flows and
 produced thirty-eight findings and twenty-two candidate fix rows; its stage 1
 is closed. Part three is closed: H1 to H5.
