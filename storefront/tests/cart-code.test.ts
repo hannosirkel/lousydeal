@@ -148,7 +148,7 @@ describe("the rendered cart", () => {
     // LD-11 J5. G2's finding 1: the form was a label and a button, and the
     // only sign a code raised the price was a plus in the ledger afterwards.
     const html = await renderCart({ items: [
-      { id: "line_certificate", variant_id: "variant_certificate", quantity: 1, unit_price: 5, title: "Lousy Deal" },
+      { id: "line_certificate", variant_id: "variant_certificate", product_handle: "lousy-deal", quantity: 1, unit_price: 5, title: "Lousy Deal" },
     ], total: 5 });
     expect(CODE_NOTE).toMatch(/raise the total or leave it where it is; none lowers it/);
     expect(html).toContain(`<span id="cart-code-note">${CODE_NOTE}</span>`);

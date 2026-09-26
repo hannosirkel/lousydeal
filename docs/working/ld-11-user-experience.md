@@ -765,8 +765,50 @@ options, under the same instruction.
 **Candidate `b`**, from G1's finding 2 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
 
-- [ ] Build candidate `b` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+**Files:** `storefront/src/app/cart/page.tsx`, `storefront/src/lib/store-cart.ts`,
+`storefront/tests/cart-without-certificate.test.ts`, `storefront/tests/cart-code.test.ts`.
+
+A cart holding printed things and no certificate showed a total, `APPLY CODE`
+and `PROCEED TO PAYMENT`, and the checkout refused it a page later with
+`CART_NEEDS_CERTIFICATE_NOTICE`. The cart now applies the checkout's rule for a cart with no certificate,
+`cartHasCertificate` over the tier handles, of the line handles it already
+receives, and on a cart with no certificate renders that same notice beneath
+the ledger. In place of `PROCEED TO PAYMENT` it offers `Return to the purchase
+order`, which goes to the page the certificates are chosen on. No new copy: both
+sentences already existed. A cart with a certificate is unchanged.
+
+The cart page now also lists the tiers, beside the merch it already listed, so
+each cart view costs the Store API two more reads.
+
+**The pay link on a merch-only cart is replaced, not kept, by Jev's choice.**
+It offered three options: replace "Proceed to payment" with "Return to the
+purchase order", keep the pay link and let checkout refuse, or show both.
+Jev chose the replacement at 0.99.
+
+**Rebased on J4 and J5, 2026-09-25.** J3 and J4 asked the same question in
+the same place, and they now share one `hasCertificate`. J5's note stays
+between the code form and the control, and the control is now either the pay
+link or the return link. One J5 test fixture had a certificate line with no
+`product_handle`. Under J3 such a line is not a certificate, so the fixture now
+carries the handle a real cart line has. The cart page still asks for the
+product list twice, once each through `listMerch` and `listTiers`, both on
+`listProducts`, as J3's and J4's reviews noted. Collapsing that means changing
+the page's mocks in `cart-code.test.ts`, which three open rows also edit, so it
+is left for later rather than done here.
+
+- [x] Say at the cart what checkout says, before the pay control rather than
+      after it. Verified by `cart-without-certificate.test.ts`, which renders
+      the real cart page for a merch-only cart and for a certificate cart with
+      and without merch: the notice sits between the ledger and the controls,
+      the merch-only cart has no link to `/checkout` and has the one to `/`,
+      and the certificate cart keeps the pay link and has neither the notice
+      nor the return link. Ten mutations were run, each alone on
+      the committed tree and restored with `git checkout --` on the page
+      only; each failed the test naming its defect (the PR lists them).
+      **Not verified:** that the live Store API's cart carries
+      `product_handle`. The checkout already reads it from the same
+      endpoint, which is the evidence, but no live cart was walked for this
+      row.
 
 ### J4 — The cart's upsell heading is true on a cart with no certificate
 
