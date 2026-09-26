@@ -27,6 +27,7 @@ import {
   SHARE_EMAIL_SUBJECT,
   SHARE_LABEL,
   SHARE_NOTICE,
+  SHARE_PUBLISHES,
   SHARE_TARGETS,
   SHARE_TEXT,
   WHO_CAN_SEE,
@@ -88,6 +89,8 @@ export function ShareRow({ url }: ShareRowProps) {
           </li>
         ))}
       </ul>
+      {/* J11: at the controls, what sending one does to who can see the page. */}
+      <FinePrint>{SHARE_PUBLISHES}</FinePrint>
       <FinePrint>{SHARE_NOTICE}</FinePrint>
     </aside>
   );
