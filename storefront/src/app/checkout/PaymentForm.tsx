@@ -62,6 +62,7 @@ import {
   ADDRESS_NOTE,
   giftAddressNote,
   CART_LABELS,
+  COUNTRY_HINT,
   COUNTRY_LABEL,
   COUNTRY_PLACEHOLDER,
   SHIPPING_LABEL,
@@ -936,7 +937,15 @@ export function PayButton({
   const countryField = (
     <p className="field">
       <label htmlFor="checkout-country">{COUNTRY_LABEL}</label>
-      <select id="checkout-country" value={countryCode} onChange={(event) => setCountryCode(event.target.value)} required>
+      {/* J9. Described only where it stands alone: with a parcel, the address
+          note above it already says why it is asked. */}
+      <select
+        id="checkout-country"
+        value={countryCode}
+        onChange={(event) => setCountryCode(event.target.value)}
+        required
+        aria-describedby={needsAddress ? undefined : "checkout-country-hint"}
+      >
         <option value="">{COUNTRY_PLACEHOLDER}</option>
         {countries.map((country) => (
           <option key={country.iso_2} value={country.iso_2}>
@@ -1189,6 +1198,13 @@ export function PayButton({
           shipping address without being one (T10). With a parcel it is the
           address's first field instead (H4), rendered there. */}
       {needsAddress ? null : countryField}
+      {/* J9. G3's finding 5: on this cart the country moves no figure, so the
+          page has to say what it is for. `COUNTRY_HINT` says why. */}
+      {needsAddress ? null : (
+        <FinePrint>
+          <span id="checkout-country-hint">{COUNTRY_HINT}</span>
+        </FinePrint>
+      )}
 
       {shippingError === null ? null : <p className="notice payment-error">{shippingError}</p>}
 

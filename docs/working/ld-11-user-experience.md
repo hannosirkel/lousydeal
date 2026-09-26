@@ -1019,9 +1019,87 @@ Selected by Jev on 2026-09-25.
 **Repository:** `lousydeal`.
 **Candidate `n`**, from G3's finding 5 in [`findings.md`](./ld-11-user-experience/findings.md).
 Selected by Jev on 2026-09-25.
+**Files:** `storefront/src/content/checkout.ts`,
+`storefront/src/app/checkout/PaymentForm.tsx`,
+`storefront/tests/checkout-address.test.ts`,
+`storefront/tests/legal-consistency.test.ts`.
 
-- [ ] Build candidate `n` as its finding describes. The row records what
-      was built, what verifies it, and each mutation run.
+G3 found that a certificate-only cart is asked for a country that moves no
+figure on the page, and did not establish whether it had an invisible
+consequence. It has several, so the row says why rather than stopping asking.
+
+**Stopping would have broken three things:**
+
+- **Tax.** `setCartCountry` writes the country to the cart's shipping and
+  billing addresses, and Medusa resolves a tax region from it. Decision `013`
+  puts the certificate under destination VAT through the Union OSS, and
+  `tax-model.ts` carries the 27 destination rates it resolves to. Decision
+  `009` makes that VAT come out of the price, so the figure does not move, but
+  the VAT on the order does.
+- **The threshold count.** `report-vat-thresholds.ts` reads
+  `shipping_address.country_code` off every order, certificates included.
+  `vat-thresholds.ts` then leaves a non-EU order out of Union turnover. With
+  no country, it counts the order as Estonian. Stopping would over-count
+  every non-EU certificate toward the €100,000 ceiling.
+- **Documents already say it is asked.** Privacy §3 lists "the country you are
+  in" among the four things the checkout asks, and §4 says it is kept on the
+  order. Terms "Price and tax" says a certificate's VAT follows where the buyer
+  is.
+
+The § 55 confirmation does not read the country; nothing else in `backend/src`
+reads it for a certificate.
+
+**Built: one sentence under the control, only where it stands alone.**
+`COUNTRY_HINT` is `FinePrint` after the select, and the select points to it
+with `aria-describedby`, as the email field does. With a parcel, the address
+note already says why, so neither renders. The text, chosen by Jev:
+
+> Nothing is posted. The country tells us which country's VAT, if any, we
+> owe on the certificate; we pay it out of the price, and what you pay does
+> not change.
+
+Jev chose it from three drafts (0.70, against 0.17 and 0.13). Its apostrophe
+is U+2019, not `'`: React escapes a straight one to `&#x27;`, and the
+exact-text test failed on it, the trap F5 recorded.
+
+"If any" is there because a buyer outside the Union owes none. The hint joins
+`legal-consistency.test.ts`'s surface list, now 15, and two new tests there
+hold its two claims to the Terms' own sentences. H4's test matched
+`required=""` as the select's last attribute; it now allows one after it.
+
+**Measured in Chromium** on the rendered `PayButton` with the real
+stylesheet, the real LDMono fonts loaded, and "South Georgia and the South
+Sandwich Islands" selected:
+
+| Width | Certificate cart | Parcel cart | Control |
+| --- | --- | --- | --- |
+| 320 | 0px | 0px | 218px |
+| 360 | 0px | 0px | 258px |
+| 390 | 0px | 0px | 288px |
+
+Reverting J1's two declarations on the same page gives 201, 161 and 131px,
+J1's live figures, so this harness would catch the regression J1 and H4 hit.
+
+- [x] Say why a certificate-only order is asked for a country. Verified by
+      five tests in `checkout-address.test.ts` and two in
+      `legal-consistency.test.ts`, and by the measurement above. Eleven
+      mutations were run, each after a commit and restoring only its own
+      file, and each failed the test naming it with the file's count
+      unchanged, except where noted:
+      the hint not rendered (fails "says why" and "after the control");
+      `aria-describedby` dropped; the hint on a parcel cart too; the hint
+      moved before the control; "if any" dropped (fails the claims test and
+      the Terms agreement); the price said to depend on the country (same
+      two); "VAT" replaced by "tax"; the hint taken off the surface list
+      (fails the list-length test; the count drops from 119 to 113 because
+      six parameterised cases go with it); the Terms no longer naming the
+      certificate; the Terms saying the price varies; and the select no
+      longer `required`, which checks H4's loosened match still fails.
+
+**Not verified.** No live or test checkout was walked; nothing here has been
+deployed. Whether a screen reader announces the hint was not tested. At
+320px the select still truncates the country's name, which is J1's accepted
+state, not this row's.
 
 ### J10 — The certificate page says who can see it
 
