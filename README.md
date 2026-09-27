@@ -8,14 +8,11 @@ Public. Public does not mean it may hold a secret.
 
 ## Status
 
-The root npm workspace: `package.json`, `tsconfig.json`, `eslint.config.js`,
-`vitest.config.ts` and `scripts/validate`. `backend/` is the Medusa backend
-and `storefront/` is the Next.js App Router storefront, both under
-construction module by module. The catalogue declares
+The shop is live at lousydeal.com. The build initiative closed on 2026-09-27
+([decision 017](./docs/decisions/017-close-the-v1-initiative.md)), and no plan
+is active. `backend/` is the Medusa backend and `storefront/` is the Next.js
+App Router storefront, in one root npm workspace. The catalogue declares
 `languages: [shell, typescript]` and `npm_project: true`.
-
-What is being built, in what order, and what has already been decided:
-[`docs/working/fresh-build.md`](./docs/working/fresh-build.md).
 
 ## What it owns
 
@@ -67,8 +64,10 @@ behind Cloudflare Access. Promotion is by digest, never by tag. See
 | Question | Answer |
 | --- | --- |
 | What is the product? | [`docs/current/concept.md`](./docs/current/concept.md) |
-| What is being built now? | [`docs/working/fresh-build.md`](./docs/working/fresh-build.md) |
-| How far along is it? | [`docs/working/status.md`](./docs/working/status.md) |
+| What does the shop do? | [`docs/current/specification.md`](./docs/current/specification.md) |
+| How is it built? | [`docs/current/architecture.md`](./docs/current/architecture.md) |
+| How is it operated and released? | [`docs/current/operations.md`](./docs/current/operations.md) |
+| What could be done next? | [`docs/working/backlog-candidates.md`](./docs/working/backlog-candidates.md) |
 | How do I work here? | [`AGENTS.md`](./AGENTS.md) |
 | Why is it like this? | `docs/decisions/` |
 | What rules apply everywhere? | [`architecture/standards/`](https://github.com/hannosirkel/architecture/tree/main/standards) |

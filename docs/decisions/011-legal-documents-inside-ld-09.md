@@ -4,7 +4,7 @@
 
 ## The conflict
 
-[`fresh-build.md`](../working/fresh-build.md) §23 says: *do not write terms,
+[`specification.md`](../current/specification.md) §23 says: *do not write terms,
 refund policy, VAT configuration or consumer disclosures as part of any LD
 slice.* LD-09 rows V8 to V11 wrote four of them.
 
@@ -27,7 +27,7 @@ storefront with a footer linking four routes that did not exist.
 
 §23's **gate** is untouched. Drafting is not advice, nothing publishes until a
 qualified human reader closes the gate, and the open items are listed at the
-foot of [`ld-09-visual-identity.md`](../working/ld-09-visual-identity.md).
+foot of the retired LD-09 plan, `ld-09-visual-identity.md` (git history).
 
 The rule stands for every other slice. LD-02 may send the confirmation email
 § 55 requires; it may not decide what that email says about withdrawal without

@@ -19,8 +19,8 @@ exclude = [
   # Local development addresses. A checker running in CI has nothing listening.
   "^https?://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/|$)",
 
-  # The site does not exist yet. Every link to it is a forward reference until
-  # the first deployment publishes one; see docs/working/fresh-build.md.
+  # The shop's own hostnames. A link to one checks the deployment, not the
+  # documentation, and the test hostname answers only through Cloudflare Access.
   "^https?://([a-z-]+\\.)?lousydeal\\.com(/|$)",
 
   # Printful's help centre sits behind a Cloudflare bot check that answers 403

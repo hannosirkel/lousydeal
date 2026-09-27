@@ -63,7 +63,7 @@ matches their address, so no VAT line is added — the early return cited above.
 
 **Why Estonia's rate, as a chain rather than an assertion.** Lousy Deal is
 operated by Aislopica OÜ, an Estonian company
-(`docs/working/fresh-build.md:150-162` carries the entity and address, and
+([`specification.md`](../current/specification.md) §2b carries the entity and address, and
 records that committing those public business-register facts is a deliberate
 decision). **Aislopica OÜ is VAT registered** — the operator, 2026-08-30.
 That is recorded here as a fact and not as a number; nothing in this build

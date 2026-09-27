@@ -1,6 +1,6 @@
 /**
  * Holds the checkout's consent mechanism, which is the one piece of legal
- * machinery `fresh-build.md` §23 puts inside this build rather than after it.
+ * machinery `specification.md` §23 puts inside this build rather than after it.
  *
  * **It renders the real control.** An earlier version of this file declared
  * the pay control's disabled rule itself and asserted that, claiming the form

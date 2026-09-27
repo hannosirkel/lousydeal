@@ -97,7 +97,7 @@ Never bypass it.
   built artifact. Per-environment values are read server-side at runtime.
 - Baldrick has no LLM backend, and is not to be given one. He is scripted
   flows, keyword matching, and response pools. See
-  [`docs/working/fresh-build.md`](./docs/working/fresh-build.md).
+  [`docs/current/specification.md`](./docs/current/specification.md) §8.
 - Never publish fabricated customers, transaction totals, testimonials, or
   reviews. The public counters report real orders or they do not ship.
 
@@ -105,10 +105,22 @@ Never bypass it.
 
 | Question | Answer |
 | --- | --- |
-| Where did the last agent stop? | [`docs/working/status.md`](./docs/working/status.md) |
 | What is the product? | [`docs/current/concept.md`](./docs/current/concept.md) |
-| What is being built now? | [`docs/working/fresh-build.md`](./docs/working/fresh-build.md) |
+| What does the shop do? | [`docs/current/specification.md`](./docs/current/specification.md) |
+| How is it built? | [`docs/current/architecture.md`](./docs/current/architecture.md) |
+| How is it operated and released? | [`docs/current/operations.md`](./docs/current/operations.md) |
+| What could be done next? | [`docs/working/backlog-candidates.md`](./docs/working/backlog-candidates.md) |
 | Why is it like this? | `docs/decisions/` |
 
-Read `docs/working/status.md` before you start, and update it before you stop.
-It is the only place that records where the work actually is.
+No plan is active. The build initiative closed on 2026-09-27
+([decision 017](./docs/decisions/017-close-the-v1-initiative.md)). To start
+work, select an item from `backlog-candidates.md` and write its plan in
+`docs/working/`, as the architecture standards require.
+
+Source comments cite `specification.md` by section number (§N). Some comments
+also cite a retired plan, such as `docs/working/ld-04-merch.md:558`. Read a
+retired plan at the last commit that holds it:
+
+```bash
+git show 1af755e:docs/working/ld-04-merch.md
+```
