@@ -32,7 +32,7 @@ open item.
 
 | Gate | What it checks | Result and evidence |
 | --- | --- | --- |
-| A — product scope | the V1 scope is coherent before implementation | Passed 2026-08-28. Its decisions are [`001`](./001-one-repository-two-images.md)–[`005`](./005-secret-source-naming.md). |
+| A — product scope | the V1 scope is coherent before implementation | Passed 2026-08-28. Its decisions are [`001`](./001-one-repository-two-images.md)–[`006`](./006-two-naming-categories-in-keys.md); `006` supersedes `005`. |
 | B — brand/copy | the customer-facing copy, reviewed on its own | Passed. The approved copy is [`brand.md`](../current/brand.md), settled 2026-09-05. |
 | C — visual design | the visual direction, approved before major surfaces | Passed. The approved direction is [`brand.md`](../current/brand.md), settled 2026-09-05. |
 | D — per-task code review | each row, by a separate top-tier reviewer with fresh context | Run per row. Each merged row recorded its review answers in its slice plan, now retired and readable in git history. |
@@ -52,13 +52,41 @@ order confirmation email closed item 11. The operator closed the rest on
 
 - **Items 8, 10, 12, 13, 17 and 18** close on the position the legal documents
   already state. Each divergence from a stricter reading is an accepted
-  exposure, not a blocker. Nothing in the documents changed.
+  exposure, not a blocker. Nothing in the documents changed. The six are:
+
+  | # | The exposure |
+  | --- | --- |
+  | 8 | The withdrawal-waiver consent is a condition of ordering: no purchase is possible without it. VÕS § 56²(9) voids a term that hinders the right, and § 62 voids a departure to the consumer's detriment. |
+  | 10 | The Estonian model withdrawal form matches the annex, but the retrieved annex wording is the one in force 2014–2022. A later redaction may differ. |
+  | 12 | § 56(1⁶) extends the withdrawal period to twelve months if the § 54(1) p 12 information is missing. The documents give it before the contract; whether that discharges the duty is the reader's call. |
+  | 13 | The checkout requires the buyer to acknowledge the loss of a right that, on the documents' own analysis, no order loses today. § 53(4) p 7¹ requires the wording. It sits beside item 8. |
+  | 17 | Stripe's `__stripe_mid` is a 365-day device identifier, set under this site's domain for fraud checks, without consent. ePrivacy Art 5(3)'s exemption is narrow, and its reach is contested. |
+  | 18 | Stripe is an independent controller for fraud and regulatory checks, and a processor for the payment. Whether Art 26 joint-controller arrangements are needed for the first half is open. |
+
 - **Item 15, the deletion job for the seven-year accounting record, is not
   built.** Retention is enforced by hand. The first record reaches seven years
   in 2033, so nothing is overdue. Nothing deletes a record unless a person does.
 
 The reviewed text is `storefront/src/content/legal/` at commit `31c08be`
 (2026-09-10). A later change to those files is a change to accepted text.
+
+### Changes to the legal text after the gate
+
+Four commits changed the accepted text. None was accepted through §23 again,
+and no decision recorded them until this one:
+
+| Commit | Date | Change | Authority, as recorded |
+| --- | --- | --- | --- |
+| `4e4e412` | 2026-09-11 | Terms: disclose that a code adds a removable adjustment. | The operator authorised LD-06 to correct legal text a code makes false. The plan said that authority to write is not acceptance. |
+| `c447356` | 2026-09-12 | Privacy: name Google Analytics and Meta Pixel, their purpose and the consent control. | None recorded. |
+| `410398c` | 2026-09-12 | Privacy: the measurement frame, and processing outside the EEA. | None recorded. |
+| `85bb7c3` | 2026-09-23 | Terms §5: the certificate is issued on payment and its link is emailed. | The operator chose this wording for LD-11 H1. |
+
+LD-04's legal rows (Refunds and withdrawal, Terms, Privacy, Imprint) were
+drafted before `31c08be`, under authority the operator granted on 2026-09-09
+("authority granted — build them now"). The gate then accepted them. Whether
+the operator accepts the four later changes is an open question in
+[`backlog-candidates.md`](../working/backlog-candidates.md).
 
 ### The other questions closed on 2026-09-10
 
@@ -69,7 +97,7 @@ The reviewed text is `storefront/src/content/legal/` at commit `31c08be`
 | The sticker's cut | Cut to shape, as rendered. Not the 4″ square the row described. |
 | Argo CD's sync cadence | Observed and tolerated. A manual sync is the workaround. |
 | LD-02's two `OWNER MUST FILL` items | The inscription is part of the order record and is kept seven years. A certificate link is not re-issued, so the confirmation email is its only copy. |
-| Whether the €10,000 threshold was crossed earlier in 2026 | It was not. The shop had taken no live payment. |
+| Whether the €10,000 threshold was crossed earlier in 2026 | Closed as not crossed. The shop had taken no live payment. Whether Aislopica OÜ made other cross-border sales to consumers is a fact only the operator holds. |
 
 ### A correction to the EMTA record
 

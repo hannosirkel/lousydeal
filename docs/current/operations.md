@@ -106,19 +106,19 @@ hook can hold both environments on old images while merges continue.
 | Test storefront | gated, except the paths below |
 | Test admin | gated |
 
-On the gated test storefront, three paths bypass Access, each scoped to its
-path only: the Stripe webhook path, the Printful webhook path, and
-`/print-files/*`. The storefront proxy admits exactly the registered webhook
-paths, so a wider bypass would reach nothing more.
+On the gated test storefront, two paths bypass Access, each scoped to its
+path only: the Stripe webhook path and the Printful webhook path. The
+storefront proxy admits exactly these webhook paths. Printful fetches print
+files from this public repository at a pinned commit, so no path serves
+them.
 
 ### Automated walks of the test store
 
-Headless walks of the test store use an Access service token. Orange decision
-025 permits it:
-[`025-service-token-for-automated-test-walks.md`](https://github.com/hannosirkel/orange/blob/main/docs/decisions/025-service-token-for-automated-test-walks.md).
+Headless walks of the test store use an Access service token. Decision 025
+in the private `orange` repository permits it.
 
 - The token admits requests only from Orange's public address.
-- The development VM holds it. The devbox guest play in Orange delivers it.
+- The development VM holds it. The operator's Orange tooling delivers it.
 - Send the two `CF-Access-Client-Id` and `CF-Access-Client-Secret` headers
   only on requests to `test.lousydeal.com`.
 - Never send them to a third party, such as Stripe. The secret leaks to
@@ -134,11 +134,32 @@ names the sources).
 | Service | test | live |
 | --- | --- | --- |
 | Stripe | sandbox keys and webhook | live keys; one webhook endpoint pinned to API version `2026-02-25.clover` with the eight Payment Intent events Medusa needs |
-| SMTP | sends mail | sends mail |
+| Stripe payment methods | card, Google Pay, Apple Pay, Link and PayPal, set in the Stripe Dashboard | the same |
+| SMTP | sends mail; egress only to the provider's address range | the same |
 | Printful | test store: token, webhook, four products; no billing method, so fulfilment orders fail at Printful | live store: four products, nine variants, billing method on file |
 | Printful webhook | signed deliveries accepted, unsigned refused | subscribed to `shipment_sent`, `shipment_returned`, `order_failed`, `order_canceled` |
-| Google Analytics, Meta pixel | absent | configured; they load only after consent ([`specification.md`](./specification.md) §24) |
+| Google Analytics, Meta pixel | absent | configured; they load only after consent ([`specification.md`](./specification.md) §24). Account settings below |
 | Buffer, GA Data API, B2 campaign media | not used | Meeme's reporting and drafts; see [`provider-reporting.md`](./provider-reporting.md) |
+
+**Stripe payment methods are Dashboard settings, not code.** The code does
+not pin `payment_method_types`, so the Payment Element shows what the
+Dashboard enables. Keep card, Google Pay, Apple Pay, Link and PayPal enabled,
+and disable the other methods, for example Bancontact, iDEAL and OXXO.
+Register each storefront hostname as a payment-method domain; without it no
+wallet renders. `STRIPE_PAYMENT_METHOD_CONFIGURATION_ID` is optional and holds
+a `pmc_…` identifier, which is not a secret. PayPal through Stripe needs a
+merchant account in Europe, Switzerland or the United Kingdom.
+
+**SMTP egress is restricted.** A NetworkPolicy in `deploys` lets the backend
+and worker reach only the provider's address range, which the operator holds
+for each environment.
+
+**The analytics accounts carry settings that code cannot set.** Keep Google's
+enhanced measurement off (history, scroll, form, outbound-link and download
+events). Keep Google signals, advertising personalisation and user-provided
+data off. Keep Meta's automatic events and automatic advanced matching off.
+No record in this repository shows that these settings were read back
+([`backlog-candidates.md`](../working/backlog-candidates.md)).
 
 Other things the shop holds:
 
@@ -189,15 +210,37 @@ orders. Reclassify the special-territory postcodes by hand, as
 [`014`](../decisions/014-special-territories-are-a-reporting-problem.md)
 describes. The small-enterprise report is due even when turnover is zero.
 
-### Change the merch catalogue
+### Change the merch catalogue or its artwork
 
-1. Merge the catalogue change.
-2. Run `npm run sync:printful` against the test store, then against the live
+Printful fetches each print file from this public repository, at a pinned
+commit, through `PRINTFUL_ARTWORK_BASE_URL`. The value is not a secret. It is
+set on the Argo CD Application in Orange. `assertPinnedArtworkBase` refuses a
+branch URL, so an order placed today stays reproducible later.
+
+1. Render changed artwork with `design/merch/render.mjs`, and commit it under
+   `design/merch/print-files/`.
+2. Merge the catalogue or artwork change.
+3. Move `PRINTFUL_ARTWORK_BASE_URL` to the merge commit, in Orange.
+4. Run `npm run sync:printful` against the test store, then against the live
    store.
-3. Let the next predeploy run `seed:merch`, which joins the Printful variants
+5. Let the next predeploy run `seed:merch`, which joins the Printful variants
    into Medusa.
-4. Compare handles, SKUs, artwork URLs and counts. Do not compare remote
+6. Run `design/merch/fetch-mockups.mjs` once to refresh the product photographs
+   in `storefront/public/goods/`, and commit them.
+7. Compare handles, SKUs, artwork URLs and counts. Do not compare remote
    identifiers.
+
+### Subscribe the Printful webhook
+
+1. Read the store's current webhook configuration first.
+   `POST /v2/webhooks` replaces it without a warning.
+2. Subscribe `default_url` at the Printful webhook path, with the four events
+   `webhook.ts` accepts: `shipment_sent`, `shipment_returned`, `order_failed`
+   and `order_canceled`. Set no expiry.
+3. Printful shows the hex `secret_key` once. Write it straight into its
+   OpenBao source, and do not print it.
+4. Verify from outside: a correctly signed body returns 200, and a wrong key
+   or a malformed signature returns 401.
 
 ### Replace a credential
 

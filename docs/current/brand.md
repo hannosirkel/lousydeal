@@ -3,15 +3,16 @@
 The approved direction for every customer-facing surface. It exists because
 [the specification](specification.md) §13 forbids letting implementation
 agents invent the brand as they code, and §14 forbids building a major surface
-before a visual direction is approved. Gate B reviews this document as copy;
-Gate C approves the visual half.
+before a visual direction is approved. Gate B accepted this document as copy,
+and Gate C as the visual direction
+([decision 016](../decisions/016-v1-gate-acceptances.md)).
 
 This document is the authority for every colour, size, word and rule on a
 page, a certificate or an email. A surface that needs something this document
 does not give amends this document in the same pull request, so the operator
 reviews the copy as copy rather than finding it in a diff.
 
-Where this document and a slice plan disagree about what a surface says, this
+Where this document and a plan disagree about what a surface says, this
 document wins. Where it and [the specification](specification.md) disagree
 about scope, the specification wins.
 
@@ -38,7 +39,7 @@ Full stops. No exclamation marks anywhere, in any surface, ever.
 funny because it is true and because it is set in the same type as the price
 beside it. `VALUE ……… $0.00 (LOL!)` is not funny and is not this brand.
 
-**Accuracy is the joke's load-bearing wall.** §23 of the contract is a rule, not
+**Accuracy is the joke's load-bearing wall.** Specification §23 is a rule, not
 a caution: the joke must never depend on misleading a customer. A customer sees
 exactly what they buy, the final price is explicit before payment, and every
 disclosure is straight. A funny sentence that makes a disclosure less true is
@@ -265,7 +266,9 @@ not have a night edition.
 Content is 720px wide and centred. Certificates and legal documents are 640px —
 narrower, because they are read rather than scanned. Border radius is 0
 everywhere. No shadow, no gradient, no illustration, no mascot,
-no icon set. The only vector artwork on the site is the stamp mark.
+no icon set. The only vector artwork on the site is the stamp mark. The
+footer's social column departs from this rule with three platform icons; see
+*Global* in §4.
 
 **"No photograph" is amended by LD-04, 2026-09-10** — see §6, which carries
 the argument and the exact width of the admission. In short: a photograph of a
@@ -343,9 +346,8 @@ shows a real serial.
 
 ## 4. Copy, by surface
 
-Only the surfaces this slice builds are specified. A surface that arrives with a
-later slice gets its copy when that slice is planned, reviewed against this
-document.
+Every built surface is specified here. A new surface gets its copy here
+before it is built, reviewed against this document.
 
 ### Global
 
@@ -357,11 +359,15 @@ document.
   so a screen reader and a copy-paste both get words rather than letters.
 - Browser title and social description are the masthead and its fine print,
   unchanged: `LOUSYDEAL.COM` and `Purveyors of objectively bad value.` The tab
-  is another surface, and it says what the letterhead says.
-- Footer, on every page: three columns — **LEGAL** (Terms of service, Refunds
-  and withdrawal, Privacy, Withdraw from a contract, Imprint), **COMPANY**
-  (Imprint contact address), and a fine-print trader line resolved from
-  runtime configuration. The links are sentence case: a link is not a label.
+  is another surface, and it says what the letterhead says. Backlog candidate
+  `e` would give each commerce page its own title, which changes this rule.
+- Footer, on every page: **LEGAL** (Terms of service, Refunds and withdrawal,
+  Privacy, Withdraw from a contract, Imprint), **COMPANY** (Imprint contact
+  address), **SOCIAL** (TikTok, Instagram and X, as icon links), and a
+  fine-print trader line resolved from runtime configuration. The links are
+  sentence case: a link is not a label. The social icons depart from §3's
+  "no icon set"; whether they stay is an operator question in
+  [`backlog-candidates.md`](../working/backlog-candidates.md).
 
 ### Home — `FORM LD-1`, a purchase order
 
@@ -603,7 +609,11 @@ Then the **consent checkbox**, unticked by default, which the pay control is
 disabled behind:
 
 > I request that supply of the digital certificate begin immediately, and I
-> acknowledge that I will lose my right of withdrawal once supply has begun.
+> acknowledge that I will lose my right of withdrawal for that certificate
+> once supply has begun.
+
+"For that certificate" is there so that no buyer reads the box as giving up
+anything about a printed item, whose right of withdrawal is unaffected.
 
 Then the Stripe payment element. The checkbox is required by
 [the specification](specification.md) §23 and by VÕS § 53(4); its
@@ -730,9 +740,9 @@ recipient's name be written to `display_name` on live deal #1. That entry is a
 single operator exception on the operator's own order, made knowingly, and the
 recipient was told in writing that their name is on a public page and may be
 removed on request. **It is not a precedent**, and nothing in the product may
-write a gift field to a public one. `constraint-4-agreement.test.ts` reads the
-text between the `constraint-4` markers, so the quotation stays whole and the
-exception stays outside it.
+write a gift field to a public one. `backend/tests/constraint-4.test.ts` reads
+the text between the `constraint-4` markers, so the quotation stays whole and
+the exception stays outside it.
 
 The preview beneath the message is the inscription preview's twin, headed
 `WHAT THEY WILL READ`. Its empty state is `No message` — **not** the
@@ -810,7 +820,7 @@ column of figures that wanders with its labels is not a ledger. The labels are
 bearer line reads **`The bearer`** rather than collapsing: §5 requires an empty
 inscription to look deliberate, and most buyers will leave one.
 
-**The dedication is not a ledger row.** Contract §5 gives the buyer two fields,
+**The dedication is not a ledger row.** Specification §5 gives the buyer two fields,
 not one — a short name and a line of up to 120 characters — and they are
 different kinds of thing: the name is a fact about the document and belongs in
 the ledger, the dedication is somebody's voice. It is set as a quotation
@@ -846,15 +856,13 @@ palette's colours, and its closing rule follows the content rather than sitting
 at the page foot. A character the embedded font cannot set prints as `?`, so
 the gap is visible rather than looking like a typed space.
 
-**In this slice it is built and reviewable but not public.** It renders from a
-typed model at `/design/certificate` from a specimen record, serial `#0`,
-carrying the extra fine print `Specimen. No deal bears this number.` The public
-route is `lousydeal.com/done-deals/{slug}` per contract §5 — an opaque,
-non-enumerable slug, never the serial — and LD-02 mounted this same component
-there against real data: C15's Gate E order rendered
-`/done-deals/6hvn0jbfw32g1dr8` from a paid order, as a page and as a one-page
-A4 PDF. The prompt's `/deal/nr/[publicId]` is not the agreed
-URL and is not used. The specimen route carries `noindex, nofollow`: a design
+**The same component renders the specimen and every real certificate.** The
+specimen is at `/design/certificate`, from a typed specimen record, serial
+`#0`, with the extra fine print `Specimen. No deal bears this number.` A real
+certificate is public at `lousydeal.com/done-deals/{slug}`, per specification
+§5: an opaque, non-enumerable slug, never the serial. It renders there as a
+page and as a one-page A4 PDF. `/deal/nr/[publicId]` is not the agreed URL and
+is not used. The specimen route carries `noindex, nofollow`: a design
 surface is not a page a search engine should hold, and Access will not always
 be the thing keeping it out.
 
@@ -1001,10 +1009,10 @@ Regulation (EU) 2024/3228 and traders were obliged to remove the link. Estonian
 consumer dispute information names the Consumer Protection and Technical
 Regulatory Authority and its consumer disputes committee instead.
 
-**These documents do not close the legal gate.** §23 makes that an operator
-gate that a qualified human reader closes, recorded in `docs/decisions/`. This
-slice writes them at the operator's instruction; publication still waits on that
-acceptance.
+**The operator closed the legal gate on 2026-09-10**, with some positions
+accepted as exposures ([decision 016](../decisions/016-v1-gate-acceptances.md)).
+A later change to these documents needs the operator's recorded authority and
+is recorded in `docs/decisions/` (specification §23).
 
 ## 6. What this identity forbids
 
@@ -1076,7 +1084,7 @@ then **withdrawn by LD-05's B7**, also marked, for the reason that entry gives.
   **Baldrick is the first exception that is a choice.** The three before him
   are requirements: a checkbox the law makes conditional, a payment element
   Stripe owns, and a framework constraint. He is a character somebody wanted,
-  and §8 of the contract asks for typing indicators, pauses and messages
+  and §8 of the specification asks for typing indicators, pauses and messages
   arriving one at a time, none of which a server can do. The operator took that
   decision on 2026-09-08 against the alternative — a server-rendered transcript
   that would have kept this list at three.
@@ -1084,7 +1092,7 @@ then **withdrawn by LD-05's B7**, also marked, for the reason that entry gives.
   Two things bound it. He is **not rendered at all** where scripting is off:
   not a disabled input, not a dead button, because this document says elsewhere
   that a control which does nothing is a lie, and a chat box that cannot send
-  is exactly that. And he gates nothing — the only thing the contract has him
+  is exactly that. And he gates nothing — the only thing the specification has him
   unlock is Enterprise, which §10 defers out of V1 — so every purchase path on
   this site still works with scripting off, which is the property this list
   exists to protect.

@@ -515,8 +515,9 @@ is specification.md §8; voice is [brand.md](./brand.md) §2.
 He is mounted on `/`, `/deal/[handle]`, `/goods/[handle]` and `/cart`, and
 nowhere else; `storefront/tests/baldrick-reach.test.ts` holds that list. A
 local error boundary removes him if he fails, so he cannot take a page down.
-He persists nothing: no cookie, no storage, no fetch. He offers the surcharge
-codes; a guard test keeps his script naming only codes in `SURCHARGE_CODES`.
+He persists nothing: no cookie, no storage, no fetch. He names one surcharge
+code, `BALDRICK20`. `baldrick-copy.test.ts` allows that code verbatim and
+refuses any other code from `SURCHARGE_CODES` in his script.
 
 ## 11. Analytics and consent
 
@@ -584,6 +585,9 @@ These are accepted today. Candidate work is in
   before the table is large.
 - The Unknown notice can reach a buyer who was not charged when Stripe.js
   cannot load.
+- The withdrawal-waiver consent is enforced only in the browser, by the
+  disabled pay control. Nothing records it on the cart or the order, and the
+  order confirmation states it unconditionally.
 
 ## 15. Where to look first
 

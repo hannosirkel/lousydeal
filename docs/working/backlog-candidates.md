@@ -12,8 +12,8 @@ plan it: the code, not this file, is the authority.
 
 ## User-experience candidates
 
-These came from the LD-11 user-experience audit, which walked the live store at
-390 and 1280 pixels on 2026-09-22. The operator delegated the selection to
+These came from the LD-11 user-experience audit, which walked the live store
+on 2026-09-22, mostly at 390 pixels and, for some flows, also at 1280. The operator delegated the selection to
 TypeSafe's Jev model, with a bar of a success probability above 0.80. These
 candidates did not clear it. The letter is the audit's identifier, and some
 code comments cite it.
@@ -52,11 +52,21 @@ code comments cite it.
 - **A failure after a successful redirect completion shows the error page.**
   The cart read and `listTiers` are outside the `try` block, so the page does
   not say that the card was charged.
-- **The live Stripe webhook is not listed among the held external services.**
-  The notices promise a confirmation email "within a few minutes". That promise
-  depends on the Stripe webhook, which completes a paid cart about nine
-  seconds after payment on the test store. Record the live endpoint and verify
-  it in [`operations.md`](../current/operations.md).
+- **The withdrawal-waiver consent is enforced only in the browser.** The pay
+  control stays disabled until the box is ticked, but nothing records the
+  consent on the cart or the order. The order confirmation tells every buyer
+  that they ticked it. Record the consent with the order, or change the
+  sentence.
+- **A "not ready" race shows the Unknown notice falsely.** The payment wrapper
+  can reject with "not ready" only in a race, and the page then says it could
+  not hear back from the payment provider.
+- **A completed cart with no email throws.** Only a cart completed directly
+  through the public Store API can have no email.
+- **The number of PaymentIntents a parcel checkout creates is not measured.**
+  The quote waits for a complete address, which should keep it to one. Test it
+  with a browser walk of the test store.
+- The limits in [`architecture.md`](../current/architecture.md) §14 are also
+  candidates, for example a `processing` redirect that still shows the form.
 
 ## Operations and performance
 
@@ -69,6 +79,8 @@ code comments cite it.
   `getDefaultRegion`), and when `addToCart` creates a new cart (through
   `listTiers`, then `cartToAddTo`). `listCatalogue` removed the same waste
   from the cart page and the sitemap.
+- **The notification provider sends to one recipient, with no CC.** The
+  operator ruled it out of LD-11's scope on 2026-09-19.
 - **Merch orders never get a Medusa fulfilment, and `order.status` stays
   `pending`.** The Printful provider's `createFulfillment` records what Medusa
   needs, and nothing calls it. Admin shows every merch order as unfulfilled,
@@ -76,7 +88,39 @@ code comments cite it.
   number. An operator cannot tell a shipped order from a stalled one in
   Admin.
 
+## Legal and privacy
+
+- **Four changes to the legal text came after the gate accepted it.**
+  [Decision 016](../decisions/016-v1-gate-acceptances.md) lists them. The two
+  privacy changes, which added Google Analytics and Meta Pixel, have no
+  recorded authority. The operator decides whether to accept them, and a
+  decision records it.
+- **No record shows the analytics account settings were read back.**
+  [`operations.md`](../current/operations.md) lists the settings that code
+  cannot set. A probe on 2026-09-12 saw Google send an automatic `scroll`
+  event. Read the settings back and record the vendors' retention periods.
+- **The privacy notice promises to remove an address on request, and no
+  command does it.** A buyer's or a gift recipient's address stays on the
+  order record. Removing it today is a manual database change.
+
 ## Rendering and copy
+
+- **Characters outside the embedded font print as `?` in the PDF.** This
+  affects Chinese, Japanese and Korean text, emoji and right-to-left scripts.
+  A fallback font in the image fixes it.
+- **An unknown deal page answers 404 with an empty body when scripting is
+  off.** `requireTier` calls `notFound()`, and a reader without scripting sees
+  nothing.
+- **The address note and the dedication preview are not announced.** Both
+  appear out of view as the buyer fills the form, and neither has
+  `aria-live`.
+- **Two cart notices are slightly wrong in edge cases.** Choosing the same
+  tier again checks the cart's shape, not its prices, so a stale price stays
+  and "already applied" can be said of it. "Could not be re-priced" also
+  covers a doubled line that was removed. Neither state is reachable through
+  the site's own controls.
+- **Share previews are not verified.** No test shows that X and Bluesky
+  unfurl the certificate's `og:image`, and there is no `twitter:card` tag.
 
 - **Nothing limits the inscription length where it renders.** The checkout
   and the `edit:inscription` command enforce `DEAL_INSCRIPTION_LIMITS` (60
@@ -101,7 +145,11 @@ code comments cite it.
   exist, and `storefront/src/lib/store-payment.ts` says `backend/src/api`
   does not exist; both exist. A comment in
   `backend/src/subscribers/order-placed.ts` calls a merch-only order "complete
-  and correct", but the code logs it as an error.
+  and correct", but the code logs it as an error. Comments in
+  `backend/src/config/runtime.ts`, `config/fulfilment.ts`,
+  `commerce/tax-model.ts` and the Printful webhook route say that §23 keeps a
+  live Printful store or live payment keys out "until the publication gate".
+  The gate closed on 2026-09-10, and both are live.
 
 ## Questions for the operator
 
@@ -120,6 +168,14 @@ code comments cite it.
 
 ## Deferred features
 
+The [specification](../current/specification.md) lists what the build left
+out on purpose. None of it is built.
+
+- **Accounts and order lookup** (§12). The confirmation email is the only copy
+  of a certificate link.
+- **The §25 non-goals and the §26 future ideas**, for example Lousy Deal of
+  the Month, physical certificates, social leaderboards, corporate bulk
+  purchases, a public API and scheduled gift delivery.
 - **Enterprise (LD-07).** An annual certificate licence that a buyer unlocks
   by negotiating with Baldrick. It needs subscription billing, entitlement,
   expiry and renewal, which Medusa does not provide. The design is in

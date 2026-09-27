@@ -25,7 +25,9 @@ decide whether the initiative stays open for that remaining work.
   store opened under LD-08 on 2026-09-13.
 - **LD-11, user experience, is closed.** It was post-V1 work. All seventeen
   planned rows (F1–F6, G1–G6, H1–H5) and all twelve selected J-rows are built and
-  deployed.
+  deployed. The last change, the cart page's single catalogue read, was
+  promoted to live at 09:27 UTC on 2026-09-27, and the live pods started at
+  09:32 UTC on its images.
 - **LD-07, Enterprise, stays deferred out of V1.** It is a numbered slot, not
   work ([`specification.md`](../current/specification.md) §10, §26).
 - **The remaining candidates move to
@@ -46,7 +48,8 @@ one small change. The operator set the bar: build every candidate above 0.80.
 
 Ten candidates cleared the bar and became J3–J12. Jev also chose the new
 buyer-facing copy in those rows from drafted options. Candidate `u` was
-selected earlier and became J1; J2 came from a review finding. The unselected
+selected earlier and became J1; J2 came from a review finding. H4 had already
+built `k` and `l`, so Jev did not score them. The unselected
 candidates and their scores are in
 [`backlog-candidates.md`](../working/backlog-candidates.md). There, `c` and `v`
 are one entry, because the audit found one cause for both.

@@ -112,15 +112,10 @@ Never bypass it.
 | What could be done next? | [`docs/working/backlog-candidates.md`](./docs/working/backlog-candidates.md) |
 | Why is it like this? | `docs/decisions/` |
 
-No plan is active. The build initiative closed on 2026-09-27
+No plan is active; the build initiative closed on 2026-09-27
 ([decision 017](./docs/decisions/017-close-the-v1-initiative.md)). To start
-work, select an item from `backlog-candidates.md` and write its plan in
-`docs/working/`, as the architecture standards require.
+work, select a backlog item and write its plan in `docs/working/`.
 
-Source comments cite `specification.md` by section number (§N). Some comments
-also cite a retired plan, such as `docs/working/ld-04-merch.md:558`. Read a
-retired plan at the last commit that holds it:
-
-```bash
-git show 1af755e:docs/working/ld-04-merch.md
-```
+Source comments cite `specification.md` by section (§N), and some cite a
+retired plan, such as `docs/working/ld-01-foundation.md:409-417`. Read one at
+the last commit that holds it: `git show 1af755e:docs/working/ld-01-foundation.md`.

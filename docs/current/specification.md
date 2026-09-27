@@ -133,7 +133,7 @@ code within it.
 The values reach a page the way Plepic delivers them (decision
 [`004`](../decisions/004-trader-identity-is-runtime-configuration.md)):
 
-* the storefront reads the seven `MERCHANT_*` variables server-side at runtime;
+* the storefront reads the six `MERCHANT_*` variables server-side at runtime;
   `MERCHANT_VAT_NUMBER` is typed `string | null`;
 * the Argo CD `Application` in `orange` patches the values from the private
   Ansible inventory;
@@ -400,6 +400,10 @@ Scheduled delivery is not built.
 The recipient receives the certificate link by email. A deal is a gift when it
 has a recipient email. The recipient's and the sender's details are never
 public: the certificate page shows only the inscription (§5).
+
+The recipient's address is used to send one message, and is then only order
+data. There is no list, no second send, no re-send and no reminder. A parcel's
+tracking goes to the buyer, not to the recipient.
 
 The copy reinforces the premise. Its final text is in [`brand.md`](./brand.md)
 §4, *Gift block*.
@@ -696,9 +700,10 @@ Copy is reviewed as copy, never buried inside a frontend change.
 
 ## 14. Visual design phase
 
-The approved visual direction is in [`brand.md`](./brand.md) §3. It covers the
-home page on desktop and mobile, the tier section, Baldrick's chat, the
-certificate page, the gift flow and the post-purchase upsell, with real copy.
+The approved visual direction is in [`brand.md`](./brand.md): §3 for the
+system, and §4 for each surface. It covers the home page on desktop and mobile,
+the tier section, Baldrick's chat, the certificate page, the gift flow and the
+merch upsell on the cart page, with real copy.
 
 A user-facing change is compared against that direction in a running browser,
 on desktop and on mobile.
@@ -937,8 +942,9 @@ Where documentation goes is governed by `standards/documentation.md` in the
 [architecture standards](https://github.com/hannosirkel/architecture/tree/main/standards).
 In short: architecture decisions go in `docs/decisions/`, numbered and dated, in
 the MADR format; current behaviour goes in `docs/current/` and is updated in the
-same commit that changes the behaviour; known problems with no active plan go in
-`docs/issues/`.
+same commit that changes the behaviour. Known problems with no active plan go
+in [`backlog-candidates.md`](../working/backlog-candidates.md), by the
+operator's choice on 2026-09-27, not in `docs/issues/`.
 
 Durable knowledge does not accumulate in `README.md`.
 
@@ -1038,8 +1044,13 @@ The legal documents cover:
 * privacy, cookie and payment disclosures.
 
 Legal copy lives in content files, never in logic, so a lawyer can change it
-without unpicking code. A rewrite of accepted legal text is recorded in
-`docs/decisions/`, so it is visibly a change to something accepted.
+without unpicking code. A change to the legal documents needs the operator's
+recorded authority. Its acceptance is recorded in `docs/decisions/`, so it is
+visibly a change to something accepted, and no agent accepts it on its own
+evidence. The contract once forbade any slice to write legal text; decision
+[`011`](../decisions/011-legal-documents-inside-ld-09.md) and the later
+authorities in [`016`](../decisions/016-v1-gate-acceptances.md) replaced that
+rule with this one.
 
 Two retention facts: the inscription is kept with the order for seven years,
 and the deletion of seven-year accounting records is done by hand, not by a job.
@@ -1084,8 +1095,8 @@ Do not build a custom analytics platform.
 
 ## 25. Explicit non-goals for V1
 
-None of these is built. Each is added only by an approved change, and the ones
-worth keeping are backlog candidates in
+None of these is built. Each is added only by an approved change. The
+backlog lists them under *Deferred features* in
 [`backlog-candidates.md`](../working/backlog-candidates.md):
 
 * normal user accounts;
@@ -1128,7 +1139,7 @@ The architecture does not block reasonable future ideas such as:
 * public API;
 * customer-submitted testimonials.
 
-None of these is built. Each is a backlog candidate in
+None of these is built. The backlog lists them under *Deferred features* in
 [`backlog-candidates.md`](../working/backlog-candidates.md).
 
 Design only enough clean boundaries that adding them later does not require rewriting the store.
