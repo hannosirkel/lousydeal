@@ -6,7 +6,8 @@
  * `listTiers`, each also re-reading the region: four requests where two
  * answer. `listCatalogue` reads once and splits the list the way the two
  * functions always did. The real cart page is rendered here with only the
- * Store API stubbed, and every request it makes is counted.
+ * Store API stubbed, and every catalogue request it makes is counted. The cart read is
+ * mocked at `getCart` and is not among them.
  */
 
 import { renderToStaticMarkup } from "react-dom/server";

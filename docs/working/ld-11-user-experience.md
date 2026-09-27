@@ -800,14 +800,21 @@ is left for later rather than done here.
 `listCatalogue` reads the region and the product list once. It splits them
 with the same pure `tiersFrom` and `merchFrom` that `listTiers` and
 `listMerch` now wrap, and the cart page and the sitemap use it. Each of the
-two pages had made four Store API requests where two answer.
+two pages had made four Store API requests for the catalogue where two
+answer.
 `listTiers` and `listMerch` stay for the pages that want one half.
 `catalogue-once.test.ts` renders the real cart page with only the Store API
 stubbed, and counts one region read and one product read. It also checks that
 `listCatalogue`'s halves equal what the two functions return. `seo.test.ts`'s
 sitemap test used to pin four fetches, and now pins the two paths. The four
-cart-page tests that mocked `listMerch` and `listTiers` mock `listCatalogue`
+cart-page test files that mocked `listMerch` and `listTiers` mock `listCatalogue`
 with the same data.
+
+Not collapsed: the region is still read twice in two places. The checkout
+page reads it once through `listTiers` and again through `getDefaultRegion`.
+When `addToCart` creates a new cart, it reads it once through `listTiers` and
+again in `cartToAddTo`. That is the same waste in a different shape, and it
+is recorded rather than built.
 
 - [x] Say at the cart what checkout says, before the pay control rather than
       after it. Verified by `cart-without-certificate.test.ts`, which renders
