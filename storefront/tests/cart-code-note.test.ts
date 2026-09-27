@@ -38,8 +38,7 @@ async function renderCart(items: readonly Record<string, unknown>[]): Promise<st
   vi.doMock("../src/lib/medusa-client", async (importOriginal) => ({
     ...(await importOriginal<typeof import("../src/lib/medusa-client")>()),
     createStoreFetchJson: () => async () => ({}),
-    listMerch: async () => [],
-    listTiers: async () => [{ handle: "lousy-deal", title: "Lousy Deal" }],
+    listCatalogue: async () => ({ merch: [], tiers: [{ handle: "lousy-deal", title: "Lousy Deal" }] }),
   }));
   vi.doMock("../src/lib/store-cart", async (importOriginal) => ({
     ...(await importOriginal<typeof import("../src/lib/store-cart")>()),

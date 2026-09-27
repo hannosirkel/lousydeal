@@ -796,6 +796,46 @@ product list twice, once each through `listMerch` and `listTiers`, both on
 the page's mocks in `cart-code.test.ts`, which three open rows also edit, so it
 is left for later rather than done here.
 
+**Collapsed on 2026-09-27, after J3–J12 merged; the operator chose it.**
+`listCatalogue` reads the region and the product list once. It splits them
+with the same pure `tiersFrom` and `merchFrom` that `listTiers` and
+`listMerch` now wrap, and the cart page and the sitemap use it. Each of the
+two pages had made four Store API requests for the catalogue where two
+answer.
+`listTiers` and `listMerch` stay for the pages that want one half.
+`catalogue-once.test.ts` renders the real cart page with only the Store API
+stubbed, and counts one region read and one product read. It also checks that
+`listCatalogue`'s halves equal what the two functions return. `seo.test.ts`'s
+sitemap test used to pin four fetches, and now pins the two paths. The four
+cart-page test files that mocked `listMerch` and `listTiers` mock `listCatalogue`
+with the same data.
+
+**Measured on test on 2026-09-27**, on this PR's build (`deploy-test`, backend
+`fed9f6c5…`, storefront `a1172be3…`). The walk sent one plain HTTPS request
+per page, with no browser and so no prefetch. It counted the test backend's
+access log over each four-second window. An idle window with no request
+still logged one region, one product and one `deals/totals` read. That is
+the storefront's readiness probe, which requests `/` every five seconds and
+renders the home page. Every window caught one probe. Less that probe:
+
+- `/cart` made one cart read, one region read and one product read.
+- `/sitemap.xml` made one region read and one product read.
+
+Both held twice. Before this change each page made two of each.
+
+Not collapsed: the region is still read twice in two places. The checkout
+page reads it once through `listTiers` and again through `getDefaultRegion`.
+When `addToCart` creates a new cart, it reads it once through `listTiers` and
+again in `cartToAddTo`. That is the same waste in a different shape, and it
+is recorded rather than built.
+
+**Observed while measuring, not built:** the readiness probe is the larger
+steady load. `deploys/lousydeal/base/storefront.yaml` probes `/` every five
+seconds, on live as on test, and each probe renders the home page. That is
+three Store API reads per pod per probe, about 17 a minute, whether or not
+anyone visits. A probe path that renders nothing would remove them. That is a
+`deploys` change, outside this repository.
+
 - [x] Say at the cart what checkout says, before the pay control rather than
       after it. Verified by `cart-without-certificate.test.ts`, which renders
       the real cart page for a merch-only cart and for a certificate cart with

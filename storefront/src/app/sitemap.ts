@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
 
 import { LEGAL_ROUTES } from "../content/legal-routes";
-import { createStoreFetchJson, listMerch, listTiers } from "../lib/medusa-client";
+import { createStoreFetchJson, listCatalogue } from "../lib/medusa-client";
 import { requestOrigin } from "../lib/request-origin";
 import { requireStoreClientConfig } from "../lib/store-session";
 
@@ -32,6 +32,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Keep the public catalogue tied to Medusa's actual products. A second list
   // of handles here would quietly drift when the catalogue changes.
   const fetchJson = createStoreFetchJson(requireStoreClientConfig());
-  const [tiers, merch] = await Promise.all([listTiers(fetchJson), listMerch(fetchJson)]);
+  const { tiers, merch } = await listCatalogue(fetchJson);
   return buildSitemap(origin, tiers, merch);
 }

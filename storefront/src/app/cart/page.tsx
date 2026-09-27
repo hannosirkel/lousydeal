@@ -52,7 +52,7 @@ import { MERCH_APOLOGY, MERCH_HEADING, MERCH_HEADING_NO_CERTIFICATE, MERCH_TABLE
 } from "../../content/merch";
 import { addMerchToCart, applyCode, removeFromCart } from "../../lib/cart-actions";
 import { cartHasCertificate } from "../../lib/checkout-rules";
-import { createStoreFetchJson, listMerch, listTiers, StoreApiError } from "../../lib/medusa-client";
+import { createStoreFetchJson, listCatalogue, StoreApiError } from "../../lib/medusa-client";
 import { goodsImagePath, goodsPath, merchRowData } from "../../lib/merch-rows";
 import { formatMoney } from "../../lib/money";
 import { getCart } from "../../lib/store-cart";
@@ -208,7 +208,7 @@ export default async function CartPage({
   // decision it offers belongs to this page. A store with no merch renders
   // nothing at all -- not a heading over an empty table, which would be a
   // question with no answers under it.
-  const [merchItems, tiers] = await Promise.all([listMerch(fetchJson), listTiers(fetchJson)]);
+  const { merch: merchItems, tiers } = await listCatalogue(fetchJson);
   const merch = merchRowData(merchItems);
 
   // **LD-11 J4 and J3: both ask whether this cart holds a certificate.** J4:
