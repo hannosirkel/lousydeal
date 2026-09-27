@@ -2,9 +2,9 @@
 
 **The worst deal of your life. On purpose.**
 
-The product concept. What is actually being built first, and in what order, is
-[`docs/working/fresh-build.md`](../working/fresh-build.md); where the two
-disagree about scope, that document wins.
+The product concept. What the shop actually does is
+[`specification.md`](./specification.md); where the two disagree about scope,
+the specification wins.
 
 **LousyDeal.com** is a novelty ecommerce concept built around an intentionally
 terrible transaction: customers knowingly pay money for almost nothing, receive

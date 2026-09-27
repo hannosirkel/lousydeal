@@ -32,7 +32,7 @@
  * to country-only -- `fields`/`display` only cover `phone` and `name`, and
  * `allowedCountries` restricts the dropdown, not the field set.
  *
- * Q7 (`docs/working/ld-01-foundation/open-questions.md`) records five:
+ * `docs/current/operations.md` (Stripe payment methods) records five:
  * card, Google Pay, Apple Pay, Link (collapsed) and PayPal. This file does
  * not implement that list itself -- card and PayPal are payment methods,
  * chosen by the operator in the Stripe Dashboard and surfaced through the

@@ -1,15 +1,20 @@
 # Brand, voice and visual direction
 
 The approved direction for every customer-facing surface. It exists because
-[`fresh-build.md`](../working/fresh-build.md) §13 forbids letting implementation
+[the specification](specification.md) §13 forbids letting implementation
 agents invent the brand as they code, and §14 forbids building a major surface
-before a visual direction is approved. Gate B reviews this document as copy;
-Gate C approves the visual half. Both are recorded in
-[`status.md`](../working/status.md) when the operator accepts it.
+before a visual direction is approved. Gate B accepted this document as copy,
+and Gate C as the visual direction
+([decision 016](../decisions/016-v1-gate-acceptances.md)).
 
-Where this document and a slice plan disagree about what a surface says, this
-document wins. Where it and [`fresh-build.md`](../working/fresh-build.md)
-disagree about scope, the contract wins.
+This document is the authority for every colour, size, word and rule on a
+page, a certificate or an email. A surface that needs something this document
+does not give amends this document in the same pull request, so the operator
+reviews the copy as copy rather than finding it in a diff.
+
+Where this document and a plan disagree about what a surface says, this
+document wins. Where it and [the specification](specification.md) disagree
+about scope, the specification wins.
 
 ## 1. The brand in one paragraph
 
@@ -34,7 +39,7 @@ Full stops. No exclamation marks anywhere, in any surface, ever.
 funny because it is true and because it is set in the same type as the price
 beside it. `VALUE ……… $0.00 (LOL!)` is not funny and is not this brand.
 
-**Accuracy is the joke's load-bearing wall.** §23 of the contract is a rule, not
+**Accuracy is the joke's load-bearing wall.** Specification §23 is a rule, not
 a caution: the joke must never depend on misleading a customer. A customer sees
 exactly what they buy, the final price is explicit before payment, and every
 disclosure is straight. A funny sentence that makes a disclosure less true is
@@ -48,6 +53,28 @@ shouting outside the label style, self-congratulation about the joke.
 **Always**: sentence case in body and legal prose; all-caps only in labels,
 document titles and buttons; tabular numerals for every figure; the same word
 for the same thing on every page ("certificate", never "cert" or "token").
+
+**A legal document is named by its own title**, in sentence case and with
+"and" rather than "&": *Terms of service*, *Refunds and withdrawal*, *Privacy
+policy*, *Imprint*. The footer's shorter *Privacy* is a link label, not a
+second name.
+
+**Copy writes no price.** Every price and total on a page is formatted from
+what the Store API returned, and a test forbids a currency sigil followed by
+digits anywhere under `storefront/src`. The legal documents say what governs a
+price, never what one is.
+
+**A figure in a message names what it is the total of.** The gift message
+quotes the certificate's own amount; the buyer's confirmation quotes the order
+total. They differ whenever the order carries a parcel or a surcharge.
+
+**No message asserts the absence of something the order contains**, and no
+message claims data it may not hold — the gift message says "your address, and
+your name if they gave one", because the name is optional.
+
+**The apostrophe is U+2019 (’), not `'`.** React escapes a straight apostrophe
+to `&#x27;` in rendered markup, so an exact-text test against the HTML never
+matches a string that carries one.
 
 Worked examples of the register:
 
@@ -99,16 +126,41 @@ does not ask if there is anything else.
 surface:
 
 - state a price, a total or any figure — the worth is said in words, never in
-  numbers, and `$0.00` is the site's line and not his;
+  numbers, and `$0.00` is the site's line and not his. He may name a code's
+  rate in words ("a fifth of the certificate's price"), because that is a fact
+  of the backend's table; the dollar amount belongs to the cart, which he
+  cannot see;
 - state an entitlement, a period or a provision. He may name *Refunds and
-  Withdrawal* or the *Imprint* and stop there; summarising a legal document is
-  both effort and risk, and he is against both;
+  withdrawal*, *Terms of service* or the *Imprint* and stop there; summarising
+  a legal document is both effort and risk, and he is against both;
 - claim to remember, look up, send, forward or pass anything on;
 - invent a count, a percentage, a statistic or another customer;
 - use a term of art, a section number or the word "policy".
 
+**Where he names a document, the name is a link to it**, spelled as the page
+and the footer spell it. A step that names a document ends its flow with no
+quick reply, so following the link abandons nothing in progress. The standing
+line under the input names the Imprint as plain text: the footer already links
+it, and a link under the input could end a chat mid-flow.
+
+**Mechanics.** First person. One to three messages a turn. When a visitor asks
+whether he is a person, he says plainly that he is not.
+
+**The standing line under the input is always rendered**, whatever was asked:
+nothing typed there is stored, sent or read by a person, and anything that
+needs an answer goes to the address in the Imprint. A box that answers
+questions looks like a support queue, so the disclaimer cannot wait for an
+intent to match.
+
 **He has no face.** No avatar, no illustration, no mascot — §6 keeps all of
-them. He is a name and a column of text.
+them. He is a name and a column of text. His transcript is a document, not a
+set of bubbles: speaker, then text, in the same ruled register as every other
+surface.
+
+**He appears only on the purchase order, the quotation, the goods pages and
+the order summary.** He never appears on the checkout, beside the consent the
+site's legal position rests on; on a legal document; on a certificate, its
+specimen or its PDF.
 
 **Nobody is typing, so nothing says typing.** The indicator that runs between
 his messages is a pause, and the honest description of a pause in a
@@ -122,10 +174,10 @@ Worked examples, in his register:
 | --- | --- |
 | Hi there! How can I help you today? 😊 | Yes. |
 | Great question! Let me look that up for you. | I could look that up. |
-| I'd be happy to explain our refund policy! | That is in Refunds and Withdrawal. It is in the footer. |
+| I'd be happy to explain our refund policy! | That is a matter for a document. Refunds and withdrawal is in the footer. |
 | Sorry, I didn't quite catch that — could you rephrase? | I did not understand that. I am not going to guess. |
 | You get a beautiful numbered certificate — and so much more! | A certificate. That is the whole list. |
-| We have an amazing discount just for you! | There is a discount code. It is BALDRICK20. Type it on the order summary. It makes your deal worse. |
+| We have an amazing discount just for you! | There is a discount code. It is BALDRICK20. Type it on the order summary. It makes your deal worse by a fifth of the certificate's price. |
 
 `I've applied BALDRICK20. Your price is now 20% higher` is tempting copy he
 does not say: he cannot see or apply a cart code, and the cart owns the figure.
@@ -144,8 +196,14 @@ boxed, in ink on paper with a single red stamp.
 **IBM Plex Mono, and nothing else.** One typeface across the whole site, in
 three cuts: 400, 400 italic and 700. It is Open Font License 1.1 and is
 committed to the repository rather than fetched at build time, so a build is
-hermetic and the same files serve both the web pages and the generated social
-images.
+hermetic.
+
+The pages set subsets of it, served through `next/font/local` under the family
+name `LD Mono`: OFL 1.1 clause 3 forbids a Modified Version, which a subset is,
+to carry the Reserved Font Name. The social images and the certificate PDF set
+the unmodified IBM Plex Mono TTFs in `storefront/public/fonts/`: Satori, which
+draws the images, cannot read WOFF2, and the PDF reuses the same files. Two
+names, one typeface.
 
 Three cuts, not four. A 500 earns nothing in an identity whose emphasis comes
 from capitals and letter-spacing, and every weight is a file in the image.
@@ -194,6 +252,12 @@ decoration. `--ink-soft` is still never the only carrier of something a reader
 must act on. A test asserts these three ratios, so a token nudged later fails
 the build rather than the audit.
 
+The tokens have exactly two declared homes. `globals.css`'s `:root` is the
+first. `storefront/src/app/palette.ts` is the second, for the renderers that
+have no cascade — the social images and the certificate PDF. A component never
+imports it. `tokens.test.ts` bans a hex literal anywhere else under `src` and
+holds each palette entry equal to the `:root` declaration it mirrors.
+
 Dark mode is deliberately **not** built: paper is the brand, and a document does
 not have a night edition.
 
@@ -202,7 +266,9 @@ not have a night edition.
 Content is 720px wide and centred. Certificates and legal documents are 640px —
 narrower, because they are read rather than scanned. Border radius is 0
 everywhere. No shadow, no gradient, no illustration, no mascot,
-no icon set. The only vector artwork on the site is the stamp mark.
+no icon set. The only vector artwork on the site is the stamp mark. The
+footer's social column departs from this rule with three platform icons; see
+*Global* in §4.
 
 **"No photograph" is amended by LD-04, 2026-09-10** — see §6, which carries
 the argument and the exact width of the admission. In short: a photograph of a
@@ -231,7 +297,9 @@ Six components carry the whole identity. They live in
   the document title left and its form number and revision date right.
 - **`LedgerRow`** — the signature component. Label left, dotted leader filling
   the middle, value right-aligned in tabular numerals. Rendered as a
-  `<dl>`/`<dt>`/`<dd>` so a screen reader reads it as the pairing it is.
+  `<dl>`/`<dt>`/`<dd>` so a screen reader reads it as the pairing it is. The
+  leader is a dotted border on a pseudo-element, never typed characters a
+  screen reader would read aloud.
 - **`Rule`** and **`DoubleRule`**.
 - **`FinePrint`** — fine step, italic, `--ink-soft`.
 - **`StampMark`** — inline SVG, a 1.5px double-ring circle with all-caps text in
@@ -278,9 +346,8 @@ shows a real serial.
 
 ## 4. Copy, by surface
 
-Only the surfaces this slice builds are specified. A surface that arrives with a
-later slice gets its copy when that slice is planned, reviewed against this
-document.
+Every built surface is specified here. A new surface gets its copy here
+before it is built, reviewed against this document.
 
 ### Global
 
@@ -292,10 +359,15 @@ document.
   so a screen reader and a copy-paste both get words rather than letters.
 - Browser title and social description are the masthead and its fine print,
   unchanged: `LOUSYDEAL.COM` and `Purveyors of objectively bad value.` The tab
-  is another surface, and it says what the letterhead says.
-- Footer, on every page: three columns — **LEGAL** (Terms, Refunds &
-  Withdrawal, Privacy, Imprint), **COMPANY** (Imprint contact address), and a
-  fine-print trader line resolved from runtime configuration.
+  is another surface, and it says what the letterhead says. Backlog candidate
+  `e` would give each commerce page its own title, which changes this rule.
+- Footer, on every page: **LEGAL** (Terms of service, Refunds and withdrawal,
+  Privacy, Withdraw from a contract, Imprint), **COMPANY** (Imprint contact
+  address), **SOCIAL** (TikTok, Instagram and X, as icon links), and a
+  fine-print trader line resolved from runtime configuration. The links are
+  sentence case: a link is not a label. The social icons depart from §3's
+  "no icon set"; whether they stay is an operator question in
+  [`backlog-candidates.md`](../working/backlog-candidates.md).
 
 ### Home — `FORM LD-1`, a purchase order
 
@@ -312,7 +384,8 @@ document.
    `-100%` in `--stamp`. Then the primary button, `ACQUIRE FOR $5.00`.
 3. **The tier table**, as one invoice-style table with columns ITEM /
    DESCRIPTION / VALUE / PRICE / ORDER — rows, not cards. Below 640px each row
-   collapses into a stacked ledger block. The ORDER column's heading is for a
+   collapses into a stacked ledger block, through CSS alone: no second markup
+   tree for a screen reader to read twice. The ORDER column's heading is for a
    screen reader only; sighted readers get the button. Its button reads
    `ACQUIRE`, without a price: the row already carries one, and a control
    repeating it puts the figure in the markup twice. The tier's name is added
@@ -380,7 +453,7 @@ Document title `QUOTATION`. A ledger block for that tier — item, price, value,
 return — then the primary button, reading `ACQUIRE FOR $5.00` with that tier's
 own price, as the home page's does. Then `UPGRADES AVAILABLE`, listing the more
 expensive tiers under the line **"Pay more. Receive the same."** Then fine
-print carrying the withdrawal notice and a link to Refunds & Withdrawal.
+print carrying the withdrawal notice and a link to Refunds and withdrawal.
 
 Each upgrade is a ledger row: the tier's name, the leader, its price. Only
 tiers costing **strictly more** are listed — a tier priced the same is not an
@@ -449,6 +522,11 @@ and this one is not negative. The figure is the line's own price, formatted and
 never computed here, and it is the line's whole figure because the payability
 rule admits one such line, of quantity one, and nothing else.
 
+**The amount is also said in words**, beneath the total: `Your discount code
+added $1.00. The total above includes it.` Only for one code line of quantity
+one, since any other shape is the state checkout refuses. Not for a code that
+adds nothing, whose `+$0.00` row already says so.
+
 **The code control.** Directly under the ledger and above `PROCEED TO PAYMENT`,
 one field labelled `DISCOUNT CODE` sits beside a button labelled `APPLY CODE`.
 It is an ordinary form and works without scripting. Below 480px the label,
@@ -456,15 +534,44 @@ field and button stack rather than compete for one line. The browser limits the
 field to 64 characters; the server still validates it, because a browser limit
 is not a trust boundary.
 
+Beneath the control, in fine print that the field names with
+`aria-describedby`, a note says what a code does here before one is typed:
+`Codes here raise the total or leave it where it is; none lowers it. The amount
+appears as its own line above the total, removable before you pay.` It states
+no figure, because the cart cannot know which code will be typed.
+
 A refused submission returns to this same document and prints exactly one
-clerk's notice above the field. The reason is selected from the three values the
-backend owns, never reflected from the URL:
+clerk's notice above the field. The reason is selected from a fixed set — the
+three values the backend owns, and the cart's own finding that a repeated code
+changed nothing — never reflected from the URL:
 
 | Reason | Notice |
 | --- | --- |
 | Unknown code | That code is not on file. Nothing in the cart changed. |
 | No certificate | A discount code needs exactly one certificate in the cart. Choose the one you want, then try again. |
 | Completed cart | This order is already complete. Start a new purchase to use a code. |
+| Code already applied | That code is already applied. Nothing in the cart changed. |
+
+Pressing `ACQUIRE` on the tier the cart already holds gets the same kind of
+answer, in the same element: `That deal is already in the cart. An order
+carries one, so nothing changed.` A press that changed nothing says so, rather
+than looking like a press that failed.
+
+Pressing `ACQUIRE` on a different tier replaces the certificate, and the cart
+says so between the ledger and the code field. It is set in the plain notice
+style, not `--stamp`, because it is not an error. The first sentence is always
+`The certificate you chose replaced the one in the cart.` The second says what
+happened to a discount line only where the action measured a change: it was
+re-priced as a share of the new certificate's price, or it could not be
+re-priced and was removed. None of these notices carries a figure; the ledger
+beneath prints the new line and total.
+
+**A cart holding printed goods and no certificate cannot be paid for**, and
+the cart says so before the pay step rather than after it. The notice sits
+between the ledger and the controls, and `RETURN TO THE PURCHASE ORDER`
+replaces `PROCEED TO PAYMENT`. The upsell's heading there is `Would you like to
+make a deal worse? Start with the deal.`, since there is no deal yet to make
+worse.
 
 The adjustment's `REMOVE` is the same quiet, underlined word a merchandise row
 uses. Removing it posts the line id through the cart's existing action and
@@ -502,10 +609,14 @@ Then the **consent checkbox**, unticked by default, which the pay control is
 disabled behind:
 
 > I request that supply of the digital certificate begin immediately, and I
-> acknowledge that I will lose my right of withdrawal once supply has begun.
+> acknowledge that I will lose my right of withdrawal for that certificate
+> once supply has begun.
+
+"For that certificate" is there so that no buyer reads the box as giving up
+anything about a printed item, whose right of withdrawal is unaffected.
 
 Then the Stripe payment element. The checkbox is required by
-[`fresh-build.md`](../working/fresh-build.md) §23 and by VÕS § 53(4); its
+[the specification](specification.md) §23 and by VÕS § 53(4); its
 wording is legal text and changes only with the legal documents.
 
 While the box is unticked the pay control is **disabled** and fine print under
@@ -535,6 +646,57 @@ While the payment session is being created the page shows the blinking cursor
 with the hidden word `Preparing payment`. That is the state §4's loading row
 means: one inside a rendered page, never a route boundary.
 
+**Without scripting the page says why it cannot take payment**, and offers a
+person instead: the card form is Stripe's and runs in the browser, and the
+buyer may write to take the order by email. A cursor that blinks for ever over
+`Preparing payment` would be a claim that something is happening.
+
+**The lines immediately above the pay control say what is being ordered.** A
+certificate "is issued as soon as you have paid" and reaches the buyer by
+email; no line says it is shown, because the page cannot show it. The Terms'
+Delivery section uses the same wording. The pay control reads `Order with
+obligation to pay`, the statute's own formulation.
+
+**The two groups of fields are labelled by the document each one feeds.** The
+public pair sits under the heading `WHAT THE CERTIFICATE SAYS`; the private
+four sit inside the gift disclosure below it. The pair's notice says that both
+are optional and both are public, that the billing name is never printed, that
+a blank prints "the bearer", and that links, domains, addresses, telephone
+numbers and markup are removed. Its preview, `WHAT WILL APPEAR`, reads `No name
+— “The bearer”` while nothing is typed, so an untouched field does not look
+like a chosen name.
+
+**The country starts on `Choose a country`**, never on a country the buyer did
+not pick, and cannot be submitted there. With a parcel it is the first field of
+the address. Without one, fine print under it says why it is asked: the country
+decides which country's VAT, if any, is owed on the certificate, and what the
+buyer pays does not change.
+
+**On a gift that carries a parcel**, one sentence at the shipping address says
+that this is the recipient's postal address, and that it is not taken from the
+gift block. On any other cart the sentence is absent.
+
+**A failure on the pay path speaks in this site's words only.** No text from
+Medusa, Stripe or the Store API proxy reaches the page. The notice is chosen by
+where the failure happened, never by what was thrown:
+
+| Where | Notice, in short |
+| --- | --- |
+| Before the card was asked | Nothing has been charged. Try again shortly, or write to the address in the Imprint. |
+| The card was declined | Your card was not charged. Check the details, or try another card. |
+| The answer was lost | We could not hear back from the card processor. Do not pay again yet. |
+| Charged, order not confirmed | Your card was accepted, but the order could not be confirmed just now. Do not pay again. |
+
+The last two never invite a retry, because a retry after a charge is a second
+charge, and neither promises a refund. Both keep the pay control off.
+
+**The end state is `Paid. Your order is placed.`** Beneath it: the address the
+confirmation went to, its subject, and that it carries the certificate's link
+and the receipt. A line about a later email for a parcel appears only on an
+order carrying one. A line naming the gift recipient's address appears only
+when the backend will send the gift message. Its last line says what to do if
+nothing arrives.
+
 ### Gift block — a disclosure inside `PAYMENT AUTHORISATION`
 
 `<details>`, closed, summarised `Send this to somebody else`. Inside it: the
@@ -552,12 +714,14 @@ The notice above the fields does one thing the rest of the checkout does not:
 it distinguishes these four from the two directly above them. §5's pair is
 public and printed; these are private and emailed. A buyer who put the
 recipient's name into `NAME ON THE CERTIFICATE` expecting privacy has been
-misled by the page, and that is the failure this copy exists to prevent.
+misled by the page, and that is the failure this copy exists to prevent. The
+notice also says, before payment, that the certificate is emailed to the
+address given: a buyer who did not realise a stranger would receive mail has
+been surprised by us. Beneath the fields, one line says the buyer's own
+confirmation still goes to them and names where the certificate went.
 
-**The constraint behind that copy, quoted from LD-03 so the two cannot
-disagree.** It is reproduced here because this is the document a copy change
-is written against, and a writer who only reads this file would otherwise have
-to infer it:
+**The constraint behind that copy.** It is stated here because this is the
+document a copy change is written against:
 
 <!-- constraint-4 -->
 
@@ -576,8 +740,9 @@ recipient's name be written to `display_name` on live deal #1. That entry is a
 single operator exception on the operator's own order, made knowingly, and the
 recipient was told in writing that their name is on a public page and may be
 removed on request. **It is not a precedent**, and nothing in the product may
-write a gift field to a public one. `constraint-4-agreement.test.ts` fails if
-this quotation and LD-03's constraint disagree.
+write a gift field to a public one. `backend/tests/constraint-4.test.ts` reads
+the text between the `constraint-4` markers, so the quotation stays whole and
+the exception stays outside it.
 
 The preview beneath the message is the inscription preview's twin, headed
 `WHAT THEY WILL READ`. Its empty state is `No message` — **not** the
@@ -615,6 +780,25 @@ The three:
   you.`, carries no right the reader does not hold, offers nothing to buy, and
   ends with who sent it and why we have their address.
 
+**The gift message's amount is the certificate's own**, never the order total,
+so the figure in the email is the figure on the document it links to. A
+certificate-only gift says nothing else is coming. A gift with a parcel names
+the item and the destination country instead, and no more of the address than
+that. It carries no § 54(1) recital, no withdrawal form and no consent
+statement: those belong to the buyer, who holds the contract. It carries no
+offer, referral, discount or price the recipient can act on, because any of
+them would turn delivery of a purchase into direct marketing to somebody who
+never consented.
+
+**The confirmation links the certificate and does not attach it.** A send that
+depended on the PDF renderer could fail because a font failed to embed.
+
+**A confirmation is complete or it is not sent.** A page with an unconfigured
+trader detail shows a named gap under decision
+[`004`](../decisions/004-trader-identity-is-runtime-configuration.md); a
+confirmation missing one is not sent at all, because a legal duty performed
+badly cannot be taken back, while one not yet performed can still be.
+
 ### Certificate — the most designed surface
 
 `CERTIFICATE OF LOUSY JUDGMENT`, 640px, centred, double-ruled. It carries: the
@@ -636,7 +820,7 @@ column of figures that wanders with its labels is not a ledger. The labels are
 bearer line reads **`The bearer`** rather than collapsing: §5 requires an empty
 inscription to look deliberate, and most buyers will leave one.
 
-**The dedication is not a ledger row.** Contract §5 gives the buyer two fields,
+**The dedication is not a ledger row.** Specification §5 gives the buyer two fields,
 not one — a short name and a line of up to 120 characters — and they are
 different kinds of thing: the name is a fact about the document and belongs in
 the ledger, the dedication is somebody's voice. It is set as a quotation
@@ -657,15 +841,28 @@ for the person it was sent to.
 
 It must be screenshot-worthy at 390px, because that is where it will be shared.
 
-**In this slice it is built and reviewable but not public.** It renders from a
-typed model at `/design/certificate` from a specimen record, serial `#0`,
-carrying the extra fine print `Specimen. No deal bears this number.` The public
-route is `lousydeal.com/done-deals/{slug}` per contract §5 — an opaque,
-non-enumerable slug, never the serial — and LD-02 mounted this same component
-there against real data: C15's Gate E order rendered
-`/done-deals/6hvn0jbfw32g1dr8` from a paid order, as a page and as a one-page
-A4 PDF. The prompt's `/deal/nr/[publicId]` is not the agreed
-URL and is not used. The specimen route carries `noindex, nofollow`: a design
+The name is capped at 60 characters, which is what fits the `BEARER` row on
+one line at 390px. The dedication is capped at §5's 120. Both caps count what
+remains after filtering, so each is a limit on what the certificate prints
+rather than on what was typed.
+
+**An issued certificate is never restyled.** Each deal keeps the layout version
+it was issued under for life. A redesign adds a layout; it never edits one, and
+an unknown version never falls back to another.
+
+**The PDF is a second layout of the same document**, allowed to differ from the
+page because each medium has its own needs. It sets IBM Plex Mono from the
+palette's colours, and its closing rule follows the content rather than sitting
+at the page foot. A character the embedded font cannot set prints as `?`, so
+the gap is visible rather than looking like a typed space.
+
+**The same component renders the specimen and every real certificate.** The
+specimen is at `/design/certificate`, from a typed specimen record, serial
+`#0`, with the extra fine print `Specimen. No deal bears this number.` A real
+certificate is public at `lousydeal.com/done-deals/{slug}`, per specification
+§5: an opaque, non-enumerable slug, never the serial. It renders there as a
+page and as a one-page A4 PDF. `/deal/nr/[publicId]` is not the agreed URL and
+is not used. The specimen route carries `noindex, nofollow`: a design
 surface is not a page a search engine should hold, and Access will not always
 be the thing keeping it out.
 
@@ -697,6 +894,11 @@ Form numbers: `FORM LD-404` and `FORM LD-5XX`. A form number for a page that
 is not a form is the joke a filing clerk would have made, which is the register
 §1 asks for.
 
+A certificate address that holds nothing has its own document, `NO
+CERTIFICATE AT THIS ADDRESS`, because its reader was sent a link. It names
+both reasons an address can be empty — never issued, or since withdrawn — and
+confirms neither, since telling them apart would let the slugs be enumerated.
+
 ### The share row
 
 Under the certificate, outside its closing rule, headed `SHOW SOMEBODY`. Three
@@ -711,6 +913,16 @@ pressed, and carry `rel="noreferrer"` so that pressing one does not hand the
 destination the certificate's address before its owner has said anything. A
 line of fine print under the row says so, because a reader of this site's
 privacy notice would reasonably wonder.
+
+**The row says who can see the page, and what pressing a link does.** Between
+the heading and the links, fine print says the page is unlisted, not private:
+anybody with its address can read it, nothing on the site links to it, search
+engines are asked to leave it out, and the address cannot be guessed. "Asked",
+because `noindex` is a request. Directly under the links, before the tracking
+line, fine print says that pressing one starts a post or an email carrying the
+page's address, that a public post can be read by anybody, and that its
+preview shows the name on the certificate. It says "starts", not "publishes",
+because the owner still sends it.
 
 The words shared are the buyer's, in the first person and the past tense — *"I
 bought a certificate that confers nothing. It has a number."* A brand asking to
@@ -741,7 +953,7 @@ glyphs that sets to a different rhythm at every width. It is the one place on
 any surface where the leader is not dotted, and at 1200px it reads as though it
 were.
 
-Four documents — Terms of Service, Refunds & Withdrawal, Privacy Policy,
+Four documents — Terms of service, Refunds and withdrawal, Privacy policy,
 Imprint — at 640px in `DocumentFrame`, with numbered sections (§1, §1.1) and a
 short table of contents headed `CONTENTS`.
 
@@ -773,6 +985,11 @@ between centres, which fails WCAG 2.2 SC 2.5.8 on both size and spacing.
 flourish is allowed in a recital and nowhere that changes legal meaning. A
 withdrawal clause, a data-subject right and a liability limit are never funny.
 
+**No `NO REFUNDS` stamp appears anywhere.** Whether the right of withdrawal is
+gone turns on conditions a static page cannot check for its reader, and a stamp
+that is true for some readers and false for others is the misleading §23
+forbids.
+
 Every document closes with:
 
 > This document is legally binding, unlike our value proposition.
@@ -792,10 +1009,10 @@ Regulation (EU) 2024/3228 and traders were obliged to remove the link. Estonian
 consumer dispute information names the Consumer Protection and Technical
 Regulatory Authority and its consumer disputes committee instead.
 
-**These documents do not close the legal gate.** §23 makes that an operator
-gate that a qualified human reader closes, recorded in `docs/decisions/`. This
-slice writes them at the operator's instruction; publication still waits on that
-acceptance.
+**The operator closed the legal gate on 2026-09-10**, with some positions
+accepted as exposures ([decision 016](../decisions/016-v1-gate-acceptances.md)).
+A later change to these documents needs the operator's recorded authority and
+is recorded in `docs/decisions/` (specification §23).
 
 ## 6. What this identity forbids
 
@@ -867,7 +1084,7 @@ then **withdrawn by LD-05's B7**, also marked, for the reason that entry gives.
   **Baldrick is the first exception that is a choice.** The three before him
   are requirements: a checkbox the law makes conditional, a payment element
   Stripe owns, and a framework constraint. He is a character somebody wanted,
-  and §8 of the contract asks for typing indicators, pauses and messages
+  and §8 of the specification asks for typing indicators, pauses and messages
   arriving one at a time, none of which a server can do. The operator took that
   decision on 2026-09-08 against the alternative — a server-rendered transcript
   that would have kept this list at three.
@@ -875,7 +1092,7 @@ then **withdrawn by LD-05's B7**, also marked, for the reason that entry gives.
   Two things bound it. He is **not rendered at all** where scripting is off:
   not a disabled input, not a dead button, because this document says elsewhere
   that a control which does nothing is a lie, and a chat box that cannot send
-  is exactly that. And he gates nothing — the only thing the contract has him
+  is exactly that. And he gates nothing — the only thing the specification has him
   unlock is Enterprise, which §10 defers out of V1 — so every purchase path on
   this site still works with scripting off, which is the property this list
   exists to protect.

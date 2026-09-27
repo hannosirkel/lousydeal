@@ -3,7 +3,7 @@
 - **Date:** 2026-09-03
 - **Status:** accepted
 - **Amends:** the Target exposure table in
-  [`ld-01-foundation.md`](../working/ld-01-foundation.md)
+  the retired LD-01 plan, `ld-01-foundation.md` (git history)
 
 ## Context and problem statement
 

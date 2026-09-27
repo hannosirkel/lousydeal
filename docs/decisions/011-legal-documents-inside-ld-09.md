@@ -1,10 +1,13 @@
 # 011 — The legal documents are written inside LD-09
 
-**Status:** accepted, 2026-09-06. **Operator's decision.**
+**Status:** accepted, 2026-09-06. **Operator's decision.** Later drafting
+authorities for LD-04, LD-06 and LD-11 are recorded in
+[`016`](./016-v1-gate-acceptances.md).
 
 ## The conflict
 
-[`fresh-build.md`](../working/fresh-build.md) §23 says: *do not write terms,
+The V1 contract's §23 said (retired text; read it with
+`git show 1af755e:docs/working/fresh-build.md`): *do not write terms,
 refund policy, VAT configuration or consumer disclosures as part of any LD
 slice.* LD-09 rows V8 to V11 wrote four of them.
 
@@ -27,7 +30,7 @@ storefront with a footer linking four routes that did not exist.
 
 §23's **gate** is untouched. Drafting is not advice, nothing publishes until a
 qualified human reader closes the gate, and the open items are listed at the
-foot of [`ld-09-visual-identity.md`](../working/ld-09-visual-identity.md).
+foot of the retired LD-09 plan, `ld-09-visual-identity.md` (git history).
 
 The rule stands for every other slice. LD-02 may send the confirmation email
 § 55 requires; it may not decide what that email says about withdrawal without

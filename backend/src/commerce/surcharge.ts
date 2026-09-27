@@ -1,7 +1,7 @@
 /**
  * The four "discount" codes and what each adds to the certificate.
  *
- * `docs/working/fresh-build.md` §9 settled the mechanism: a surcharge is an
+ * `docs/current/specification.md` §9 settled the mechanism: a surcharge is an
  * ordinary custom-priced cart line carrying the metadata below, never a
  * Medusa promotion, because a promotion cannot raise a price. This file is
  * the committed table and the arithmetic and nothing else -- no Medusa
