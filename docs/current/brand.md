@@ -359,15 +359,16 @@ before it is built, reviewed against this document.
   so a screen reader and a copy-paste both get words rather than letters.
 - Browser title and social description are the masthead and its fine print,
   unchanged: `LOUSYDEAL.COM` and `Purveyors of objectively bad value.` The tab
-  is another surface, and it says what the letterhead says. Backlog candidate
-  `e` would give each commerce page its own title, which changes this rule.
+  is another surface, and it says what the letterhead says. Candidate `e` in
+  [`user-experience.md`](../issues/user-experience.md) would give each commerce
+  page its own title, which changes this rule.
 - Footer, on every page: **LEGAL** (Terms of service, Refunds and withdrawal,
   Privacy, Withdraw from a contract, Imprint), **COMPANY** (Imprint contact
   address), **SOCIAL** (TikTok, Instagram and X, as icon links), and a
   fine-print trader line resolved from runtime configuration. The links are
   sentence case: a link is not a label. The social icons depart from §3's
   "no icon set"; whether they stay is an operator question in
-  [`backlog-candidates.md`](../working/backlog-candidates.md).
+  [`operator-questions.md`](../issues/operator-questions.md).
 
 ### Home — `FORM LD-1`, a purchase order
 

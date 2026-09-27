@@ -86,7 +86,7 @@ LD-04's legal rows (Refunds and withdrawal, Terms, Privacy, Imprint) were
 drafted before `31c08be`, under authority the operator granted on 2026-09-09
 ("authority granted — build them now"). The gate then accepted them. Whether
 the operator accepts the four later changes is an open question in
-[`backlog-candidates.md`](../working/backlog-candidates.md).
+[`legal-and-privacy.md`](../issues/legal-and-privacy.md).
 
 ### The other questions closed on 2026-09-10
 

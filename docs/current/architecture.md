@@ -571,7 +571,7 @@ storefront proxy's allowlist.
 ## 14. Known limits
 
 These are accepted today. Candidate work is in
-[docs/working/backlog-candidates.md](../working/backlog-candidates.md).
+[docs/issues/](../issues/README.md).
 
 - The cart price lock has a 600-second lease and no fencing token. A holder
   that outlives the lease can overlap the next one.
@@ -598,4 +598,4 @@ These are accepted today. Candidate work is in
 | Why a checkout will not pay | `storefront/src/lib/checkout-rules.ts` |
 | What a browser may reach | `storefront/src/app/api/store/[...path]/route.ts` |
 | What a certificate publishes | `backend/src/api/store/deals/[slug]/route.ts` |
-| Open work | [docs/working/backlog-candidates.md](../working/backlog-candidates.md) |
+| Open work | [docs/issues/](../issues/README.md) |

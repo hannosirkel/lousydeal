@@ -31,7 +31,7 @@ decide whether the initiative stays open for that remaining work.
 - **LD-07, Enterprise, stays deferred out of V1.** It is a numbered slot, not
   work ([`specification.md`](../current/specification.md) §10, §26).
 - **The remaining candidates move to
-  [`backlog-candidates.md`](../working/backlog-candidates.md).** They are
+  [`docs/issues/`](../issues/README.md).** They are
   proposals, not scheduled work.
 
 ### How LD-11's candidates were selected
@@ -51,7 +51,7 @@ buyer-facing copy in those rows from drafted options. Candidate `u` was
 selected earlier and became J1; J2 came from a review finding. H4 had already
 built `k` and `l`, so Jev did not score them. The unselected
 candidates and their scores are in
-[`backlog-candidates.md`](../working/backlog-candidates.md). There, `c` and `v`
+[`user-experience.md`](../issues/user-experience.md). There, `c` and `v`
 are one entry, because the audit found one cause for both.
 
 ### Where the durable documentation went

@@ -159,7 +159,7 @@ enhanced measurement off (history, scroll, form, outbound-link and download
 events). Keep Google signals, advertising personalisation and user-provided
 data off. Keep Meta's automatic events and automatic advanced matching off.
 No record in this repository shows that these settings were read back
-([`backlog-candidates.md`](../working/backlog-candidates.md)).
+([`legal-and-privacy.md`](../issues/legal-and-privacy.md)).
 
 Other things the shop holds:
 
@@ -279,7 +279,7 @@ Follow "Runtime and recovery" in
 - **The storefront's readiness probe renders the home page.** It requests `/`
   every five seconds on live and test. Each probe costs three Store API reads,
   whether or not anyone visits. See
-  [`backlog-candidates.md`](../working/backlog-candidates.md).
+  [`operations-and-performance.md`](../issues/operations-and-performance.md).
 - **Cloudflare blocks some HTTP clients before the origin.** A probe of the
   Printful webhook from Python's `urllib` gets 403. `curl` and Printful's own
   client get through. A 403 from such a probe does not mean the webhook is
