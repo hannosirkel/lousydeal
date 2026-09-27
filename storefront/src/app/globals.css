@@ -444,7 +444,7 @@ small {
 
    Scoped to the class, not the element, so it cannot reach `.address` — which
    is the other fieldset on this page and still draws as a user-agent box. That
-   asymmetry is real and is recorded in docs/working/backlog-candidates.md
+   asymmetry is real and is recorded in docs/issues/rendering-and-copy.md
    rather than settled here. */
 .inscription {
   border: 0;

@@ -7,8 +7,8 @@ removed. The product concept and its reasoning are in
 [`concept.md`](./concept.md). The brand, voice, copy and visual direction are in
 [`brand.md`](./brand.md). What the shop takes from Plepic is in
 [`plepic-reuse.md`](./plepic-reuse.md). Architecture decisions are in
-[`docs/decisions/`](../decisions/). Ideas that are not built are in
-[`backlog-candidates.md`](../working/backlog-candidates.md).
+[`docs/decisions/`](../decisions/). Open problems and ideas that are not built are in
+[`docs/issues/`](../issues/README.md).
 
 LousyDeal.com is a novelty ecommerce site. Customers knowingly pay for a
 deliberately poor deal and receive an absurdly polished certificate that
@@ -597,8 +597,7 @@ cannot raise one.
 
 **Enterprise is not built.** There is no subscription, no recurring billing, no
 entitlement, and no expiry. A certificate's validity is unconditional. Enterprise
-is a backlog candidate in
-[`backlog-candidates.md`](../working/backlog-candidates.md).
+is listed in [`deferred-features.md`](../issues/deferred-features.md).
 
 It is the hardest feature: real lifecycle state, auto-renewal disclosure, and
 revoking something a customer paid for. The design below is kept so the
@@ -674,8 +673,8 @@ landing page
 
 There is no account system and no order lookup. The order confirmation email
 carries the certificate link, and a link is not re-issued, so that email is the
-customer's only copy. An account system is a backlog candidate in
-[`backlog-candidates.md`](../working/backlog-candidates.md); Enterprise (§10) is
+customer's only copy. An account system is listed in
+[`deferred-features.md`](../issues/deferred-features.md); Enterprise (§10) is
 the feature that would need identity handling.
 
 YAGNI.
@@ -942,9 +941,8 @@ Where documentation goes is governed by `standards/documentation.md` in the
 [architecture standards](https://github.com/hannosirkel/architecture/tree/main/standards).
 In short: architecture decisions go in `docs/decisions/`, numbered and dated, in
 the MADR format; current behaviour goes in `docs/current/` and is updated in the
-same commit that changes the behaviour. Known problems with no active plan go
-in [`backlog-candidates.md`](../working/backlog-candidates.md), by the
-operator's choice on 2026-09-27, not in `docs/issues/`.
+same commit that changes the behaviour; known problems with no active plan go
+in [`docs/issues/`](../issues/README.md).
 
 Durable knowledge does not accumulate in `README.md`.
 
@@ -1095,9 +1093,8 @@ Do not build a custom analytics platform.
 
 ## 25. Explicit non-goals for V1
 
-None of these is built. Each is added only by an approved change. The
-backlog lists them under *Deferred features* in
-[`backlog-candidates.md`](../working/backlog-candidates.md):
+None of these is built. Each is added only by an approved change.
+[`deferred-features.md`](../issues/deferred-features.md) lists them:
 
 * normal user accounts;
 * Enterprise subscriptions, entitlement, renewal and expiry — see §10;
@@ -1118,7 +1115,7 @@ backlog lists them under *Deferred features* in
 * custom payment system;
 * speculative future architecture.
 
-Good ideas go to the backlog instead of silently expanding the product.
+Good ideas go to [`docs/issues/`](../issues/README.md) instead of silently expanding the product.
 
 ---
 
@@ -1139,8 +1136,8 @@ The architecture does not block reasonable future ideas such as:
 * public API;
 * customer-submitted testimonials.
 
-None of these is built. The backlog lists them under *Deferred features* in
-[`backlog-candidates.md`](../working/backlog-candidates.md).
+None of these is built.
+[`deferred-features.md`](../issues/deferred-features.md) lists them.
 
 Design only enough clean boundaries that adding them later does not require rewriting the store.
 

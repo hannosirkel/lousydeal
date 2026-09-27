@@ -109,12 +109,12 @@ Never bypass it.
 | What does the shop do? | [`docs/current/specification.md`](./docs/current/specification.md) |
 | How is it built? | [`docs/current/architecture.md`](./docs/current/architecture.md) |
 | How is it operated and released? | [`docs/current/operations.md`](./docs/current/operations.md) |
-| What could be done next? | [`docs/working/backlog-candidates.md`](./docs/working/backlog-candidates.md) |
+| What is open? | [`docs/issues/`](./docs/issues/README.md) |
 | Why is it like this? | `docs/decisions/` |
 
 No plan is active; the build initiative closed on 2026-09-27
 ([decision 017](./docs/decisions/017-close-the-v1-initiative.md)). To start
-work, select a backlog item and write its plan in `docs/working/`.
+work, select an item in `docs/issues/` and write its plan in `docs/working/`.
 
 Source comments cite `specification.md` by section (§N), and some cite a
 retired plan, such as `docs/working/ld-01-foundation.md:409-417`. Read one at
