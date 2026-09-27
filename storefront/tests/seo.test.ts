@@ -189,7 +189,11 @@ describe("crawler routes", () => {
 
     expect(paths).toContain("/deal/lousy-deal");
     expect(paths).toContain("/goods/printed-thing");
-    expect(fetch).toHaveBeenCalledTimes(4);
+    // One read of the catalogue for both halves (LD-11), not one per half.
+    const requested = vi.mocked(fetch).mock.calls.map(([input]) =>
+      new URL(input instanceof Request ? input.url : input.toString()).pathname,
+    );
+    expect(requested.sort()).toEqual(["/store/products", "/store/regions"]);
   });
 
   it("propagates a Store API failure instead of publishing a partial sitemap", async () => {

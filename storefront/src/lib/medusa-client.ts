@@ -265,7 +265,11 @@ async function listProducts(fetchJson: FetchJson): Promise<readonly StoreProduct
 }
 
 export async function listTiers(fetchJson: FetchJson): Promise<Tier[]> {
-  const products = (await listProducts(fetchJson)).filter((product) => !isMerchProduct(product));
+  return tiersFrom(await listProducts(fetchJson));
+}
+
+function tiersFrom(allProducts: readonly StoreProduct[]): Tier[] {
+  const products = allProducts.filter((product) => !isMerchProduct(product));
 
   return products.flatMap((product) => {
     const variant = product.variants?.[0];
@@ -325,7 +329,10 @@ export interface MerchItem {
  * sells.
  */
 export async function listMerch(fetchJson: FetchJson): Promise<MerchItem[]> {
-  const products = await listProducts(fetchJson);
+  return merchFrom(await listProducts(fetchJson));
+}
+
+function merchFrom(products: readonly StoreProduct[]): MerchItem[] {
   const merch = products.filter((product) => isMerchProduct(product));
 
   return merch.flatMap((product) => {
@@ -353,4 +360,18 @@ export async function listMerch(fetchJson: FetchJson): Promise<MerchItem[]> {
       { id: product.id, handle: product.handle, title: product.title, kind: subtitle.length > 0 ? subtitle : null, variants },
     ];
   });
+}
+
+/**
+ * Both halves of the catalogue from **one** read of the product list.
+ *
+ * A page that wants tiers and merch together (the cart, the sitemap) used to
+ * call `listTiers` and `listMerch` side by side, and each asked the Store API
+ * for the region and the whole product list again: four requests for what two
+ * answer. The split is the same pure one either function makes, so a product
+ * lands in exactly the half it would have landed in before.
+ */
+export async function listCatalogue(fetchJson: FetchJson): Promise<{ tiers: Tier[]; merch: MerchItem[] }> {
+  const products = await listProducts(fetchJson);
+  return { tiers: tiersFrom(products), merch: merchFrom(products) };
 }

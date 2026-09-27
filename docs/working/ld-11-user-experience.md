@@ -796,6 +796,19 @@ product list twice, once each through `listMerch` and `listTiers`, both on
 the page's mocks in `cart-code.test.ts`, which three open rows also edit, so it
 is left for later rather than done here.
 
+**Collapsed on 2026-09-27, after J3–J12 merged; the operator chose it.**
+`listCatalogue` reads the region and the product list once. It splits them
+with the same pure `tiersFrom` and `merchFrom` that `listTiers` and
+`listMerch` now wrap, and the cart page and the sitemap use it. Each of the
+two pages had made four Store API requests where two answer.
+`listTiers` and `listMerch` stay for the pages that want one half.
+`catalogue-once.test.ts` renders the real cart page with only the Store API
+stubbed, and counts one region read and one product read. It also checks that
+`listCatalogue`'s halves equal what the two functions return. `seo.test.ts`'s
+sitemap test used to pin four fetches, and now pins the two paths. The four
+cart-page tests that mocked `listMerch` and `listTiers` mock `listCatalogue`
+with the same data.
+
 - [x] Say at the cart what checkout says, before the pay control rather than
       after it. Verified by `cart-without-certificate.test.ts`, which renders
       the real cart page for a merch-only cart and for a certificate cart with

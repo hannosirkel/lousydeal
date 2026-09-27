@@ -88,8 +88,7 @@ async function renderCart(options: CartPageOptions = {}): Promise<string> {
   vi.doMock("../src/lib/medusa-client", async (importOriginal) => ({
     ...(await importOriginal<typeof import("../src/lib/medusa-client")>()),
     createStoreFetchJson: () => async () => ({}),
-    listMerch: async () => [],
-    listTiers: async () => [{ id: "prod_deal", handle: "lousy-deal", title: "Lousy Deal", variantId: "variant_certificate", amount: 5, currencyCode: "usd" }],
+    listCatalogue: async () => ({ merch: [], tiers: [{ id: "prod_deal", handle: "lousy-deal", title: "Lousy Deal", variantId: "variant_certificate", amount: 5, currencyCode: "usd" }] }),
   }));
   vi.doMock("../src/lib/store-cart", async (importOriginal) => ({
     ...(await importOriginal<typeof import("../src/lib/store-cart")>()),
