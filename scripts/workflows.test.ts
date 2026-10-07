@@ -1717,7 +1717,7 @@ const BUILD_STEPS: ReadonlyArray<{ readonly [key: string]: YamlValue }> = [
       "vuln-type": "os,library",
       "severity": "CRITICAL",
       "scanners": "vuln",
-      "version": "v0.74.0",
+      "version": "v0.75.0",
     },
   },
   {
@@ -1732,7 +1732,7 @@ const BUILD_STEPS: ReadonlyArray<{ readonly [key: string]: YamlValue }> = [
       "vuln-type": "os,library",
       "severity": "CRITICAL",
       "scanners": "vuln",
-      "version": "v0.74.0",
+      "version": "v0.75.0",
     },
   },
   {
