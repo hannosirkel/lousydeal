@@ -43,7 +43,7 @@ jobs:
     if: >-
       github.event.label.name == 'deploy-test' &&
       github.event.pull_request.state == 'open'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       actions: read
       contents: read
@@ -131,7 +131,7 @@ jobs:
 
   build:
     needs: gate
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # `packages: write` scopes `github.token` to this repository's own GHCR
     # packages, but scope is not the reason this job may hold it while running
     # the pull request's own head code. Two facts carry that:
@@ -225,7 +225,7 @@ jobs:
 
   promote:
     needs: [gate, build]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: test
     # `pull-requests: read` is here, not `{}`, because the leading step below
     # re-reads the pull request's state before the job mints or spends

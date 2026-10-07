@@ -893,7 +893,7 @@ describe("every workflow in this repository", () => {
 // run. The tool list is read from `scripts/validate` itself rather than
 // repeated, so adding a tool there cannot silently leave a caller behind.
 //
-// `shellcheck` ships on the `ubuntu-24.04` image; `node` and `npm` arrive with
+// `shellcheck` ships on the `ubuntu-26.04` image; `node` and `npm` arrive with
 // `actions/setup-node`. Everything else needs an explicit step.
 const RUNNER_PROVIDED_TOOLS = new Set(["shellcheck", "node", "npm"]);
 
@@ -1868,7 +1868,7 @@ describe("Release's job permissions", () => {
     // `runs-on:` is a job-level key no step pin reaches, so it is asserted
     // directly here, for all four jobs, `build` included.
     for (const id of Object.keys(jobs(RELEASE))) {
-      expect(job(RELEASE, id)["runs-on"], `${RELEASE}.${id}`).toBe("ubuntu-24.04");
+      expect(job(RELEASE, id)["runs-on"], `${RELEASE}.${id}`).toBe("ubuntu-26.04");
     }
   });
 });
