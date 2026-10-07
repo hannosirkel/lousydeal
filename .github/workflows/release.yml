@@ -79,7 +79,7 @@ permissions: {}
 
 jobs:
   validate:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     steps:
@@ -134,7 +134,7 @@ jobs:
           bash scripts/validate
 
   gate:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:
@@ -181,7 +181,7 @@ jobs:
 
   build:
     needs: [validate, gate]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       packages: write
@@ -288,7 +288,7 @@ jobs:
 
   promote:
     needs: [validate, gate, build]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: live
     permissions: {}
     env:
