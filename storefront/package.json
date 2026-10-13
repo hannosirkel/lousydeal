@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@stripe/react-stripe-js": "7.0.0",
-    "@stripe/stripe-js": "9.17.0",
+    "@stripe/stripe-js": "10.1.0",
     "next": "16.4.0",
     "pdfkit": "0.20.2",
     "react": "19.3.0",
