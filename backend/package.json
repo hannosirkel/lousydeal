@@ -24,7 +24,7 @@
     "@medusajs/draft-order": "2.21.2",
     "@medusajs/framework": "2.21.2",
     "@medusajs/medusa": "2.21.2",
-    "nodemailer": "10.0.16",
+    "nodemailer": "10.1.0",
     "redis": "6.3.0"
   },
   "devDependencies": {
