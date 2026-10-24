@@ -20,11 +20,11 @@
     "test:smoke": "vitest run --config vitest.smoke.config.mts"
   },
   "dependencies": {
-    "@medusajs/admin-sdk": "2.21.2",
-    "@medusajs/draft-order": "2.21.2",
-    "@medusajs/framework": "2.21.2",
-    "@medusajs/medusa": "2.21.2",
-    "nodemailer": "10.1.0",
+    "@medusajs/admin-sdk": "2.22.1",
+    "@medusajs/draft-order": "2.22.1",
+    "@medusajs/framework": "2.22.1",
+    "@medusajs/medusa": "2.22.1",
+    "nodemailer": "10.2.1",
     "redis": "6.3.0"
   },
   "devDependencies": {
