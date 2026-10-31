@@ -5,7 +5,7 @@
   "description": "Next.js App Router storefront for lousydeal.com.",
   "type": "module",
   "engines": {
-    "node": ">=24.21.0"
+    "node": ">=24.22.2"
   },
   "scripts": {
     "dev": "next dev",
@@ -14,15 +14,15 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@stripe/react-stripe-js": "7.0.0",
-    "@stripe/stripe-js": "10.1.0",
-    "next": "16.4.0",
+    "@stripe/react-stripe-js": "7.0.1",
+    "@stripe/stripe-js": "10.2.0",
+    "next": "16.4.3",
     "pdfkit": "0.20.2",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@types/pdfkit": "0.17.6",
+    "@types/pdfkit": "0.17.7",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0"
   }
