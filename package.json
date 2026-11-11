@@ -5,7 +5,7 @@
   "description": "Lousy Deal storefront and backend monorepo",
   "type": "module",
   "engines": {
-    "node": ">=24.21.0"
+    "node": ">=26.13.1"
   },
   "workspaces": [
     "backend",
